@@ -1,0 +1,21 @@
+---
+import Layout from '@layouts/Layout.astro';
+---
+
+<Layout>
+  <main>
+    <section class="container">
+      <h1 data-inview-manual>about</h1>
+    </section>
+  </main>
+</Layout>
+
+<style lang="scss">
+  section {
+    margin-block: to-rem(100);
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(50);
+    align-items: flex-start;
+  }
+</style>
