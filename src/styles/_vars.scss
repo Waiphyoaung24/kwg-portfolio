@@ -13,17 +13,20 @@
   --grid-columns: 12;
 
   // fonts
-  --ff-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  // LamboType is proprietary; Space Grotesk is the brand-aligned substitute.
+  --ff-primary: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   --ff-secondary: 'Georgia', 'Times New Roman', serif;
 
-  // font-sizes
-  --fs-base: #{clamp-fluid(18, 24)};
-  --fs-1: #{clamp-fluid(54, 72)};
-  --fs-2: #{clamp-fluid(44, 60)};
-  --fs-3: #{clamp-fluid(38, 50)};
-  --fs-4: #{clamp-fluid(32, 42)};
-  --fs-5: #{clamp-fluid(26, 34)};
-  --fs-6: #{clamp-fluid(22, 28)};
+  // font-sizes — display scale from DESIGN.md (Hero 120 → Card 24)
+  --fs-base: #{clamp-fluid(16, 18)};
+  --fs-1: #{clamp-fluid(54, 120)};
+  --fs-2: #{clamp-fluid(44, 80)};
+  --fs-3: #{clamp-fluid(38, 54)};
+  --fs-4: #{clamp-fluid(30, 40)};
+  --fs-5: #{clamp-fluid(22, 27)};
+  --fs-6: #{clamp-fluid(20, 24)};
+  --fs-label: #{to-rem(12)};
+  --fs-micro: #{to-rem(10)};
 
   // font-weights
   --fw-thin: 100;
@@ -44,9 +47,17 @@
   --fw-xblack: 950;
   --fw-ultrablack: var(--fw-xblack);
 
-  // colors
-  --c-light: #ffeedd;
-  --c-dark: #111111;
+  // colors — see DESIGN.md.
+  // --c-light is the foreground (text on dark canvas). --c-dark is the canvas.
+  --c-light: #FFFFFF;
+  --c-dark: #000000;
+  --c-surface-1: #181818;
+  --c-surface-2: #202020;
+  --c-on-surface-muted: #7D7D7D;
+  --c-accent: #FFC000;
+  --c-accent-hover: #917300;
+  --c-link-hover: #3860BE;
+  --c-info: #29ABE2;
 
   // animations
   // in-out

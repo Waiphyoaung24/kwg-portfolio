@@ -1,3 +1,5 @@
+// Display headings: weight 400, uppercase, tight line-heights.
+// Per DESIGN.md, the typeface itself carries the impact; bold is unnecessary.
 h1,
 .h1,
 h2,
@@ -7,41 +9,62 @@ h3,
 h4,
 .h4,
 h5,
-.h5,
-h6,
-.h6 {
-  font-weight: var(--fw-black);
-  line-height: 1.2;
+.h5 {
+  font-weight: var(--fw-regular);
+  text-transform: uppercase;
 }
 
 h1,
 .h1 {
   font-size: var(--fs-1);
+  line-height: 0.92;
 }
 
 h2,
 .h2 {
   font-size: var(--fs-2);
+  line-height: 1.13;
 }
 
 h3,
 .h3 {
   font-size: var(--fs-3);
+  line-height: 1.19;
 }
 
 h4,
 .h4 {
   font-size: var(--fs-4);
+  line-height: 1.15;
 }
 
 h5,
 .h5 {
   font-size: var(--fs-5);
+  line-height: 1.37;
 }
 
+// Card-title tier: regular weight, mixed case allowed.
 h6,
 .h6 {
   font-size: var(--fs-6);
+  font-weight: var(--fw-regular);
+  line-height: 1.3;
+}
+
+// Label and micro tiers from DESIGN.md.
+.label {
+  font-size: var(--fs-label);
+  line-height: 1.83;
+  letter-spacing: 0.96px;
+  text-transform: uppercase;
+}
+
+.micro {
+  font-size: var(--fs-micro);
+  line-height: 2;
+  letter-spacing: 0.225px;
+  text-transform: uppercase;
 }
 
 .richtext {

@@ -10,9 +10,8 @@ import Canvas from '@components/Canvas.astro';
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
 const lang = 'en';
-const title = 'astro creative base';
-const description =
-  'astro starter for creative projects, includes scss setup, gsap, lenis scroll, curtainsjs to load media with webgl, custom cursor, inview trigger, splash screen, robots.txt, sitemap.xml';
+const title = 'KWG';
+const description = 'Personal portfolio. An exhibit, not a funnel.';
 const shareImage = new URL('og-image.jpg', Astro.site);
 ---
 
@@ -21,7 +20,7 @@ const shareImage = new URL('og-image.jpg', Astro.site);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#111111" />
+    <meta name="theme-color" content="#000000" />
     <title>{title}</title>
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -29,6 +28,12 @@ const shareImage = new URL('og-image.jpg', Astro.site);
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="canonical" href={canonicalURL} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
+    />
     <!-- TODO: remove when going live -->
     <!-- <meta name="robots" content="noindex, nofollow" /> -->
     <meta name="description" content={description} />
@@ -48,13 +53,6 @@ const shareImage = new URL('og-image.jpg', Astro.site);
         document.documentElement.classList.add('play-splash');
       }
     </script>
-    <script
-      is:inline
-      defer
-      src="https://tracking.jnkl.dev/script.js"
-      data-website-id="b44d7dd2-f222-4333-a09d-e66fbe703a6e"
-      data-domains="astro-creative-base.jnkl.dev"
-      data-do-not-track="true"></script>
   </head>
   <body>
     <Cursor />
@@ -65,7 +63,7 @@ const shareImage = new URL('og-image.jpg', Astro.site);
 
     <Footer />
 
-    <Splash text="splish splash" />
+    <Splash text="KWG" />
 
     <Canvas />
 

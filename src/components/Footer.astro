@@ -1,21 +1,24 @@
 <footer>
   <div class="container">
-    <p>
-      made by
-      <a href="https://jankohlbach.com" target="_blank">
-        https://jankohlbach.com
-      </a>
-    </p>
+    <p>&copy; 2026 KWG</p>
   </div>
 </footer>
 
 <style lang="scss">
   footer {
-    padding-block: to-rem(20);
+    padding-block: to-rem(24);
+    border-top: 1px solid var(--c-surface-2);
   }
 
   .container {
     display: flex;
     justify-content: center;
+  }
+
+  p {
+    font-size: var(--fs-label);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--c-on-surface-muted);
   }
 </style>

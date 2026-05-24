@@ -1,79 +1,51 @@
-# astro creative base
+# kwg-portfolio
 
-astro starter for creative projects, includes scss setup, gsap, lenis scroll, curtainsjs to load media with webgl, custom cursor, inview trigger, splash screen, robots.txt, sitemap.xml
+Personal portfolio. An exhibit, not a funnel. Brand strategy lives in [`PRODUCT.md`](./PRODUCT.md), visual system in [`DESIGN.md`](./DESIGN.md). Read those before touching styles or copy.
 
-Feedback, ideas, and everything else always welcome.
+## Stack
 
-## What's inside?
+- [Astro 6](https://astro.build)
+- SCSS with a custom reset, mixins, and fluid sizing utilities
+- [GSAP](https://gsap.com/docs/v3/) for orchestrated animation
+- [Lenis](https://github.com/darkroomengineering/lenis) for smooth scroll
+- [curtains.js](https://www.curtainsjs.com/documentation.html) for WebGL on media
+- Custom cursor, inview triggers, splash screen
 
-### Opinionated SCSS setup
+## Local development
 
-This grew over time and serves me good. Has a very minimalist reset and works with css variables. Also includes some nice mixins and functions like detecting hover devices with ```@include has-hover {}```, converting pixels to rem with ```to-rem(20)``` or fluid sizing with ```clamp-fluid(20, 80)```.
-
-I also generally work with sections, containers and grid. There are some css variables to set it up, the rest is plain css basically.
-
-### GSAP / [Documentation](https://gsap.com/docs/v3/)
-
-Installed as dependency, in this starter only used for the splash screen animation.
-
-### Lenis / [Documentation](https://github.com/darkroomengineering/lenis/blob/main/README.md)
-
-The currently go-to-library for smooth scroll. Also a set of functions to start / stop scroll without jumping elements because of width changes when the scrollbar disappears (e.g. when opening a modal).
-
-### curtains.js [Documentation](https://www.curtainsjs.com/documentation.html)
-
-I switched from three.js to curtains because it's 1. a simpler setup and 2. more lightweight. Most of the time I just want to display images or videos with webgl and apply shaders to it and this setup makes this task super easy. You can easily see how it works on the page, but this is the basic setup if you want to display an image with webgl.
-```
-<div class="image" data-canvas>
-  <img src="/texture.jpg" alt="test-texture" crossorigin="" />
-</div>
-```
-I do have another little project if you need inspiration or help with the shaders [here](https://real-world-shader.jankohlbach.com/).
-
-### Custom Cursor
-
-I often have to include this in creative projects, so this is my take on tracking the cursor position and hovering states.
-
-### Inview Trigger
-
-Same here, often needed, so I included the basic intersection observer logic. Simply add ```[data-inview]``` and adjust the css if you want. For some elements I want to delay the trigger or manually start the animation, e.g. in the hero element when there's a page intro before. For this I'm using ```[data-inview-manual]``` to apply the same styles, while not having it in the intersection observer logic.
-
-### Splash Screen
-
-Not needed all the time, but when, I don't wanna copy it everytime :D
-
-Most of the time I really don't need to preload assets, so this is just a decorative animation for now.
-
-### robots.txt and sitemap.xml
-
-Well, obviously needed, so it's included right away.
-
-## Setup
-
-Make sure to install the dependencies:
+Requires Node 24+ and Yarn.
 
 ```bash
 yarn install
+yarn dev      # http://localhost:4321
+yarn build    # runs astro check, then builds for production
+yarn preview  # serves the production build locally
 ```
 
-## Development Server
+## Project layout
 
-Start the development server on http://localhost:4321
-
-```bash
-yarn dev
+```
+src/
+  components/   Header, Footer, Cursor, Canvas, Splash
+  layouts/      shared shell
+  pages/        /, /page-2, /my-portfolio, /about
+  scripts/      scroll, inview, console credits
+  styles/       _vars, _base, _typography, mixins, fonts
+PRODUCT.md      register, audience, brand personality, anti-references, design principles, accessibility floor
+DESIGN.md       color, typography, components, motion, breakpoints
 ```
 
-## Production
+## Brand rules at a glance
 
-Build the application for production:
+The full system is in [`DESIGN.md`](./DESIGN.md). For quick reference when editing:
 
-```bash
-yarn build
-```
+- Surface is `#000000`. Not dark gray. Not near-black.
+- Type is white on black, weight 400, uppercase at display sizes.
+- The only chromatic color is Lamborghini Gold (`#FFC000`), reserved for primary CTAs.
+- Border-radius is 0 on buttons and cards. Sharp angles are non-negotiable.
+- Motion is color and opacity, never scale or translate on hover.
+- Anti-references (see [`PRODUCT.md`](./PRODUCT.md)): no neon, no glassmorphism, no gradient text, no hero-metric template.
 
-Locally preview production build:
+## Credits
 
-```bash
-yarn preview
-```
+Built on the [astro-creative-base](https://github.com/jankohlbach/astro-creative-base) starter by Jan Kohlbach. Brand direction and content are original.

@@ -7,11 +7,11 @@ import glsl from 'vite-plugin-glsl';
 
 // https://astro.build/config
 export default defineConfig({
-  // TODO: change to final domain
+  // TODO: replace with the final production domain before going live
   site:
     process.env.NODE_ENV === 'development'
       ? 'http://localhost:4321'
-      : 'https://astro-creative-base.jnkl.dev',
+      : 'https://kwg-portfolio.example.com',
   integrations: [
     robotsTxt({
       sitemapBaseFileName: 'sitemap-index',

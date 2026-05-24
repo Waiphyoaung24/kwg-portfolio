@@ -1,20 +1,12 @@
 <header>
   <div class="container">
-    <a href="/">astro creative base</a>
+    <a href="/">KWG</a>
     <nav>
       <ul>
         <li><a href="/">Home</a></li>
         <li><a href="/page-2">Page 2</a></li>
         <li><a href="/my-portfolio">My Portfolio</a></li>
         <li><a href="/about">About</a></li>
-        <li>
-          <a
-            href="https://github.com/jankohlbach/astro-creative-base"
-            target="_blank"
-          >
-            GitHub
-          </a>
-        </li>
       </ul>
     </nav>
   </div>
@@ -23,20 +15,42 @@
 <style lang="scss">
   header {
     padding-block: to-rem(20);
+    position: relative;
+    z-index: 10;
   }
 
   .container {
     display: flex;
     justify-content: space-between;
+    align-items: center;
   }
 
   a {
     text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: var(--fs-label);
+  }
+
+  // Brand mark sits a step heavier in tracking than nav links.
+  .container > a {
+    letter-spacing: 0.24em;
+    font-weight: var(--fw-medium);
   }
 
   ul {
     display: flex;
-    gap: to-rem(20);
+    gap: to-rem(24);
     list-style: none;
+  }
+
+  nav a {
+    transition: color 0.2s var(--ease-smooth);
+
+    @include has-hover {
+      &:hover {
+        color: var(--c-accent);
+      }
+    }
   }
 </style>

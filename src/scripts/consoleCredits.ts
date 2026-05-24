@@ -1,9 +1,10 @@
+// TODO: set the production URL below before going live
 console.log(
-  '%c⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡\n⟡                                   ⟡\n⟡  code by https://jankohlbach.com  ⟡\n⟡                                   ⟡\n⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡',
+  '%c⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡\n⟡                                   ⟡\n⟡               KWG                 ⟡\n⟡                                   ⟡\n⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡⟡',
   `
     font-family: monospace;
     font-size: 14px;
-    color: #F4CBDF;
-    background: #152720;
+    color: #FFC000;
+    background: #000000;
   `,
 );
