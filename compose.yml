@@ -1,0 +1,6 @@
+services:
+  web:
+    build: .
+    ports:
+      - "89:89"
+    restart: unless-stopped
