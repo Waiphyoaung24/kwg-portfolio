@@ -1,69 +1,485 @@
 ---
 import Layout from '@layouts/Layout.astro';
+
+// Showcase gallery — placeholder imagery from Pexels per user reference.
+// Replace src URLs with real work when available.
+const gallery = [
+  { src: 'https://images.pexels.com/photos/8467429/pexels-photo-8467429.jpeg', title: 'Ethereal Dreams', sub: 'Visual storytelling' },
+  { src: 'https://images.pexels.com/photos/33276110/pexels-photo-33276110.jpeg', title: 'Midnight Bloom', sub: 'Dark elegance' },
+  { src: 'https://images.pexels.com/photos/3378993/pexels-photo-3378993.jpeg', title: 'Golden Hour', sub: 'Warm minimalism' },
+  { src: 'https://images.pexels.com/photos/1231258/pexels-photo-1231258.jpeg', title: 'Urban Solace', sub: 'City life reimagined' },
+];
+
+// Capabilities — three "stands" with the scroll-stand 3D-card reveal.
+// Heading words are pre-split server-side (no runtime SplitText) so the
+// inline script can simply select `.word`s and animate their color.
+const stands = [
+  {
+    heading: 'Websites & Landing Pages',
+    sub: 'High-end sites built to perform and convert.',
+    cards: [
+      'https://i.pinimg.com/webp85/1200x/18/32/a0/1832a0151330ab6d294430e4514c8d62.webp',
+      'https://i.pinimg.com/webp85/736x/48/b1/78/48b17830b4d8357cc77c00cc3b305d33.webp',
+      'https://i.pinimg.com/736x/98/64/06/9864062eb69f36ababb1c7b9eafe9041.jpg',
+      'https://i.pinimg.com/736x/91/26/3d/91263d9faaf8c0cb2dc6d0895cf9a4c9.jpg',
+      'https://i.pinimg.com/webp85/1200x/f6/71/df/f671dfeb4fdcd20ce3f735856becd301.webp',
+    ],
+  },
+  {
+    heading: 'Brand & Identity',
+    sub: 'Visual systems that feel intentional, memorable, and unmistakably yours.',
+    cards: [
+      'https://i.pinimg.com/736x/04/51/50/045150afa7b4c1cba03c820404a797da.jpg',
+      'https://i.pinimg.com/webp85/1200x/1f/72/fa/1f72fa7b97455361a75ce32e9231a1e0.webp',
+      'https://i.pinimg.com/webp85/736x/e7/67/ee/e767ee0e687bad29566e3572649ef158.webp',
+      'https://i.pinimg.com/webp85/1200x/11/ad/d7/11add7639770b4af0d80fc196e6b047d.webp',
+      'https://i.pinimg.com/736x/a9/d4/41/a9d441397c2182a4d338fce6e0b1a7a7.jpg',
+    ],
+  },
+  {
+    heading: 'Product & UI',
+    sub: 'Interfaces crafted with clarity — every screen considered, every interaction refined.',
+    cards: [
+      'https://i.pinimg.com/webp85/1200x/e5/c3/7a/e5c37a81fd544d98e80575c046d8f11e.webp',
+      'https://i.pinimg.com/736x/3d/2e/c1/3d2ec1c74d737e1318c85b0f1a7dbca2.jpg',
+      'https://i.pinimg.com/736x/0c/41/bb/0c41bbd2138ece6834fc488bace34cc9.jpg',
+      'https://i.pinimg.com/webp85/1200x/18/32/a0/1832a0151330ab6d294430e4514c8d62.webp',
+      'https://i.pinimg.com/webp85/736x/48/b1/78/48b17830b4d8357cc77c00cc3b305d33.webp',
+    ],
+  },
+];
 ---
 
 <Layout>
   <main>
-    <section class="container">
-      <h1 data-inview-manual>KWG</h1>
-      <p data-inview-manual>
-        Personal portfolio. An exhibit, not a funnel.
+    <section class="hero" aria-labelledby="hero-mark">
+      <p class="hero__index label" data-inview-manual>01 &mdash; Index</p>
+
+      <div class="hero__center">
+        <h1 id="hero-mark" class="hero__mark" data-inview-manual>KWG</h1>
+        <p class="hero__tagline" data-inview-manual>
+          Personal Portfolio.<br />
+          An exhibit, not a funnel.
+        </p>
+      </div>
+
+      <p class="hero__cue label" data-inview-manual>
+        Scroll <span aria-hidden="true">&darr;</span> 2026
       </p>
     </section>
-    <section class="container">
-      <h2 data-inview-manual>section</h2>
-      <div class="grid media">
-        <div class="image" data-canvas>
-          <img src="/texture.jpg" alt="test-texture" crossorigin="" />
-        </div>
-        <div class="video" data-canvas>
-          <video src="/video.mp4" muted autoplay loop playsinline crossorigin=""
-          ></video>
-        </div>
-      </div>
+
+    <section class="container work" aria-labelledby="work-heading">
+      <header class="work__header">
+        <p class="label" data-inview>02 &mdash; Selected Work</p>
+        <h2 id="work-heading" class="work__title-block" data-inview>
+          Selected Work<br />
+          <span class="work__years">2024 &mdash; 2026</span>
+        </h2>
+      </header>
+
+      <ul class="gallery" role="list">
+        {
+          gallery.map(({ src, title, sub }) => (
+            <li class="gallery__item">
+              <figure class="gallery__figure">
+                <img class="gallery__img" src={src} alt={title} loading="lazy" />
+                <figcaption class="gallery__caption">
+                  <p class="gallery__title">{title}</p>
+                  <span class="gallery__sub">{sub}</span>
+                </figcaption>
+              </figure>
+            </li>
+          ))
+        }
+      </ul>
     </section>
-    <section class="container">
-      <h2 data-inview>section</h2>
-      <div class="grid media">
-        <div class="image" data-canvas>
-          <img src="/texture.jpg" alt="test-texture" crossorigin="" />
-        </div>
-      </div>
-    </section>
-    <section class="container">
-      <h2 data-inview>section</h2>
-      <div class="grid media">
-        <div class="image" data-canvas>
-          <img src="/texture.jpg" alt="test-texture" crossorigin="" />
-        </div>
-      </div>
+
+    <section class="capabilities" aria-labelledby="capabilities-heading">
+      <header class="container capabilities__header">
+        <p class="label" data-inview>03 &mdash; Capabilities</p>
+        <h2 id="capabilities-heading" class="visually-hidden">Capabilities</h2>
+      </header>
+
+      {
+        stands.map(({ heading, sub, cards }) => {
+          const words = heading.split(/\s+/);
+          return (
+            <article class="stand">
+              <div class="stand__inner">
+                <div class="stand__copy">
+                  <h3 class="stand__heading">
+                    {words.map((w, i) => (
+                      <>
+                        <span class="word">{w}</span>
+                        {i < words.length - 1 ? ' ' : ''}
+                      </>
+                    ))}
+                  </h3>
+                  <p class="stand__sub">{sub}</p>
+                </div>
+
+                <div class="stand__cards">
+                  <div class="stand__stage">
+                    {cards.map((src) => (
+                      <article class="stand__card">
+                        <img src={src} alt="" loading="lazy" />
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </article>
+          );
+        })
+      }
     </section>
   </main>
 </Layout>
 
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  // Importing scroll.ts ensures the Lenis ↔ ScrollTrigger bridge is wired
+  // before our triggers are created.
+  import '../scripts/scroll';
+
+  const imgs = gsap.utils.toArray<HTMLImageElement>('.gallery__img');
+  const isDesktop = window.innerWidth > 768;
+
+  imgs.forEach((img, i) => {
+    gsap.set(img, {
+      rotation: i % 2 === 0 ? -50 : 50,
+      transformOrigin: 'center center',
+      y: isDesktop ? 500 : 350,
+      opacity: 0,
+    });
+
+    ScrollTrigger.create({
+      trigger: img,
+      start: isDesktop ? 'top 100%' : 'top 120%',
+      once: true,
+      onEnter: () => {
+        gsap.to(img, {
+          rotation: 0,
+          y: 0,
+          opacity: 1,
+          duration: 1,
+          ease: 'power2.inOut',
+          delay: isDesktop ? (i % 2 === 0 ? 0 : 0.25) : 0,
+        });
+      },
+    });
+  });
+</script>
+
+<script>
+  // Scroll-stand: 5 cards per stand start fanned in 3D and flatten into a
+  // row as the section enters the viewport. Heading words stagger color
+  // from white → muted. Scrubbed to scroll position via the Lenis-driven
+  // GSAP ticker wired in src/scripts/scroll.ts.
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  import '../scripts/scroll';
+
+  // Read live design tokens so palette tweaks in _vars.scss flow through.
+  const css = getComputedStyle(document.documentElement);
+  const cLight = css.getPropertyValue('--c-light').trim() || '#FFFFFF';
+  const cMuted = css.getPropertyValue('--c-on-surface-muted').trim() || '#7D7D7D';
+
+  // Per-card initial 3D state — center card is most vertical, edges fan out.
+  const cardStart = [
+    { rotateX: 58, rotateY: 18, y: 48 },
+    { rotateX: 74, rotateY: 5, y: 32 },
+    { rotateX: 90, rotateY: 0, y: 18 },
+    { rotateX: 74, rotateY: -5, y: 32 },
+    { rotateX: 58, rotateY: -18, y: 48 },
+  ];
+
+  document.querySelectorAll<HTMLElement>('.stand').forEach((section) => {
+    const cards = section.querySelectorAll<HTMLElement>('.stand__card');
+    const copy = section.querySelector<HTMLElement>('.stand__copy');
+    const words = section.querySelectorAll<HTMLElement>('.stand__heading .word');
+
+    cards.forEach((card, i) => {
+      gsap.set(card, {
+        ...cardStart[i % cardStart.length],
+        transformOrigin: '50% 100%',
+        transformPerspective: 1560,
+      });
+    });
+
+    if (copy) gsap.set(copy, { y: -10 });
+    gsap.set(words, { color: cLight });
+
+    gsap.timeline({
+      scrollTrigger: {
+        trigger: section,
+        start: 'top 40%',
+        end: 'top 0%',
+        scrub: 1,
+      },
+    })
+      .to(cards, { rotateX: 0, rotateY: 0, y: 0, ease: 'power1.inOut', duration: 1 }, 0)
+      .to(copy, { y: 0 }, 0)
+      .to(words, { color: cMuted, stagger: 0.2 }, 0.1);
+  });
+</script>
+
 <style lang="scss">
-  section {
-    margin-block: to-rem(100);
+  // HERO — full-viewport typographic void.
+  // Three rows: top label, centered statement, bottom scroll cue.
+  // No imagery. Darkness IS the design per DESIGN.md §1.
+  // 4rem subtracts the Header's vertical footprint (padding-block 1.25rem × 2
+  // + ~1rem label content ≈ 3.5rem, rounded to 4rem) so the cue sits inside
+  // the viewport instead of below the fold.
+  .hero {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: calc(100svh - 4rem);
+    padding: to-rem(24) var(--grid-margin) to-rem(40);
+  }
+
+  .hero__index {
+    color: var(--c-on-surface-muted);
+  }
+
+  .hero__center {
     display: flex;
     flex-direction: column;
-    gap: to-rem(50);
-    align-items: flex-start;
+    justify-content: center;
+    gap: clamp-fluid(20, 40);
   }
 
-  p {
-    max-width: 60ch;
+  .hero__mark {
+    margin: 0;
+    color: var(--c-light);
+    letter-spacing: -0.02em;
   }
 
-  .media {
+  .hero__tagline {
+    max-width: 32ch;
+    color: var(--c-light);
+    font-size: clamp-fluid(14, 18);
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .hero__cue {
+    justify-self: end;
+    align-self: end;
+    color: var(--c-on-surface-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: to-rem(8);
+  }
+
+  // SELECTED WORK — title block only. Cards intentionally absent (curtainsjs
+  // alignment bug, see Canvas.astro). Holds the page section anchor for
+  // future content.
+  .work {
+    margin-block: clamp-fluid(80, 160) clamp-fluid(80, 160);
+    display: flex;
+    flex-direction: column;
+    gap: clamp-fluid(40, 80);
+  }
+
+  .work__header {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(16);
+  }
+
+  .work__header .label {
+    color: var(--c-on-surface-muted);
+  }
+
+  .work__title-block {
+    color: var(--c-light);
+  }
+
+  .work__years {
+    color: var(--c-on-surface-muted);
+  }
+
+  // GALLERY — 2-col on desktop, 1-col on mobile. Each tile is animated in
+  // via the inline <script> at the bottom of this file (GSAP ScrollTrigger).
+  // Initial state (rotated, translated, hidden) is applied in JS to avoid
+  // a flash of un-animated content before GSAP's first set() runs; ensure
+  // gsap.set fires before paint by importing in a module script.
+  .gallery {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp-fluid(32, 64);
+  }
+
+  .gallery__item {
     width: 100%;
-    align-items: start;
+
+    @media (min-width: 769px) {
+      // calc(50% - half-gap) so two items fit per row with the flex gap.
+      width: calc(50% - clamp-fluid(16, 32));
+    }
+
+    // Off-row offset reinforces the staggered, editorial feel from the
+    // ScrollTrigger entrance.
+    @media (min-width: 769px) {
+      &:nth-child(even) {
+        margin-top: clamp-fluid(40, 80);
+      }
+    }
   }
 
-  .image {
-    grid-column: span 4;
+  .gallery__figure {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(12);
   }
 
-  .video {
-    grid-column: 7 / span 6;
+  .gallery__img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background-color: var(--c-surface-1);
+    display: block;
+    // GSAP-driven entrance, no CSS transition.
+    will-change: transform, opacity;
+  }
+
+  .gallery__caption {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(4);
+  }
+
+  .gallery__title {
+    color: var(--c-light);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: clamp-fluid(14, 16);
+    font-weight: var(--fw-medium);
+    margin: 0;
+  }
+
+  .gallery__sub {
+    color: var(--c-on-surface-muted);
+    font-size: clamp-fluid(12, 14);
+  }
+
+  // CAPABILITIES — 3 "stand" sections where 5 cards are fanned in 3D
+  // perspective and flatten into a row as you scroll. Word color staggers
+  // from white → muted gray across each heading reveal.
+  .capabilities {
+    margin-block: clamp-fluid(120, 200);
+  }
+
+  .capabilities__header {
+    margin-bottom: clamp-fluid(40, 80);
+
+    .label {
+      color: var(--c-on-surface-muted);
+    }
+  }
+
+  .stand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: clamp-fluid(80, 160) clamp-fluid(20, 64);
+  }
+
+  .stand__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .stand__copy {
+    z-index: 2;
+    width: 100%;
+    max-width: 36rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: to-rem(20);
+    text-align: center;
+  }
+
+  .stand__heading {
+    font-size: clamp-fluid(40, 80);
+    font-weight: var(--fw-regular);
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    text-align: center;
+    margin: 0;
+  }
+
+  .stand__heading .word {
+    display: inline-block;
+    // GSAP animates this from --c-light → --c-on-surface-muted with stagger
+    // as the stand scrolls into view. Static fallback if JS is disabled.
+    color: var(--c-on-surface-muted);
+  }
+
+  .stand__sub {
+    font-size: clamp-fluid(14, 16);
+    color: var(--c-on-surface-muted);
+    max-width: 36ch;
+  }
+
+  .stand__cards {
+    width: 100%;
+    margin-top: clamp-fluid(24, 48);
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .stand__stage {
+    perspective: 1560px;
+    perspective-origin: 50% 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.5vw;
+    transform-style: preserve-3d;
+    width: 100%;
+  }
+
+  .stand__card {
+    --card-w: 17vw;
+    --card-h: 22vw;
+
+    width: var(--card-w);
+    height: var(--card-h);
+    flex-shrink: 0;
+    transform-origin: 50% 100%;
+    transform-style: preserve-3d;
+    border-radius: 0; // sharp corners per DESIGN.md §7
+    overflow: hidden;
+    background-color: var(--c-surface-1);
+    will-change: transform;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  @media (max-width: 991px) {
+    .stand__card {
+      --card-w: 28vw;
+      --card-h: 36vw;
+    }
   }
 </style>
