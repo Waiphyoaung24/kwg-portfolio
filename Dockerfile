@@ -11,4 +11,4 @@ RUN npm install -g serve
 COPY --from=build /app/dist ./dist
 ENV PORT=89
 EXPOSE 89
-CMD ["serve", "-s", "dist", "-l", "89"]
+CMD ["serve", "dist", "-l", "89"]
