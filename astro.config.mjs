@@ -24,6 +24,7 @@ export default defineConfig({
       // ],
     }),
     sitemap({
+      filter: (page) => !page.includes('/vault'),
       lastmod: new Date(),
       xslURL: '/sitemap.xsl',
     }),
