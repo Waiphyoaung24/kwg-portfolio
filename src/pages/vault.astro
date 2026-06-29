@@ -51,9 +51,7 @@ const placeholders = Array.from({ length: 6 });
             aria-describedby="gate-error"
             required
           />
-          <p class="gate__error" id="gate-error" role="alert" aria-live="assertive" hidden>
-            Incorrect password.
-          </p>
+          <p class="gate__error" id="gate-error" role="alert"></p>
           <button class="gate__submit" type="submit">Enter</button>
         </form>
       </section>
@@ -94,12 +92,12 @@ const placeholders = Array.from({ length: 6 });
         e.preventDefault();
         if ((await sha256Hex(pw.value)) === expected) {
           localStorage.setItem('kwg_vault', '1');
-          err.hidden = true;
+          err.textContent = '';
           pw.removeAttribute('aria-invalid');
           setState('open');
           title.focus();
         } else {
-          err.hidden = false;
+          err.textContent = 'Incorrect password.';
           pw.setAttribute('aria-invalid', 'true');
           pw.value = '';
           pw.focus();
@@ -191,6 +189,7 @@ const placeholders = Array.from({ length: 6 });
       }
       .gate__error {
         margin: 0;
+        min-height: 1lh;
         font-size: var(--fs-label);
         letter-spacing: 0.04em;
         color: var(--c-accent);
