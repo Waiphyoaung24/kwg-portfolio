@@ -1,0 +1,300 @@
+---
+import '../styles/index.scss';
+
+// ── Vault password (obscurity gate, client-side only) ──────────────────
+// SHA-256 hex of the password. Default password is "changeme" — REPLACE IT:
+//   node -e "crypto.subtle.digest('SHA-256',new TextEncoder().encode('YOUR_PW')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))"
+const VAULT_HASH = '057ba03d6c44104863dc7361fe4578965d1887360f90a0895882e58a6248fc86';
+
+const placeholders = Array.from({ length: 6 });
+---
+
+<!doctype html>
+<html lang="en" data-vault="locked">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="robots" content="noindex" />
+    <title>Vault — KWG</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
+    />
+    <!-- Decide state before paint → no flash of the wrong section. -->
+    <script is:inline>
+      document.documentElement.dataset.vault =
+        localStorage.getItem('kwg_vault') === '1' ? 'open' : 'locked';
+    </script>
+  </head>
+
+  <body data-vault-hash={VAULT_HASH}>
+    <main class="vault">
+      <!-- ── Login ─────────────────────────────────────────────── -->
+      <section class="gate" id="gate" aria-labelledby="gate-title">
+        <form class="gate__form" id="gate-form" novalidate>
+          <p class="gate__eyebrow">KWG</p>
+          <h1 class="gate__title" id="gate-title">Vault</h1>
+          <label class="gate__label" for="gate-pw">Password</label>
+          <input
+            class="gate__input"
+            id="gate-pw"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            aria-describedby="gate-error"
+            required
+          />
+          <p class="gate__error" id="gate-error" role="alert" aria-live="assertive" hidden>
+            Incorrect password.
+          </p>
+          <button class="gate__submit" type="submit">Enter</button>
+        </form>
+      </section>
+
+      <!-- ── Vault ─────────────────────────────────────────────── -->
+      <section class="grid-wrap" id="vault" aria-labelledby="vault-title">
+        <header class="grid-wrap__head">
+          <h1 class="grid-wrap__title" id="vault-title" tabindex="-1">Vault</h1>
+          <button class="grid-wrap__lock" type="button" id="logout">Lock</button>
+        </header>
+        <p class="grid-wrap__caption">Your handy tools live here.</p>
+        <ul class="tools" role="list">
+          {placeholders.map(() => (
+            <li class="tool" aria-hidden="true">
+              <span class="tool__plus">+</span>
+              <span class="tool__hint">Add a tool</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      import { sha256Hex } from '../scripts/vault-hash';
+
+      const form = document.querySelector<HTMLFormElement>('#gate-form')!;
+      const pw = document.querySelector<HTMLInputElement>('#gate-pw')!;
+      const err = document.querySelector<HTMLParagraphElement>('#gate-error')!;
+      const title = document.querySelector<HTMLHeadingElement>('#vault-title')!;
+      const logout = document.querySelector<HTMLButtonElement>('#logout')!;
+      const expected = document.body.dataset.vaultHash!;
+
+      const setState = (s: 'open' | 'locked') => {
+        document.documentElement.dataset.vault = s;
+      };
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if ((await sha256Hex(pw.value)) === expected) {
+          localStorage.setItem('kwg_vault', '1');
+          err.hidden = true;
+          pw.removeAttribute('aria-invalid');
+          setState('open');
+          title.focus();
+        } else {
+          err.hidden = false;
+          pw.setAttribute('aria-invalid', 'true');
+          pw.value = '';
+          pw.focus();
+        }
+      });
+
+      logout.addEventListener('click', () => {
+        localStorage.removeItem('kwg_vault');
+        setState('locked');
+        pw.value = '';
+        pw.focus();
+      });
+
+      // Focus the field when arriving locked.
+      if (document.documentElement.dataset.vault !== 'open') pw.focus();
+    </script>
+
+    <style lang="scss">
+      // States: head script sets html[data-vault]; CSS reveals one section.
+      #gate,
+      #vault {
+        display: none;
+      }
+      :global(html[data-vault='locked']) #gate {
+        display: grid;
+      }
+      :global(html[data-vault='open']) #vault {
+        display: block;
+      }
+
+      .vault {
+        min-height: 100svh;
+        background: var(--c-dark);
+        color: var(--c-light);
+        font-family: var(--ff-primary);
+      }
+
+      // ── Login ──────────────────────────────────────────────
+      .gate {
+        min-height: 100svh;
+        place-items: center;
+        padding: to-rem(24);
+      }
+      .gate__form {
+        display: grid;
+        gap: to-rem(12);
+        width: min(100%, to-rem(360));
+      }
+      .gate__eyebrow {
+        margin: 0;
+        font-size: var(--fs-label);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--c-on-surface-muted);
+      }
+      .gate__title {
+        margin: 0 0 to-rem(8);
+        font-size: var(--fs-3);
+        line-height: 0.95;
+        text-transform: uppercase;
+      }
+      .gate__label {
+        font-size: var(--fs-label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--c-on-surface-muted);
+      }
+      .gate__input {
+        appearance: none;
+        width: 100%;
+        padding: to-rem(14) to-rem(16);
+        background: var(--c-surface-1);
+        border: 1px solid var(--c-surface-2);
+        color: var(--c-light);
+        font: inherit;
+        transition: border-color 0.2s var(--ease-smooth);
+
+        &:hover {
+          border-color: var(--c-on-surface-muted);
+        }
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 2px;
+          border-color: var(--c-accent);
+        }
+        &[aria-invalid='true'] {
+          border-color: var(--c-accent);
+        }
+      }
+      .gate__error {
+        margin: 0;
+        font-size: var(--fs-label);
+        letter-spacing: 0.04em;
+        color: var(--c-accent);
+      }
+      .gate__submit {
+        margin-top: to-rem(4);
+        padding: to-rem(14) to-rem(20);
+        background: var(--c-accent);
+        color: var(--c-dark);
+        border: none;
+        font: inherit;
+        font-weight: var(--fw-medium);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background 0.2s var(--ease-smooth);
+
+        &:hover {
+          background: var(--c-accent-hover);
+        }
+        &:focus-visible {
+          outline: 2px solid var(--c-light);
+          outline-offset: 2px;
+        }
+      }
+
+      // ── Vault grid ─────────────────────────────────────────
+      .grid-wrap {
+        max-width: var(--grid-max-width);
+        margin-inline: auto;
+        padding: clamp-fluid(24, 56) var(--grid-margin);
+      }
+      .grid-wrap__head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: to-rem(16);
+      }
+      .grid-wrap__title {
+        margin: 0;
+        font-size: var(--fs-2);
+        line-height: 0.95;
+        text-transform: uppercase;
+
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 4px;
+        }
+      }
+      .grid-wrap__lock {
+        background: transparent;
+        border: 1px solid var(--c-surface-2);
+        color: var(--c-light);
+        padding: to-rem(8) to-rem(16);
+        font: inherit;
+        font-size: var(--fs-label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition:
+          border-color 0.2s var(--ease-smooth),
+          color 0.2s var(--ease-smooth);
+
+        &:hover {
+          border-color: var(--c-accent);
+          color: var(--c-accent);
+        }
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 2px;
+        }
+      }
+      .grid-wrap__caption {
+        margin: to-rem(8) 0 clamp-fluid(24, 40);
+        color: var(--c-on-surface-muted);
+      }
+      .tools {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(to-rem(220), 1fr));
+        gap: clamp-fluid(12, 20);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .tool {
+        display: grid;
+        place-content: center;
+        gap: to-rem(8);
+        aspect-ratio: 4 / 3;
+        background: var(--c-surface-1);
+        border: 1px dashed var(--c-surface-2);
+        color: var(--c-on-surface-muted);
+        text-align: center;
+      }
+      .tool__plus {
+        font-size: var(--fs-4);
+        line-height: 1;
+        color: var(--c-surface-2);
+      }
+      .tool__hint {
+        font-size: var(--fs-label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+    </style>
+  </body>
+</html>
