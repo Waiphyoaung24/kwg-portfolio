@@ -1,0 +1,71 @@
+---
+import '../../styles/index.scss';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="robots" content="noindex" />
+    <title>Fitness — Vault — KWG</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
+    />
+    <!-- Obscurity gate: bounce to /vault unless already unlocked. -->
+    <script is:inline>
+      if (localStorage.getItem('kwg_vault') !== '1') location.replace('/vault');
+    </script>
+  </head>
+
+  <body>
+    <main class="page">
+      <a class="page__back" href="/vault">← Vault</a>
+      <h1 class="page__title">Fitness</h1>
+      <p class="page__caption">Nothing here yet.</p>
+    </main>
+
+    <style lang="scss">
+      .page {
+        display: grid;
+        align-content: start;
+        gap: to-rem(16);
+        min-height: 100svh;
+        max-width: var(--grid-max-width);
+        margin-inline: auto;
+        padding: clamp-fluid(24, 56) var(--grid-margin);
+      }
+      .page__back {
+        justify-self: start;
+        font-size: var(--fs-label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--c-on-surface-muted);
+        text-decoration: none;
+        transition: color 0.2s var(--ease-smooth);
+
+        &:hover {
+          color: var(--c-accent);
+        }
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 2px;
+        }
+      }
+      .page__title {
+        margin: to-rem(8) 0 0;
+        font-size: var(--fs-2);
+        line-height: 0.95;
+        text-transform: uppercase;
+      }
+      .page__caption {
+        color: var(--c-on-surface-muted);
+      }
+    </style>
+  </body>
+</html>

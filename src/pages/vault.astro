@@ -64,6 +64,12 @@ const placeholders = Array.from({ length: 6 });
         </header>
         <p class="grid-wrap__caption">Your handy tools live here.</p>
         <ul class="tools" role="list">
+          <li class="tool tool--active">
+            <a class="tool__link" href="/vault/fitness">
+              <span class="tool__name">Fitness</span>
+              <span class="tool__hint">Open</span>
+            </a>
+          </li>
           {placeholders.map(() => (
             <li class="tool" aria-hidden="true">
               <span class="tool__plus">+</span>
@@ -283,6 +289,40 @@ const placeholders = Array.from({ length: 6 });
         border: 1px dashed var(--c-surface-2);
         color: var(--c-on-surface-muted);
         text-align: center;
+      }
+      .tool--active {
+        padding: 0;
+        border-style: solid;
+        color: var(--c-light);
+        transition: border-color 0.2s var(--ease-smooth);
+
+        &:hover,
+        &:focus-within {
+          border-color: var(--c-accent);
+        }
+      }
+      .tool__link {
+        display: grid;
+        place-content: center;
+        gap: to-rem(8);
+        width: 100%;
+        height: 100%;
+        color: inherit;
+        text-align: center;
+        text-decoration: none;
+
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 2px;
+        }
+      }
+      .tool__name {
+        font-size: var(--fs-6);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .tool--active .tool__hint {
+        color: var(--c-on-surface-muted);
       }
       .tool__plus {
         font-size: var(--fs-4);
