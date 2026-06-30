@@ -262,6 +262,8 @@ const counts = [3, 4, 5, 6, 7, 8, 9, 10];
 
       @media (max-width: 40rem) {
         .gen { flex-direction: column; align-items: stretch; }
+        // In a column, flex-basis controls height — reset so controls keep their natural height.
+        .gen__select { flex: 0 0 auto; }
       }
 
       .grid {
