@@ -13,6 +13,7 @@
     "build-dev": "astro check && NODE_ENV=development astro build",
     "preview": "astro preview",
     "test:picker": "node src/scripts/workout-picker.test.mjs",
+    "test:presets": "node src/scripts/workout-presets.test.mjs",
     "astro": "astro"
   },
   "devDependencies": {
