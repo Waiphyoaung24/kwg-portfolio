@@ -1,5 +1,13 @@
 ---
 import '../../styles/index.scss';
+import exercises from '../../data/fitness-exercises.json';
+
+const CDN = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@92e2704';
+type ExKey = keyof (typeof exercises)[0];
+const uniq = (k: ExKey) => [...new Set(exercises.map((e) => e[k]).filter(Boolean))].sort();
+const bodyParts = uniq('body_part');
+const equipments = uniq('equipment');
+const targets = uniq('target');
 ---
 
 <!doctype html>
@@ -27,8 +35,108 @@ import '../../styles/index.scss';
     <main class="page">
       <a class="page__back" href="/vault">← Vault</a>
       <h1 class="page__title">Fitness</h1>
-      <p class="page__caption">Nothing here yet.</p>
+
+      <div class="filters">
+        <input id="q" class="filters__search" type="search" placeholder="Search exercises…" autocomplete="off" />
+        <select id="f-body" class="filters__select">
+          <option value="">All body parts</option>
+          {bodyParts.map((v) => <option value={v}>{v}</option>)}
+        </select>
+        <select id="f-equip" class="filters__select">
+          <option value="">All equipment</option>
+          {equipments.map((v) => <option value={v}>{v}</option>)}
+        </select>
+        <select id="f-target" class="filters__select">
+          <option value="">All targets</option>
+          {targets.map((v) => <option value={v}>{v}</option>)}
+        </select>
+      </div>
+
+      <p id="count" class="page__caption"></p>
+
+      <ul class="grid" id="grid">
+        {exercises.map((e) => (
+          <li
+            class="card"
+            data-id={e.id}
+            data-name={e.name.toLowerCase()}
+            data-body={e.body_part}
+            data-equip={e.equipment}
+            data-target={e.target}
+          >
+            <button class="card__btn" type="button">
+              <img class="card__img" src={`${CDN}/${e.image}`} alt={e.name} loading="lazy" width="160" height="160" />
+              <span class="card__name">{e.name}</span>
+              <span class="card__tag">{e.equipment}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <dialog id="detail" class="detail">
+        <button class="detail__close" type="button" aria-label="Close">✕</button>
+        <img class="detail__gif" alt="" width="360" height="360" loading="lazy" />
+        <h2 class="detail__name"></h2>
+        <p class="detail__meta"></p>
+        <ol class="detail__steps"></ol>
+      </dialog>
     </main>
+
+    <script is:inline define:vars={{ exercises, CDN }}>
+      const byId = Object.fromEntries(exercises.map((e) => [e.id, e]));
+      const grid = document.getElementById('grid');
+      const cards = [...grid.children];
+      const q = document.getElementById('q');
+      const fBody = document.getElementById('f-body');
+      const fEquip = document.getElementById('f-equip');
+      const fTarget = document.getElementById('f-target');
+      const count = document.getElementById('count');
+
+      function apply() {
+        const term = q.value.trim().toLowerCase();
+        const b = fBody.value, eq = fEquip.value, t = fTarget.value;
+        let n = 0;
+        for (const card of cards) {
+          const ok =
+            (!term || card.dataset.name.includes(term)) &&
+            (!b || card.dataset.body === b) &&
+            (!eq || card.dataset.equip === eq) &&
+            (!t || card.dataset.target === t);
+          card.hidden = !ok;
+          if (ok) n++;
+        }
+        count.textContent = `${n} exercise${n === 1 ? '' : 's'}`;
+      }
+      [q, fBody, fEquip, fTarget].forEach((el) => el.addEventListener('input', apply));
+      apply();
+
+      const dlg = document.getElementById('detail');
+      const gif = dlg.querySelector('.detail__gif');
+      const name = dlg.querySelector('.detail__name');
+      const meta = dlg.querySelector('.detail__meta');
+      const steps = dlg.querySelector('.detail__steps');
+
+      grid.addEventListener('click', (ev) => {
+        const card = ev.target.closest('.card');
+        if (!card) return;
+        const e = byId[card.dataset.id];
+        name.textContent = e.name;
+        meta.textContent = [e.target, e.equipment, e.body_part].filter(Boolean).join(' · ');
+        steps.replaceChildren();
+        for (const s of e.steps || []) {
+          const li = document.createElement('li');
+          li.textContent = s;
+          steps.appendChild(li);
+        }
+        gif.src = `${CDN}/${e.gif_url}`;   // GIF loads only now, never for the grid
+        gif.alt = e.name;
+        dlg.showModal();
+      });
+
+      dlg.querySelector('.detail__close').addEventListener('click', () => dlg.close());
+      dlg.addEventListener('click', (ev) => { if (ev.target === dlg) dlg.close(); });
+      dlg.addEventListener('close', () => { gif.removeAttribute('src'); });
+    </script>
 
     <style lang="scss">
       .page {
@@ -66,6 +174,105 @@ import '../../styles/index.scss';
       .page__caption {
         color: var(--c-on-surface-muted);
       }
+
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: to-rem(8);
+        margin-top: to-rem(8);
+      }
+      .filters__search,
+      .filters__select {
+        font: inherit;
+        color: var(--c-light);
+        background: transparent;
+        border: 1px solid var(--c-on-surface-muted);
+        padding: to-rem(8) to-rem(12);
+        border-radius: 0;
+
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 2px;
+        }
+      }
+      .filters__search { flex: 1 1 16rem; }
+
+      .grid {
+        list-style: none;
+        margin: to-rem(16) 0 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(to-rem(140), 1fr));
+        gap: to-rem(12);
+      }
+      .card[hidden] { display: none; }
+      .card__btn {
+        display: grid;
+        gap: to-rem(6);
+        width: 100%;
+        padding: to-rem(8);
+        text-align: left;
+        color: inherit;
+        background: transparent;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: border-color 0.2s var(--ease-smooth);
+
+        &:hover { border-color: var(--c-accent); }
+        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+      }
+      .card__img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+        object-fit: cover;
+        background: #111;
+      }
+      .card__name { font-size: var(--fs-base); text-transform: capitalize; }
+      .card__tag {
+        font-size: var(--fs-label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-on-surface-muted);
+      }
+
+      .detail {
+        max-width: min(92vw, to-rem(480));
+        color: var(--c-light);
+        background: var(--c-surface-1);
+        border: 1px solid var(--c-on-surface-muted);
+        padding: clamp-fluid(16, 28);
+
+        &::backdrop { background: rgb(0 0 0 / 0.7); }
+      }
+      .detail__close {
+        position: absolute;
+        top: to-rem(8);
+        right: to-rem(8);
+        font: inherit;
+        color: var(--c-on-surface-muted);
+        background: transparent;
+        border: 0;
+        cursor: pointer;
+
+        &:hover { color: var(--c-accent); }
+      }
+      .detail__gif {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+        object-fit: contain;
+        background: #111;
+      }
+      .detail__name { margin: to-rem(12) 0 to-rem(4); text-transform: capitalize; }
+      .detail__meta {
+        margin: 0 0 to-rem(12);
+        font-size: var(--fs-label);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--c-on-surface-muted);
+      }
+      .detail__steps { margin: 0; padding-left: 1.2em; display: grid; gap: to-rem(6); }
     </style>
   </body>
 </html>
