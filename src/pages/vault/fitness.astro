@@ -36,6 +36,7 @@ const targets = uniq('target');
     <main class="page">
       <a class="page__back" href="/vault">← Vault</a>
       <h1 class="page__title">Fitness</h1>
+      <a class="page__gen" href="/vault/fitness/generate">↗ Generate workout</a>
 
       <div class="filters">
         <input id="q" class="filters__search" type="search" placeholder="Search exercises…" aria-label="Search exercises by name" autocomplete="off" />
@@ -136,6 +137,17 @@ const targets = uniq('target');
           outline: 2px solid var(--c-accent);
           outline-offset: 2px;
         }
+      }
+      .page__gen {
+        justify-self: start;
+        font-size: var(--fs-label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--c-accent);
+        text-decoration: none;
+
+        &:hover { text-decoration: underline; }
+        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
       }
       .page__title {
         margin: to-rem(8) 0 0;
