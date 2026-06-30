@@ -1,8 +1,9 @@
 ---
 import '../../styles/index.scss';
 import exercises from '../../data/fitness-exercises.json';
+import ExerciseDetail from '../../components/ExerciseDetail.astro';
+import { CDN } from '../../scripts/exercise-detail';
 
-const CDN = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@92e2704';
 type ExKey = keyof (typeof exercises)[0];
 const uniq = (k: ExKey) => [...new Set(exercises.map((e) => e[k]).filter(Boolean))].sort();
 const bodyParts = uniq('body_part');
@@ -35,6 +36,7 @@ const targets = uniq('target');
     <main class="page">
       <a class="page__back" href="/vault">← Vault</a>
       <h1 class="page__title">Fitness</h1>
+      <a class="page__gen" href="/vault/fitness/generate">↗ Generate workout</a>
 
       <div class="filters">
         <input id="q" class="filters__search" type="search" placeholder="Search exercises…" aria-label="Search exercises by name" autocomplete="off" />
@@ -73,28 +75,20 @@ const targets = uniq('target');
         ))}
       </ul>
 
-      <dialog id="detail" class="detail" aria-labelledby="detail-name">
-        <button class="detail__close" type="button" aria-label="Close">✕</button>
-        <div class="detail__media">
-          <img class="detail__gif" alt="" width="360" height="360" />
-          <button class="detail__toggle" type="button" aria-pressed="false">Play</button>
-        </div>
-        <h2 id="detail-name" class="detail__name"></h2>
-        <p class="detail__meta"></p>
-        <p class="detail__secondary"></p>
-        <ol class="detail__steps"></ol>
-      </dialog>
+      <ExerciseDetail />
     </main>
 
-    <script is:inline define:vars={{ exercises, CDN }}>
-      const byId = Object.fromEntries(exercises.map((e) => [e.id, e]));
-      const grid = document.getElementById('grid');
-      const cards = [...grid.children];
-      const q = document.getElementById('q');
-      const fBody = document.getElementById('f-body');
-      const fEquip = document.getElementById('f-equip');
-      const fTarget = document.getElementById('f-target');
-      const count = document.getElementById('count');
+    <script>
+      import { initDetail } from '../../scripts/exercise-detail';
+      import exercises from '../../data/fitness-exercises.json';
+
+      const grid = document.getElementById('grid')!;
+      const cards = [...grid.children] as HTMLElement[];
+      const q = document.getElementById('q') as HTMLInputElement;
+      const fBody = document.getElementById('f-body') as HTMLSelectElement;
+      const fEquip = document.getElementById('f-equip') as HTMLSelectElement;
+      const fTarget = document.getElementById('f-target') as HTMLSelectElement;
+      const count = document.getElementById('count')!;
 
       function apply() {
         const term = q.value.trim().toLowerCase();
@@ -102,7 +96,7 @@ const targets = uniq('target');
         let n = 0;
         for (const card of cards) {
           const ok =
-            (!term || card.dataset.name.includes(term)) &&
+            (!term || card.dataset.name!.includes(term)) &&
             (!b || card.dataset.body === b) &&
             (!eq || card.dataset.equip === eq) &&
             (!t || card.dataset.target === t);
@@ -114,46 +108,7 @@ const targets = uniq('target');
       [q, fBody, fEquip, fTarget].forEach((el) => el.addEventListener('input', apply));
       apply();
 
-      const dlg = document.getElementById('detail');
-      const gif = dlg.querySelector('.detail__gif');
-      const name = dlg.querySelector('.detail__name');
-      const meta = dlg.querySelector('.detail__meta');
-      const secondary = dlg.querySelector('.detail__secondary');
-      const steps = dlg.querySelector('.detail__steps');
-      const toggle = dlg.querySelector('.detail__toggle');
-
-      let posterSrc = '', gifSrc = '';
-      function renderMedia(playing) {
-        gif.src = playing ? gifSrc : posterSrc; // GIF only requested when playing
-        toggle.textContent = playing ? 'Pause' : 'Play';
-        toggle.setAttribute('aria-pressed', String(playing));
-      }
-      toggle.addEventListener('click', () => renderMedia(toggle.getAttribute('aria-pressed') !== 'true'));
-
-      grid.addEventListener('click', (ev) => {
-        const card = ev.target.closest('.card');
-        if (!card) return;
-        const e = byId[card.dataset.id];
-        name.textContent = e.name;
-        meta.textContent = [e.target, e.equipment, e.body_part].filter(Boolean).join(' · ');
-        secondary.textContent = e.secondary_muscles?.length ? 'Also targets: ' + e.secondary_muscles.join(', ') : '';
-        steps.replaceChildren();
-        for (const s of e.steps || []) {
-          const li = document.createElement('li');
-          li.textContent = s;
-          steps.appendChild(li);
-        }
-        posterSrc = `${CDN}/${e.image}`;
-        gifSrc = `${CDN}/${e.gif_url}`;
-        gif.alt = e.name;
-        // Honor reduced-motion: start on the static poster; otherwise autoplay the GIF.
-        renderMedia(!window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-        dlg.showModal();
-      });
-
-      dlg.querySelector('.detail__close').addEventListener('click', () => dlg.close());
-      dlg.addEventListener('click', (ev) => { if (ev.target === dlg) dlg.close(); });
-      dlg.addEventListener('close', () => { gif.removeAttribute('src'); });
+      initDetail(grid, exercises);
     </script>
 
     <style lang="scss">
@@ -182,6 +137,17 @@ const targets = uniq('target');
           outline: 2px solid var(--c-accent);
           outline-offset: 2px;
         }
+      }
+      .page__gen {
+        justify-self: start;
+        font-size: var(--fs-label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--c-accent);
+        text-decoration: none;
+
+        &:hover { text-decoration: underline; }
+        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
       }
       .page__title {
         margin: to-rem(8) 0 0;
@@ -265,74 +231,6 @@ const targets = uniq('target');
         text-transform: uppercase;
         color: var(--c-on-surface-muted);
       }
-
-      .detail {
-        width: 100%;
-        max-width: min(92vw, to-rem(480));
-        max-height: 90svh;
-        overflow-y: auto;
-        margin: auto; // center within the viewport
-        color: var(--c-light);
-        background: var(--c-surface-1);
-        border: 1px solid var(--c-on-surface-muted);
-        padding: clamp-fluid(16, 28);
-
-        &::backdrop { background: rgb(0 0 0 / 0.7); }
-      }
-      .detail__close {
-        position: absolute;
-        top: to-rem(4);
-        right: to-rem(4);
-        z-index: 1;
-        display: grid;
-        place-items: center;
-        min-width: to-rem(44);
-        min-height: to-rem(44); // touch target
-        font-size: var(--fs-6);
-        color: var(--c-on-surface-muted);
-        background: var(--c-surface-1);
-        border: 0;
-        cursor: pointer;
-
-        &:hover { color: var(--c-accent); }
-        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
-      }
-      .detail__media { position: relative; }
-      .detail__gif {
-        width: 100%;
-        height: auto;
-        aspect-ratio: 1;
-        object-fit: contain;
-        background: #111;
-      }
-      .detail__toggle {
-        position: absolute;
-        right: to-rem(8);
-        bottom: to-rem(8);
-        min-height: to-rem(44); // touch target
-        padding: to-rem(6) to-rem(14);
-        font-size: var(--fs-label);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--c-light);
-        background: var(--c-dark);
-        border: 1px solid var(--c-on-surface-muted);
-        cursor: pointer;
-        transition: color 0.2s var(--ease-smooth), border-color 0.2s var(--ease-smooth);
-
-        &:hover { color: var(--c-accent); border-color: var(--c-accent); }
-        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
-      }
-      .detail__name { margin: to-rem(12) 0 to-rem(4); text-transform: capitalize; }
-      .detail__meta {
-        margin: 0 0 to-rem(12);
-        font-size: var(--fs-label);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--c-on-surface-muted);
-      }
-      .detail__secondary { margin: 0 0 to-rem(12); font-size: var(--fs-label); color: var(--c-on-surface-muted); text-transform: capitalize; }
-      .detail__steps { margin: 0; padding-left: 1.2em; display: grid; gap: to-rem(6); }
     </style>
   </body>
 </html>

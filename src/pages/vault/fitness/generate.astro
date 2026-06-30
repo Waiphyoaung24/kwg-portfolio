@@ -1,0 +1,266 @@
+---
+import '../../../styles/index.scss';
+import exercises from '../../../data/fitness-exercises.json';
+import ExerciseDetail from '../../../components/ExerciseDetail.astro';
+
+type ExKey = keyof (typeof exercises)[0];
+const uniq = (k: ExKey) => [...new Set(exercises.map((e) => e[k]).filter(Boolean))].sort();
+const equipments = uniq('equipment');
+const targets = uniq('target');
+const counts = [3, 4, 5, 6, 7, 8, 9, 10];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="robots" content="noindex" />
+    <title>Generate Workout — Fitness — KWG</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
+    />
+    <!-- Obscurity gate: bounce to /vault unless already unlocked. -->
+    <script is:inline>
+      if (localStorage.getItem('kwg_vault') !== '1') location.replace('/vault');
+    </script>
+  </head>
+
+  <body>
+    <main class="page">
+      <a class="page__back" href="/vault/fitness">← Fitness</a>
+      <h1 class="page__title">Generate</h1>
+
+      <form class="gen" id="gen">
+        <fieldset class="gen__modes">
+          <legend>Workout mode</legend>
+          <label class="gen__mode"><input type="radio" name="mode" value="full" checked /> Full body</label>
+          <label class="gen__mode"><input type="radio" name="mode" value="focus" /> Focus</label>
+        </fieldset>
+        <select id="g-equip" class="gen__select" aria-label="Equipment">
+          <option value="">Any equipment</option>
+          {equipments.map((v) => <option value={v}>{v}</option>)}
+        </select>
+        <select id="g-target" class="gen__select" aria-label="Target muscle" hidden>
+          <option value="">Any target</option>
+          {targets.map((v) => <option value={v}>{v}</option>)}
+        </select>
+        <select id="g-count" class="gen__select" aria-label="Number of exercises">
+          {counts.map((n) => <option value={n} selected={n === 6}>{n} exercises</option>)}
+        </select>
+        <button class="gen__btn" type="submit">Generate</button>
+        <button class="gen__btn" id="g-reroll" type="button" hidden>↻ Reroll</button>
+      </form>
+
+      <p id="count" class="page__caption" role="status" aria-live="polite"></p>
+
+      <ul class="grid" id="grid"></ul>
+
+      <ExerciseDetail />
+    </main>
+
+    <script>
+      import { initDetail, CDN } from '../../../scripts/exercise-detail';
+      import { pickWorkout } from '../../../scripts/workout-picker';
+      import exercises from '../../../data/fitness-exercises.json';
+
+      const form = document.getElementById('gen') as HTMLFormElement;
+      const equip = document.getElementById('g-equip') as HTMLSelectElement;
+      const target = document.getElementById('g-target') as HTMLSelectElement;
+      const countSel = document.getElementById('g-count') as HTMLSelectElement;
+      const reroll = document.getElementById('g-reroll') as HTMLButtonElement;
+      const grid = document.getElementById('grid')!;
+      const caption = document.getElementById('count')!;
+
+      function mode() {
+        return (form.querySelector('input[name="mode"]:checked') as HTMLInputElement).value as
+          | 'full'
+          | 'focus';
+      }
+      function syncTarget() {
+        target.hidden = mode() !== 'focus'; // hidden also removes it from tab order
+      }
+      form.querySelectorAll('input[name="mode"]').forEach((r) =>
+        r.addEventListener('change', syncTarget),
+      );
+      syncTarget();
+
+      function cardEl(e: (typeof exercises)[number]) {
+        const li = document.createElement('li');
+        li.className = 'card';
+        li.dataset.id = e.id;
+        const btn = document.createElement('button');
+        btn.className = 'card__btn';
+        btn.type = 'button';
+        const img = document.createElement('img');
+        img.className = 'card__img';
+        img.src = `${CDN}/${e.image}`;
+        img.alt = '';
+        img.loading = 'lazy';
+        img.width = 160;
+        img.height = 160;
+        const nm = document.createElement('span');
+        nm.className = 'card__name';
+        nm.textContent = e.name;
+        const tag = document.createElement('span');
+        tag.className = 'card__tag';
+        tag.textContent = e.equipment;
+        btn.append(img, nm, tag);
+        li.append(btn);
+        return li;
+      }
+
+      function render() {
+        const picks = pickWorkout(exercises, {
+          mode: mode(),
+          equipment: equip.value,
+          target: target.hidden ? '' : target.value,
+          count: Number(countSel.value),
+        });
+        grid.replaceChildren(...picks.map(cardEl));
+        const label = mode() === 'full' ? 'full body' : target.value || 'all targets';
+        caption.textContent = picks.length
+          ? `${picks.length} exercise${picks.length === 1 ? '' : 's'} · ${label}`
+          : 'no matches — try different filters';
+        reroll.hidden = false;
+      }
+
+      form.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        render();
+      });
+      reroll.addEventListener('click', render);
+
+      initDetail(grid, exercises);
+      caption.textContent = 'Choose options and press Generate';
+    </script>
+
+    <style lang="scss">
+      .page {
+        display: grid;
+        align-content: start;
+        gap: to-rem(16);
+        min-height: 100svh;
+        max-width: var(--grid-max-width);
+        margin-inline: auto;
+        padding: clamp-fluid(24, 56) var(--grid-margin);
+      }
+      .page__back {
+        justify-self: start;
+        font-size: var(--fs-label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--c-on-surface-muted);
+        text-decoration: none;
+        transition: color 0.2s var(--ease-smooth);
+
+        &:hover { color: var(--c-accent); }
+        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+      }
+      .page__title {
+        margin: to-rem(8) 0 0;
+        font-size: var(--fs-2);
+        line-height: 0.95;
+        text-transform: uppercase;
+      }
+      .page__caption { color: var(--c-on-surface-muted); }
+
+      .gen {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: to-rem(8);
+        margin-top: to-rem(8);
+      }
+      .gen__modes {
+        display: flex;
+        gap: to-rem(16);
+        align-items: center;
+        margin: 0;
+        padding: 0 to-rem(12);
+        border: 1px solid var(--c-on-surface-muted);
+
+        legend { padding: 0 to-rem(6); font-size: var(--fs-label); letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-on-surface-muted); }
+      }
+      .gen__mode { display: inline-flex; gap: to-rem(6); align-items: center; min-height: to-rem(44); cursor: pointer; }
+      .gen__mode input:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+      .gen__select {
+        font: inherit;
+        color: var(--c-light);
+        background: var(--c-dark);
+        border: 1px solid var(--c-on-surface-muted);
+        padding: to-rem(8) to-rem(12);
+        min-height: to-rem(44);
+        border-radius: 0;
+        flex: 1 1 to-rem(150);
+
+        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+        &[hidden] { display: none; }
+      }
+      .gen__btn {
+        font: inherit;
+        min-height: to-rem(44);
+        padding: to-rem(8) to-rem(18);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-light);
+        background: var(--c-dark);
+        border: 1px solid var(--c-on-surface-muted);
+        cursor: pointer;
+        transition: color 0.2s var(--ease-smooth), border-color 0.2s var(--ease-smooth);
+
+        &:hover { color: var(--c-accent); border-color: var(--c-accent); }
+        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+        &[hidden] { display: none; }
+      }
+
+      @media (max-width: 40rem) {
+        .gen { flex-direction: column; align-items: stretch; }
+      }
+
+      .grid {
+        list-style: none;
+        margin: to-rem(16) 0 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(to-rem(140), 100%), 1fr));
+        gap: to-rem(12);
+      }
+      .card { list-style: none; }
+      .card__btn {
+        display: grid;
+        gap: to-rem(6);
+        width: 100%;
+        padding: to-rem(8);
+        text-align: left;
+        color: inherit;
+        background: transparent;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: border-color 0.2s var(--ease-smooth);
+
+        &:hover { border-color: var(--c-accent); }
+        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+      }
+      .card__img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+        object-fit: cover;
+        background: #111;
+      }
+      .card__name { font-size: var(--fs-base); text-transform: capitalize; overflow-wrap: anywhere; }
+      .card__tag {
+        font-size: var(--fs-label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-on-surface-muted);
+      }
+    </style>
+  </body>
+</html>
