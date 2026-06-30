@@ -1,0 +1,83 @@
+---
+---
+<dialog id="detail" class="detail" aria-labelledby="detail-name">
+  <button class="detail__close" type="button" aria-label="Close">✕</button>
+  <div class="detail__media">
+    <img class="detail__gif" alt="" width="360" height="360" />
+    <button class="detail__toggle" type="button" aria-pressed="false">Play</button>
+  </div>
+  <h2 id="detail-name" class="detail__name"></h2>
+  <p class="detail__meta"></p>
+  <p class="detail__secondary"></p>
+  <ol class="detail__steps"></ol>
+</dialog>
+
+<style lang="scss">
+  .detail {
+    width: 100%;
+    max-width: min(92vw, to-rem(480));
+    max-height: 90svh;
+    overflow-y: auto;
+    margin: auto; // center within the viewport
+    color: var(--c-light);
+    background: var(--c-surface-1);
+    border: 1px solid var(--c-on-surface-muted);
+    padding: clamp-fluid(16, 28);
+
+    &::backdrop { background: rgb(0 0 0 / 0.7); }
+  }
+  .detail__close {
+    position: absolute;
+    top: to-rem(4);
+    right: to-rem(4);
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    min-width: to-rem(44);
+    min-height: to-rem(44); // touch target
+    font-size: var(--fs-6);
+    color: var(--c-on-surface-muted);
+    background: var(--c-surface-1);
+    border: 0;
+    cursor: pointer;
+
+    &:hover { color: var(--c-accent); }
+    &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+  }
+  .detail__media { position: relative; }
+  .detail__gif {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+    background: #111;
+  }
+  .detail__toggle {
+    position: absolute;
+    right: to-rem(8);
+    bottom: to-rem(8);
+    min-height: to-rem(44); // touch target
+    padding: to-rem(6) to-rem(14);
+    font-size: var(--fs-label);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c-light);
+    background: var(--c-dark);
+    border: 1px solid var(--c-on-surface-muted);
+    cursor: pointer;
+    transition: color 0.2s var(--ease-smooth), border-color 0.2s var(--ease-smooth);
+
+    &:hover { color: var(--c-accent); border-color: var(--c-accent); }
+    &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+  }
+  .detail__name { margin: to-rem(12) 0 to-rem(4); text-transform: capitalize; }
+  .detail__meta {
+    margin: 0 0 to-rem(12);
+    font-size: var(--fs-label);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--c-on-surface-muted);
+  }
+  .detail__secondary { margin: 0 0 to-rem(12); font-size: var(--fs-label); color: var(--c-on-surface-muted); text-transform: capitalize; }
+  .detail__steps { margin: 0; padding-left: 1.2em; display: grid; gap: to-rem(6); }
+</style>
