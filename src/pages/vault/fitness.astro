@@ -37,22 +37,22 @@ const targets = uniq('target');
       <h1 class="page__title">Fitness</h1>
 
       <div class="filters">
-        <input id="q" class="filters__search" type="search" placeholder="Search exercises…" autocomplete="off" />
-        <select id="f-body" class="filters__select">
+        <input id="q" class="filters__search" type="search" placeholder="Search exercises…" aria-label="Search exercises by name" autocomplete="off" />
+        <select id="f-body" class="filters__select" aria-label="Filter by body part">
           <option value="">All body parts</option>
           {bodyParts.map((v) => <option value={v}>{v}</option>)}
         </select>
-        <select id="f-equip" class="filters__select">
+        <select id="f-equip" class="filters__select" aria-label="Filter by equipment">
           <option value="">All equipment</option>
           {equipments.map((v) => <option value={v}>{v}</option>)}
         </select>
-        <select id="f-target" class="filters__select">
+        <select id="f-target" class="filters__select" aria-label="Filter by target muscle">
           <option value="">All targets</option>
           {targets.map((v) => <option value={v}>{v}</option>)}
         </select>
       </div>
 
-      <p id="count" class="page__caption"></p>
+      <p id="count" class="page__caption" role="status" aria-live="polite"></p>
 
       <ul class="grid" id="grid">
         {exercises.map((e) => (
@@ -65,7 +65,7 @@ const targets = uniq('target');
             data-target={e.target}
           >
             <button class="card__btn" type="button">
-              <img class="card__img" src={`${CDN}/${e.image}`} alt={e.name} loading="lazy" width="160" height="160" />
+              <img class="card__img" src={`${CDN}/${e.image}`} alt="" loading="lazy" width="160" height="160" />
               <span class="card__name">{e.name}</span>
               <span class="card__tag">{e.equipment}</span>
             </button>
@@ -73,10 +73,10 @@ const targets = uniq('target');
         ))}
       </ul>
 
-      <dialog id="detail" class="detail">
+      <dialog id="detail" class="detail" aria-labelledby="detail-name">
         <button class="detail__close" type="button" aria-label="Close">✕</button>
         <img class="detail__gif" alt="" width="360" height="360" />
-        <h2 class="detail__name"></h2>
+        <h2 id="detail-name" class="detail__name"></h2>
         <p class="detail__meta"></p>
         <p class="detail__secondary"></p>
         <ol class="detail__steps"></ol>
@@ -188,9 +188,10 @@ const targets = uniq('target');
       .filters__select {
         font: inherit;
         color: var(--c-light);
-        background: transparent;
+        background: var(--c-dark);
         border: 1px solid var(--c-on-surface-muted);
         padding: to-rem(8) to-rem(12);
+        min-height: to-rem(44); // touch target
         border-radius: 0;
 
         &:focus-visible {
@@ -198,16 +199,27 @@ const targets = uniq('target');
           outline-offset: 2px;
         }
       }
-      .filters__search { flex: 1 1 16rem; }
+      .filters__search { flex: 1 1 to-rem(220); }
+      .filters__select { flex: 1 1 to-rem(150); }
+
+      // Stack filters full-width on narrow screens for easy tapping.
+      @media (max-width: 40rem) {
+        .filters {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
 
       .grid {
         list-style: none;
         margin: to-rem(16) 0 0;
         padding: 0;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(to-rem(140), 1fr));
+        // min(…, 100%) keeps cards from overflowing when the container is narrower than the track.
+        grid-template-columns: repeat(auto-fill, minmax(min(to-rem(140), 100%), 1fr));
         gap: to-rem(12);
       }
+      .card { list-style: none; }
       .card[hidden] { display: none; }
       .card__btn {
         display: grid;
@@ -231,7 +243,7 @@ const targets = uniq('target');
         object-fit: cover;
         background: #111;
       }
-      .card__name { font-size: var(--fs-base); text-transform: capitalize; }
+      .card__name { font-size: var(--fs-base); text-transform: capitalize; overflow-wrap: anywhere; }
       .card__tag {
         font-size: var(--fs-label);
         letter-spacing: 0.08em;
@@ -240,7 +252,11 @@ const targets = uniq('target');
       }
 
       .detail {
+        width: 100%;
         max-width: min(92vw, to-rem(480));
+        max-height: 90svh;
+        overflow-y: auto;
+        margin: auto; // center within the viewport
         color: var(--c-light);
         background: var(--c-surface-1);
         border: 1px solid var(--c-on-surface-muted);
@@ -250,15 +266,21 @@ const targets = uniq('target');
       }
       .detail__close {
         position: absolute;
-        top: to-rem(8);
-        right: to-rem(8);
-        font: inherit;
+        top: to-rem(4);
+        right: to-rem(4);
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        min-width: to-rem(44);
+        min-height: to-rem(44); // touch target
+        font-size: var(--fs-6);
         color: var(--c-on-surface-muted);
-        background: transparent;
+        background: var(--c-surface-1);
         border: 0;
         cursor: pointer;
 
         &:hover { color: var(--c-accent); }
+        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
       }
       .detail__gif {
         width: 100%;
