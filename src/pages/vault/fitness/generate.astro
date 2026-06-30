@@ -2,6 +2,7 @@
 import '../../../styles/index.scss';
 import exercises from '../../../data/fitness-exercises.json';
 import ExerciseDetail from '../../../components/ExerciseDetail.astro';
+import { PRESETS } from '../../../scripts/workout-presets';
 
 type ExKey = keyof (typeof exercises)[0];
 const uniq = (k: ExKey) => [...new Set(exercises.map((e) => e[k]).filter(Boolean))].sort();
@@ -36,6 +37,13 @@ const counts = [3, 4, 5, 6, 7, 8, 9, 10];
       <a class="page__back" href="/vault/fitness">← Fitness</a>
       <h1 class="page__title">Generate</h1>
 
+      <div class="gen gen--presets" role="group" aria-label="My routines">
+        <span class="gen__label">My routines</span>
+        {PRESETS.map((p, i) => (
+          <button class="gen__btn" type="button" data-preset={i}>{p.name}</button>
+        ))}
+      </div>
+
       <form class="gen" id="gen">
         <fieldset class="gen__modes">
           <legend>Workout mode</legend>
@@ -67,6 +75,7 @@ const counts = [3, 4, 5, 6, 7, 8, 9, 10];
     <script>
       import { initDetail, CDN } from '../../../scripts/exercise-detail';
       import { pickWorkout } from '../../../scripts/workout-picker';
+      import { PRESETS } from '../../../scripts/workout-presets';
       import exercises from '../../../data/fitness-exercises.json';
 
       const form = document.getElementById('gen') as HTMLFormElement;
@@ -76,6 +85,10 @@ const counts = [3, 4, 5, 6, 7, 8, 9, 10];
       const reroll = document.getElementById('g-reroll') as HTMLButtonElement;
       const grid = document.getElementById('grid')!;
       const caption = document.getElementById('count')!;
+
+      const byId: Record<string, (typeof exercises)[number]> = Object.fromEntries(
+        exercises.map((e) => [e.id, e]),
+      );
 
       function mode() {
         return (form.querySelector('input[name="mode"]:checked') as HTMLInputElement).value as
@@ -115,6 +128,11 @@ const counts = [3, 4, 5, 6, 7, 8, 9, 10];
         return li;
       }
 
+      function showExercises(list: (typeof exercises)[number][], captionText: string) {
+        grid.replaceChildren(...list.map(cardEl));
+        caption.textContent = captionText;
+      }
+
       function render() {
         const picks = pickWorkout(exercises, {
           mode: mode(),
@@ -122,11 +140,13 @@ const counts = [3, 4, 5, 6, 7, 8, 9, 10];
           target: target.hidden ? '' : target.value,
           count: Number(countSel.value),
         });
-        grid.replaceChildren(...picks.map(cardEl));
         const label = mode() === 'full' ? 'full body' : target.value || 'all targets';
-        caption.textContent = picks.length
-          ? `${picks.length} exercise${picks.length === 1 ? '' : 's'} · ${label}`
-          : 'no matches — try different filters';
+        showExercises(
+          picks,
+          picks.length
+            ? `${picks.length} exercise${picks.length === 1 ? '' : 's'} · ${label}`
+            : 'no matches — try different filters',
+        );
         reroll.hidden = false;
       }
 
@@ -135,6 +155,18 @@ const counts = [3, 4, 5, 6, 7, 8, 9, 10];
         render();
       });
       reroll.addEventListener('click', render);
+
+      for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-preset]')) {
+        btn.addEventListener('click', () => {
+          const p = PRESETS[Number(btn.dataset.preset)];
+          const list = p.ids.map((id) => byId[id]).filter(Boolean);
+          showExercises(
+            list,
+            `${p.name} · ${list.length} exercise${list.length === 1 ? '' : 's'}`,
+          );
+          reroll.hidden = true; // reroll is meaningless for a fixed routine
+        });
+      }
 
       initDetail(grid, exercises);
       caption.textContent = 'Choose options and press Generate';
@@ -189,6 +221,15 @@ const counts = [3, 4, 5, 6, 7, 8, 9, 10];
       }
       .gen__mode { display: inline-flex; gap: to-rem(6); align-items: center; min-height: to-rem(44); cursor: pointer; }
       .gen__mode input:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+      .gen__label {
+        display: inline-flex;
+        align-items: center;
+        min-height: to-rem(44);
+        font-size: var(--fs-label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-on-surface-muted);
+      }
       .gen__select {
         font: inherit;
         color: var(--c-light);
