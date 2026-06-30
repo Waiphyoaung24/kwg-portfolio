@@ -10,7 +10,8 @@ export type Exercise = {
   steps: string[];
 };
 
-export const CDN = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@92e2704';
+export const CDN =
+  'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@92e2704';
 
 // Wire the shared <dialog id="detail"> to a grid of .card elements.
 export function initDetail(grid: HTMLElement, exercises: Exercise[]) {
@@ -35,11 +36,15 @@ export function initDetail(grid: HTMLElement, exercises: Exercise[]) {
   );
 
   grid.addEventListener('click', (ev) => {
-    const card = (ev.target as HTMLElement).closest('.card') as HTMLElement | null;
+    const card = (ev.target as HTMLElement).closest(
+      '.card',
+    ) as HTMLElement | null;
     if (!card) return;
     const e = byId[card.dataset.id!];
     name.textContent = e.name;
-    meta.textContent = [e.target, e.equipment, e.body_part].filter(Boolean).join(' · ');
+    meta.textContent = [e.target, e.equipment, e.body_part]
+      .filter(Boolean)
+      .join(' · ');
     secondary.textContent = e.secondary_muscles?.length
       ? 'Also targets: ' + e.secondary_muscles.join(', ')
       : '';
@@ -57,7 +62,9 @@ export function initDetail(grid: HTMLElement, exercises: Exercise[]) {
     dlg.showModal();
   });
 
-  dlg.querySelector('.detail__close')!.addEventListener('click', () => dlg.close());
+  dlg
+    .querySelector('.detail__close')!
+    .addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', (ev) => {
     if (ev.target === dlg) dlg.close();
   });

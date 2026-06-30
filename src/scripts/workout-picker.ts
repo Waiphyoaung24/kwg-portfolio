@@ -22,7 +22,9 @@ function shuffle<T>(arr: T[], rng: () => number): T[] {
 // Pick up to `count` exercises. Pure: same inputs + rng => same output.
 export function pickWorkout(exercises: Exercise[], opts: PickOpts): Exercise[] {
   const { mode, equipment = '', target = '', count, rng = Math.random } = opts;
-  const pool = equipment ? exercises.filter((e) => e.equipment === equipment) : exercises;
+  const pool = equipment
+    ? exercises.filter((e) => e.equipment === equipment)
+    : exercises;
 
   if (mode === 'focus') {
     const filtered = target ? pool.filter((e) => e.target === target) : pool;
