@@ -10,12 +10,10 @@ assert(Array.isArray(raw), 'expected an array of exercises');
 const out = raw.map((e) => ({
   id: e.id,
   name: e.name,
-  category: e.category,
   body_part: e.body_part,
   equipment: e.equipment,
   target: e.target,
   secondary_muscles: e.secondary_muscles ?? [],
-  muscle_group: e.muscle_group,
   image: e.image,
   gif_url: e.gif_url,
   steps: e.instruction_steps?.en ?? [],
@@ -26,6 +24,7 @@ assert(out.length > 1300, `expected >1300 exercises, got ${out.length}`);
 for (const e of out) {
   assert(e.name, `missing name for id ${e.id}`);
   assert(e.image, `missing image for ${e.name}`);
+  assert(e.gif_url, `missing gif_url for ${e.name}`);
 }
 
 const destDir = new URL('../data/', import.meta.url);
