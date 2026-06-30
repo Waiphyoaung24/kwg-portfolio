@@ -189,6 +189,11 @@ const targets = uniq('target');
           flex-direction: column;
           align-items: stretch;
         }
+        // In a column, flex-basis controls height — reset so inputs keep their natural 44px height.
+        .filters__search,
+        .filters__select {
+          flex: 0 0 auto;
+        }
       }
 
       .grid {
