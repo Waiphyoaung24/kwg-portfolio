@@ -347,6 +347,14 @@ assert.strictEqual(isAuthed(authed), true);
 const tampered = new Request('http://x', { headers: { cookie: `kwg_pw=${value}x` } });
 assert.strictEqual(isAuthed(tampered), false);
 assert.strictEqual(isAuthed(new Request('http://x')), false);
+
+// fail closed: with APP_SECRET unset, a previously-valid cookie must NOT authenticate,
+// and no new cookie can be minted (no guessable fallback secret to forge with).
+delete process.env.APP_SECRET;
+assert.strictEqual(isAuthed(authed), false);
+assert.throws(() => sessionCookie());
+process.env.APP_SECRET = 'test-secret';
+
 console.log('auth.test OK');
 ```
 
@@ -360,11 +368,12 @@ Expected: FAIL — `Cannot find module './auth.mjs'`.
 ```js
 import crypto from 'node:crypto';
 
-const SECRET = process.env.APP_SECRET || 'dev-insecure-secret';
 const COOKIE = 'kwg_pw';
 const PAYLOAD = 'ok';
 
-const hmac = (v) => crypto.createHmac('sha256', SECRET).update(v).digest('hex');
+// Fail closed — no fallback secret. If APP_SECRET is unset, auth refuses rather than
+// signing with a guessable key. Read at call time so the guard reflects live env.
+const hmac = (v) => crypto.createHmac('sha256', process.env.APP_SECRET).update(v).digest('hex');
 
 function sign(v) {
   return `${v}.${hmac(v)}`;
@@ -387,12 +396,14 @@ export function checkPassword(input) {
 }
 
 export function sessionCookie() {
+  if (!process.env.APP_SECRET) throw new Error('APP_SECRET is not set');
   return `${COOKIE}=${sign(PAYLOAD)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`;
 }
 export function clearCookie() {
   return `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
 }
 export function isAuthed(request) {
+  if (!process.env.APP_SECRET) return false;
   const cookie = request.headers.get('cookie') || '';
   const match = cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith(COOKIE + '='));
   if (!match) return false;

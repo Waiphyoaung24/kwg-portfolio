@@ -17,4 +17,12 @@ assert.strictEqual(isAuthed(authed), true);
 const tampered = new Request('http://x', { headers: { cookie: `kwg_pw=${value}x` } });
 assert.strictEqual(isAuthed(tampered), false);
 assert.strictEqual(isAuthed(new Request('http://x')), false);
+
+// fail closed: with APP_SECRET unset, a previously-valid cookie must NOT authenticate,
+// and no new cookie can be minted (no guessable fallback secret to forge with).
+delete process.env.APP_SECRET;
+assert.strictEqual(isAuthed(authed), false);
+assert.throws(() => sessionCookie());
+process.env.APP_SECRET = 'test-secret';
+
 console.log('auth.test OK');
