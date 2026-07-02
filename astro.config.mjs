@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 
+import node from '@astrojs/node';
 import robotsTxt from 'astro-robots-txt';
 import sitemap from '@astrojs/sitemap';
 import glsl from 'vite-plugin-glsl';
@@ -12,6 +13,7 @@ export default defineConfig({
     process.env.NODE_ENV === 'development'
       ? 'http://localhost:4321'
       : 'https://kwg-portfolio.example.com',
+  adapter: node({ mode: 'standalone' }),
   integrations: [
     robotsTxt({
       sitemapBaseFileName: 'sitemap-index',
