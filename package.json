@@ -7,11 +7,12 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "astro dev --host",
-    "start": "astro dev",
+    "dev": "node --env-file-if-exists=.env node_modules/astro/bin/astro.mjs dev --host",
+    "start": "node --env-file-if-exists=.env node_modules/astro/bin/astro.mjs dev",
     "build": "astro check && astro build",
     "build-dev": "astro check && NODE_ENV=development astro build",
     "preview": "astro preview",
+    "serve": "node --env-file-if-exists=.env ./dist/server/entry.mjs",
     "test:picker": "node src/scripts/workout-picker.test.mjs",
     "test:presets": "node src/scripts/workout-presets.test.mjs",
     "test:auth": "node src/server/auth.test.mjs",
