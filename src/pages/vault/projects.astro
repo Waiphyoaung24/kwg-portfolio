@@ -211,6 +211,13 @@ export const prerender = false;
       .pcard--nobody {
         border-left-color: var(--c-surface-2);
       }
+      // Team rows use .pcard directly (no inner link) — the list's layout lives on
+      // .pcard__link, so carry the same padding/grid on cards that have no link child.
+      .pcard:not(:has(> .pcard__link)) {
+        display: grid;
+        gap: to-rem(6);
+        padding: to-rem(12) to-rem(16);
+      }
       .pcard__link {
         display: grid;
         grid-template-columns: 1fr auto auto;
@@ -295,6 +302,13 @@ export const prerender = false;
         select {
           width: 100%;
         }
+      }
+
+      // Inputs nested inside a .gate__label must not inherit its uppercase transform
+      // (text-transform inherits; `font: inherit` on the control doesn't reset it).
+      .gate__label input,
+      .gate__label select {
+        text-transform: none;
       }
 
       // ── Form controls (ported from bizz.astro / fitness.astro) ──
