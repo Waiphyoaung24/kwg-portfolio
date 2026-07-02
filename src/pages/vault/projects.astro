@@ -259,6 +259,248 @@ export const prerender = false;
           gap: to-rem(6);
         }
       }
+
+      // ── Shared: back link, subheads, forms ──────────────────────
+      .pv__back {
+        justify-self: start;
+        font-size: var(--fs-label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--c-on-surface-muted);
+        text-decoration: none;
+        transition: color 0.2s var(--ease-smooth);
+
+        &:hover {
+          color: var(--c-accent);
+        }
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 2px;
+        }
+      }
+      .pv__subhead {
+        margin: to-rem(24) 0 0;
+        font-size: var(--fs-5);
+        line-height: 1;
+        text-transform: uppercase;
+      }
+      // .np: new-project + team "add member" forms.
+      .np {
+        display: grid;
+        gap: to-rem(12);
+        max-width: to-rem(420);
+        margin-top: to-rem(8);
+
+        input,
+        select {
+          width: 100%;
+        }
+      }
+
+      // ── Form controls (ported from bizz.astro / fitness.astro) ──
+      .entry__amount,
+      .entry__label {
+        font: inherit;
+        color: var(--c-light);
+        background: var(--c-dark);
+        border: 1px solid var(--c-on-surface-muted);
+        padding: to-rem(8) to-rem(12);
+        min-height: to-rem(44);
+        border-radius: 0;
+
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 2px;
+        }
+      }
+      .entry__amount {
+        flex: 1 1 to-rem(120);
+        min-width: 0;
+        font-variant-numeric: tabular-nums;
+      }
+      .entry__label {
+        flex: 3 1 to-rem(200);
+        min-width: 0;
+      }
+      .entry__add {
+        flex: 0 0 auto;
+        min-height: to-rem(44);
+        padding: 0 to-rem(24);
+        background: var(--c-accent);
+        color: var(--c-dark);
+        border: none;
+        font: inherit;
+        font-weight: var(--fw-medium);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background 0.2s var(--ease-smooth);
+
+        &:hover {
+          background: var(--c-accent-hover);
+        }
+        &:focus-visible {
+          outline: 2px solid var(--c-light);
+          outline-offset: 2px;
+        }
+      }
+      .filters__select {
+        font: inherit;
+        color: var(--c-light);
+        background: var(--c-dark);
+        border: 1px solid var(--c-on-surface-muted);
+        padding: to-rem(8) to-rem(12);
+        min-height: to-rem(44);
+        border-radius: 0;
+        flex: 1 1 to-rem(150);
+
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 2px;
+        }
+      }
+      .row__del {
+        display: grid;
+        place-content: center;
+        width: to-rem(32);
+        height: to-rem(32);
+        background: transparent;
+        border: 1px solid var(--c-surface-2);
+        color: var(--c-on-surface-muted);
+        font-size: var(--fs-6);
+        line-height: 1;
+        cursor: pointer;
+        transition:
+          border-color 0.2s var(--ease-smooth),
+          color 0.2s var(--ease-smooth);
+
+        &:hover {
+          border-color: var(--c-accent);
+          color: var(--c-accent);
+        }
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 2px;
+        }
+      }
+
+      // ── Project detail: stage checklist ──────────────────────────
+      .stages {
+        list-style: none;
+        margin: to-rem(16) 0 0;
+        padding: 0;
+        display: grid;
+        gap: to-rem(8);
+      }
+      .stage {
+        display: grid;
+        gap: to-rem(8);
+        padding: to-rem(12) to-rem(16);
+        background: var(--c-surface-1);
+        border: 1px solid var(--c-surface-2);
+        border-left: to-rem(3) solid var(--c-on-surface-muted);
+      }
+      // Owner-colored left bar: internal = accent, client = muted, shared = info blue.
+      .stage--internal {
+        border-left-color: var(--c-accent);
+      }
+      .stage--client {
+        border-left-color: var(--c-on-surface-muted);
+      }
+      .stage--shared {
+        border-left-color: var(--c-info);
+      }
+      .stage--done,
+      .stage--skipped {
+        opacity: 0.5;
+      }
+      .stage__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: to-rem(12);
+      }
+      .stage__name {
+        flex: 1 1 auto;
+        overflow-wrap: anywhere;
+      }
+      .stage__owner {
+        font-size: var(--fs-label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-on-surface-muted);
+      }
+      .stage__status {
+        font: inherit;
+        font-size: var(--fs-label);
+        color: var(--c-light);
+        background: var(--c-dark);
+        border: 1px solid var(--c-on-surface-muted);
+        padding: to-rem(6) to-rem(10);
+        min-height: to-rem(36);
+        border-radius: 0;
+        text-transform: capitalize;
+
+        &:focus-visible {
+          outline: 2px solid var(--c-accent);
+          outline-offset: 2px;
+        }
+      }
+      .stage__blocked {
+        margin: 0;
+        color: var(--c-accent);
+        font-size: var(--fs-label);
+        letter-spacing: 0.02em;
+      }
+      .stage__req {
+        margin: 0;
+        font-size: var(--fs-label);
+        color: var(--c-on-surface-muted);
+      }
+      .stage__docs {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: to-rem(4);
+        font-size: var(--fs-label);
+
+        em {
+          font-style: normal;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--c-on-surface-muted);
+        }
+      }
+      .docform {
+        display: flex;
+        flex-wrap: wrap;
+        gap: to-rem(8);
+        margin-top: to-rem(4);
+      }
+
+      // ── Project detail: activity log ─────────────────────────────
+      .activity {
+        list-style: none;
+        margin: to-rem(8) 0 0;
+        padding: 0;
+        display: grid;
+        gap: to-rem(4);
+
+        li {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-between;
+          gap: to-rem(12);
+          padding: to-rem(8) 0;
+          border-bottom: 1px solid var(--c-surface-2);
+          font-size: var(--fs-label);
+        }
+        time {
+          color: var(--c-on-surface-muted);
+          white-space: nowrap;
+        }
+      }
     </style>
   </body>
 </html>
