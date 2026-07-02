@@ -87,9 +87,9 @@ git commit -m "✨ add node adapter + /api/health"
 **Files:**
 - Create: `db/schema.sql`
 - Create: `src/server/db.ts`
-- Create: `src/server/seed.ts`
+- Create: `src/server/seed.mjs` (plain JS so the node test can import it without TS type-stripping)
 - Create: `src/env.d.ts` addition for `*.sql?raw`
-- Create: `src/server/db.test.mjs` (integration, gated on `DATABASE_URL`)
+- Create: `src/server/db.test.mjs` (integration, gated on `DATABASE_URL`; self-contained — does NOT import `db.ts`, because its `?raw` import is Vite-only and won't resolve under plain node)
 
 **Interfaces:**
 - Produces: `sql` (postgres tagged-template client), `initDb(): Promise<void>` (applies schema + seeds once), from `src/server/db.ts`.
@@ -193,11 +193,9 @@ declare module '*.sql?raw' {
 }
 ```
 
-- [ ] **Step 3: Write `src/server/seed.ts` (idempotent — only seeds when empty)**
+- [ ] **Step 3: Write `src/server/seed.mjs` (plain JS, idempotent — only seeds when empty)**
 
-```ts
-import type { Sql } from 'postgres';
-
+```js
 // The two default pipelines from the spec (§9). Shared early stages, then a divergent tail.
 const SHARED = [
   { name: 'Proposal', owner: 'internal', docs: ['signed proposal'] },
@@ -205,7 +203,7 @@ const SHARED = [
   { name: 'BRS', owner: 'client', docs: ['BRS'] },
   { name: 'Quotation', owner: 'internal', docs: ['quotation'] },
   { name: 'Contract', owner: 'shared', docs: ['signed contract'] },
-] as const;
+];
 
 const POS_TAIL = [
   { name: 'System/Hardware Requirement Confirmation', owner: 'client', docs: [] },
@@ -215,7 +213,7 @@ const POS_TAIL = [
   { name: 'Client Testing/Feedback', owner: 'client', docs: [] },
   { name: 'Launch/Deployment', owner: 'shared', docs: [] },
   { name: 'Handover & Resource Assignment', owner: 'internal', docs: [] },
-] as const;
+];
 
 const WEB_TAIL = [
   { name: 'Content/Brand Assets Collection', owner: 'client', docs: ['brand assets'] },
@@ -225,9 +223,9 @@ const WEB_TAIL = [
   { name: 'Client Review/Revisions', owner: 'client', docs: [] },
   { name: 'Launch', owner: 'shared', docs: [] },
   { name: 'Handover', owner: 'internal', docs: [] },
-] as const;
+];
 
-export async function seedIfEmpty(sql: Sql) {
+export async function seedIfEmpty(sql) {
   const [{ count }] = await sql`SELECT count(*)::int AS count FROM project_types`;
   if (count > 0) return;
 
@@ -252,7 +250,7 @@ export async function seedIfEmpty(sql: Sql) {
 ```ts
 import postgres from 'postgres';
 import schema from '../../db/schema.sql?raw';
-import { seedIfEmpty } from './seed';
+import { seedIfEmpty } from './seed.mjs';
 
 export const sql = postgres(process.env.DATABASE_URL!);
 
@@ -268,20 +266,31 @@ export function initDb(): Promise<void> {
 
 - [ ] **Step 5: Write the gated integration test `src/server/db.test.mjs`**
 
+Self-contained: builds its own client and reads the schema via `fs`, so it never
+touches `db.ts`'s Vite-only `?raw` import (which plain node cannot resolve).
+
 ```js
 import assert from 'node:assert';
+import { readFileSync } from 'node:fs';
 
 if (!process.env.DATABASE_URL) {
   console.log('SKIP db.test — no DATABASE_URL');
   process.exit(0);
 }
-const { sql, initDb } = await import('./db.ts');
-await initDb();
+const postgres = (await import('postgres')).default;
+const { seedIfEmpty } = await import('./seed.mjs');
+
+const sql = postgres(process.env.DATABASE_URL);
+const schema = readFileSync(new URL('../../db/schema.sql', import.meta.url), 'utf8');
+await sql.unsafe(schema);
+await seedIfEmpty(sql);
+
 const types = await sql`SELECT name FROM project_types ORDER BY name`;
 assert.deepStrictEqual(types.map((t) => t.name), ['Creative Website', 'POS']);
 const stages = await sql`SELECT count(*)::int c FROM stage_templates`;
 assert.strictEqual(stages[0].c, 24); // 12 per pipeline
-await initDb(); // idempotent — second call must not double-seed
+
+await seedIfEmpty(sql); // idempotent — second call must not double-seed
 const again = await sql`SELECT count(*)::int c FROM project_types`;
 assert.strictEqual(again[0].c, 2);
 console.log('db.test OK');
@@ -291,12 +300,12 @@ await sql.end();
 - [ ] **Step 6: Run it (with a Postgres available)**
 
 Run: `DATABASE_URL=postgres://... node src/server/db.test.mjs`
-Expected: `db.test OK` (or `SKIP` if no DB). Node 24 strips the `.ts` import types automatically.
+Expected: `db.test OK` (or `SKIP` if no DB).
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add db/schema.sql src/env.d.ts src/server/seed.ts src/server/db.ts src/server/db.test.mjs
+git add db/schema.sql src/env.d.ts src/server/seed.mjs src/server/db.ts src/server/db.test.mjs
 git commit -m "✨ postgres schema, client, idempotent seed"
 ```
 
