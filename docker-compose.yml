@@ -1,0 +1,34 @@
+# Runs the app + its Postgres together. Dokploy: deploy this as a "Compose" service.
+# Postgres data persists in the `pgdata` volume — no manual DB setup needed.
+# Set APP_PASSWORD and APP_SECRET as env vars in Dokploy (or a .env next to this file).
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kwg
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kwg}
+      POSTGRES_DB: kwg
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kwg -d kwg"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://kwg:${POSTGRES_PASSWORD:-kwg}@db:5432/kwg
+      APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD}
+      APP_SECRET: ${APP_SECRET:?set APP_SECRET}
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
