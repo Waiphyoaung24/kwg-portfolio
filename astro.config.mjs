@@ -2,7 +2,6 @@
 import { defineConfig } from 'astro/config';
 
 import node from '@astrojs/node';
-import react from '@astrojs/react';
 import robotsTxt from 'astro-robots-txt';
 import sitemap from '@astrojs/sitemap';
 import glsl from 'vite-plugin-glsl';
@@ -16,7 +15,6 @@ export default defineConfig({
       : 'https://kwg-portfolio.example.com',
   adapter: node({ mode: 'standalone' }),
   integrations: [
-    react(),
     robotsTxt({
       sitemapBaseFileName: 'sitemap-index',
       // TODO: remove when going live
