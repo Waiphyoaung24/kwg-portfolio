@@ -28,6 +28,9 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://kwg:${POSTGRES_PASSWORD:-kwg}@db:5432/kwg
+      # Vault tool links, read at request time by /vault (empty → localhost fallback)
+      PUBLIC_MEMOS_URL: ${PUBLIC_MEMOS_URL:-}
+      PUBLIC_FIREFLY_URL: ${PUBLIC_FIREFLY_URL:-}
     ports:
       - "3069:3000"
 
