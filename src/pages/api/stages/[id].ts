@@ -1,12 +1,9 @@
 import type { APIContext } from 'astro';
 import { sql, initDb } from '../../../server/db';
-import { guard } from '../../../server/guard';
 
 export const prerender = false;
 
 export async function PATCH({ request, params }: APIContext) {
-  const denied = guard(request);
-  if (denied) return denied;
   await initDb();
   const id = Number(params.id);
   const body = await request.json();

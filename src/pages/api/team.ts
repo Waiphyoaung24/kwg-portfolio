@@ -1,19 +1,14 @@
 import type { APIContext } from 'astro';
 import { sql, initDb } from '../../server/db';
-import { guard } from '../../server/guard';
 
 export const prerender = false;
 
-export async function GET({ request }: APIContext) {
-  const denied = guard(request);
-  if (denied) return denied;
+export async function GET() {
   await initDb();
   return Response.json(await sql`SELECT * FROM team_members ORDER BY name`);
 }
 
 export async function POST({ request }: APIContext) {
-  const denied = guard(request);
-  if (denied) return denied;
   await initDb();
   const b = await request.json();
   if (!b.name) return new Response('name required', { status: 400 });

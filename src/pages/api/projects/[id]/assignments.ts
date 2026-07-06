@@ -1,12 +1,9 @@
 import type { APIContext } from 'astro';
 import { sql, initDb } from '../../../../server/db';
-import { guard } from '../../../../server/guard';
 
 export const prerender = false;
 
 export async function POST({ request, params }: APIContext) {
-  const denied = guard(request);
-  if (denied) return denied;
   await initDb();
   const b = await request.json();
   if (!b.team_member_id) return new Response('team_member_id required', { status: 400 });

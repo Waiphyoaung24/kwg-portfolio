@@ -1,13 +1,10 @@
 import type { APIContext } from 'astro';
 import { sql, initDb } from '../../server/db';
-import { guard } from '../../server/guard';
 import { currentStage, blockedOnWho, daysWaiting, preContractWarning } from '../../server/pipeline.mjs';
 
 export const prerender = false;
 
-export async function GET({ request }: APIContext) {
-  const denied = guard(request);
-  if (denied) return denied;
+export async function GET() {
   await initDb();
 
   const projects = await sql`SELECT * FROM projects ORDER BY created_date DESC`;
@@ -31,8 +28,6 @@ export async function GET({ request }: APIContext) {
 }
 
 export async function POST({ request }: APIContext) {
-  const denied = guard(request);
-  if (denied) return denied;
   await initDb();
 
   const { client_name, project_type_id } = await request.json();

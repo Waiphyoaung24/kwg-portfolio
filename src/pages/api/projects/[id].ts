@@ -1,13 +1,10 @@
 import type { APIContext } from 'astro';
 import { sql, initDb } from '../../../server/db';
-import { guard } from '../../../server/guard';
 import { blockedOnWho, preContractWarning } from '../../../server/pipeline.mjs';
 
 export const prerender = false;
 
-export async function GET({ request, params }: APIContext) {
-  const denied = guard(request);
-  if (denied) return denied;
+export async function GET({ params }: APIContext) {
   await initDb();
   const id = Number(params.id);
 

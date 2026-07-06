@@ -6,7 +6,12 @@ import '../styles/index.scss';
 //   node -e "crypto.subtle.digest('SHA-256',new TextEncoder().encode('YOUR_PW')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))"
 const VAULT_HASH = '057ba03d6c44104863dc7361fe4578965d1887360f90a0895882e58a6248fc86';
 
-const placeholders = Array.from({ length: 5 });
+// External tools live in their own containers (see compose.yml); the Vault just
+// links out. URLs are per-environment — localhost for dev, your domains in prod.
+const MEMOS_URL = import.meta.env.PUBLIC_MEMOS_URL ?? 'http://localhost:5230';
+const FIREFLY_URL = import.meta.env.PUBLIC_FIREFLY_URL ?? 'http://localhost:8080';
+
+const placeholders = Array.from({ length: 3 });
 ---
 
 <!doctype html>
@@ -73,6 +78,24 @@ const placeholders = Array.from({ length: 5 });
           <li class="tool tool--active">
             <a class="tool__link" href="/vault/projects">
               <span class="tool__name">Projects</span>
+              <span class="tool__hint">Open</span>
+            </a>
+          </li>
+          <li class="tool tool--active">
+            <a class="tool__link" href={MEMOS_URL} target="_blank" rel="noopener noreferrer">
+              <span class="tool__name">Notes</span>
+              <span class="tool__hint">Open ↗</span>
+            </a>
+          </li>
+          <li class="tool tool--active">
+            <a class="tool__link" href={FIREFLY_URL} target="_blank" rel="noopener noreferrer">
+              <span class="tool__name">Finance</span>
+              <span class="tool__hint">Open ↗</span>
+            </a>
+          </li>
+          <li class="tool tool--active">
+            <a class="tool__link" href="/vault/zelda">
+              <span class="tool__name">Zelda</span>
               <span class="tool__hint">Open</span>
             </a>
           </li>

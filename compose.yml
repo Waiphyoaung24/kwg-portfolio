@@ -1,6 +1,5 @@
 # Runs the app + its Postgres together. Dokploy reads this file (compose.yml wins over docker-compose.yml).
 # Postgres data persists in the `pgdata` volume — no manual DB setup needed.
-# Set APP_PASSWORD and APP_SECRET as env vars in Dokploy (or a .env next to this file).
 services:
   db:
     image: postgres:16-alpine
@@ -9,6 +8,10 @@ services:
       POSTGRES_USER: kwg
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kwg}
       POSTGRES_DB: kwg
+    # Loopback-only host port so local `npm run dev` can reach the DB.
+    # In prod the app container still connects over the compose network (db:5432).
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -25,10 +28,78 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://kwg:${POSTGRES_PASSWORD:-kwg}@db:5432/kwg
-      APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD}
-      APP_SECRET: ${APP_SECRET:?set APP_SECRET}
     ports:
       - "3069:3000"
 
+  # ── Memos — note-taking (Vault → Notes) ──────────────────────────────
+  # Single-user, so SQLite (default) in a volume — no DB container needed.
+  memos:
+    # ponytail: `stable` still floats — pin to an exact tag (neosmemo/memos:X.Y.Z)
+    # from https://hub.docker.com/r/neosmemo/memos/tags before you rely on prod.
+    image: neosmemo/memos:stable
+    restart: unless-stopped
+    # Bind host: loopback for local dev; set BIND_HOST=172.17.0.1 in prod so ONLY the
+    # Cloudflare tunnel (via the docker bridge) can reach it — not the public/LAN interface.
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:5230:5230"
+    volumes:
+      - memos_data:/var/opt/memos
+
+  # ── Firefly III — personal finance (Vault → Finance) ─────────────────
+  # Requires a real DB (no SQLite), so it gets its own Postgres.
+  firefly:
+    image: fireflyiii/core:version-6.6.6
+    restart: unless-stopped
+    depends_on:
+      firefly-db:
+        condition: service_healthy
+    environment:
+      APP_KEY: ${APP_KEY:?set APP_KEY (32 chars)}
+      APP_URL: ${FIREFLY_APP_URL:-http://localhost:8080}
+      TZ: ${TZ:-UTC}
+      TRUSTED_PROXIES: "**"
+      STATIC_CRON_TOKEN: ${STATIC_CRON_TOKEN:?set STATIC_CRON_TOKEN (32 chars)}
+      DB_CONNECTION: pgsql
+      DB_HOST: firefly-db
+      DB_PORT: "5432"
+      DB_DATABASE: firefly
+      DB_USERNAME: firefly
+      DB_PASSWORD: ${FIREFLY_DB_PASSWORD:?set FIREFLY_DB_PASSWORD}
+    # Bind host: loopback for local dev; set BIND_HOST=172.17.0.1 in prod (see memos).
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:8080:8080"
+    volumes:
+      - firefly_upload:/var/www/html/storage/upload
+
+  # Firefly cron — fires recurring transactions / bill reminders daily at 03:00.
+  firefly-cron:
+    image: alpine
+    restart: unless-stopped
+    depends_on:
+      - firefly
+    environment:
+      STATIC_CRON_TOKEN: ${STATIC_CRON_TOKEN:?set STATIC_CRON_TOKEN (32 chars)}
+    command: >
+      sh -c "echo \"0 3 * * * wget -qO- http://firefly:8080/api/v1/cron/$$STATIC_CRON_TOKEN\"
+      | crontab - && crond -f -L /dev/stdout"
+
+  firefly-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: firefly
+      POSTGRES_USER: firefly
+      POSTGRES_PASSWORD: ${FIREFLY_DB_PASSWORD:?set FIREFLY_DB_PASSWORD}
+    volumes:
+      - firefly_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U firefly -d firefly"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   pgdata:
+  memos_data:
+  firefly_upload:
+  firefly_db:
