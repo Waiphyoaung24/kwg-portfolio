@@ -1,0 +1,37 @@
+---
+import CatalogEntry from '@components/CatalogEntry.astro';
+---
+
+<CatalogEntry slug="kage">
+  <div class="frame">
+    <iframe src="/catalog/kage/live" title="Kage landing page, live" loading="lazy"
+    ></iframe>
+    <a class="n-label" href="/catalog/kage/live">[ Open full page ]</a>
+  </div>
+</CatalogEntry>
+
+<style lang="scss">
+  .frame {
+    display: grid;
+    gap: to-rem(12);
+    width: 100%;
+    max-width: to-rem(1400);
+  }
+
+  iframe {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border: 1px solid var(--n-border-visible);
+    background: #000;
+  }
+
+  a {
+    justify-self: end;
+    text-decoration: none;
+    transition: color 150ms var(--n-ease);
+
+    &:hover {
+      color: var(--n-text-display);
+    }
+  }
+</style>

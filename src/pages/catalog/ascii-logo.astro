@@ -1,0 +1,58 @@
+---
+import CatalogEntry from '@components/CatalogEntry.astro';
+---
+
+<CatalogEntry slug="ascii-logo">
+  <ascii-logo
+    dark
+    role="img"
+    aria-label="The Codrops mark, drawn as a rotating solid in ASCII characters"
+  >
+    <canvas data-logo-canvas class="is-hidden"></canvas>
+  </ascii-logo>
+</CatalogEntry>
+
+<script>
+  import { AsciiLogoElement } from '../../catalog/ascii-logo/element.js';
+
+  if (!customElements.get('ascii-logo')) {
+    customElements.define('ascii-logo', AsciiLogoElement);
+  }
+</script>
+
+<style lang="scss">
+  // The renderer reads `color` for its ink and the canvas font for its atlas.
+  ascii-logo {
+    position: relative;
+    display: block;
+    color: #ffffff;
+    width: min(84vmin, 900px);
+    aspect-ratio: 1;
+    cursor: grab;
+    touch-action: pan-y;
+    user-select: none;
+
+    &.is-grabbing {
+      cursor: grabbing;
+    }
+  }
+
+  canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    font-family: 'Space Mono', ui-monospace, monospace;
+    font-weight: 400;
+    opacity: 1;
+    transition: opacity 500ms ease-out;
+
+    &.is-hidden {
+      opacity: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+</style>

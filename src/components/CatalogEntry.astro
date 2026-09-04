@@ -1,0 +1,214 @@
+---
+import '../catalog/nothing.scss';
+
+import Layout from '@layouts/Layout.astro';
+import { entries } from '../catalog/entries';
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const entry = entries.find((e) => e.slug === slug);
+if (!entry) throw new Error(`Unknown catalog entry: ${slug}`);
+
+// Every file under src/catalog/<slug>/, read verbatim at build time so the
+// page shows exactly what ships. `?raw` bypasses the GLSL plugin on purpose.
+const raw = import.meta.glob('/src/catalog/*/**', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
+
+const prefix = `/src/catalog/${slug}/`;
+const files = Object.entries(raw)
+  .filter(([path]) => path.startsWith(prefix))
+  .map(([path, code]) => ({
+    path: path.slice(prefix.length),
+    code,
+    bytes: new TextEncoder().encode(code).length,
+  }))
+  .sort((a, b) => a.path.localeCompare(b.path));
+
+const pad = (n: number) => String(n).padStart(2, '0');
+const index = pad(entries.indexOf(entry) + 1);
+---
+
+<Layout>
+  <main class="nothing">
+    <!-- Primary layer: the demo itself. -->
+    <section class="stage">
+      <slot />
+    </section>
+
+    <div class="container">
+      <!-- Secondary layer: what this is. -->
+      <header class="meta">
+        <a class="n-label back" href="/catalog">[ Catalog ]</a>
+        <p class="n-label">{index} · {entry.kind}</p>
+        <h1>{entry.title}</h1>
+        <p class="lede">{entry.description}</p>
+        <dl>
+          <dt class="n-label">Stack</dt>
+          <dd>{entry.stack}</dd>
+          <dt class="n-label">Credit</dt>
+          <dd>
+            <a href={entry.credit.url} target="_blank" rel="noopener">
+              {entry.credit.name}
+            </a>
+          </dd>
+          <dt class="n-label">Source</dt>
+          <dd>
+            <a href={entry.source} target="_blank" rel="noopener">
+              {entry.source.startsWith("/") ? "Live page" : "Article"}
+            </a>
+          </dd>
+          <dt class="n-label">License</dt>
+          <dd>{entry.license}</dd>
+        </dl>
+      </header>
+
+      <!-- Tertiary layer: the files, ready to copy. -->
+      <section class="files">
+        <p class="n-label files-head">
+          Source · {pad(files.length)} files · src/catalog/{slug}/
+        </p>
+        {
+          files.map((file) => (
+            <article class="file">
+              <header>
+                <span class="path">{file.path}</span>
+                <span class="n-label">{file.bytes} B</span>
+                <button type="button" class="n-button" data-copy>
+                  [ Copy ]
+                </button>
+              </header>
+              <pre tabindex="0"><code>{file.code}</code></pre>
+            </article>
+          ))
+        }
+      </section>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  document
+    .querySelectorAll<HTMLButtonElement>('[data-copy]')
+    .forEach((button) => {
+      button.addEventListener('click', async () => {
+        const code =
+          button.closest('article')?.querySelector('code')?.textContent ?? '';
+        try {
+          await navigator.clipboard.writeText(code);
+          button.textContent = '[ Copied ]';
+        } catch {
+          button.textContent = '[ Error ]';
+        }
+        setTimeout(() => (button.textContent = '[ Copy ]'), 1500);
+      });
+    });
+</script>
+
+<style lang="scss">
+  main {
+    padding-bottom: to-rem(96);
+  }
+
+  .stage {
+    display: grid;
+    place-items: center;
+    min-height: calc(100svh - to-rem(80));
+    padding: to-rem(24);
+  }
+
+  .meta {
+    display: grid;
+    gap: to-rem(16);
+    max-width: 64ch;
+    margin-block: to-rem(96);
+  }
+
+  .back {
+    justify-self: start;
+    text-decoration: none;
+    transition: color 150ms var(--n-ease);
+
+    &:hover {
+      color: var(--n-text-display);
+    }
+  }
+
+  h1 {
+    font-size: var(--fs-3);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-transform: none;
+    color: var(--n-text-display);
+  }
+
+  .lede {
+    color: var(--n-text-secondary);
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: 8ch 1fr;
+    gap: to-rem(8) to-rem(24);
+    margin-top: to-rem(16);
+    font-size: 14px;
+  }
+
+  dd a {
+    color: var(--n-text-primary);
+    text-decoration-color: var(--n-border-visible);
+    transition: color 150ms var(--n-ease);
+
+    &:hover {
+      color: var(--n-text-display);
+    }
+  }
+
+  .files {
+    display: grid;
+    gap: to-rem(48);
+  }
+
+  .files-head {
+    padding-bottom: to-rem(12);
+    border-bottom: 1px solid var(--n-border);
+  }
+
+  .file header {
+    display: flex;
+    align-items: center;
+    gap: to-rem(16);
+    padding-bottom: to-rem(8);
+  }
+
+  .path {
+    font-family: var(--n-ff-mono);
+    font-size: 13px;
+    color: var(--n-text-primary);
+  }
+
+  .file .n-button {
+    margin-left: auto;
+  }
+
+  pre {
+    font-family: var(--n-ff-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--n-text-secondary);
+    padding: to-rem(16) 0;
+    border-top: 1px solid var(--n-border);
+    overflow-x: auto;
+    tab-size: 2;
+
+    &:focus-visible {
+      outline: 1px solid var(--n-border-visible);
+      outline-offset: 4px;
+    }
+  }
+</style>
