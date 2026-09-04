@@ -20,6 +20,7 @@ const raw = import.meta.glob('/src/catalog/*/**', {
   eager: true,
 }) as Record<string, string>;
 
+const PREVIEW_LINES = 12;
 const prefix = `/src/catalog/${slug}/`;
 const files = Object.entries(raw)
   .filter(([path]) => path.startsWith(prefix))
@@ -27,6 +28,9 @@ const files = Object.entries(raw)
     path: path.slice(prefix.length),
     code,
     bytes: new TextEncoder().encode(code).length,
+    // Only the head of the file is shown; Copy carries the whole thing.
+    preview: code.split('\n').slice(0, PREVIEW_LINES).join('\n'),
+    lines: code.split('\n').length,
   }))
   .sort((a, b) => a.path.localeCompare(b.path));
 
@@ -78,12 +82,21 @@ const index = pad(entries.indexOf(entry) + 1);
             <article class="file">
               <header>
                 <span class="path">{file.path}</span>
-                <span class="n-label">{file.bytes} B</span>
-                <button type="button" class="n-button" data-copy>
+                <span class="n-label">
+                  {file.lines} lines · {file.bytes} B
+                </span>
+                <button type="button" class="n-button" data-copy={file.code}>
                   [ Copy ]
                 </button>
               </header>
-              <pre tabindex="0"><code>{file.code}</code></pre>
+              <pre><code>{file.preview}</code></pre>
+              {
+                file.lines > PREVIEW_LINES && (
+                  <p class="n-label more">
+                    … {file.lines - PREVIEW_LINES} more lines in the copy
+                  </p>
+                )
+              }
             </article>
           ))
         }
@@ -97,10 +110,8 @@ const index = pad(entries.indexOf(entry) + 1);
     .querySelectorAll<HTMLButtonElement>('[data-copy]')
     .forEach((button) => {
       button.addEventListener('click', async () => {
-        const code =
-          button.closest('article')?.querySelector('code')?.textContent ?? '';
         try {
-          await navigator.clipboard.writeText(code);
+          await navigator.clipboard.writeText(button.dataset.copy ?? '');
           button.textContent = '[ Copied ]';
         } catch {
           button.textContent = '[ Error ]';
@@ -205,10 +216,10 @@ const index = pad(entries.indexOf(entry) + 1);
     border-top: 1px solid var(--n-border);
     overflow-x: auto;
     tab-size: 2;
+  }
 
-    &:focus-visible {
-      outline: 1px solid var(--n-border-visible);
-      outline-offset: 4px;
-    }
+  .more {
+    color: var(--n-text-disabled);
+    padding-top: to-rem(8);
   }
 </style>
