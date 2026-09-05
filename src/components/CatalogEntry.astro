@@ -36,21 +36,128 @@ const files = Object.entries(raw)
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const index = pad(entries.indexOf(entry) + 1);
+
+// The two aggregate clipboard payloads behind [ Copy for AI ]. Per-file copy
+// lives next to each file, so the menu only carries what spans all of them.
+const allSource = files
+  .map((file) => `// ${prefix}${file.path}\n\n${file.code}`)
+  .join('\n\n');
+
+const prompt = [
+  `${entry.title} — ${entry.kind.toLowerCase()} from the KWG catalog.`,
+  '',
+  entry.description,
+  '',
+  `Stack: ${entry.stack}`,
+  `Credit: ${entry.credit.name} (${entry.credit.url})`,
+  `Source: ${entry.source}`,
+  `License: ${entry.license}`,
+  '',
+  `All ${files.length} file(s), verbatim:`,
+  '',
+  allSource,
+].join('\n');
 ---
 
 <Layout>
   <main class="nothing">
-    <!-- Primary layer: the demo itself. -->
-    <section class="stage">
-      <slot />
-    </section>
-
     <div class="container">
-      <!-- Secondary layer: what this is. -->
-      <header class="meta">
+      <!-- Primary layer: what this is. -->
+      <header class="masthead">
         <a class="n-label back" href="/catalog">[ Catalog ]</a>
         <p class="n-label">{index} · {entry.kind}</p>
         <h1>{entry.title}</h1>
+      </header>
+
+      <!-- Secondary layer: how you look at it, and how you take it. -->
+      <div class="toolbar">
+        <div class="tabs" role="tablist" aria-label="View">
+          <button
+            type="button"
+            class="tab"
+            role="tab"
+            id="tab-preview"
+            aria-controls="panel-preview"
+            aria-selected="true"
+            data-view-tab="preview"
+          >
+            [ Preview ]
+          </button>
+          <button
+            type="button"
+            class="tab"
+            role="tab"
+            id="tab-code"
+            aria-controls="panel-code"
+            aria-selected="false"
+            data-view-tab="code"
+          >
+            [ Code ]
+          </button>
+        </div>
+
+        <details class="menu">
+          <summary class="n-button">[ Copy for AI ⌄ ]</summary>
+          <div class="menu-list">
+            <button type="button" class="menu-item" data-copy={prompt}>
+              [ Copy prompt ]
+            </button>
+            <button type="button" class="menu-item" data-copy={allSource}>
+              [ Copy all source ]
+            </button>
+          </div>
+        </details>
+      </div>
+
+      <!-- The demo and the source share one frame, so switching never jumps.
+           The demo stays mounted: unmounting would drop its WebGL context. -->
+      <div class="panel" data-view="preview">
+        <section
+          class="stage"
+          id="panel-preview"
+          role="tabpanel"
+          aria-labelledby="tab-preview"
+        >
+          <slot />
+        </section>
+
+        <section
+          class="files"
+          id="panel-code"
+          role="tabpanel"
+          aria-labelledby="tab-code"
+        >
+          <p class="n-label files-head">
+            {pad(files.length)} files · src/catalog/{slug}/
+          </p>
+          {
+            files.map((file) => (
+              <article class="file">
+                <header>
+                  <span class="path">{file.path}</span>
+                  <span class="n-label">
+                    {file.lines} lines · {file.bytes} B
+                  </span>
+                  <button type="button" class="n-button" data-copy={file.code}>
+                    [ Copy ]
+                  </button>
+                </header>
+                <pre><code>{file.preview}</code></pre>
+                {
+                  file.lines > PREVIEW_LINES && (
+                    <p class="n-label more">
+                      … {file.lines - PREVIEW_LINES} more lines in the copy
+                    </p>
+                  )
+                }
+              </article>
+            ))
+          }
+        </section>
+      </div>
+
+      <!-- Tertiary layer: provenance. -->
+      <section class="meta">
         <p class="lede">{entry.description}</p>
         <dl>
           <dt class="n-label">Stack</dt>
@@ -70,45 +177,41 @@ const index = pad(entries.indexOf(entry) + 1);
           <dt class="n-label">License</dt>
           <dd>{entry.license}</dd>
         </dl>
-      </header>
-
-      <!-- Tertiary layer: the files, ready to copy. -->
-      <section class="files">
-        <p class="n-label files-head">
-          Source · {pad(files.length)} files · src/catalog/{slug}/
-        </p>
-        {
-          files.map((file) => (
-            <article class="file">
-              <header>
-                <span class="path">{file.path}</span>
-                <span class="n-label">
-                  {file.lines} lines · {file.bytes} B
-                </span>
-                <button type="button" class="n-button" data-copy={file.code}>
-                  [ Copy ]
-                </button>
-              </header>
-              <pre><code>{file.preview}</code></pre>
-              {
-                file.lines > PREVIEW_LINES && (
-                  <p class="n-label more">
-                    … {file.lines - PREVIEW_LINES} more lines in the copy
-                  </p>
-                )
-              }
-            </article>
-          ))
-        }
       </section>
     </div>
   </main>
 </Layout>
 
 <script>
+  const panel = document.querySelector<HTMLElement>('.panel');
+  const tabs = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('[data-view-tab]'),
+  );
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const view = tab.dataset.viewTab ?? 'preview';
+      if (panel) panel.dataset.view = view;
+      tabs.forEach((t) =>
+        t.setAttribute('aria-selected', String(t === tab)),
+      );
+    });
+  });
+
+  // <details> handles open/close and Escape; it just doesn't close on an
+  // outside click.
+  document.addEventListener('click', (event) => {
+    document
+      .querySelectorAll<HTMLDetailsElement>('details.menu[open]')
+      .forEach((menu) => {
+        if (!menu.contains(event.target as Node)) menu.open = false;
+      });
+  });
+
   document
     .querySelectorAll<HTMLButtonElement>('[data-copy]')
     .forEach((button) => {
+      const label = button.textContent;
       button.addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(button.dataset.copy ?? '');
@@ -116,28 +219,22 @@ const index = pad(entries.indexOf(entry) + 1);
         } catch {
           button.textContent = '[ Error ]';
         }
-        setTimeout(() => (button.textContent = '[ Copy ]'), 1500);
+        button.closest('details')?.removeAttribute('open');
+        setTimeout(() => (button.textContent = label), 1500);
       });
     });
 </script>
 
 <style lang="scss">
   main {
-    padding-bottom: to-rem(96);
+    padding-block: to-rem(64) to-rem(96);
   }
 
-  .stage {
-    display: grid;
-    place-items: center;
-    min-height: calc(100svh - to-rem(80));
-    padding: to-rem(24);
-  }
-
-  .meta {
+  .masthead {
     display: grid;
     gap: to-rem(16);
     max-width: 64ch;
-    margin-block: to-rem(96);
+    margin-bottom: to-rem(40);
   }
 
   .back {
@@ -158,31 +255,117 @@ const index = pad(entries.indexOf(entry) + 1);
     color: var(--n-text-display);
   }
 
-  .lede {
-    color: var(--n-text-secondary);
+  // -- Toolbar ---------------------------------------------------------------
+
+  .toolbar {
+    display: flex;
+    align-items: flex-end;
+    gap: to-rem(24);
+    margin-bottom: to-rem(-1); // the active rule sits on the panel border
   }
 
-  dl {
-    display: grid;
-    grid-template-columns: 8ch 1fr;
-    gap: to-rem(8) to-rem(24);
-    margin-top: to-rem(16);
-    font-size: 14px;
+  .tabs {
+    display: flex;
+    gap: to-rem(24);
   }
 
-  dd a {
-    color: var(--n-text-primary);
-    text-decoration-color: var(--n-border-visible);
+  .tab {
+    font-family: var(--n-ff-mono);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--n-text-disabled);
+    min-height: 44px;
+    padding: 12px 0;
+    border-bottom: 1px solid transparent;
     transition: color 150ms var(--n-ease);
 
-    &:hover {
-      color: var(--n-text-display);
+    &:hover,
+    &:focus-visible {
+      color: var(--n-text-primary);
+      outline: none;
     }
+
+    &[aria-selected='true'] {
+      color: var(--n-text-display);
+      border-bottom-color: var(--n-accent);
+    }
+  }
+
+  .menu {
+    position: relative;
+    margin-left: auto;
+
+    summary {
+      list-style: none;
+      cursor: pointer;
+
+      &::-webkit-details-marker {
+        display: none;
+      }
+    }
+  }
+
+  .menu-list {
+    position: absolute;
+    top: calc(100% + to-rem(8));
+    right: 0;
+    z-index: 2;
+    display: grid;
+    min-width: to-rem(240);
+    background: var(--n-surface);
+    border: 1px solid var(--n-border-visible);
+  }
+
+  .menu-item {
+    font-family: var(--n-ff-mono);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--n-text-secondary);
+    min-height: 44px;
+    padding: to-rem(12) to-rem(16);
+    transition:
+      color 150ms var(--n-ease),
+      background 150ms var(--n-ease);
+
+    & + & {
+      border-top: 1px solid var(--n-border);
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: var(--n-text-display);
+      background: var(--n-black);
+      outline: none;
+    }
+  }
+
+  // -- Panel -----------------------------------------------------------------
+
+  .panel {
+    border: 1px solid var(--n-border-visible);
+  }
+
+  .stage {
+    display: grid;
+    place-items: center;
+    min-height: 70svh;
+    padding: to-rem(24);
   }
 
   .files {
     display: grid;
     gap: to-rem(48);
+    max-height: 80svh;
+    padding: to-rem(24);
+    overflow-y: auto;
+  }
+
+  .panel[data-view='preview'] .files,
+  .panel[data-view='code'] .stage {
+    display: none;
   }
 
   .files-head {
@@ -221,5 +404,34 @@ const index = pad(entries.indexOf(entry) + 1);
   .more {
     color: var(--n-text-disabled);
     padding-top: to-rem(8);
+  }
+
+  // -- Meta ------------------------------------------------------------------
+
+  .meta {
+    max-width: 64ch;
+    margin-top: to-rem(48);
+  }
+
+  .lede {
+    color: var(--n-text-secondary);
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: 8ch 1fr;
+    gap: to-rem(8) to-rem(24);
+    margin-top: to-rem(24);
+    font-size: 14px;
+  }
+
+  dd a {
+    color: var(--n-text-primary);
+    text-decoration-color: var(--n-border-visible);
+    transition: color 150ms var(--n-ease);
+
+    &:hover {
+      color: var(--n-text-display);
+    }
   }
 </style>

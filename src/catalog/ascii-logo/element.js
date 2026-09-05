@@ -205,6 +205,13 @@ export class AsciiLogoElement extends HTMLElement {
   #remeasure = () => {
     const rect = this.getBoundingClientRect();
 
+    // No box means the element is hidden, not zero-sized. Keep the last good
+    // measurement: caching a degenerate 1x1 here would stick, because the
+    // observer reports nothing when the box comes back at its original size.
+    if (rect.width === 0 || rect.height === 0) {
+      return;
+    }
+
     if (Math.abs(rect.width - this.#width) < 1 && Math.abs(rect.height - this.#height) < 1) {
       return;
     }
