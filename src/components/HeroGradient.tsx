@@ -10,7 +10,10 @@ export default function HeroGradient() {
 
   return (
     <ShaderGradientCanvas
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      // Stops 4px short of the bottom: the parent's wash is opaque there, and a
+      // canvas edge row that shares a line with the wash edge bleeds through
+      // as a hairline once the hero is scaled on scroll.
+      style={{ position: 'absolute', inset: '0 0 4px', width: '100%', height: 'auto' }}
       pixelDensity={1}
       pointerEvents="none"
     >

@@ -128,8 +128,8 @@ const steps = [
 
     <section id="work" class="container work" aria-labelledby="work-heading">
       <header class="work__header">
-        <p class="label" data-inview>02 &mdash; Selected Work</p>
-        <h2 id="work-heading" class="work__title-block" data-inview>
+        <p class="label">02 &mdash; Selected Work</p>
+        <h2 id="work-heading" class="work__title-block">
           Selected Work<br />
           <span class="work__years">2024 &mdash; 2026</span>
         </h2>
@@ -271,6 +271,46 @@ const steps = [
 </script>
 
 <script>
+  // Zoom handoff, after Giana's "zoom scroll" (codepen.io/giana/pen/BabdgjB)
+  // minus the scroll-snap, which Lenis fights. The hero scales up, blurs and
+  // fades as it leaves; the Selected Work header zooms in from small behind
+  // it. Scrubbed to scroll through the Lenis-driven ticker in scroll.ts.
+  // Targets are wrappers, not the [data-inview*] children: those carry a CSS
+  // transition on filter/opacity/transform that would lag a scrubbed tween.
+  import { gsap } from 'gsap';
+  import '../scripts/scroll';
+
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    gsap
+      .timeline({
+        scrollTrigger: {
+          trigger: '.hero',
+          start: 'bottom bottom',
+          end: 'bottom top',
+          scrub: 1,
+        },
+      })
+      .to('.hero', { scale: 1.5, opacity: 0, ease: 'power1.in' }, 0)
+      // Blur only the type; blurring the WebGL canvas every frame is costly.
+      .to('.hero__center', { filter: 'blur(16px)', ease: 'power1.in' }, 0);
+
+    gsap.from('.work__header', {
+      scale: 0.6,
+      opacity: 0,
+      filter: 'blur(16px)',
+      transformOrigin: '0% 50%',
+      ease: 'power1.out',
+      scrollTrigger: {
+        trigger: '.work__header',
+        start: 'top bottom',
+        end: 'top 40%',
+        scrub: 1,
+      },
+    });
+  }
+</script>
+
+<script>
   // Scroll-stand: 5 cards per stand start fanned in 3D and flatten into a
   // row as the section enters the viewport. Heading words stagger color
   // from white → muted. Scrubbed to scroll position via the Lenis-driven
@@ -365,12 +405,14 @@ const steps = [
 
     // Dark washes over the left half, where the copy sits, and the top strip,
     // where the header sits, so the white in the sphere blooms lower right and
-    // the type keeps its contrast.
+    // the type keeps its contrast. A bottom wash dissolves the canvas into the
+    // page so the hero has no hard edge against the next section.
     &::after {
       content: '';
       position: absolute;
       inset: 0;
       background:
+        linear-gradient(0deg, var(--c-canvas) 0%, transparent 28%),
         linear-gradient(
           180deg,
           var(--c-canvas) 0%,
@@ -431,6 +473,10 @@ const steps = [
   // alignment bug, see Canvas.astro). Holds the page section anchor for
   // future content.
   .work {
+    // The hero is positioned and scales to 1.5x on exit (see zoom handoff
+    // script); without a stacking order it would paint over this section.
+    position: relative;
+    z-index: 1;
     margin-block: clamp-fluid(80, 160) clamp-fluid(80, 160);
     display: flex;
     flex-direction: column;
