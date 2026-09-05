@@ -1,20 +1,206 @@
+---
+// Pill nav, ported from React Bits' <PillNav /> to Astro + the gsap that
+// Splash.astro already loads on every page. No React, no new dependencies.
+const items = [
+  { label: 'Home', href: '/' },
+  { label: 'Works', href: '/works' },
+  { label: 'Catalog', href: '/catalog' },
+  { label: 'My Portfolio', href: '/my-portfolio' },
+  { label: 'About', href: '/about' },
+];
+
+// /catalog/kage lights up Catalog, so a section stays marked from its children.
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const isActive = (href: string) =>
+  href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`);
+---
+
 <header>
   <div class="container">
-    <a href="/">KWG</a>
-    <nav>
-      <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/works">Works</a></li>
-        <li><a href="/catalog">Catalog</a></li>
-        <li><a href="/my-portfolio">My Portfolio</a></li>
-        <li><a href="/about">About</a></li>
-      </ul>
+    <nav class="pill-nav" aria-label="Primary">
+      <div class="pill-nav-items">
+        <ul class="pill-list">
+          {
+            items.map((item) => (
+              <li>
+                <a
+                  class:list={['pill', { 'is-active': isActive(item.href) }]}
+                  href={item.href}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                >
+                  <span class="hover-circle" aria-hidden="true" />
+                  <span class="label-stack">
+                    <span class="pill-label">{item.label}</span>
+                    <span class="pill-label-hover" aria-hidden="true">
+                      {item.label}
+                    </span>
+                  </span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <button
+        type="button"
+        class="menu-button"
+        aria-label="Toggle menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+      >
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+
+      <div class="mobile-menu" id="mobile-menu">
+        <ul>
+          {
+            items.map((item) => (
+              <li>
+                <a
+                  class:list={[
+                    'mobile-link',
+                    { 'is-active': isActive(item.href) },
+                  ]}
+                  href={item.href}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
     </nav>
   </div>
 </header>
 
+<script>
+  import { gsap } from 'gsap';
+
+  const EASE = 'power3.easeOut';
+  const IN = 0.3;
+  const OUT = 0.2;
+
+  const nav = document.querySelector<HTMLElement>('.pill-nav');
+  const button = document.querySelector<HTMLButtonElement>('.menu-button');
+
+  // The active pill is already in its hovered state, so sweeping it does
+  // nothing but jitter the label.
+  const pills = Array.from(
+    document.querySelectorAll<HTMLAnchorElement>('.pill:not(.is-active)'),
+  );
+
+  const timelines = new Map<Element, gsap.core.Timeline>();
+  const tweens = new Map<Element, gsap.core.Tween>();
+
+  // Geometry from the original: a circle wide enough that its arc clears the
+  // pill's corners, anchored so it rises from the bottom edge.
+  function layout() {
+    pills.forEach((pill) => {
+      const circle = pill.querySelector<HTMLElement>('.hover-circle');
+      const label = pill.querySelector<HTMLElement>('.pill-label');
+      const hover = pill.querySelector<HTMLElement>('.pill-label-hover');
+      if (!circle || !label || !hover) return;
+
+      const { width: w, height: h } = pill.getBoundingClientRect();
+      if (!w || !h) return;
+
+      const r = ((w * w) / 4 + h * h) / (2 * h);
+      const d = Math.ceil(2 * r) + 2;
+      const delta =
+        Math.ceil(r - Math.sqrt(Math.max(0, r * r - (w * w) / 4))) + 1;
+
+      circle.style.width = `${d}px`;
+      circle.style.height = `${d}px`;
+      circle.style.bottom = `-${delta}px`;
+
+      gsap.set(circle, {
+        xPercent: -50,
+        scale: 0,
+        transformOrigin: `50% ${d - delta}px`,
+      });
+      gsap.set(label, { y: 0 });
+      gsap.set(hover, { y: Math.ceil(h + 100), opacity: 0 });
+
+      timelines.get(pill)?.kill();
+      const tl = gsap.timeline({ paused: true });
+      tl.to(
+        circle,
+        {
+          scale: 1.2,
+          xPercent: -50,
+          duration: IN,
+          ease: EASE,
+          overwrite: 'auto',
+        },
+        0,
+      )
+        .to(
+          label,
+          { y: -(h + 8), duration: IN, ease: EASE, overwrite: 'auto' },
+          0,
+        )
+        .to(
+          hover,
+          { y: 0, opacity: 1, duration: IN, ease: EASE, overwrite: 'auto' },
+          0,
+        );
+
+      timelines.set(pill, tl);
+    });
+  }
+
+  function sweep(pill: Element, forward: boolean) {
+    const tl = timelines.get(pill);
+    if (!tl) return;
+    tweens.get(pill)?.kill();
+    tweens.set(
+      pill,
+      tl.tweenTo(forward ? tl.duration() : 0, {
+        duration: forward ? IN : OUT,
+        ease: EASE,
+        overwrite: 'auto',
+      }),
+    );
+  }
+
+  // Reduced motion keeps a plain colour flip, handled entirely in CSS.
+  if (matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+    layout();
+    window.addEventListener('resize', layout);
+    // Pill width depends on the webfont, so measure again once it lands.
+    document.fonts?.ready.then(layout).catch(() => {});
+
+    pills.forEach((pill) => {
+      pill.addEventListener('mouseenter', () => sweep(pill, true));
+      pill.addEventListener('mouseleave', () => sweep(pill, false));
+      // Keyboard users get the same affordance; the original skips this.
+      pill.addEventListener('focus', () => sweep(pill, true));
+      pill.addEventListener('blur', () => sweep(pill, false));
+    });
+  }
+
+  function setMenu(open: boolean) {
+    nav?.classList.toggle('is-open', open);
+    button?.setAttribute('aria-expanded', String(open));
+  }
+
+  button?.addEventListener('click', () =>
+    setMenu(button.getAttribute('aria-expanded') !== 'true'),
+  );
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setMenu(false);
+  });
+</script>
+
 <style lang="scss">
   header {
+    // Shared by the pill bar and the hamburger.
+    --nav-h: #{to-rem(42)};
     padding-block: to-rem(20);
     position: relative;
     z-index: 10;
@@ -22,7 +208,7 @@
 
   .container {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
   }
 
@@ -33,25 +219,211 @@
     font-size: var(--fs-label);
   }
 
-  // Brand mark sits a step heavier in tracking than nav links.
-  .container > a {
-    letter-spacing: 0.24em;
-    font-weight: var(--fw-medium);
-  }
-
-  ul {
+  .pill-nav {
+    position: relative;
     display: flex;
-    gap: to-rem(24);
-    list-style: none;
+    align-items: center;
   }
 
-  nav a {
-    transition: color 0.2s var(--ease-smooth);
+  .pill-nav-items {
+    height: var(--nav-h);
+    border-radius: 9999px;
+    background: var(--c-surface-1);
+  }
 
-    @include has-hover {
-      &:hover {
-        color: var(--c-accent);
+  .pill-list {
+    display: flex;
+    align-items: stretch;
+    gap: to-rem(3);
+    height: 100%;
+    padding: to-rem(3);
+    list-style: none;
+
+    > li {
+      display: flex;
+    }
+  }
+
+  .pill {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding-inline: to-rem(18);
+    border-radius: 9999px;
+    color: var(--c-light);
+    white-space: nowrap;
+    overflow: hidden;
+
+    &:focus-visible {
+      outline: 2px solid var(--c-accent);
+      outline-offset: 2px;
+    }
+
+    &.is-active {
+      background: var(--c-accent);
+      color: var(--c-dark);
+    }
+  }
+
+  .hover-circle {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    z-index: 1;
+    display: block;
+    border-radius: 50%;
+    background: var(--c-accent);
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .label-stack {
+    position: relative;
+    z-index: 2;
+    display: inline-block;
+    line-height: 1;
+  }
+
+  .pill-label {
+    position: relative;
+    z-index: 2;
+    display: inline-block;
+    line-height: 1;
+    will-change: transform;
+  }
+
+  .pill-label-hover {
+    position: absolute;
+    inset: 0 auto auto 0;
+    z-index: 3;
+    display: inline-block;
+    color: var(--c-dark);
+    will-change: transform, opacity;
+  }
+
+  // Without the sweep there is nothing to reveal, so flip the pill outright.
+  @media (prefers-reduced-motion: reduce) {
+    .hover-circle,
+    .pill-label-hover {
+      display: none;
+    }
+
+    .pill {
+      transition: background 0.2s var(--ease-smooth);
+
+      &:hover,
+      &:focus-visible {
+        background: var(--c-accent);
+        color: var(--c-dark);
       }
+    }
+  }
+
+  // -- Mobile ----------------------------------------------------------------
+
+  .menu-button {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: to-rem(4);
+    width: var(--nav-h);
+    height: var(--nav-h);
+    border-radius: 50%;
+    background: var(--c-surface-1);
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--c-accent);
+      outline-offset: 2px;
+    }
+  }
+
+  .hamburger-line {
+    width: to-rem(16);
+    height: to-rem(2);
+    border-radius: 1px;
+    background: var(--c-light);
+    transition:
+      transform 0.3s var(--ease-smooth),
+      opacity 0.3s var(--ease-smooth);
+  }
+
+  .is-open .hamburger-line:first-child {
+    transform: translateY(to-rem(3)) rotate(45deg);
+  }
+
+  .is-open .hamburger-line:last-child {
+    transform: translateY(to-rem(-3)) rotate(-45deg);
+  }
+
+  .mobile-menu {
+    position: absolute;
+    top: calc(100% + to-rem(12));
+    right: 0;
+    z-index: 998;
+    display: none;
+    min-width: to-rem(200);
+    padding: to-rem(3);
+    border-radius: to-rem(27);
+    background: var(--c-surface-1);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(to-rem(-8));
+    pointer-events: none;
+    transition:
+      opacity 0.2s var(--ease-smooth),
+      transform 0.2s var(--ease-smooth),
+      visibility 0.2s;
+
+    ul {
+      display: grid;
+      gap: to-rem(3);
+      list-style: none;
+    }
+  }
+
+  .is-open .mobile-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .mobile-link {
+    display: block;
+    padding: to-rem(12) to-rem(16);
+    border-radius: 9999px;
+    color: var(--c-light);
+    transition:
+      background 0.2s var(--ease-smooth),
+      color 0.2s var(--ease-smooth);
+
+    &:hover,
+    &:focus-visible {
+      background: var(--c-accent);
+      color: var(--c-dark);
+    }
+
+    &.is-active {
+      background: var(--c-accent);
+      color: var(--c-dark);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .pill-nav-items {
+      display: none;
+    }
+
+    .menu-button {
+      display: flex;
+    }
+
+    .mobile-menu {
+      display: block;
     }
   }
 </style>
