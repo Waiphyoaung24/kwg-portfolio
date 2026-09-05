@@ -104,21 +104,61 @@ const steps = [
       </p>
 
       <div class="hero__center">
-        <h1 id="hero-headline" class="hero__headline h2" data-inview-manual>
-          I build websites and the internal systems behind them.
-        </h1>
-        <p class="hero__proof" data-inview-manual>
-          Bangkok, Thailand. Available for new projects.
-        </p>
-        <div class="hero__actions" data-inview-manual>
-          <a
-            class="pill-btn pill-btn--filled"
-            href={`mailto:${email}?subject=New%20project`}
-          >
-            Email me <span aria-hidden="true">&#8599;&#65038;</span>
-          </a>
-          <a class="pill-btn" href="#work">See selected work</a>
+        <div class="hero__copy">
+          <h1 id="hero-headline" class="hero__headline h2" data-inview-manual>
+            I build websites and the internal systems behind them.
+          </h1>
+          <div class="hero__actions" data-inview-manual>
+            <a
+              class="pill-btn pill-btn--filled"
+              href={`mailto:${email}?subject=New%20project`}
+            >
+              Email me <span aria-hidden="true">&#8599;&#65038;</span>
+            </a>
+            <a class="pill-btn" href="#work">See selected work</a>
+          </div>
         </div>
+
+        <article class="lumen card" data-inview-manual>
+          <div class="lumen__light" aria-hidden="true">
+            <div class="lumen__bloom lumen__bloom--far"></div>
+            <div class="lumen__bloom lumen__bloom--near"></div>
+            <div class="lumen__slit"></div>
+            <div class="lumen__shade"></div>
+          </div>
+          <div class="lumen__icon" aria-hidden="true">
+            <svg viewBox="0 0 32 32">
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M26.2636 20.4752L29.7034 6.2832H22.8238L26.2636 20.4752Z"
+              ></path>
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M12.2636 6.2832L17.0473 26.0199H23.9568L19.1731 6.2832H12.2636Z"
+              ></path>
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M8.61287 6.28336L1.70337 6.28373L6.48706 26.0203L13.3966 26.02L8.61287 6.28336Z"
+              ></path>
+            </svg>
+          </div>
+          <div class="lumen__bottom">
+            <p class="lumen__title">Available for new projects</p>
+            <p class="lumen__sub">Bangkok, Thailand</p>
+            <button
+              class="lumen__switch"
+              type="button"
+              role="switch"
+              aria-checked="false"
+            >
+              <span class="lumen__track"><span class="lumen__handle"></span></span>
+              <span class="micro">Lights on</span>
+            </button>
+          </div>
+        </article>
       </div>
 
       <p class="hero__cue label" data-inview-manual>
@@ -268,6 +308,25 @@ const steps = [
       },
     });
   });
+</script>
+
+<script>
+  // Lumen card: lights itself shortly after load, the pen's "on" state without
+  // making the visitor find the switch; the switch then toggles it.
+  const card = document.querySelector<HTMLElement>('.lumen');
+  const sw = card?.querySelector<HTMLButtonElement>('.lumen__switch');
+  if (card && sw) {
+    const set = (lit: boolean) => {
+      card.classList.toggle('is-lit', lit);
+      sw.setAttribute('aria-checked', String(lit));
+    };
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) set(true);
+    else setTimeout(() => set(true), 800);
+    sw.addEventListener('click', () =>
+      set(sw.getAttribute('aria-checked') !== 'true'),
+    );
+  }
 </script>
 
 <script>
@@ -433,24 +492,306 @@ const steps = [
     color: var(--c-body);
   }
 
+  // Copy left, illumine card right; the card drops under the pills on mobile.
   .hero__center {
+    display: grid;
+    align-items: center;
+    gap: clamp-fluid(40, 80);
+
+    @media (min-width: 769px) {
+      grid-template-columns: 1fr auto;
+    }
+  }
+
+  .hero__copy {
     display: flex;
     flex-direction: column;
-    justify-content: center;
     gap: clamp-fluid(20, 40);
+  }
+
+  // LUMEN CARD — after RAFA3L's "Card Illumine" (codepen.io/RAFA3L/pen/ZYbabEa,
+  // inspo Camden). Rebuilt on the .card primitive: hairlines carry elevation,
+  // so the pen's stacked shadows go; the switch is a pill. The light itself is
+  // illustration, the one place the system draws glow, so its geometry below
+  // is raw values. `.is-lit` toggles it; the inline script flips it on after
+  // load and wires the switch.
+  .lumen {
+    --t: 0.4s var(--ease-smooth);
+    position: relative;
+    // Grey falloff from the top, as the pen: the mid canvas grey fading into
+    // the card grey.
+    background: radial-gradient(
+      circle at 50% 0%,
+      var(--c-canvas-mid),
+      var(--c-canvas-card) 64%
+    );
+    width: min(100%, #{to-rem(300)});
+    aspect-ratio: 3 / 4;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    transition: translate var(--t);
+
+    &:hover {
+      translate: 0 #{to-rem(-3)};
+    }
+  }
+
+  // Corner brackets: a hairline frame outside the card, clipped to its
+  // corners, that tightens and widens on hover.
+  .lumen::before {
+    content: '';
+    position: absolute;
+    --ax: #{to-rem(56)};
+    inset: to-rem(-12);
+    border: 1px solid var(--c-hairline-bright);
+    border-radius: var(--r-sm);
+    pointer-events: none;
+    clip-path: polygon(
+      var(--ax) 0,
+      0 0,
+      0 var(--ax),
+      var(--ax) var(--ax),
+      var(--ax) calc(100% - var(--ax)),
+      0 calc(100% - var(--ax)),
+      0 100%,
+      var(--ax) 100%,
+      var(--ax) calc(100% - var(--ax)),
+      calc(100% - var(--ax)) calc(100% - var(--ax)),
+      calc(100% - var(--ax)) 100%,
+      100% 100%,
+      100% calc(100% - var(--ax)),
+      calc(100% - var(--ax)) calc(100% - var(--ax)),
+      calc(100% - var(--ax)) var(--ax),
+      100% var(--ax),
+      100% 0,
+      calc(100% - var(--ax)) 0,
+      calc(100% - var(--ax)) var(--ax),
+      var(--ax) var(--ax)
+    );
+    transition:
+      inset var(--t),
+      clip-path var(--t);
+  }
+
+  .lumen:hover::before {
+    --ax: #{to-rem(100)};
+    inset: to-rem(-6);
+  }
+
+  .lumen__light {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    perspective: 400px;
+    // Vanishing point on the slit so its tilt foreshortens symmetrically.
+    perspective-origin: 50% 50%;
+
+    > * {
+      position: absolute;
+      left: 50%;
+      translate: -50%;
+      transition: opacity var(--t);
+    }
+  }
+
+  .lumen__slit {
+    top: 50%;
+    width: 64%;
+    height: to-rem(12);
+    transform: rotateX(-76deg);
+    background: var(--c-canvas);
+    box-shadow: 0 0 12px 1px transparent;
+    transition:
+      background var(--t),
+      box-shadow var(--t);
+  }
+
+  .is-lit .lumen__slit {
+    background: var(--c-ink);
+    box-shadow: 0 0 12px 1px color-mix(in srgb, var(--c-ink) 70%, transparent);
+  }
+
+  // Light spill as half-ellipses anchored on the slit: a hot core close in,
+  // a wide soft wash further out. Dark until lit.
+  .lumen__bloom {
+    bottom: calc(50% - #{to-rem(6)});
+    opacity: 0;
+  }
+
+  .is-lit .lumen__bloom {
+    opacity: 1;
+  }
+
+  .lumen__bloom--far {
+    width: 120%;
+    height: 60%;
+    background: radial-gradient(
+      ellipse 50% 100% at 50% 100%,
+      color-mix(in srgb, var(--c-ink) 28%, transparent),
+      transparent 70%
+    );
+    filter: blur(24px);
+  }
+
+  .lumen__bloom--near {
+    width: 74%;
+    height: 34%;
+    background: radial-gradient(
+      ellipse 55% 100% at 50% 100%,
+      color-mix(in srgb, var(--c-ink) 60%, transparent),
+      transparent 70%
+    );
+    filter: blur(12px);
+  }
+
+  .lumen__shade {
+    top: calc(50% + #{to-rem(6)});
+    width: 80%;
+    height: 40%;
+    background: radial-gradient(
+      ellipse 50% 100% at 50% 0,
+      color-mix(in srgb, var(--c-canvas) 90%, transparent),
+      transparent 70%
+    );
+    filter: blur(16px);
+    opacity: 0.4;
+  }
+
+  .is-lit .lumen__shade {
+    opacity: 1;
+  }
+
+  // The W mark in a hairline disc, brightening when lit.
+  .lumen__icon {
+    position: absolute;
+    top: 18%;
+    left: 50%;
+    translate: -50%;
+    width: to-rem(56);
+    height: to-rem(56);
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-pill);
+    color: var(--c-body);
+    transition: color var(--t);
+
+    svg {
+      width: to-rem(28);
+      height: to-rem(28);
+      fill: currentColor;
+    }
+  }
+
+  .is-lit .lumen__icon {
+    color: var(--c-ink);
+  }
+
+  .lumen__bottom {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'title title'
+      'sub switch';
+    align-items: end;
+    column-gap: var(--sp-md);
+    row-gap: var(--sp-md);
+  }
+
+  .lumen__title {
+    grid-area: title;
+    margin: 0;
+    font-size: var(--fs-5);
+    letter-spacing: var(--ls-5);
+    line-height: 1.3;
+    color: var(--c-ink);
+  }
+
+  .lumen__sub {
+    grid-area: sub;
+    margin: 0;
+    padding-bottom: var(--sp-sm);
+    border-bottom: 1px solid var(--c-hairline);
+    font-size: var(--fs-body-sm);
+    white-space: nowrap;
+    color: var(--c-body);
+  }
+
+  // Pill switch: outline track, ink handle that slides when lit.
+  .lumen__switch {
+    grid-area: switch;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-sm);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--c-body);
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 1px solid var(--c-ink);
+      outline-offset: to-rem(4);
+      border-radius: var(--r-pill);
+    }
+  }
+
+  .lumen__track {
+    position: relative;
+    width: to-rem(40);
+    height: to-rem(22);
+    border: 1px solid var(--c-hairline-bright);
+    border-radius: var(--r-pill);
+    transition: border-color var(--t);
+  }
+
+  .lumen__handle {
+    position: absolute;
+    top: to-rem(3);
+    left: to-rem(3);
+    width: to-rem(14);
+    height: to-rem(14);
+    border-radius: var(--r-pill);
+    background: var(--c-body);
+    transition:
+      translate var(--t),
+      background var(--t);
+  }
+
+  .lumen__switch[aria-checked='true'] {
+    color: var(--c-ink);
+
+    .lumen__track {
+      border-color: var(--c-ink);
+    }
+
+    .lumen__handle {
+      translate: to-rem(18);
+      background: var(--c-ink);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lumen,
+    .lumen::before,
+    .lumen__light > *,
+    .lumen__slit,
+    .lumen__icon,
+    .lumen__track,
+    .lumen__handle {
+      transition: none;
+    }
   }
 
   .hero__headline {
     margin: 0;
     max-width: 16ch;
     color: var(--c-ink);
-  }
-
-  .hero__proof {
-    color: var(--c-body);
-    font-size: clamp-fluid(16, 18);
-    line-height: 1.56;
-    letter-spacing: 0;
   }
 
   .hero__actions {
