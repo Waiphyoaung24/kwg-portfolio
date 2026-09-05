@@ -298,6 +298,9 @@ const prompt = [
   .menu {
     position: relative;
     margin-left: auto;
+    // The toolbar bottom-aligns onto the panel border for the tab rule; the
+    // pill is not a tab, so it stands clear of the border.
+    margin-bottom: var(--sp-md);
 
     summary {
       list-style: none;
