@@ -1,0 +1,248 @@
+---
+// One category chapter of the /works exhibit: label, heading, intro, a tab
+// row naming that chapter's projects, and one panel per project.
+//
+// Structure follows the reference measured in docs/works-page-design.md §4;
+// styling follows DESIGN.md (square corners, all-caps, gold accent).
+//
+// Panels render VISIBLE here and are hidden on init by the tab script in
+// works.astro. Without JavaScript the chapter degrades to a linear stack of
+// every project, which stays fully readable. That is also why no panel
+// carries `data-inview` — that attribute hides its element until a script
+// adds `.inview`.
+
+import type { Chapter, Work } from '../data/works';
+
+interface Props {
+  chapter: Chapter;
+  items: Work[];
+}
+
+const { chapter, items } = Astro.props;
+const { index, category, heading, intro } = chapter;
+
+const tablistLabel = `${heading} projects`;
+---
+
+<section class="chapter container" aria-labelledby={`ch-${category}`}>
+  <header class="chapter__head">
+    <p class="label chapter__index" data-inview>{index} &mdash; {heading}</p>
+    <h2 id={`ch-${category}`} class="chapter__heading" data-inview>{heading}</h2>
+    <p class="chapter__intro" data-inview>{intro}</p>
+  </header>
+
+  <div class="chapter__tabs" role="tablist" aria-label={tablistLabel}>
+    {
+      items.map((w, i) => (
+        <button
+          type="button"
+          role="tab"
+          class="tab"
+          id={`tab-${w.id}`}
+          aria-controls={`panel-${w.id}`}
+          aria-selected={i === 0 ? 'true' : 'false'}
+          tabindex={i === 0 ? 0 : -1}
+        >
+          {w.title}
+        </button>
+      ))
+    }
+  </div>
+
+  <div class="chapter__panels">
+    {
+      items.map((w) => (
+        <article
+          role="tabpanel"
+          class="panel"
+          id={`panel-${w.id}`}
+          aria-labelledby={`tab-${w.id}`}
+          tabindex="0"
+        >
+          {
+            w.media ? (
+              <img
+                class="panel__media"
+                src={w.media}
+                alt={`${w.title} — ${w.client}`}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div class="panel__media panel__media--empty">
+                <span class="micro">No media yet</span>
+              </div>
+            )
+          }
+
+          <p class="label panel__meta">
+            {w.title} &middot; {w.client} &middot; {w.year} &middot; {w.stack.join(', ')}
+          </p>
+
+          <p class="panel__summary">{w.summary}</p>
+
+          {
+            w.url && (
+              <a class="panel__link label" href={w.url}>
+                {/* U+FE0E forces text presentation; the bare arrow renders as
+                    a colour emoji in some system fallback fonts. */}
+                View live <span aria-hidden="true">&#8599;&#65038;</span>
+              </a>
+            )
+          }
+        </article>
+      ))
+    }
+  </div>
+</section>
+
+<style lang="scss">
+  .chapter {
+    // Content column for the tabs and media. The reference constrains its
+    // media to the article column rather than bleeding it full-width; at
+    // container width a 16:9 panel is ~880px tall and swamps the prose.
+    // Wider than the 65ch text measure because this is an exhibit, not an
+    // article — but a bounded, deliberate step, not full bleed.
+    --work-col: #{to-rem(1024)};
+
+    margin-block: clamp-fluid(80, 160);
+    display: flex;
+    flex-direction: column;
+    gap: clamp-fluid(32, 56);
+  }
+
+  .chapter__head {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(16);
+  }
+
+  .chapter__index {
+    color: var(--c-on-surface-muted);
+  }
+
+  .chapter__heading {
+    margin: 0;
+    color: var(--c-light);
+    letter-spacing: -0.01em;
+  }
+
+  // Measured prose column from the reference: ~65ch at 1.55 line-height.
+  .chapter__intro,
+  .panel__summary {
+    max-width: 65ch;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  .chapter__intro {
+    color: var(--c-light);
+  }
+
+  // TABS — square, per DESIGN.md §7. Active state is carried by fill plus a
+  // gold bottom rule, never by colour alone (PRODUCT.md a11y).
+  .chapter__tabs {
+    max-width: var(--work-col);
+    display: flex;
+    flex-wrap: wrap;
+    gap: to-rem(8);
+
+    // Below the tablet breakpoint the row scrolls instead of wrapping into a
+    // tall block that pushes the panel off screen.
+    @media (max-width: 767px) {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: to-rem(4);
+    }
+  }
+
+  .tab {
+    flex-shrink: 0;
+    appearance: none;
+    cursor: pointer;
+    border: 1px solid var(--c-surface-2);
+    border-bottom-width: 2px;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--c-light);
+    font-family: inherit;
+    font-size: var(--fs-label);
+    line-height: 1.83;
+    letter-spacing: 0.96px;
+    text-transform: uppercase;
+    padding: to-rem(10) to-rem(18);
+    transition:
+      background-color 0.2s var(--ease-smooth),
+      border-color 0.2s var(--ease-smooth);
+
+    &[aria-selected='true'] {
+      background-color: var(--c-surface-1);
+      border-bottom-color: var(--c-accent);
+    }
+
+    @include has-hover {
+      &:hover {
+        background-color: var(--c-surface-1);
+      }
+    }
+  }
+
+  // PANELS
+  .chapter__panels {
+    max-width: var(--work-col);
+    display: flex;
+    flex-direction: column;
+    gap: clamp-fluid(56, 96);
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(20);
+
+    // The panel is programmatically focusable so keyboard users land on the
+    // content after leaving the tab row; it needs no focus outline of its own
+    // beyond the browser default, which is deliberately left in place.
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .panel__media {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+    border-radius: 0;
+    background-color: var(--c-surface-1);
+  }
+
+  .panel__media--empty {
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--c-surface-2);
+    color: var(--c-on-surface-muted);
+  }
+
+  .panel__meta {
+    margin: 0;
+    color: var(--c-on-surface-muted);
+  }
+
+  .panel__link {
+    align-self: flex-start;
+    color: var(--c-accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition:
+      color 0.2s var(--ease-smooth),
+      border-color 0.2s var(--ease-smooth);
+
+    @include has-hover {
+      &:hover {
+        border-bottom-color: var(--c-accent);
+      }
+    }
+  }
+</style>
