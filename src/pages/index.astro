@@ -1,6 +1,9 @@
 ---
 import Layout from '@layouts/Layout.astro';
 
+// Same address as the Footer; the hero is the front door for freelance work.
+const email = 'nexuslab.dev.mm@gmail.com';
+
 // Showcase gallery — placeholder imagery from Pexels per user reference.
 // Replace src URLs with real work when available.
 const gallery = [
@@ -64,19 +67,53 @@ const stands = [
     ],
   },
 ];
+
+// How I work — the process a stranger will live through. Four steps, no
+// pricing (PRODUCT.md: no fabricated numbers). Edit the specifics here.
+const steps = [
+  {
+    title: 'Discovery call',
+    body: 'A short call. You describe the problem and what it costs you today. I ask questions. No pitch.',
+  },
+  {
+    title: 'Scope and fixed quote',
+    body: 'A written scope: what is in, what is out, one price, one timeline. You sign off before anything is built.',
+  },
+  {
+    title: 'Build with weekly updates',
+    body: 'Working software from the first weeks, not a reveal at the end. A written update every week.',
+  },
+  {
+    title: 'Handover and support',
+    body: 'Source, documentation, and deployment handed over. A support period after launch, agreed in the scope.',
+  },
+];
 ---
 
 <Layout>
   <main>
-    <section class="hero" aria-labelledby="hero-mark">
-      <p class="hero__index label" data-inview-manual>01 &mdash; Index</p>
+    <section class="hero" aria-labelledby="hero-headline">
+      <canvas class="hero__wave" aria-hidden="true"></canvas>
+      <p class="hero__index label" data-inview-manual>
+        01 &mdash; Wai Phyo Aung
+      </p>
 
       <div class="hero__center">
-        <h1 id="hero-mark" class="hero__mark" data-inview-manual>KWG</h1>
-        <p class="hero__tagline" data-inview-manual>
-          Personal Portfolio.<br />
-          An exhibit, not a funnel.
+        <h1 id="hero-headline" class="hero__headline h2" data-inview-manual>
+          I build websites and the internal systems behind them.
+        </h1>
+        <p class="hero__proof" data-inview-manual>
+          Bangkok, Thailand. Available for new projects.
         </p>
+        <div class="hero__actions" data-inview-manual>
+          <a
+            class="pill-btn pill-btn--filled"
+            href={`mailto:${email}?subject=New%20project`}
+          >
+            Email me <span aria-hidden="true">&#8599;&#65038;</span>
+          </a>
+          <a class="pill-btn" href="#work">See selected work</a>
+        </div>
       </div>
 
       <p class="hero__cue label" data-inview-manual>
@@ -84,7 +121,7 @@ const stands = [
       </p>
     </section>
 
-    <section class="container work" aria-labelledby="work-heading">
+    <section id="work" class="container work" aria-labelledby="work-heading">
       <header class="work__header">
         <p class="label" data-inview>02 &mdash; Selected Work</p>
         <h2 id="work-heading" class="work__title-block" data-inview>
@@ -154,8 +191,120 @@ const stands = [
         })
       }
     </section>
+
+    <section
+      id="process"
+      class="container process"
+      aria-labelledby="process-heading"
+    >
+      <header class="process__header">
+        <p class="label" data-inview>04 &mdash; How I work</p>
+        <h2 id="process-heading" data-inview>
+          What the next few months look like
+        </h2>
+      </header>
+
+      <ol class="process__list" role="list">
+        {
+          steps.map(({ title, body }, i) => (
+            <li
+              class="process__step"
+              data-inview
+              style={`--delay: ${i * 0.08}s`}
+            >
+              <span class="process__index label">0{i + 1}</span>
+              <h3 class="process__title">{title}</h3>
+              <p class="process__body">{body}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
   </main>
 </Layout>
+
+<script>
+  // Hero wave: one white sine trace drawn by a fragment shader, after
+  // codepen.io/Web_yuki1027/pen/yLgYpWM with the RGB split removed so the
+  // line stays --c-ink on --c-canvas (DESIGN.md: white is the only colour).
+  // Raw WebGL on purpose: a fullscreen quad needs no three.js.
+  const canvas = document.querySelector<HTMLCanvasElement>('.hero__wave');
+  const gl = canvas?.getContext('webgl', { premultipliedAlpha: false });
+
+  if (canvas && gl) {
+    const frag = `
+      precision highp float;
+      uniform vec2 uRes;
+      uniform float uTime;
+      uniform vec3 uInk;
+      void main() {
+        vec2 p = (gl_FragCoord.xy * 2.0 - uRes) / min(uRes.x, uRes.y);
+        float d = abs(p.y + sin(p.x + uTime) * 0.5);
+        // 0.004 is the trace weight: far below the pen's 0.05 glow so it
+        // reads as a hairline with a soft halo rather than a band.
+        gl_FragColor = vec4(uInk, 0.004 / d);
+      }`;
+    const vert =
+      'attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }';
+
+    const compile = (type: number, src: string) => {
+      const sh = gl.createShader(type)!;
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      return sh;
+    };
+    const prog = gl.createProgram()!;
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vert));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, frag));
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]),
+      gl.STATIC_DRAW,
+    );
+    const loc = gl.getAttribLocation(prog, 'p');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+    const uRes = gl.getUniformLocation(prog, 'uRes');
+    const uTime = gl.getUniformLocation(prog, 'uTime');
+    const ink = getComputedStyle(document.documentElement)
+      .getPropertyValue('--c-ink')
+      .trim();
+    const rgb = [1, 3, 5].map((i) => parseInt(ink.slice(i, i + 2), 16) / 255);
+    gl.uniform3fv(gl.getUniformLocation(prog, 'uInk'), rgb);
+
+    const dpr = Math.min(2, window.devicePixelRatio);
+    const draw = (t: number) => {
+      gl.uniform1f(uTime, t);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    };
+    new ResizeObserver(() => {
+      canvas.width = canvas.clientWidth * dpr;
+      canvas.height = canvas.clientHeight * dpr;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      draw(0);
+    }).observe(canvas);
+
+    // Reduced motion: one static frame (drawn by the resize observer above).
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      let raf = 0;
+      const tick = (ms: number) => {
+        draw(ms * 0.0006); // the pen's +0.01 per frame at 60fps
+        raf = requestAnimationFrame(tick);
+      };
+      // Only animate while the hero is on screen.
+      new IntersectionObserver(([e]) => {
+        cancelAnimationFrame(raf);
+        if (e.isIntersecting) raf = requestAnimationFrame(tick);
+      }).observe(canvas);
+    }
+  }
+</script>
 
 <script>
   import { gsap } from 'gsap';
@@ -254,14 +403,15 @@ const stands = [
 </script>
 
 <style lang="scss">
-  // HERO — full-viewport typographic void.
-  // Three rows: top label, centered statement, bottom scroll cue.
-  // No imagery. Darkness IS the design per DESIGN.md §1.
+  // HERO — the front door: who, what, where, one way to reach out.
+  // Three rows: top label, centered headline + proof + pills, bottom cue.
+  // No imagery; a single white shader hairline (.hero__wave) behind the type.
   // 4rem subtracts the Header's vertical footprint (padding-block 1.25rem × 2
   // + ~1rem label content ≈ 3.5rem, rounded to 4rem) so the cue sits inside
   // the viewport instead of below the fold.
   .hero {
     position: relative;
+    isolation: isolate;
     display: grid;
     grid-template-rows: auto 1fr auto;
     min-height: calc(100svh - 4rem);
@@ -269,6 +419,17 @@ const stands = [
     max-width: var(--container-max-width);
     margin-inline: auto;
     padding: to-rem(24) var(--grid-margin) to-rem(40);
+  }
+
+  // Full-bleed: the hero is container-width, but the trace runs edge to edge.
+  .hero__wave {
+    position: absolute;
+    inset: 0 auto;
+    left: 50%;
+    width: 100vw;
+    height: 100%;
+    transform: translateX(-50%);
+    z-index: -1;
   }
 
   .hero__index {
@@ -282,18 +443,24 @@ const stands = [
     gap: clamp-fluid(20, 40);
   }
 
-  .hero__mark {
+  .hero__headline {
     margin: 0;
+    max-width: 16ch;
     color: var(--c-ink);
-    letter-spacing: -0.02em;
   }
 
-  .hero__tagline {
-    max-width: 32ch;
-    color: var(--c-ink);
+  .hero__proof {
+    color: var(--c-body);
     font-size: clamp-fluid(16, 18);
     line-height: 1.56;
     letter-spacing: 0;
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-md);
+    margin-top: var(--sp-sm);
   }
 
   .hero__cue {
@@ -509,5 +676,76 @@ const stands = [
       --card-w: 28vw;
       --card-h: 36vw;
     }
+  }
+
+  // HOW I WORK — four steps on hairline rules. Text only; the process is the
+  // proof for a nervous stranger (PRODUCT.md: trust from prospective clients).
+  .process {
+    margin-block: clamp-fluid(80, 160);
+    display: flex;
+    flex-direction: column;
+    gap: clamp-fluid(40, 80);
+  }
+
+  .process__header {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(16);
+
+    .label {
+      color: var(--c-mute);
+    }
+
+    h2 {
+      max-width: 18ch;
+      color: var(--c-ink);
+    }
+  }
+
+  .process__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--c-hairline);
+  }
+
+  .process__step {
+    display: grid;
+    grid-template-columns: to-rem(64) 1fr;
+    grid-template-areas:
+      'index title'
+      'index body';
+    column-gap: var(--grid-gutter);
+    row-gap: var(--sp-sm);
+    padding-block: var(--sp-xl);
+    border-bottom: 1px solid var(--c-hairline);
+
+    @media (min-width: 769px) {
+      grid-template-columns: to-rem(64) 1fr 1fr;
+      grid-template-areas: 'index title body';
+      align-items: baseline;
+    }
+  }
+
+  .process__index {
+    grid-area: index;
+    color: var(--c-mute);
+  }
+
+  .process__title {
+    grid-area: title;
+    margin: 0;
+    font-size: var(--fs-5);
+    letter-spacing: var(--ls-5);
+    color: var(--c-ink);
+  }
+
+  .process__body {
+    grid-area: body;
+    margin: 0;
+    max-width: 44ch;
+    color: var(--c-body);
+    font-size: clamp-fluid(14, 16);
+    line-height: 1.56;
   }
 </style>
