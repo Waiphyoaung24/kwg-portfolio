@@ -20,7 +20,19 @@ const FIREFLY_URL =
   import.meta.env.PUBLIC_FIREFLY_URL ||
   'http://localhost:8080';
 
-const placeholders = Array.from({ length: 3 });
+// Monoline 24x24 icons, one path each, drawn at 1.5px stroke with no fill —
+// the Nothing iconography rule. Kept as path data so the tile markup stays one
+// loop instead of four near-identical blocks.
+const tools = [
+  { name: 'Fitness', href: '/vault/fitness', external: false,
+    icon: 'M22 12h-4l-3 9L9 3l-3 9H2' },
+  { name: 'Projects', href: '/vault/projects', external: false,
+    icon: 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z' },
+  { name: 'Notes', href: MEMOS_URL, external: true,
+    icon: 'M4 6h16M4 12h16M4 18h10' },
+  { name: 'Finance', href: FIREFLY_URL, external: true,
+    icon: 'M16 7h6v6M22 7l-8.5 8.5-5-5L2 17' },
+];
 ---
 
 <!doctype html>
@@ -36,7 +48,7 @@ const placeholders = Array.from({ length: 3 });
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:wght@400;700&display=swap"
     />
     <!-- Decide state before paint → no flash of the wrong section. -->
     <script is:inline>
@@ -77,35 +89,34 @@ const placeholders = Array.from({ length: 3 });
           <button class="grid-wrap__lock" type="button" id="logout">Lock</button>
         </header>
         <p class="grid-wrap__caption">Your handy tools live here.</p>
-        <ul class="tools" role="list">
-          <li class="tool tool--active">
-            <a class="tool__link" href="/vault/fitness">
-              <span class="tool__name">Fitness</span>
-              <span class="tool__hint">Open</span>
-            </a>
-          </li>
-          <li class="tool tool--active">
-            <a class="tool__link" href="/vault/projects">
-              <span class="tool__name">Projects</span>
-              <span class="tool__hint">Open</span>
-            </a>
-          </li>
-          <li class="tool tool--active">
-            <a class="tool__link" href={MEMOS_URL} target="_blank" rel="noopener noreferrer">
-              <span class="tool__name">Notes</span>
-              <span class="tool__hint">Open ↗</span>
-            </a>
-          </li>
-          <li class="tool tool--active">
-            <a class="tool__link" href={FIREFLY_URL} target="_blank" rel="noopener noreferrer">
-              <span class="tool__name">Finance</span>
-              <span class="tool__hint">Open ↗</span>
-            </a>
-          </li>
-          {placeholders.map(() => (
-            <li class="tool" aria-hidden="true">
-              <span class="tool__plus">+</span>
-              <span class="tool__hint">Add a tool</span>
+        <!-- The <ul> is itself the scroll container; each tile's magnification
+             rides its own view() timeline against it. See docs/vault-dock-design.md. -->
+        <ul class="dock" role="list">
+          {tools.map((t) => (
+            <li class="tool">
+              <a
+                class="tool__link"
+                href={t.href}
+                target={t.external ? '_blank' : undefined}
+                rel={t.external ? 'noopener noreferrer' : undefined}
+              >
+                <svg
+                  class="tool__icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d={t.icon} />
+                </svg>
+                <span class="tool__name">{t.name}</span>
+                <span class="tool__hint">
+                  {t.external ? 'Open \u2197\uFE0E' : 'Open'}
+                </span>
+              </a>
             </li>
           ))}
         </ul>
@@ -154,6 +165,51 @@ const placeholders = Array.from({ length: 3 });
     </script>
 
     <style lang="scss">
+      // ── Nothing-inspired tokens, scoped to the Vault ────────────────
+      // Reference: github.com/dominikmartn/nothing-design-skill
+      // Monochrome by that skill's own doctrine — red is an interrupt, not
+      // decoration, so it appears only on a failed password.
+      .vault {
+        --n-surface: #111111;
+        --n-border: #222222;
+        --n-border-visible: #333333;
+        --n-disabled: #666666;
+        --n-secondary: #999999;
+        --n-primary: #e8e8e8;
+        --n-display: #ffffff;
+        --n-accent: #d71921;
+        --n-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+        --n-sans: 'Space Grotesk', system-ui, sans-serif;
+        --n-mono: 'Space Mono', ui-monospace, monospace;
+        --n-dot: 'Doto', 'Space Mono', monospace;
+
+        min-height: 100svh;
+        background: #000;
+        color: var(--n-primary);
+        font-family: var(--n-sans);
+      }
+
+      // Every label on the page is the same instrument-panel treatment.
+      @mixin label {
+        font-family: var(--n-mono);
+        font-size: to-rem(11);
+        font-weight: 400;
+        line-height: 1.2;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      // The one expressive moment on the screen: a dot-matrix wordmark.
+      // Everything else stays deliberately plain so this reads as intentional.
+      @mixin wordmark {
+        font-family: var(--n-dot);
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--n-display);
+      }
+
       // States: head script sets html[data-vault]; CSS reveals one section.
       #gate,
       #vault {
@@ -163,14 +219,7 @@ const placeholders = Array.from({ length: 3 });
         display: grid;
       }
       :global(html[data-vault='open']) #vault {
-        display: block;
-      }
-
-      .vault {
-        min-height: 100svh;
-        background: var(--c-dark);
-        color: var(--c-light);
-        font-family: var(--ff-primary);
+        display: grid;
       }
 
       // ── Login ──────────────────────────────────────────────
@@ -181,190 +230,269 @@ const placeholders = Array.from({ length: 3 });
       }
       .gate__form {
         display: grid;
-        gap: to-rem(12);
+        gap: to-rem(8);
         width: min(100%, to-rem(360));
       }
       .gate__eyebrow {
+        @include label;
         margin: 0;
-        font-size: var(--fs-label);
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: var(--c-on-surface-muted);
+        color: var(--n-secondary);
       }
       .gate__title {
-        margin: 0 0 to-rem(8);
-        font-size: var(--fs-3);
-        line-height: 0.95;
-        text-transform: uppercase;
+        @include wordmark;
+        margin: 0 0 to-rem(48);
+        font-size: to-rem(56);
       }
       .gate__label {
-        font-size: var(--fs-label);
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--c-on-surface-muted);
+        @include label;
+        color: var(--n-secondary);
       }
+      // Underline over full border — the lighter container, per the skill's
+      // "use the lightest tool that works".
       .gate__input {
         appearance: none;
         width: 100%;
-        padding: to-rem(14) to-rem(16);
-        background: var(--c-surface-1);
-        border: 1px solid var(--c-surface-2);
-        color: var(--c-light);
-        font: inherit;
-        transition: border-color 0.2s var(--ease-smooth);
+        padding: to-rem(12) 0;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--n-border-visible);
+        color: var(--n-display);
+        font-family: var(--n-mono);
+        font-size: to-rem(16);
+        transition: border-color 0.2s var(--n-ease);
 
         &:hover {
-          border-color: var(--c-on-surface-muted);
+          border-bottom-color: var(--n-secondary);
         }
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
-          outline-offset: 2px;
-          border-color: var(--c-accent);
+          outline: none;
+          border-bottom-color: var(--n-display);
         }
         &[aria-invalid='true'] {
-          border-color: var(--c-accent);
+          border-bottom-color: var(--n-accent);
         }
       }
       .gate__error {
+        @include label;
         margin: 0;
         min-height: 1lh;
-        font-size: var(--fs-label);
-        letter-spacing: 0.04em;
-        color: var(--c-accent);
+        color: var(--n-accent);
       }
+      // Primary button: inverted, pill.
       .gate__submit {
-        margin-top: to-rem(4);
-        padding: to-rem(14) to-rem(20);
-        background: var(--c-accent);
-        color: var(--c-dark);
+        @include label;
+        margin-top: to-rem(24);
+        min-height: to-rem(44);
+        padding: to-rem(12) to-rem(24);
+        background: var(--n-display);
+        color: #000;
         border: none;
-        font: inherit;
-        font-weight: var(--fw-medium);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        border-radius: 999px;
+        font-size: to-rem(13);
+        letter-spacing: 0.06em;
         cursor: pointer;
-        transition: background 0.2s var(--ease-smooth);
+        transition: opacity 0.2s var(--n-ease);
 
         &:hover {
-          background: var(--c-accent-hover);
+          opacity: 0.85;
         }
         &:focus-visible {
-          outline: 2px solid var(--c-light);
+          outline: 2px solid var(--n-display);
           outline-offset: 2px;
         }
       }
 
-      // ── Vault grid ─────────────────────────────────────────
+      // ── Vault shell ────────────────────────────────────────
       .grid-wrap {
         max-width: var(--grid-max-width);
+        min-height: 100svh;
         margin-inline: auto;
         padding: clamp-fluid(24, 56) var(--grid-margin);
+        // Header and caption sit at the top; the dock takes the rest and
+        // centres itself in it.
+        grid-template-rows: auto auto 1fr;
       }
       .grid-wrap__head {
         display: flex;
-        align-items: baseline;
+        align-items: center;
         justify-content: space-between;
         gap: to-rem(16);
       }
       .grid-wrap__title {
+        @include wordmark;
         margin: 0;
-        font-size: var(--fs-2);
-        line-height: 0.95;
-        text-transform: uppercase;
+        font-size: clamp-fluid(48, 88);
 
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--n-display);
           outline-offset: 4px;
         }
       }
+      // Secondary button: outlined, pill.
       .grid-wrap__lock {
+        @include label;
+        flex: none;
+        min-height: to-rem(44);
+        padding: to-rem(12) to-rem(24);
         background: transparent;
-        border: 1px solid var(--c-surface-2);
-        color: var(--c-light);
-        padding: to-rem(8) to-rem(16);
-        font: inherit;
-        font-size: var(--fs-label);
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
+        border: 1px solid var(--n-border-visible);
+        border-radius: 999px;
+        color: var(--n-primary);
+        font-size: to-rem(13);
+        letter-spacing: 0.06em;
         cursor: pointer;
         transition:
-          border-color 0.2s var(--ease-smooth),
-          color 0.2s var(--ease-smooth);
+          border-color 0.2s var(--n-ease),
+          color 0.2s var(--n-ease);
 
         &:hover {
-          border-color: var(--c-accent);
-          color: var(--c-accent);
+          border-color: var(--n-display);
+          color: var(--n-display);
         }
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--n-display);
           outline-offset: 2px;
         }
       }
       .grid-wrap__caption {
-        margin: to-rem(8) 0 clamp-fluid(24, 40);
-        color: var(--c-on-surface-muted);
+        @include label;
+        margin: to-rem(16) 0 0;
+        color: var(--n-secondary);
       }
-      .tools {
+
+      // ── Dock ───────────────────────────────────────────────
+      // Baseline: a plain vertical list, readable everywhere. The bounded
+      // scroller and its magnification are layered on in @supports below.
+      .dock {
+        // Interpolated: Sass passes custom-property values through verbatim, so
+        // a bare to-rem() here would reach the browser unevaluated and invalid.
+        // Dock shows ~2 tiles at a time. Tiles must overflow the scroller by a
+        // wide margin, or several sit at peak magnification at once and there
+        // is no focal point.
+        --dock-h: min(48svh, #{to-rem(340)});
+        --tile-h: #{to-rem(152)};
+
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(to-rem(220), 1fr));
-        gap: clamp-fluid(12, 20);
+        align-self: center;
+        gap: to-rem(12);
         margin: 0;
         padding: 0;
         list-style: none;
       }
       .tool {
-        display: grid;
-        place-content: center;
-        gap: to-rem(8);
-        aspect-ratio: 4 / 3;
-        background: var(--c-surface-1);
-        border: 1px dashed var(--c-surface-2);
-        color: var(--c-on-surface-muted);
-        text-align: center;
+        width: min(100%, to-rem(460));
+        margin-inline: auto;
       }
-      .tool--active {
-        padding: 0;
-        border-style: solid;
-        color: var(--c-light);
-        transition: border-color 0.2s var(--ease-smooth);
-
-        &:hover,
-        &:focus-within {
-          border-color: var(--c-accent);
-        }
-      }
+      // Asymmetric by intent: icon top-left, name bottom-left, action
+      // bottom-right. Centred tiles read as generic.
       .tool__link {
         display: grid;
-        place-content: center;
-        gap: to-rem(8);
-        width: 100%;
-        height: 100%;
-        color: inherit;
-        text-align: center;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto 1fr auto;
+        height: var(--tile-h);
+        padding: to-rem(20);
+        border: 1px solid var(--n-border);
+        border-radius: to-rem(8);
+        color: var(--n-secondary);
         text-decoration: none;
+        transition:
+          border-color 0.2s var(--n-ease),
+          color 0.2s var(--n-ease);
 
+        &:hover {
+          border-color: var(--n-border-visible);
+          color: var(--n-primary);
+        }
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--n-display);
           outline-offset: 2px;
         }
       }
+      .tool__icon {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        width: to-rem(24);
+        height: to-rem(24);
+      }
       .tool__name {
-        font-size: var(--fs-6);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-      }
-      .tool--active .tool__hint {
-        color: var(--c-on-surface-muted);
-      }
-      .tool__plus {
-        font-size: var(--fs-4);
-        line-height: 1;
-        color: var(--c-surface-2);
+        grid-column: 1;
+        grid-row: 3;
+        align-self: end;
+        font-size: to-rem(24);
+        font-weight: 300;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
       }
       .tool__hint {
-        font-size: var(--fs-label);
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
+        @include label;
+        grid-column: 2;
+        grid-row: 3;
+        align-self: end;
+        opacity: 0.6;
+      }
+
+      // Tiles recede either side of the scroller's centre and come up full at
+      // it. view()'s default `cover` range puts the tile dead centre at 50%,
+      // so no explicit animation-range is needed.
+      @keyframes magnify {
+        0%,
+        100% {
+          scale: 0.82;
+          opacity: 0.35;
+          border-color: var(--n-border);
+          background-color: transparent;
+          color: var(--n-secondary);
+        }
+        50% {
+          scale: 1;
+          opacity: 1;
+          border-color: var(--n-display);
+          background-color: var(--n-surface);
+          color: var(--n-display);
+        }
+      }
+
+      @supports (animation-timeline: view()) {
+        .dock {
+          height: var(--dock-h);
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          scroll-snap-type: y mandatory;
+          scrollbar-width: none;
+          // Lets the first and last tile reach the focal point without spacers.
+          padding-block: calc((var(--dock-h) - var(--tile-h)) / 2);
+          // Without this the scroller's edges slice receding tiles mid-text.
+          mask-image: linear-gradient(
+            to bottom,
+            transparent,
+            #000 24%,
+            #000 76%,
+            transparent
+          );
+        }
+        .dock::-webkit-scrollbar {
+          display: none;
+        }
+        .tool {
+          scroll-snap-align: center;
+        }
+        .tool__link {
+          animation: magnify linear both;
+          animation-timeline: view(block);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .dock {
+            height: auto;
+            overflow: visible;
+            scroll-snap-type: none;
+            padding-block: 0;
+            mask-image: none;
+          }
+          .tool__link {
+            animation: none;
+          }
+        }
       }
     </style>
   </body>
