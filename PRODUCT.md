@@ -49,7 +49,7 @@ Three kinds of work sit here: sites where the interface carries the argument, in
 
 ## Brand Commitments
 
-**Name:** KWG. The wordmark is the three letters set in the display face; there is no logo mark.
+**Name:** KWG. The wordmark is the three letters set in the display face. The logo mark is a three-stroke W (`public/favicon.svg`), used alone in the header and as the favicon; the letters remain in the footer; it is drawn in the ink colour on the canvas.
 
 **Three words:** precise, restrained, engineered.
 

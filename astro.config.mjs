@@ -6,6 +6,8 @@ import robotsTxt from 'astro-robots-txt';
 import sitemap from '@astrojs/sitemap';
 import glsl from 'vite-plugin-glsl';
 
+import react from '@astrojs/react';
+
 // https://astro.build/config
 export default defineConfig({
   // TODO: replace with the final production domain before going live
@@ -14,23 +16,20 @@ export default defineConfig({
       ? 'http://localhost:4321'
       : 'https://kwg-portfolio.example.com',
   adapter: node({ mode: 'standalone' }),
-  integrations: [
-    robotsTxt({
-      sitemapBaseFileName: 'sitemap-index',
-      // TODO: remove when going live
-      // policy: [
-      //   {
-      //     userAgent: '*',
-      //     disallow: '/',
-      //   },
-      // ],
-    }),
-    sitemap({
-      filter: (page) => !page.includes('/vault'),
-      lastmod: new Date(),
-      xslURL: '/sitemap.xsl',
-    }),
-  ],
+  integrations: [robotsTxt({
+    sitemapBaseFileName: 'sitemap-index',
+    // TODO: remove when going live
+    // policy: [
+    //   {
+    //     userAgent: '*',
+    //     disallow: '/',
+    //   },
+    // ],
+  }), sitemap({
+    filter: (page) => !page.includes('/vault'),
+    lastmod: new Date(),
+    xslURL: '/sitemap.xsl',
+  }), react()],
   vite: {
     css: {
       preprocessorOptions: {

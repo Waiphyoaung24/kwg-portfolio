@@ -1,11 +1,14 @@
 ---
 import Layout from '@layouts/Layout.astro';
+import HeroGradient from '@components/HeroGradient.tsx';
 
 // Same address as the Footer; the hero is the front door for freelance work.
 const email = 'nexuslab.dev.mm@gmail.com';
 
 // Showcase gallery — placeholder imagery from Pexels per user reference.
-// Replace src URLs with real work when available.
+// Replace src URLs with real work when available. The markup appends Pexels
+// size params (w=1200): the originals are 12 MP and their decode stalled the
+// entrance animation.
 const gallery = [
   {
     src: 'https://images.pexels.com/photos/8467429/pexels-photo-8467429.jpeg',
@@ -93,7 +96,9 @@ const steps = [
 <Layout>
   <main>
     <section class="hero" aria-labelledby="hero-headline">
-      <canvas class="hero__wave" aria-hidden="true"></canvas>
+      <div class="hero__gradient" aria-hidden="true">
+        <HeroGradient client:only="react" />
+      </div>
       <p class="hero__index label" data-inview-manual>
         01 &mdash; Wai Phyo Aung
       </p>
@@ -137,9 +142,10 @@ const steps = [
               <figure class="gallery__figure">
                 <img
                   class="gallery__img"
-                  src={src}
+                  src={`${src}?auto=compress&cs=tinysrgb&w=1200`}
                   alt={title}
                   loading="lazy"
+                  decoding="async"
                 />
                 <figcaption class="gallery__caption">
                   <p class="gallery__title">{title}</p>
@@ -224,89 +230,6 @@ const steps = [
 </Layout>
 
 <script>
-  // Hero wave: one white sine trace drawn by a fragment shader, after
-  // codepen.io/Web_yuki1027/pen/yLgYpWM with the RGB split removed so the
-  // line stays --c-ink on --c-canvas (DESIGN.md: white is the only colour).
-  // Raw WebGL on purpose: a fullscreen quad needs no three.js.
-  const canvas = document.querySelector<HTMLCanvasElement>('.hero__wave');
-  const gl = canvas?.getContext('webgl', { premultipliedAlpha: false });
-
-  if (canvas && gl) {
-    const frag = `
-      precision highp float;
-      uniform vec2 uRes;
-      uniform float uTime;
-      uniform vec3 uInk;
-      void main() {
-        vec2 p = (gl_FragCoord.xy * 2.0 - uRes) / min(uRes.x, uRes.y);
-        float d = abs(p.y + sin(p.x + uTime) * 0.5);
-        // 0.004 is the trace weight: far below the pen's 0.05 glow so it
-        // reads as a hairline with a soft halo rather than a band.
-        gl_FragColor = vec4(uInk, 0.004 / d);
-      }`;
-    const vert =
-      'attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }';
-
-    const compile = (type: number, src: string) => {
-      const sh = gl.createShader(type)!;
-      gl.shaderSource(sh, src);
-      gl.compileShader(sh);
-      return sh;
-    };
-    const prog = gl.createProgram()!;
-    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vert));
-    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, frag));
-    gl.linkProgram(prog);
-    gl.useProgram(prog);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]),
-      gl.STATIC_DRAW,
-    );
-    const loc = gl.getAttribLocation(prog, 'p');
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-
-    const uRes = gl.getUniformLocation(prog, 'uRes');
-    const uTime = gl.getUniformLocation(prog, 'uTime');
-    const ink = getComputedStyle(document.documentElement)
-      .getPropertyValue('--c-ink')
-      .trim();
-    const rgb = [1, 3, 5].map((i) => parseInt(ink.slice(i, i + 2), 16) / 255);
-    gl.uniform3fv(gl.getUniformLocation(prog, 'uInk'), rgb);
-
-    const dpr = Math.min(2, window.devicePixelRatio);
-    const draw = (t: number) => {
-      gl.uniform1f(uTime, t);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-    };
-    new ResizeObserver(() => {
-      canvas.width = canvas.clientWidth * dpr;
-      canvas.height = canvas.clientHeight * dpr;
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.uniform2f(uRes, canvas.width, canvas.height);
-      draw(0);
-    }).observe(canvas);
-
-    // Reduced motion: one static frame (drawn by the resize observer above).
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      let raf = 0;
-      const tick = (ms: number) => {
-        draw(ms * 0.0006); // the pen's +0.01 per frame at 60fps
-        raf = requestAnimationFrame(tick);
-      };
-      // Only animate while the hero is on screen.
-      new IntersectionObserver(([e]) => {
-        cancelAnimationFrame(raf);
-        if (e.isIntersecting) raf = requestAnimationFrame(tick);
-      }).observe(canvas);
-    }
-  }
-</script>
-
-<script>
   import { gsap } from 'gsap';
   import { ScrollTrigger } from 'gsap/ScrollTrigger';
   // Importing scroll.ts ensures the Lenis ↔ ScrollTrigger bridge is wired
@@ -315,8 +238,11 @@ const steps = [
 
   const imgs = gsap.utils.toArray<HTMLImageElement>('.gallery__img');
   const isDesktop = window.innerWidth > 768;
+  // Reduced motion: the tiles simply appear (PRODUCT.md a11y floor).
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   imgs.forEach((img, i) => {
+    if (reduceMotion) return;
     gsap.set(img, {
       rotation: i % 2 === 0 ? -50 : 50,
       transformOrigin: 'center center',
@@ -333,8 +259,10 @@ const steps = [
           rotation: 0,
           y: 0,
           opacity: 1,
-          duration: 1,
-          ease: 'power2.inOut',
+          duration: 0.8,
+          // Entrances ease out (the --ease-out-expo token); an in-out start
+          // reads as a stall on arrival.
+          ease: 'expo.out',
           delay: isDesktop ? (i % 2 === 0 ? 0 : 0.25) : 0,
         });
       },
@@ -405,7 +333,7 @@ const steps = [
 <style lang="scss">
   // HERO — the front door: who, what, where, one way to reach out.
   // Three rows: top label, centered headline + proof + pills, bottom cue.
-  // No imagery; a single white shader hairline (.hero__wave) behind the type.
+  // No imagery; a mesh gradient in the canvas greys (HeroGradient) behind the type.
   // 4rem subtracts the Header's vertical footprint (padding-block 1.25rem × 2
   // + ~1rem label content ≈ 3.5rem, rounded to 4rem) so the cue sits inside
   // the viewport instead of below the fold.
@@ -421,19 +349,46 @@ const steps = [
     padding: to-rem(24) var(--grid-margin) to-rem(40);
   }
 
-  // Full-bleed: the hero is container-width, but the trace runs edge to edge.
-  .hero__wave {
+  // Full-bleed: the hero is container-width, but the backdrop runs edge to
+  // edge, under the type. It also reaches up behind the (transparent) Header:
+  // 68px = its 44px rail + 12px padding either side.
+  .hero__gradient {
+    --header-h: #{to-rem(68)};
     position: absolute;
     inset: 0 auto;
+    top: calc(-1 * var(--header-h));
     left: 50%;
     width: 100vw;
-    height: 100%;
+    height: calc(100% + var(--header-h));
     transform: translateX(-50%);
     z-index: -1;
+
+    // Dark washes over the left half, where the copy sits, and the top strip,
+    // where the header sits, so the white in the sphere blooms lower right and
+    // the type keeps its contrast.
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(
+          180deg,
+          var(--c-canvas) 0%,
+          color-mix(in srgb, var(--c-canvas) 60%, transparent) 12%,
+          transparent 30%
+        ),
+        linear-gradient(
+          90deg,
+          var(--c-canvas) 0%,
+          color-mix(in srgb, var(--c-canvas) 70%, transparent) 40%,
+          transparent 75%
+        );
+    }
   }
 
+  // Body, not mute: the gradient lifts the backdrop past what mute can sit on.
   .hero__index {
-    color: var(--c-mute);
+    color: var(--c-body);
   }
 
   .hero__center {
