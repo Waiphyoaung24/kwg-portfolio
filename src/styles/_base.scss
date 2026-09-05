@@ -17,7 +17,8 @@
   interpolate-size: allow-keywords;
 }
 
-html, body {
+html,
+body {
   height: auto;
   min-height: 100%;
   -webkit-text-size-adjust: none;
@@ -34,7 +35,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-img, picture, video, svg {
+img,
+picture,
+video,
+svg {
   display: block;
   max-width: 100%;
   height: auto;
@@ -44,7 +48,10 @@ canvas {
   display: block;
 }
 
-input, button, textarea, select {
+input,
+button,
+textarea,
+select {
   font: inherit;
 }
 
@@ -57,7 +64,12 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   overflow-wrap: break-word;
   text-wrap: balance;
 }
@@ -72,9 +84,25 @@ a {
 }
 
 // custom
+// Browser surfaces are part of the design: selection, caret and scrollbar all
+// ship with defaults that belong to no system (craft floor).
 ::selection {
-  color: var(--c-dark);
-  background-color: var(--c-accent);
+  color: var(--c-canvas);
+  background-color: var(--c-ink);
+}
+
+:root {
+  color-scheme: dark;
+  accent-color: var(--c-ink);
+  caret-color: var(--c-ink);
+  scrollbar-color: var(--c-canvas-mid) var(--c-canvas);
+  scrollbar-width: thin;
+}
+
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--c-ink);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
 }
 
 html {
@@ -90,8 +118,15 @@ body {
   font-family: var(--ff-primary);
   font-weight: var(--fw-regular);
   font-size: var(--fs-base);
-  color: var(--c-light);
-  background-color: var(--c-dark);
+  line-height: 1.5;
+  color: var(--c-ink);
+  background-color: var(--c-canvas);
+}
+
+// Tabular figures wherever numbers are compared down a column.
+table,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
 }
 
 .visually-hidden {
@@ -187,4 +222,64 @@ html.lenis body {
       visibility: visible;
     }
   }
+}
+
+// -- Primitives ---------------------------------------------------------------
+// The pill is the entire interactive shape system (DESIGN.md). Every CTA on
+// the site is one of these two; nothing else earns a filled surface.
+
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-sm);
+  // 44px floor keeps the touch target at the WCAG minimum.
+  min-height: to-rem(44);
+  padding: var(--sp-sm) var(--sp-xl);
+  border: 1px solid var(--c-hairline-bright);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--c-ink);
+  font-size: var(--fs-body-sm);
+  line-height: 1.43;
+  text-decoration: none;
+  transition:
+    background-color 0.25s var(--ease-smooth),
+    border-color 0.25s var(--ease-smooth),
+    color 0.25s var(--ease-smooth);
+
+  @include has-hover {
+    &:hover {
+      border-color: var(--c-ink);
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+  }
+}
+
+// The rare filled pill. One per page, on the primary action only.
+.pill-btn--filled {
+  border-color: var(--c-ink);
+  background: var(--c-ink);
+  color: var(--c-canvas);
+
+  @include has-hover {
+    &:hover {
+      border-color: var(--c-body);
+      background-color: var(--c-body);
+      color: var(--c-canvas);
+    }
+  }
+}
+
+.card {
+  padding: var(--sp-xl);
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-sm);
+  background: var(--c-canvas-card);
+}
+
+// Hairline borders carry every elevation cue; the system uses no shadows.
+.hairline {
+  border: 0;
+  border-top: 1px solid var(--c-hairline);
 }

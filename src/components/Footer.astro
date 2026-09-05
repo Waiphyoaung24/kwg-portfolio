@@ -1,24 +1,274 @@
-<footer>
+---
+// Site footer for every Layout page. Vault pages own their own <html> and
+// never render Layout, so they get no footer without any conditional here.
+//
+// Ported from a React/motion newsletter footer into the DESIGN.md language:
+// near-black canvas, one filled white pill, mono label columns, and the
+// wordmark rising letter by letter on scroll via [data-inview].
+import { nav } from '../data/nav';
+
+const email = 'nexuslab.dev.mm@gmail.com';
+
+// ponytail: placeholder hrefs until real profile URLs are supplied.
+const social = [
+  { label: 'GitHub', href: '#' },
+  { label: 'LinkedIn', href: '#' },
+  { label: 'Email', href: `mailto:${email}` },
+];
+
+const letters = ['K', 'W', 'G'];
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer" aria-labelledby="footer-heading">
   <div class="container">
-    <p>&copy; 2026 KWG</p>
+    <div class="pitch">
+      <div class="pitch__lead">
+        <h2 id="footer-heading" class="pitch__title h3" data-inview>
+          Let&rsquo;s build something worth&nbsp;showing
+        </h2>
+        <p class="pitch__body" data-inview style="--delay: 0.08s">
+          Sites, systems and commissioned builds. One reply, usually within a
+          day.
+        </p>
+        <a
+          class="cta pill-btn pill-btn--filled"
+          href={`mailto:${email}?subject=New%20project`}
+          data-inview
+          style="--delay: 0.16s"
+        >
+          Start a project <span aria-hidden="true">&#8599;&#65038;</span>
+        </a>
+      </div>
+
+      <nav class="columns" aria-label="Footer">
+        <div class="column" data-inview style="--delay: 0.12s">
+          <p class="column__title label">Sitemap</p>
+          <ul>
+            {
+              nav.map((item) => (
+                <li>
+                  <a class="column__link" href={item.href}>
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+        <div class="column" data-inview style="--delay: 0.2s">
+          <p class="column__title label">Elsewhere</p>
+          <ul>
+            {
+              social.map((item) => (
+                <li>
+                  <a
+                    class="column__link"
+                    href={item.href}
+                    target={item.href.startsWith('http') ? '_blank' : undefined}
+                    rel={
+                      item.href.startsWith('http')
+                        ? 'noreferrer noopener'
+                        : undefined
+                    }
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </nav>
+    </div>
+
+    <!--
+      The observer hook sits on the parent: a letter translated below a
+      clipping parent has no intersection rect and would never fire.
+    -->
+    <p class="wordmark" aria-label="KWG" data-inview>
+      {
+        letters.map((letter, i) => (
+          <span
+            class="wordmark__letter"
+            aria-hidden="true"
+            style={`--delay: ${i * 0.09}s`}
+          >
+            {letter}
+          </span>
+        ))
+      }
+    </p>
+
+    <div class="meta">
+      <p class="meta__copy micro">&copy; {year} KWG. All rights reserved.</p>
+      <a class="meta__link micro" href="/vault">Vault</a>
+    </div>
   </div>
 </footer>
 
 <style lang="scss">
-  footer {
-    padding-block: to-rem(24);
-    border-top: 1px solid var(--c-surface-2);
+  .site-footer {
+    padding-block: var(--sp-band) var(--sp-xl);
+    // Hairline borders carry every elevation cue; the system uses no shadows.
+    border-top: 1px solid var(--c-hairline);
   }
 
-  .container {
+  // -- Pitch -----------------------------------------------------------------
+
+  .pitch {
+    display: grid;
+    grid-template-columns: repeat(var(--grid-columns), 1fr);
+    gap: var(--sp-3xl) var(--grid-gutter);
+    align-items: start;
+  }
+
+  .pitch__lead {
+    grid-column: 1 / -1;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-xl);
+
+    @media (min-width: 768px) {
+      grid-column: 1 / span 7;
+    }
   }
 
-  p {
-    font-size: var(--fs-label);
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--c-on-surface-muted);
+  .pitch__title {
+    max-width: 16ch;
+  }
+
+  .pitch__body {
+    max-width: 46ch;
+    color: var(--c-body);
+  }
+
+  // Chrome comes from .pill-btn--filled; this is only the arrow's nudge.
+  .cta {
+    span {
+      transition: transform 0.25s var(--ease-out-expo);
+    }
+
+    @include has-hover {
+      &:hover span {
+        transform: translate(0.1em, -0.1em);
+      }
+    }
+  }
+
+  .columns {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-2xl) var(--grid-gutter);
+
+    @media (min-width: 768px) {
+      grid-column: 9 / -1;
+    }
+  }
+
+  .column ul {
+    display: grid;
+    gap: var(--sp-xs);
+    list-style: none;
+  }
+
+  .column__title {
+    margin-bottom: var(--sp-md);
+    color: var(--c-mute);
+  }
+
+  .column__link {
+    display: inline-block;
+    padding-block: var(--sp-xs);
+    color: var(--c-body);
+    font-size: var(--fs-body-sm);
+    text-decoration: underline transparent;
+    text-underline-offset: 0.25em;
+    transition:
+      color 0.25s var(--ease-smooth),
+      text-decoration-color 0.25s var(--ease-smooth);
+
+    @include has-hover {
+      &:hover {
+        color: var(--c-ink);
+        text-decoration-color: currentColor;
+      }
+    }
+  }
+
+  // -- Wordmark --------------------------------------------------------------
+
+  // Three letters spread across the full container width, clipped at the
+  // baseline so each one rises out of the rule beneath it.
+  .wordmark {
+    display: flex;
+    justify-content: space-between;
+    margin-block: var(--sp-band) 0;
+    padding-block: var(--sp-lg) 0;
+    border-block: 1px solid var(--c-hairline);
+    font-size: clamp(to-rem(88), 23vw, to-rem(320));
+    line-height: 0.85;
+    // The display face's negative tracking is the brand signature; at this
+    // size it also stops the three letters drifting apart.
+    letter-spacing: var(--ls-1);
+    overflow: hidden;
+  }
+
+  .wordmark__letter {
+    display: block;
+    // Trim the descender box so the rule hugs the baseline.
+    margin-bottom: -0.06em;
+  }
+
+  // The parent carries [data-inview] purely as a trigger; neutralise the
+  // global blur/lift on it and let each letter rise on its own curve.
+  // Scoped inside has-motion so reduced-motion users get no reveal at all.
+  @include has-motion {
+    .wordmark {
+      filter: none;
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+
+    .wordmark__letter {
+      transform: translateY(110%);
+      transition: transform 1.1s var(--ease-out-expo) var(--delay);
+    }
+
+    .wordmark.inview .wordmark__letter {
+      transform: translateY(0);
+    }
+  }
+
+  // -- Meta ------------------------------------------------------------------
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--sp-sm) var(--sp-xl);
+    padding-top: var(--sp-lg);
+    color: var(--c-mute);
+  }
+
+  // An interactive label, so it takes body rather than the mute metadata
+  // colour, which sits under the 4.5:1 floor.
+  .meta__link {
+    color: var(--c-body);
+    text-decoration: underline transparent;
+    text-underline-offset: 0.25em;
+    transition:
+      color 0.25s var(--ease-smooth),
+      text-decoration-color 0.25s var(--ease-smooth);
+
+    @include has-hover {
+      &:hover {
+        color: var(--c-ink);
+        text-decoration-color: currentColor;
+      }
+    }
   }
 </style>

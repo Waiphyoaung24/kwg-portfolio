@@ -27,7 +27,9 @@ const tablistLabel = `${heading} projects`;
 <section class="chapter container" aria-labelledby={`ch-${category}`}>
   <header class="chapter__head">
     <p class="label chapter__index" data-inview>{index} &mdash; {heading}</p>
-    <h2 id={`ch-${category}`} class="chapter__heading" data-inview>{heading}</h2>
+    <h2 id={`ch-${category}`} class="chapter__heading" data-inview>
+      {heading}
+    </h2>
     <p class="chapter__intro" data-inview>{intro}</p>
   </header>
 
@@ -59,37 +61,34 @@ const tablistLabel = `${heading} projects`;
           aria-labelledby={`tab-${w.id}`}
           tabindex="0"
         >
-          {
-            w.media ? (
-              <img
-                class="panel__media"
-                src={w.media}
-                alt={`${w.title} — ${w.client}`}
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <div class="panel__media panel__media--empty">
-                <span class="micro">No media yet</span>
-              </div>
-            )
-          }
+          {w.media ? (
+            <img
+              class="panel__media"
+              src={w.media}
+              alt={`${w.title} — ${w.client}`}
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <div class="panel__media panel__media--empty">
+              <span class="micro">No media yet</span>
+            </div>
+          )}
 
           <p class="label panel__meta">
-            {w.title} &middot; {w.client} &middot; {w.year} &middot; {w.stack.join(', ')}
+            {w.title} &middot; {w.client} &middot; {w.year} &middot;{' '}
+            {w.stack.join(', ')}
           </p>
 
           <p class="panel__summary">{w.summary}</p>
 
-          {
-            w.url && (
-              <a class="panel__link label" href={w.url}>
-                {/* U+FE0E forces text presentation; the bare arrow renders as
+          {w.url && (
+            <a class="panel__link label" href={w.url}>
+              {/* U+FE0E forces text presentation; the bare arrow renders as
                     a colour emoji in some system fallback fonts. */}
-                View live <span aria-hidden="true">&#8599;&#65038;</span>
-              </a>
-            )
-          }
+              View live <span aria-hidden="true">&#8599;&#65038;</span>
+            </a>
+          )}
         </article>
       ))
     }
@@ -118,12 +117,12 @@ const tablistLabel = `${heading} projects`;
   }
 
   .chapter__index {
-    color: var(--c-on-surface-muted);
+    color: var(--c-mute);
   }
 
   .chapter__heading {
     margin: 0;
-    color: var(--c-light);
+    color: var(--c-ink);
     letter-spacing: -0.01em;
   }
 
@@ -136,7 +135,7 @@ const tablistLabel = `${heading} projects`;
   }
 
   .chapter__intro {
-    color: var(--c-light);
+    color: var(--c-ink);
   }
 
   // TABS — square, per DESIGN.md §7. Active state is carried by fill plus a
@@ -161,15 +160,15 @@ const tablistLabel = `${heading} projects`;
     flex-shrink: 0;
     appearance: none;
     cursor: pointer;
-    border: 1px solid var(--c-surface-2);
+    border: 1px solid var(--c-hairline);
     border-bottom-width: 2px;
-    border-radius: 0;
+    border-radius: var(--r-sm);
     background-color: transparent;
-    color: var(--c-light);
-    font-family: inherit;
-    font-size: var(--fs-label);
-    line-height: 1.83;
-    letter-spacing: 0.96px;
+    color: var(--c-ink);
+    font-family: var(--ff-mono);
+    font-size: var(--fs-micro);
+    line-height: 1.33;
+    letter-spacing: var(--ls-mono);
     text-transform: uppercase;
     padding: to-rem(10) to-rem(18);
     transition:
@@ -177,13 +176,13 @@ const tablistLabel = `${heading} projects`;
       border-color 0.2s var(--ease-smooth);
 
     &[aria-selected='true'] {
-      background-color: var(--c-surface-1);
-      border-bottom-color: var(--c-accent);
+      background-color: var(--c-canvas-card);
+      border-bottom-color: var(--c-ink);
     }
 
     @include has-hover {
       &:hover {
-        background-color: var(--c-surface-1);
+        background-color: var(--c-canvas-card);
       }
     }
   }
@@ -214,25 +213,25 @@ const tablistLabel = `${heading} projects`;
     aspect-ratio: 16 / 9;
     object-fit: cover;
     display: block;
-    border-radius: 0;
-    background-color: var(--c-surface-1);
+    border-radius: var(--r-sm);
+    background-color: var(--c-canvas-card);
   }
 
   .panel__media--empty {
     display: grid;
     place-items: center;
-    border: 1px solid var(--c-surface-2);
-    color: var(--c-on-surface-muted);
+    border: 1px solid var(--c-hairline);
+    color: var(--c-mute);
   }
 
   .panel__meta {
     margin: 0;
-    color: var(--c-on-surface-muted);
+    color: var(--c-mute);
   }
 
   .panel__link {
     align-self: flex-start;
-    color: var(--c-accent);
+    color: var(--c-ink);
     text-decoration: none;
     border-bottom: 1px solid transparent;
     transition:
@@ -241,7 +240,7 @@ const tablistLabel = `${heading} projects`;
 
     @include has-hover {
       &:hover {
-        border-bottom-color: var(--c-accent);
+        border-bottom-color: var(--c-ink);
       }
     }
   }

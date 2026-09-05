@@ -39,11 +39,15 @@ DESIGN.md       color, typography, components, motion, breakpoints
 
 The full system is in [`DESIGN.md`](./DESIGN.md). For quick reference when editing:
 
-- Surface is `#000000`. Not dark gray. Not near-black.
-- Type is white on black, weight 400, uppercase at display sizes.
-- The only chromatic color is Lamborghini Gold (`#FFC000`), reserved for primary CTAs.
-- Border-radius is 0 on buttons and cards. Sharp angles are non-negotiable.
-- Motion is color and opacity, never scale or translate on hover.
+- Surface is `#0a0a0a`, near-black, edge to edge. There is no light mode.
+- Type is white on that canvas at weight 400. The system never bolds; size and
+  negative tracking carry the emphasis.
+- Display faces are Inter (substituting the proprietary Universal Sans) and
+  JetBrains Mono for uppercase, positively tracked labels.
+- Every interactive element is a pill. Outline by default; one filled white
+  pill per view marks the primary action.
+- Hairline borders carry elevation. The system uses no shadows.
+- The sunset and dusk accents are for illustration only, never for chrome.
 - Anti-references (see [`PRODUCT.md`](./PRODUCT.md)): no neon, no glassmorphism, no gradient text, no hero-metric template.
 
 ## Credits

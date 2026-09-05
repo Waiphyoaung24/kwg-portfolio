@@ -5,7 +5,8 @@ import ExerciseDetail from '../../components/ExerciseDetail.astro';
 import { CDN } from '../../scripts/exercise-detail';
 
 type ExKey = keyof (typeof exercises)[0];
-const uniq = (k: ExKey) => [...new Set(exercises.map((e) => e[k]).filter(Boolean))].sort();
+const uniq = (k: ExKey) =>
+  [...new Set(exercises.map((e) => e[k]).filter(Boolean))].sort();
 const bodyParts = uniq('body_part');
 const equipments = uniq('equipment');
 const targets = uniq('target');
@@ -16,7 +17,7 @@ const targets = uniq('target');
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0a0a0a" />
     <meta name="robots" content="noindex" />
     <title>Fitness — Vault — KWG</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -24,7 +25,7 @@ const targets = uniq('target');
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap"
     />
     <!-- Obscurity gate: bounce to /vault unless already unlocked. -->
     <script is:inline>
@@ -39,16 +40,35 @@ const targets = uniq('target');
       <a class="page__gen" href="/vault/fitness/generate">↗ Generate workout</a>
 
       <div class="filters">
-        <input id="q" class="filters__search" type="search" placeholder="Search exercises…" aria-label="Search exercises by name" autocomplete="off" />
-        <select id="f-body" class="filters__select" aria-label="Filter by body part">
+        <input
+          id="q"
+          class="filters__search"
+          type="search"
+          placeholder="Search exercises…"
+          aria-label="Search exercises by name"
+          autocomplete="off"
+        />
+        <select
+          id="f-body"
+          class="filters__select"
+          aria-label="Filter by body part"
+        >
           <option value="">All body parts</option>
           {bodyParts.map((v) => <option value={v}>{v}</option>)}
         </select>
-        <select id="f-equip" class="filters__select" aria-label="Filter by equipment">
+        <select
+          id="f-equip"
+          class="filters__select"
+          aria-label="Filter by equipment"
+        >
           <option value="">All equipment</option>
           {equipments.map((v) => <option value={v}>{v}</option>)}
         </select>
-        <select id="f-target" class="filters__select" aria-label="Filter by target muscle">
+        <select
+          id="f-target"
+          class="filters__select"
+          aria-label="Filter by target muscle"
+        >
           <option value="">All targets</option>
           {targets.map((v) => <option value={v}>{v}</option>)}
         </select>
@@ -57,22 +77,31 @@ const targets = uniq('target');
       <p id="count" class="page__caption" role="status" aria-live="polite"></p>
 
       <ul class="grid" id="grid">
-        {exercises.map((e) => (
-          <li
-            class="card"
-            data-id={e.id}
-            data-name={e.name.toLowerCase()}
-            data-body={e.body_part}
-            data-equip={e.equipment}
-            data-target={e.target}
-          >
-            <button class="card__btn" type="button">
-              <img class="card__img" src={`${CDN}/${e.image}`} alt="" loading="lazy" width="160" height="160" />
-              <span class="card__name">{e.name}</span>
-              <span class="card__tag">{e.equipment}</span>
-            </button>
-          </li>
-        ))}
+        {
+          exercises.map((e) => (
+            <li
+              class="card"
+              data-id={e.id}
+              data-name={e.name.toLowerCase()}
+              data-body={e.body_part}
+              data-equip={e.equipment}
+              data-target={e.target}
+            >
+              <button class="card__btn" type="button">
+                <img
+                  class="card__img"
+                  src={`${CDN}/${e.image}`}
+                  alt=""
+                  loading="lazy"
+                  width="160"
+                  height="160"
+                />
+                <span class="card__name">{e.name}</span>
+                <span class="card__tag">{e.equipment}</span>
+              </button>
+            </li>
+          ))
+        }
       </ul>
 
       <ExerciseDetail />
@@ -92,7 +121,9 @@ const targets = uniq('target');
 
       function apply() {
         const term = q.value.trim().toLowerCase();
-        const b = fBody.value, eq = fEquip.value, t = fTarget.value;
+        const b = fBody.value,
+          eq = fEquip.value,
+          t = fTarget.value;
         let n = 0;
         for (const card of cards) {
           const ok =
@@ -105,7 +136,9 @@ const targets = uniq('target');
         }
         count.textContent = `${n} exercise${n === 1 ? '' : 's'}`;
       }
-      [q, fBody, fEquip, fTarget].forEach((el) => el.addEventListener('input', apply));
+      [q, fBody, fEquip, fTarget].forEach((el) =>
+        el.addEventListener('input', apply),
+      );
       apply();
 
       initDetail(grid, exercises);
@@ -126,15 +159,15 @@ const targets = uniq('target');
         font-size: var(--fs-label);
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--c-on-surface-muted);
+        color: var(--c-mute);
         text-decoration: none;
         transition: color 0.2s var(--ease-smooth);
 
         &:hover {
-          color: var(--c-accent);
+          color: var(--c-ink);
         }
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
@@ -143,11 +176,16 @@ const targets = uniq('target');
         font-size: var(--fs-label);
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--c-accent);
+        color: var(--c-ink);
         text-decoration: none;
 
-        &:hover { text-decoration: underline; }
-        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+        &:hover {
+          text-decoration: underline;
+        }
+        &:focus-visible {
+          outline: 2px solid var(--c-ink);
+          outline-offset: 2px;
+        }
       }
       .page__title {
         margin: to-rem(8) 0 0;
@@ -156,7 +194,7 @@ const targets = uniq('target');
         text-transform: uppercase;
       }
       .page__caption {
-        color: var(--c-on-surface-muted);
+        color: var(--c-mute);
       }
 
       .filters {
@@ -168,20 +206,24 @@ const targets = uniq('target');
       .filters__search,
       .filters__select {
         font: inherit;
-        color: var(--c-light);
-        background: var(--c-dark);
-        border: 1px solid var(--c-on-surface-muted);
+        color: var(--c-ink);
+        background: var(--c-canvas);
+        border: 1px solid var(--c-mute);
         padding: to-rem(8) to-rem(12);
         min-height: to-rem(44); // touch target
-        border-radius: 0;
+        border-radius: var(--r-sm);
 
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
-      .filters__search { flex: 1 1 to-rem(220); }
-      .filters__select { flex: 1 1 to-rem(150); }
+      .filters__search {
+        flex: 1 1 to-rem(220);
+      }
+      .filters__select {
+        flex: 1 1 to-rem(150);
+      }
 
       // Stack filters full-width on narrow screens for easy tapping.
       @media (max-width: 40rem) {
@@ -202,11 +244,18 @@ const targets = uniq('target');
         padding: 0;
         display: grid;
         // min(…, 100%) keeps cards from overflowing when the container is narrower than the track.
-        grid-template-columns: repeat(auto-fill, minmax(min(to-rem(140), 100%), 1fr));
+        grid-template-columns: repeat(
+          auto-fill,
+          minmax(min(to-rem(140), 100%), 1fr)
+        );
         gap: to-rem(12);
       }
-      .card { list-style: none; }
-      .card[hidden] { display: none; }
+      .card {
+        list-style: none;
+      }
+      .card[hidden] {
+        display: none;
+      }
       .card__btn {
         display: grid;
         gap: to-rem(6);
@@ -219,8 +268,13 @@ const targets = uniq('target');
         cursor: pointer;
         transition: border-color 0.2s var(--ease-smooth);
 
-        &:hover { border-color: var(--c-accent); }
-        &:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+        &:hover {
+          border-color: var(--c-ink);
+        }
+        &:focus-visible {
+          outline: 2px solid var(--c-ink);
+          outline-offset: 2px;
+        }
       }
       .card__img {
         width: 100%;
@@ -229,12 +283,16 @@ const targets = uniq('target');
         object-fit: cover;
         background: #111;
       }
-      .card__name { font-size: var(--fs-base); text-transform: capitalize; overflow-wrap: anywhere; }
+      .card__name {
+        font-size: var(--fs-base);
+        text-transform: capitalize;
+        overflow-wrap: anywhere;
+      }
       .card__tag {
         font-size: var(--fs-label);
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--c-on-surface-muted);
+        color: var(--c-mute);
       }
     </style>
   </body>

@@ -41,14 +41,22 @@ const sections = chapters.map((chapter) => ({
       </p>
     </section>
 
-    {sections.map(({ chapter, items }) => <WorkChapter chapter={chapter} items={items} />)}
+    {
+      sections.map(({ chapter, items }) => (
+        <WorkChapter chapter={chapter} items={items} />
+      ))
+    }
 
     <section class="container closing" aria-labelledby="closing-heading">
       <h2 id="closing-heading" class="visually-hidden">Contact</h2>
       <p class="closing__body" data-inview>
         More detail on any of these is available on request.
       </p>
-      <a class="closing__link label" href="mailto:nexuslab.dev.mm@gmail.com" data-inview>
+      <a
+        class="closing__link label"
+        href="mailto:nexuslab.dev.mm@gmail.com"
+        data-inview
+      >
         Get in touch <span aria-hidden="true">&#8599;&#65038;</span>
       </a>
     </section>
@@ -64,7 +72,9 @@ const sections = chapters.map((chapter) => ({
   const lists = document.querySelectorAll<HTMLElement>('[role="tablist"]');
 
   lists.forEach((list) => {
-    const tabs = Array.from(list.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    const tabs = Array.from(
+      list.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+    );
     if (tabs.length === 0) return;
 
     const panelFor = (tab: HTMLButtonElement) =>
@@ -82,7 +92,9 @@ const sections = chapters.map((chapter) => ({
     };
 
     list.addEventListener('click', (event) => {
-      const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('[role="tab"]');
+      const tab = (event.target as HTMLElement).closest<HTMLButtonElement>(
+        '[role="tab"]',
+      );
       if (tab && tabs.includes(tab)) select(tab, false);
     });
 
@@ -104,7 +116,8 @@ const sections = chapters.map((chapter) => ({
     });
 
     // Initial state: honour whichever tab the markup marked selected.
-    const initial = tabs.find((t) => t.getAttribute('aria-selected') === 'true') ?? tabs[0];
+    const initial =
+      tabs.find((t) => t.getAttribute('aria-selected') === 'true') ?? tabs[0];
     select(initial, false);
   });
 </script>
@@ -118,11 +131,14 @@ const sections = chapters.map((chapter) => ({
     display: grid;
     grid-template-rows: auto 1fr auto;
     min-height: calc(100svh - 4rem);
+    // Matches .container so the hero lines up with the header above it.
+    max-width: var(--container-max-width);
+    margin-inline: auto;
     padding: to-rem(24) var(--grid-margin) to-rem(40);
   }
 
   .hero__index {
-    color: var(--c-on-surface-muted);
+    color: var(--c-mute);
   }
 
   .hero__center {
@@ -134,23 +150,22 @@ const sections = chapters.map((chapter) => ({
 
   .hero__mark {
     margin: 0;
-    color: var(--c-light);
+    color: var(--c-ink);
     letter-spacing: -0.02em;
   }
 
   .hero__tagline {
     max-width: 32ch;
-    color: var(--c-light);
-    font-size: clamp-fluid(14, 18);
-    line-height: 1.4;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    color: var(--c-ink);
+    font-size: clamp-fluid(16, 18);
+    line-height: 1.56;
+    letter-spacing: 0;
   }
 
   .hero__cue {
     justify-self: end;
     align-self: end;
-    color: var(--c-on-surface-muted);
+    color: var(--c-body);
     display: inline-flex;
     align-items: center;
     gap: to-rem(8);
@@ -182,18 +197,18 @@ const sections = chapters.map((chapter) => ({
     max-width: 65ch;
     line-height: 1.55;
     margin: 0;
-    color: var(--c-on-surface-muted);
+    color: var(--c-mute);
   }
 
   .closing__link {
-    color: var(--c-accent);
+    color: var(--c-ink);
     text-decoration: none;
     border-bottom: 1px solid transparent;
     transition: border-color 0.2s var(--ease-smooth);
 
     @include has-hover {
       &:hover {
-        border-bottom-color: var(--c-accent);
+        border-bottom-color: var(--c-ink);
       }
     }
   }

@@ -4,16 +4,18 @@ import CatalogEntry from '@components/CatalogEntry.astro';
 
 <CatalogEntry slug="kage">
   <div class="frame">
-    <iframe src="/catalog/kage/live" title="Kage landing page, live" loading="lazy"
-    ></iframe>
-    <a class="n-label" href="/catalog/kage/live">[ Open full page ]</a>
+    <iframe
+      src="/catalog/kage/live"
+      title="Kage landing page, live"
+      loading="lazy"></iframe>
+    <a class="label" href="/catalog/kage/live">Open full page →</a>
   </div>
 </CatalogEntry>
 
 <style lang="scss">
   .frame {
     display: grid;
-    gap: to-rem(12);
+    gap: var(--sp-md);
     width: 100%;
     max-width: to-rem(1400);
   }
@@ -21,17 +23,22 @@ import CatalogEntry from '@components/CatalogEntry.astro';
   iframe {
     width: 100%;
     aspect-ratio: 16 / 10;
-    border: 1px solid var(--n-border-visible);
-    background: #000;
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-sm);
+    // The exhibited page brings its own canvas; this is only the letterbox.
+    background: var(--c-canvas);
   }
 
   a {
     justify-self: end;
+    color: var(--c-mute);
     text-decoration: none;
-    transition: color 150ms var(--n-ease);
+    transition: color 0.25s var(--ease-smooth);
 
-    &:hover {
-      color: var(--n-text-display);
+    @include has-hover {
+      &:hover {
+        color: var(--c-ink);
+      }
     }
   }
 </style>

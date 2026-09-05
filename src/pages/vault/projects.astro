@@ -8,13 +8,16 @@ export const prerender = false;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0a0a0a" />
     <meta name="robots" content="noindex" />
     <title>Projects — Vault — KWG</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
   </head>
   <body>
     <main class="page">
@@ -42,15 +45,15 @@ export const prerender = false;
         font-size: var(--fs-label);
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--c-on-surface-muted);
+        color: var(--c-mute);
         text-decoration: none;
         transition: color 0.2s var(--ease-smooth);
 
         &:hover {
-          color: var(--c-accent);
+          color: var(--c-ink);
         }
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
@@ -61,7 +64,7 @@ export const prerender = false;
         text-transform: uppercase;
       }
       .page__caption {
-        color: var(--c-on-surface-muted);
+        color: var(--c-mute);
       }
 
       // .gate__label / .gate__error are shared by the new-project form (views/new.ts).
@@ -69,14 +72,14 @@ export const prerender = false;
         font-size: var(--fs-label);
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--c-on-surface-muted);
+        color: var(--c-mute);
       }
       .gate__error {
         margin: 0;
         min-height: 1lh;
         font-size: var(--fs-label);
         letter-spacing: 0.04em;
-        color: var(--c-accent);
+        color: var(--c-ink);
       }
       // ── Project list ───────────────────────────────────────────
       .pv__head {
@@ -95,37 +98,37 @@ export const prerender = false;
           font-size: var(--fs-label);
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: var(--c-on-surface-muted);
+          color: var(--c-mute);
           text-decoration: none;
           transition: color 0.2s var(--ease-smooth);
 
           &:hover {
-            color: var(--c-accent);
+            color: var(--c-ink);
           }
           &:focus-visible {
-            outline: 2px solid var(--c-accent);
+            outline: 2px solid var(--c-ink);
             outline-offset: 2px;
           }
         }
 
         button#new {
-          background: var(--c-accent);
-          color: var(--c-dark);
+          background: var(--c-ink);
+          color: var(--c-canvas);
           border: none;
           padding: to-rem(10) to-rem(18);
           font: inherit;
           font-size: var(--fs-label);
-          font-weight: var(--fw-medium);
+          font-weight: var(--fw-regular);
           letter-spacing: 0.08em;
           text-transform: uppercase;
           cursor: pointer;
           transition: background 0.2s var(--ease-smooth);
 
           &:hover {
-            background: var(--c-accent-hover);
+            background: var(--c-body);
           }
           &:focus-visible {
-            outline: 2px solid var(--c-light);
+            outline: 2px solid var(--c-ink);
             outline-offset: 2px;
           }
         }
@@ -138,18 +141,18 @@ export const prerender = false;
         gap: to-rem(8);
       }
       .pcard {
-        background: var(--c-surface-1);
-        border: 1px solid var(--c-surface-2);
-        border-left: to-rem(3) solid var(--c-on-surface-muted);
+        background: var(--c-canvas-card);
+        border: 1px solid var(--c-hairline);
+        border-left: to-rem(3) solid var(--c-mute);
       }
       .pcard--you {
-        border-left-color: var(--c-accent);
+        border-left-color: var(--c-ink);
       }
       .pcard--client {
-        border-left-color: var(--c-on-surface-muted);
+        border-left-color: var(--c-mute);
       }
       .pcard--nobody {
-        border-left-color: var(--c-surface-2);
+        border-left-color: var(--c-hairline);
       }
       // Team rows use .pcard directly (no inner link) — the list's layout lives on
       // .pcard__link, so carry the same padding/grid on cards that have no link child.
@@ -168,11 +171,11 @@ export const prerender = false;
         text-decoration: none;
 
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--c-ink);
           outline-offset: -2px;
         }
         &:hover .pcard__name {
-          color: var(--c-accent);
+          color: var(--c-ink);
         }
       }
       .pcard__name {
@@ -180,13 +183,13 @@ export const prerender = false;
         transition: color 0.2s var(--ease-smooth);
       }
       .pcard__warn {
-        color: var(--c-accent);
+        color: var(--c-ink);
         margin-left: to-rem(4);
       }
       .pcard__stage {
         font-size: var(--fs-label);
         letter-spacing: 0.04em;
-        color: var(--c-on-surface-muted);
+        color: var(--c-mute);
         white-space: nowrap;
       }
       .pcard__chip {
@@ -194,7 +197,7 @@ export const prerender = false;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         padding: to-rem(4) to-rem(10);
-        border: 1px solid var(--c-surface-2);
+        border: 1px solid var(--c-hairline);
         white-space: nowrap;
       }
 
@@ -213,15 +216,15 @@ export const prerender = false;
         font-size: var(--fs-label);
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--c-on-surface-muted);
+        color: var(--c-mute);
         text-decoration: none;
         transition: color 0.2s var(--ease-smooth);
 
         &:hover {
-          color: var(--c-accent);
+          color: var(--c-ink);
         }
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
@@ -255,15 +258,15 @@ export const prerender = false;
       .entry__amount,
       .entry__label {
         font: inherit;
-        color: var(--c-light);
-        background: var(--c-dark);
-        border: 1px solid var(--c-on-surface-muted);
+        color: var(--c-ink);
+        background: var(--c-canvas);
+        border: 1px solid var(--c-mute);
         padding: to-rem(8) to-rem(12);
         min-height: to-rem(44);
-        border-radius: 0;
+        border-radius: var(--r-sm);
 
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
@@ -280,36 +283,36 @@ export const prerender = false;
         flex: 0 0 auto;
         min-height: to-rem(44);
         padding: 0 to-rem(24);
-        background: var(--c-accent);
-        color: var(--c-dark);
+        background: var(--c-ink);
+        color: var(--c-canvas);
         border: none;
         font: inherit;
-        font-weight: var(--fw-medium);
+        font-weight: var(--fw-regular);
         letter-spacing: 0.08em;
         text-transform: uppercase;
         cursor: pointer;
         transition: background 0.2s var(--ease-smooth);
 
         &:hover {
-          background: var(--c-accent-hover);
+          background: var(--c-body);
         }
         &:focus-visible {
-          outline: 2px solid var(--c-light);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
       .filters__select {
         font: inherit;
-        color: var(--c-light);
-        background: var(--c-dark);
-        border: 1px solid var(--c-on-surface-muted);
+        color: var(--c-ink);
+        background: var(--c-canvas);
+        border: 1px solid var(--c-mute);
         padding: to-rem(8) to-rem(12);
         min-height: to-rem(44);
-        border-radius: 0;
+        border-radius: var(--r-sm);
         flex: 1 1 to-rem(150);
 
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
@@ -319,8 +322,8 @@ export const prerender = false;
         width: to-rem(32);
         height: to-rem(32);
         background: transparent;
-        border: 1px solid var(--c-surface-2);
-        color: var(--c-on-surface-muted);
+        border: 1px solid var(--c-hairline);
+        color: var(--c-mute);
         font-size: var(--fs-6);
         line-height: 1;
         cursor: pointer;
@@ -329,11 +332,11 @@ export const prerender = false;
           color 0.2s var(--ease-smooth);
 
         &:hover {
-          border-color: var(--c-accent);
-          color: var(--c-accent);
+          border-color: var(--c-ink);
+          color: var(--c-ink);
         }
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
@@ -350,16 +353,16 @@ export const prerender = false;
         display: grid;
         gap: to-rem(8);
         padding: to-rem(12) to-rem(16);
-        background: var(--c-surface-1);
-        border: 1px solid var(--c-surface-2);
-        border-left: to-rem(3) solid var(--c-on-surface-muted);
+        background: var(--c-canvas-card);
+        border: 1px solid var(--c-hairline);
+        border-left: to-rem(3) solid var(--c-mute);
       }
       // Owner-colored left bar: internal = accent, client = muted, shared = info blue.
       .stage--internal {
-        border-left-color: var(--c-accent);
+        border-left-color: var(--c-ink);
       }
       .stage--client {
-        border-left-color: var(--c-on-surface-muted);
+        border-left-color: var(--c-mute);
       }
       .stage--shared {
         border-left-color: var(--c-info);
@@ -382,34 +385,34 @@ export const prerender = false;
         font-size: var(--fs-label);
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--c-on-surface-muted);
+        color: var(--c-mute);
       }
       .stage__status {
         font: inherit;
         font-size: var(--fs-label);
-        color: var(--c-light);
-        background: var(--c-dark);
-        border: 1px solid var(--c-on-surface-muted);
+        color: var(--c-ink);
+        background: var(--c-canvas);
+        border: 1px solid var(--c-mute);
         padding: to-rem(6) to-rem(10);
         min-height: to-rem(36);
-        border-radius: 0;
+        border-radius: var(--r-sm);
         text-transform: capitalize;
 
         &:focus-visible {
-          outline: 2px solid var(--c-accent);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
       .stage__blocked {
         margin: 0;
-        color: var(--c-accent);
+        color: var(--c-ink);
         font-size: var(--fs-label);
         letter-spacing: 0.02em;
       }
       .stage__req {
         margin: 0;
         font-size: var(--fs-label);
-        color: var(--c-on-surface-muted);
+        color: var(--c-mute);
       }
       .stage__docs {
         list-style: none;
@@ -423,7 +426,7 @@ export const prerender = false;
           font-style: normal;
           text-transform: uppercase;
           letter-spacing: 0.04em;
-          color: var(--c-on-surface-muted);
+          color: var(--c-mute);
         }
       }
       .docform {
@@ -447,11 +450,11 @@ export const prerender = false;
           justify-content: space-between;
           gap: to-rem(12);
           padding: to-rem(8) 0;
-          border-bottom: 1px solid var(--c-surface-2);
+          border-bottom: 1px solid var(--c-hairline);
           font-size: var(--fs-label);
         }
         time {
-          color: var(--c-on-surface-muted);
+          color: var(--c-mute);
           white-space: nowrap;
         }
       }

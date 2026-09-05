@@ -4,7 +4,8 @@ import '../styles/index.scss';
 // ── Vault password (obscurity gate, client-side only) ──────────────────
 // SHA-256 hex of the password. Default password is "changeme" — REPLACE IT:
 //   node -e "crypto.subtle.digest('SHA-256',new TextEncoder().encode('YOUR_PW')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))"
-const VAULT_HASH = '057ba03d6c44104863dc7361fe4578965d1887360f90a0895882e58a6248fc86';
+const VAULT_HASH =
+  '057ba03d6c44104863dc7361fe4578965d1887360f90a0895882e58a6248fc86';
 
 // External tools live in their own containers (see compose.yml); the Vault just
 // links out. URLs are per-environment — localhost for dev, your domains in prod.
@@ -24,14 +25,30 @@ const FIREFLY_URL =
 // the Nothing iconography rule. Kept as path data so the tile markup stays one
 // loop instead of four near-identical blocks.
 const tools = [
-  { name: 'Fitness', href: '/vault/fitness', external: false,
-    icon: 'M22 12h-4l-3 9L9 3l-3 9H2' },
-  { name: 'Projects', href: '/vault/projects', external: false,
-    icon: 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z' },
-  { name: 'Notes', href: MEMOS_URL, external: true,
-    icon: 'M4 6h16M4 12h16M4 18h10' },
-  { name: 'Finance', href: FIREFLY_URL, external: true,
-    icon: 'M16 7h6v6M22 7l-8.5 8.5-5-5L2 17' },
+  {
+    name: 'Fitness',
+    href: '/vault/fitness',
+    external: false,
+    icon: 'M22 12h-4l-3 9L9 3l-3 9H2',
+  },
+  {
+    name: 'Projects',
+    href: '/vault/projects',
+    external: false,
+    icon: 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z',
+  },
+  {
+    name: 'Notes',
+    href: MEMOS_URL,
+    external: true,
+    icon: 'M4 6h16M4 12h16M4 18h10',
+  },
+  {
+    name: 'Finance',
+    href: FIREFLY_URL,
+    external: true,
+    icon: 'M16 7h6v6M22 7l-8.5 8.5-5-5L2 17',
+  },
 ];
 ---
 
@@ -40,7 +57,7 @@ const tools = [
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0a0a0a" />
     <meta name="robots" content="noindex" />
     <title>Vault — KWG</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -48,7 +65,7 @@ const tools = [
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap"
     />
     <!-- Decide state before paint → no flash of the wrong section. -->
     <script is:inline>
@@ -86,39 +103,42 @@ const tools = [
       <section class="grid-wrap" id="vault" aria-labelledby="vault-title">
         <header class="grid-wrap__head">
           <h1 class="grid-wrap__title" id="vault-title" tabindex="-1">Vault</h1>
-          <button class="grid-wrap__lock" type="button" id="logout">Lock</button>
+          <button class="grid-wrap__lock" type="button" id="logout">Lock</button
+          >
         </header>
         <p class="grid-wrap__caption">Your handy tools live here.</p>
         <!-- The <ul> is itself the scroll container; each tile's magnification
              rides its own view() timeline against it. See docs/vault-dock-design.md. -->
         <ul class="dock" role="list">
-          {tools.map((t) => (
-            <li class="tool">
-              <a
-                class="tool__link"
-                href={t.href}
-                target={t.external ? '_blank' : undefined}
-                rel={t.external ? 'noopener noreferrer' : undefined}
-              >
-                <svg
-                  class="tool__icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
+          {
+            tools.map((t) => (
+              <li class="tool">
+                <a
+                  class="tool__link"
+                  href={t.href}
+                  target={t.external ? '_blank' : undefined}
+                  rel={t.external ? 'noopener noreferrer' : undefined}
                 >
-                  <path d={t.icon} />
-                </svg>
-                <span class="tool__name">{t.name}</span>
-                <span class="tool__hint">
-                  {t.external ? 'Open \u2197\uFE0E' : 'Open'}
-                </span>
-              </a>
-            </li>
-          ))}
+                  <svg
+                    class="tool__icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d={t.icon} />
+                  </svg>
+                  <span class="tool__name">{t.name}</span>
+                  <span class="tool__hint">
+                    {t.external ? 'Open \u2197\uFE0E' : 'Open'}
+                  </span>
+                </a>
+              </li>
+            ))
+          }
         </ul>
       </section>
     </main>
@@ -165,49 +185,32 @@ const tools = [
     </script>
 
     <style lang="scss">
-      // ── Nothing-inspired tokens, scoped to the Vault ────────────────
-      // Reference: github.com/dominikmartn/nothing-design-skill
-      // Monochrome by that skill's own doctrine — red is an interrupt, not
-      // decoration, so it appears only on a failed password.
+      // The Vault runs on the site's global tokens (src/styles/_vars.scss);
+      // it renders its own <html> and so carries no header or footer.
       .vault {
-        --n-surface: #111111;
-        --n-border: #222222;
-        --n-border-visible: #333333;
-        --n-disabled: #666666;
-        --n-secondary: #999999;
-        --n-primary: #e8e8e8;
-        --n-display: #ffffff;
-        --n-accent: #d71921;
-        --n-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
-        --n-sans: 'Space Grotesk', system-ui, sans-serif;
-        --n-mono: 'Space Mono', ui-monospace, monospace;
-        --n-dot: 'Doto', 'Space Mono', monospace;
-
         min-height: 100svh;
-        background: #000;
-        color: var(--n-primary);
-        font-family: var(--n-sans);
+        background: var(--c-canvas);
+        color: var(--c-body);
+        font-family: var(--ff-primary);
       }
 
-      // Every label on the page is the same instrument-panel treatment.
+      // Every label on the page is the same mono instrument-panel treatment.
       @mixin label {
-        font-family: var(--n-mono);
-        font-size: to-rem(11);
-        font-weight: 400;
-        line-height: 1.2;
-        letter-spacing: 0.08em;
+        font-family: var(--ff-mono);
+        font-size: var(--fs-micro);
+        font-weight: var(--fw-regular);
+        line-height: 1.33;
+        letter-spacing: var(--ls-mono);
         text-transform: uppercase;
       }
 
-      // The one expressive moment on the screen: a dot-matrix wordmark.
-      // Everything else stays deliberately plain so this reads as intentional.
+      // The wordmark is the display face at weight 400 with the brand's
+      // negative tracking. The type carries it; nothing is added.
       @mixin wordmark {
-        font-family: var(--n-dot);
-        font-weight: 700;
+        font-weight: var(--fw-regular);
         line-height: 1;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-        color: var(--n-display);
+        letter-spacing: var(--ls-1);
+        color: var(--c-ink);
       }
 
       // States: head script sets html[data-vault]; CSS reveals one section.
@@ -236,7 +239,7 @@ const tools = [
       .gate__eyebrow {
         @include label;
         margin: 0;
-        color: var(--n-secondary);
+        color: var(--c-mute);
       }
       .gate__title {
         @include wordmark;
@@ -245,7 +248,7 @@ const tools = [
       }
       .gate__label {
         @include label;
-        color: var(--n-secondary);
+        color: var(--c-mute);
       }
       // Underline over full border — the lighter container, per the skill's
       // "use the lightest tool that works".
@@ -255,28 +258,28 @@ const tools = [
         padding: to-rem(12) 0;
         background: transparent;
         border: none;
-        border-bottom: 1px solid var(--n-border-visible);
-        color: var(--n-display);
-        font-family: var(--n-mono);
+        border-bottom: 1px solid var(--c-hairline-bright);
+        color: var(--c-ink);
+        font-family: var(--ff-mono);
         font-size: to-rem(16);
-        transition: border-color 0.2s var(--n-ease);
+        transition: border-color 0.2s var(--ease-smooth);
 
         &:hover {
-          border-bottom-color: var(--n-secondary);
+          border-bottom-color: var(--c-mute);
         }
         &:focus-visible {
           outline: none;
-          border-bottom-color: var(--n-display);
+          border-bottom-color: var(--c-ink);
         }
         &[aria-invalid='true'] {
-          border-bottom-color: var(--n-accent);
+          border-bottom-color: var(--c-ink);
         }
       }
       .gate__error {
         @include label;
         margin: 0;
         min-height: 1lh;
-        color: var(--n-accent);
+        color: var(--c-ink);
       }
       // Primary button: inverted, pill.
       .gate__submit {
@@ -284,20 +287,22 @@ const tools = [
         margin-top: to-rem(24);
         min-height: to-rem(44);
         padding: to-rem(12) to-rem(24);
-        background: var(--n-display);
-        color: #000;
-        border: none;
-        border-radius: 999px;
-        font-size: to-rem(13);
-        letter-spacing: 0.06em;
+        background: var(--c-ink);
+        color: var(--c-canvas);
+        border: 1px solid var(--c-ink);
+        border-radius: var(--r-pill);
+        font-size: var(--fs-micro);
         cursor: pointer;
-        transition: opacity 0.2s var(--n-ease);
+        transition:
+          background-color 0.25s var(--ease-smooth),
+          border-color 0.25s var(--ease-smooth);
 
         &:hover {
-          opacity: 0.85;
+          background-color: var(--c-body);
+          border-color: var(--c-body);
         }
         &:focus-visible {
-          outline: 2px solid var(--n-display);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
@@ -324,7 +329,7 @@ const tools = [
         font-size: clamp-fluid(48, 88);
 
         &:focus-visible {
-          outline: 2px solid var(--n-display);
+          outline: 2px solid var(--c-ink);
           outline-offset: 4px;
         }
       }
@@ -335,29 +340,28 @@ const tools = [
         min-height: to-rem(44);
         padding: to-rem(12) to-rem(24);
         background: transparent;
-        border: 1px solid var(--n-border-visible);
-        border-radius: 999px;
-        color: var(--n-primary);
-        font-size: to-rem(13);
-        letter-spacing: 0.06em;
+        border: 1px solid var(--c-hairline-bright);
+        border-radius: var(--r-pill);
+        color: var(--c-body);
+        font-size: var(--fs-micro);
         cursor: pointer;
         transition:
-          border-color 0.2s var(--n-ease),
-          color 0.2s var(--n-ease);
+          border-color 0.2s var(--ease-smooth),
+          color 0.2s var(--ease-smooth);
 
         &:hover {
-          border-color: var(--n-display);
-          color: var(--n-display);
+          border-color: var(--c-ink);
+          color: var(--c-ink);
         }
         &:focus-visible {
-          outline: 2px solid var(--n-display);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
       .grid-wrap__caption {
         @include label;
         margin: to-rem(16) 0 0;
-        color: var(--n-secondary);
+        color: var(--c-mute);
       }
 
       // ── Dock ───────────────────────────────────────────────
@@ -391,20 +395,20 @@ const tools = [
         grid-template-rows: auto 1fr auto;
         height: var(--tile-h);
         padding: to-rem(20);
-        border: 1px solid var(--n-border);
+        border: 1px solid var(--c-hairline);
         border-radius: to-rem(8);
-        color: var(--n-secondary);
+        color: var(--c-mute);
         text-decoration: none;
         transition:
-          border-color 0.2s var(--n-ease),
-          color 0.2s var(--n-ease);
+          border-color 0.2s var(--ease-smooth),
+          color 0.2s var(--ease-smooth);
 
         &:hover {
-          border-color: var(--n-border-visible);
-          color: var(--n-primary);
+          border-color: var(--c-hairline-bright);
+          color: var(--c-body);
         }
         &:focus-visible {
-          outline: 2px solid var(--n-display);
+          outline: 2px solid var(--c-ink);
           outline-offset: 2px;
         }
       }
@@ -419,7 +423,7 @@ const tools = [
         grid-row: 3;
         align-self: end;
         font-size: to-rem(24);
-        font-weight: 300;
+        font-weight: var(--fw-regular);
         line-height: 1.2;
         letter-spacing: -0.01em;
       }
@@ -439,16 +443,16 @@ const tools = [
         100% {
           scale: 0.82;
           opacity: 0.35;
-          border-color: var(--n-border);
+          border-color: var(--c-hairline);
           background-color: transparent;
-          color: var(--n-secondary);
+          color: var(--c-mute);
         }
         50% {
           scale: 1;
           opacity: 1;
-          border-color: var(--n-display);
-          background-color: var(--n-surface);
-          color: var(--n-display);
+          border-color: var(--c-ink);
+          background-color: var(--c-canvas-card);
+          color: var(--c-ink);
         }
       }
 

@@ -4,7 +4,7 @@ console.log(
   `
     font-family: monospace;
     font-size: 14px;
-    color: #FFC000;
-    background: #000000;
+    color: #ffffff;
+    background: #0a0a0a;
   `,
 );

@@ -6,58 +6,91 @@
   // grid
   --fluid-min: 375;
   --fluid-max: 1720;
-  --container-max-width: #{to-rem(1920)};
-  --grid-margin: #{to-rem(20)};
-  --grid-gutter: #{clamp-fluid(10, 20)};
+  --container-max-width: #{to-rem(1200)};
+  --grid-margin: #{clamp-fluid(20, 24)};
+  --grid-gutter: #{clamp-fluid(16, 24)};
   --grid-max-width: calc(var(--container-max-width) - var(--grid-margin) * 2);
   --grid-columns: 12;
 
+  // space scale — 4px base (DESIGN.md §Layout)
+  --sp-xxs: #{to-rem(2)};
+  --sp-xs: #{to-rem(4)};
+  --sp-sm: #{to-rem(8)};
+  --sp-md: #{to-rem(12)};
+  --sp-lg: #{to-rem(16)};
+  --sp-xl: #{to-rem(24)};
+  --sp-2xl: #{to-rem(32)};
+  --sp-3xl: #{to-rem(48)};
+  --sp-4xl: #{to-rem(64)};
+  // Band rhythm: the 64px section pad, scaled down on small screens.
+  --sp-band: #{clamp-fluid(48, 96)};
+
   // fonts
-  // LamboType is proprietary; Space Grotesk is the brand-aligned substitute.
-  --ff-primary: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
-  --ff-secondary: 'Georgia', 'Times New Roman', serif;
+  // Universal Sans is proprietary; Inter is the documented substitute and the
+  // negative tracking below is what carries the brand's precision.
+  // JetBrains Mono is the documented alternate for the brand's mono companion.
+  --ff-primary:
+    'Inter', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  --ff-mono:
+    'JetBrains Mono', 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    monospace;
 
-  // font-sizes — display scale from DESIGN.md (Hero 120 → Card 24)
-  --fs-base: #{clamp-fluid(16, 18)};
-  --fs-1: #{clamp-fluid(54, 120)};
-  --fs-2: #{clamp-fluid(44, 80)};
-  --fs-3: #{clamp-fluid(38, 54)};
-  --fs-4: #{clamp-fluid(30, 40)};
-  --fs-5: #{clamp-fluid(22, 27)};
-  --fs-6: #{clamp-fluid(20, 24)};
-  --fs-label: #{to-rem(12)};
-  --fs-micro: #{to-rem(10)};
+  // font-sizes — display ladder from DESIGN.md (96 → 20), fluid to mobile.
+  --fs-base: #{to-rem(16)};
+  --fs-1: #{clamp-fluid(48, 96)};
+  --fs-2: #{clamp-fluid(40, 72)};
+  --fs-3: #{clamp-fluid(32, 48)};
+  --fs-4: #{clamp-fluid(26, 32)};
+  --fs-5: #{to-rem(20)};
+  --fs-6: #{to-rem(18)};
+  --fs-body-lg: #{to-rem(18)};
+  --fs-body-sm: #{to-rem(14)};
+  --fs-label: #{to-rem(14)};
+  --fs-micro: #{to-rem(12)};
 
-  // font-weights
-  --fw-thin: 100;
-  --fw-hairline: var(--fw-thin);
-  --fw-xlight: 200;
-  --fw-ultralight: var(--fw-xlight);
+  // tracking — negative on display, positive on mono labels. The brand's
+  // signature; neutral tracking loses the precision entirely.
+  --ls-1: -0.025em;
+  --ls-2: -0.025em;
+  --ls-3: -0.025em;
+  --ls-4: -0.019em;
+  --ls-5: 0;
+  --ls-mono: 0.1em;
+
+  // font-weights — the system ships weight 400 only. Aliases retained for
+  // third-party embeds; site chrome must not reach past --fw-regular.
   --fw-light: 300;
   --fw-normal: 400;
   --fw-regular: var(--fw-normal);
   --fw-medium: 500;
-  --fw-semibold: 600;
-  --fw-demibold: var(--fw-semibold);
-  --fw-bold: 700;
-  --fw-xbold: 800;
-  --fw-ultrabold: var(--fw-xbold);
-  --fw-black: 900;
-  --fw-heavy: var(--fw-black);
-  --fw-xblack: 950;
-  --fw-ultrablack: var(--fw-xblack);
 
-  // colors — see DESIGN.md.
-  // --c-light is the foreground (text on dark canvas). --c-dark is the canvas.
-  --c-light: #FFFFFF;
-  --c-dark: #000000;
-  --c-surface-1: #181818;
-  --c-surface-2: #202020;
-  --c-on-surface-muted: #7D7D7D;
-  --c-accent: #FFC000;
-  --c-accent-hover: #917300;
-  --c-link-hover: #3860BE;
-  --c-info: #29ABE2;
+  // colors — see DESIGN.md. Near-black canvas, white as the only brand colour.
+  --c-canvas: #0a0a0a;
+  --c-canvas-soft: #1a1c20;
+  --c-canvas-card: #191919;
+  --c-canvas-mid: #363a3f;
+  --c-hairline: #212327;
+  // Outline pills use translucent white, not the flat hairline hex.
+  --c-hairline-bright: rgba(255, 255, 255, 0.25);
+  --c-ink: #ffffff;
+  --c-body: #dadbdf;
+  // ~3.5:1 on canvas — metadata only, never primary copy (PRODUCT.md a11y).
+  --c-mute: #7d8187;
+
+  // Illustrative accents. Reserved for artwork and product illustration;
+  // never for site chrome, CTAs, or text (DESIGN.md Don'ts).
+  --c-sunset: #ff7a17;
+  --c-sunset-soft: #ffc285;
+  --c-dusk: #7c3aed;
+  --c-twilight: #c4b5fd;
+  --c-breeze: #a0c3ec;
+  --c-midnight: #0d1726;
+
+  // radii — 8px card chrome, pill for every interactive element.
+  --r-none: 0;
+  --r-sm: #{to-rem(8)};
+  --r-pill: 9999px;
 
   // animations
   // in-out
@@ -66,8 +99,35 @@
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   // snappy
   --ease-snappy: cubic-bezier(0.19, 0.9, 0.3, 1);
+  // exponential ease-out — the default for entrances
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   // spring
-  --ease-spring: linear(0, .009, .035 2.1%, .141 4.4%, .723 12.9%, .938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, .991, .977 51%, .974 53.8%, .975 57.1%, .997 69.8%, 1.003 76.9%, 1);
+  --ease-spring: linear(
+    0,
+    0.009,
+    0.035 2.1%,
+    0.141 4.4%,
+    0.723 12.9%,
+    0.938 16.7%,
+    1.017,
+    1.077,
+    1.121,
+    1.149 24.3%,
+    1.159,
+    1.163,
+    1.161,
+    1.154 29.9%,
+    1.129 32.8%,
+    1.051 39.6%,
+    1.017 43.1%,
+    0.991,
+    0.977 51%,
+    0.974 53.8%,
+    0.975 57.1%,
+    0.997 69.8%,
+    1.003 76.9%,
+    1
+  );
 
   // z-index
   --zi-cursor: 20000;

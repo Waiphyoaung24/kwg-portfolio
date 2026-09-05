@@ -1,5 +1,6 @@
-// Display headings: weight 400, uppercase, tight line-heights.
-// Per DESIGN.md, the typeface itself carries the impact; bold is unnecessary.
+// Display headings: weight 400, sentence case, tight negative tracking.
+// Per DESIGN.md the brand never bolds — size and tracking do the emphasis
+// work, and reverting to neutral tracking loses the precision entirely.
 h1,
 .h1,
 h2,
@@ -9,61 +10,81 @@ h3,
 h4,
 .h4,
 h5,
-.h5 {
+.h5,
+h6,
+.h6 {
   font-weight: var(--fw-regular);
-  text-transform: uppercase;
+  text-wrap: balance;
 }
 
 h1,
 .h1 {
   font-size: var(--fs-1);
-  line-height: 0.92;
+  line-height: 1;
+  letter-spacing: var(--ls-1);
 }
 
 h2,
 .h2 {
   font-size: var(--fs-2);
-  line-height: 1.13;
+  line-height: 1;
+  letter-spacing: var(--ls-2);
 }
 
 h3,
 .h3 {
   font-size: var(--fs-3);
-  line-height: 1.19;
+  line-height: 1.04;
+  letter-spacing: var(--ls-3);
 }
 
 h4,
 .h4 {
   font-size: var(--fs-4);
-  line-height: 1.15;
+  line-height: 1.13;
+  letter-spacing: var(--ls-4);
 }
 
 h5,
 .h5 {
   font-size: var(--fs-5);
-  line-height: 1.37;
+  line-height: 1.4;
+  letter-spacing: var(--ls-5);
 }
 
-// Card-title tier: regular weight, mixed case allowed.
 h6,
 .h6 {
   font-size: var(--fs-6);
-  font-weight: var(--fw-regular);
-  line-height: 1.3;
+  line-height: 1.44;
+  letter-spacing: var(--ls-5);
 }
 
-// Label and micro tiers from DESIGN.md.
+// Lead paragraph.
+.body-lg {
+  font-size: var(--fs-body-lg);
+  line-height: 1.56;
+}
+
+.body-sm {
+  font-size: var(--fs-body-sm);
+  line-height: 1.43;
+}
+
+// Mono label tiers. Uppercase and positively tracked so they read as a code
+// comment rather than a marketing label.
 .label {
+  font-family: var(--ff-mono);
   font-size: var(--fs-label);
-  line-height: 1.83;
-  letter-spacing: 0.96px;
+  line-height: 1.43;
+  letter-spacing: var(--ls-mono);
   text-transform: uppercase;
 }
 
 .micro {
+  font-family: var(--ff-mono);
   font-size: var(--fs-micro);
-  line-height: 2;
-  letter-spacing: 0.225px;
+  line-height: 1.33;
+  letter-spacing: var(--ls-mono);
   text-transform: uppercase;
 }
 

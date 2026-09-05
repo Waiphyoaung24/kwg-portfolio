@@ -1,6 +1,4 @@
 ---
-import '../../catalog/nothing.scss';
-
 import Layout from '@layouts/Layout.astro';
 import { entries } from '../../catalog/entries';
 
@@ -8,10 +6,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
 ---
 
 <Layout>
-  <main class="nothing">
+  <main>
     <div class="container">
       <header class="hero">
-        <p class="n-label">Index · {pad(entries.length)} entries</p>
+        <p class="label">Index · {pad(entries.length)} entries</p>
         <h1>Catalog</h1>
         <p class="lede">
           Components, page sections and whole pages, running live, with their
@@ -24,10 +22,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
           entries.map((entry, i) => (
             <li>
               <a href={`/catalog/${entry.slug}`}>
-                <span class="idx n-label">{pad(i + 1)}</span>
+                <span class="idx label">{pad(i + 1)}</span>
                 <span class="title">{entry.title}</span>
-                <span class="kind n-label">{entry.kind}</span>
-                <span class="stack n-label">{entry.stack}</span>
+                <span class="kind label">{entry.kind}</span>
+                <span class="stack label">{entry.stack}</span>
               </a>
             </li>
           ))
@@ -39,47 +37,48 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 <style lang="scss">
   main {
-    padding-block: to-rem(64) to-rem(96);
+    padding-block: var(--sp-4xl) var(--sp-band);
   }
 
-  // Primary layer: the one Doto moment.
   .hero {
     display: grid;
-    gap: to-rem(16);
+    gap: var(--sp-lg);
     max-width: 60ch;
-    margin-bottom: to-rem(96);
+    margin-bottom: var(--sp-band);
+  }
+
+  .hero .label {
+    color: var(--c-mute);
   }
 
   h1 {
-    font-family: var(--n-ff-dot);
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: var(--n-text-display);
+    font-size: var(--fs-2);
   }
 
   .lede {
-    color: var(--n-text-secondary);
-    max-width: 44ch;
+    max-width: 46ch;
+    color: var(--c-body);
+    font-size: var(--fs-body-lg);
+    line-height: 1.56;
   }
 
-  // Secondary layer: divider rows, no cards.
+  // Divider rows, not cards: the list is the structure.
   .rows {
     list-style: none;
-    border-top: 1px solid var(--n-border);
+    border-top: 1px solid var(--c-hairline);
   }
 
   li {
-    border-bottom: 1px solid var(--n-border);
+    border-bottom: 1px solid var(--c-hairline);
   }
 
   a {
     display: grid;
     grid-template-columns: 4ch 1fr;
-    gap: to-rem(8) to-rem(24);
+    gap: var(--sp-sm) var(--sp-xl);
     align-items: baseline;
-    padding-block: to-rem(20);
+    padding-block: var(--sp-xl);
     text-decoration: none;
-    transition: color 150ms var(--n-ease);
 
     @media (min-width: 768px) {
       grid-template-columns: 4ch 1fr 12ch 1fr;
@@ -87,23 +86,25 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
     @include has-hover {
       &:hover .title {
-        color: var(--n-text-display);
+        color: var(--c-ink);
       }
-      &:hover .n-label {
-        color: var(--n-text-primary);
+
+      &:hover .label {
+        color: var(--c-body);
       }
     }
   }
 
   .title {
     font-size: var(--fs-6);
-    line-height: 1.3;
-    color: var(--n-text-primary);
-    transition: color 150ms var(--n-ease);
+    line-height: 1.44;
+    color: var(--c-body);
+    transition: color 0.25s var(--ease-smooth);
   }
 
-  .n-label {
-    transition: color 150ms var(--n-ease);
+  .label {
+    color: var(--c-mute);
+    transition: color 0.25s var(--ease-smooth);
   }
 
   .kind,

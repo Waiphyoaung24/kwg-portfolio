@@ -1,6 +1,4 @@
 ---
-import '../catalog/nothing.scss';
-
 import Layout from '@layouts/Layout.astro';
 import { entries } from '../catalog/entries';
 
@@ -60,12 +58,12 @@ const prompt = [
 ---
 
 <Layout>
-  <main class="nothing">
+  <main>
     <div class="container">
       <!-- Primary layer: what this is. -->
       <header class="masthead">
-        <a class="n-label back" href="/catalog">[ Catalog ]</a>
-        <p class="n-label">{index} · {entry.kind}</p>
+        <a class="label back" href="/catalog">← Catalog</a>
+        <p class="label">{index} · {entry.kind}</p>
         <h1>{entry.title}</h1>
       </header>
 
@@ -81,7 +79,7 @@ const prompt = [
             aria-selected="true"
             data-view-tab="preview"
           >
-            [ Preview ]
+            Preview
           </button>
           <button
             type="button"
@@ -92,18 +90,18 @@ const prompt = [
             aria-selected="false"
             data-view-tab="code"
           >
-            [ Code ]
+            Code
           </button>
         </div>
 
         <details class="menu">
-          <summary class="n-button">[ Copy for AI ⌄ ]</summary>
+          <summary class="pill-btn">Copy for AI</summary>
           <div class="menu-list">
             <button type="button" class="menu-item" data-copy={prompt}>
-              [ Copy prompt ]
+              Copy prompt
             </button>
             <button type="button" class="menu-item" data-copy={allSource}>
-              [ Copy all source ]
+              Copy all source
             </button>
           </div>
         </details>
@@ -127,7 +125,7 @@ const prompt = [
           role="tabpanel"
           aria-labelledby="tab-code"
         >
-          <p class="n-label files-head">
+          <p class="label files-head">
             {pad(files.length)} files · src/catalog/{slug}/
           </p>
           {
@@ -135,21 +133,25 @@ const prompt = [
               <article class="file">
                 <header>
                   <span class="path">{file.path}</span>
-                  <span class="n-label">
+                  <span class="label">
                     {file.lines} lines · {file.bytes} B
                   </span>
-                  <button type="button" class="n-button" data-copy={file.code}>
-                    [ Copy ]
+                  <button
+                    type="button"
+                    class="pill-btn copy-file"
+                    data-copy={file.code}
+                  >
+                    Copy
                   </button>
                 </header>
-                <pre><code>{file.preview}</code></pre>
-                {
-                  file.lines > PREVIEW_LINES && (
-                    <p class="n-label more">
-                      … {file.lines - PREVIEW_LINES} more lines in the copy
-                    </p>
-                  )
-                }
+                <pre>
+                  <code>{file.preview}</code>
+                </pre>
+                {file.lines > PREVIEW_LINES && (
+                  <p class="label more">
+                    … {file.lines - PREVIEW_LINES} more lines in the copy
+                  </p>
+                )}
               </article>
             ))
           }
@@ -160,21 +162,21 @@ const prompt = [
       <section class="meta">
         <p class="lede">{entry.description}</p>
         <dl>
-          <dt class="n-label">Stack</dt>
+          <dt class="label">Stack</dt>
           <dd>{entry.stack}</dd>
-          <dt class="n-label">Credit</dt>
+          <dt class="label">Credit</dt>
           <dd>
             <a href={entry.credit.url} target="_blank" rel="noopener">
               {entry.credit.name}
             </a>
           </dd>
-          <dt class="n-label">Source</dt>
+          <dt class="label">Source</dt>
           <dd>
             <a href={entry.source} target="_blank" rel="noopener">
-              {entry.source.startsWith("/") ? "Live page" : "Article"}
+              {entry.source.startsWith('/') ? 'Live page' : 'Article'}
             </a>
           </dd>
-          <dt class="n-label">License</dt>
+          <dt class="label">License</dt>
           <dd>{entry.license}</dd>
         </dl>
       </section>
@@ -192,9 +194,7 @@ const prompt = [
     tab.addEventListener('click', () => {
       const view = tab.dataset.viewTab ?? 'preview';
       if (panel) panel.dataset.view = view;
-      tabs.forEach((t) =>
-        t.setAttribute('aria-selected', String(t === tab)),
-      );
+      tabs.forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
     });
   });
 
@@ -215,9 +215,9 @@ const prompt = [
       button.addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(button.dataset.copy ?? '');
-          button.textContent = '[ Copied ]';
+          button.textContent = 'Copied';
         } catch {
-          button.textContent = '[ Error ]';
+          button.textContent = 'Error';
         }
         button.closest('details')?.removeAttribute('open');
         setTimeout(() => (button.textContent = label), 1500);
@@ -227,32 +227,31 @@ const prompt = [
 
 <style lang="scss">
   main {
-    padding-block: to-rem(64) to-rem(96);
+    padding-block: var(--sp-4xl) var(--sp-band);
   }
 
   .masthead {
     display: grid;
-    gap: to-rem(16);
+    gap: var(--sp-lg);
     max-width: 64ch;
-    margin-bottom: to-rem(40);
+    margin-bottom: var(--sp-3xl);
   }
 
   .back {
     justify-self: start;
+    color: var(--c-mute);
     text-decoration: none;
-    transition: color 150ms var(--n-ease);
+    transition: color 0.25s var(--ease-smooth);
 
-    &:hover {
-      color: var(--n-text-display);
+    @include has-hover {
+      &:hover {
+        color: var(--c-ink);
+      }
     }
   }
 
   h1 {
     font-size: var(--fs-3);
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    text-transform: none;
-    color: var(--n-text-display);
   }
 
   // -- Toolbar ---------------------------------------------------------------
@@ -260,35 +259,39 @@ const prompt = [
   .toolbar {
     display: flex;
     align-items: flex-end;
-    gap: to-rem(24);
-    margin-bottom: to-rem(-1); // the active rule sits on the panel border
+    gap: var(--sp-xl);
+    margin-bottom: -1px; // the active rule sits on the panel border
   }
 
   .tabs {
     display: flex;
-    gap: to-rem(24);
+    gap: var(--sp-xl);
   }
 
   .tab {
-    font-family: var(--n-ff-mono);
-    font-size: 13px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--n-text-disabled);
-    min-height: 44px;
-    padding: 12px 0;
+    min-height: to-rem(44);
+    padding: var(--sp-md) 0;
     border-bottom: 1px solid transparent;
-    transition: color 150ms var(--n-ease);
+    font-family: var(--ff-mono);
+    font-size: var(--fs-micro);
+    letter-spacing: var(--ls-mono);
+    text-transform: uppercase;
+    color: var(--c-mute);
+    transition:
+      color 0.25s var(--ease-smooth),
+      border-color 0.25s var(--ease-smooth);
 
-    &:hover,
-    &:focus-visible {
-      color: var(--n-text-primary);
-      outline: none;
+    @include has-hover {
+      &:hover {
+        color: var(--c-body);
+      }
     }
 
+    // The selected tab is marked by the white rule and full-strength ink,
+    // never by colour alone.
     &[aria-selected='true'] {
-      color: var(--n-text-display);
-      border-bottom-color: var(--n-accent);
+      color: var(--c-ink);
+      border-bottom-color: var(--c-ink);
     }
   }
 
@@ -308,58 +311,58 @@ const prompt = [
 
   .menu-list {
     position: absolute;
-    top: calc(100% + to-rem(8));
+    top: calc(100% + var(--sp-sm));
     right: 0;
     z-index: 2;
     display: grid;
     min-width: to-rem(240);
-    background: var(--n-surface);
-    border: 1px solid var(--n-border-visible);
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-sm);
+    background: var(--c-canvas-card);
+    overflow: hidden;
   }
 
   .menu-item {
-    font-family: var(--n-ff-mono);
-    font-size: 13px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    min-height: to-rem(44);
+    padding: var(--sp-md) var(--sp-lg);
+    font-size: var(--fs-body-sm);
     text-align: left;
-    color: var(--n-text-secondary);
-    min-height: 44px;
-    padding: to-rem(12) to-rem(16);
+    color: var(--c-body);
     transition:
-      color 150ms var(--n-ease),
-      background 150ms var(--n-ease);
+      color 0.25s var(--ease-smooth),
+      background-color 0.25s var(--ease-smooth);
 
     & + & {
-      border-top: 1px solid var(--n-border);
+      border-top: 1px solid var(--c-hairline);
     }
 
-    &:hover,
-    &:focus-visible {
-      color: var(--n-text-display);
-      background: var(--n-black);
-      outline: none;
+    @include has-hover {
+      &:hover {
+        color: var(--c-ink);
+        background-color: rgba(255, 255, 255, 0.06);
+      }
     }
   }
 
   // -- Panel -----------------------------------------------------------------
 
   .panel {
-    border: 1px solid var(--n-border-visible);
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-sm);
   }
 
   .stage {
     display: grid;
     place-items: center;
     min-height: 70svh;
-    padding: to-rem(24);
+    padding: var(--sp-xl);
   }
 
   .files {
     display: grid;
-    gap: to-rem(48);
+    gap: var(--sp-3xl);
     max-height: 80svh;
-    padding: to-rem(24);
+    padding: var(--sp-xl);
     overflow-y: auto;
   }
 
@@ -369,69 +372,87 @@ const prompt = [
   }
 
   .files-head {
-    padding-bottom: to-rem(12);
-    border-bottom: 1px solid var(--n-border);
+    padding-bottom: var(--sp-md);
+    border-bottom: 1px solid var(--c-hairline);
+    color: var(--c-mute);
   }
 
   .file header {
     display: flex;
     align-items: center;
-    gap: to-rem(16);
-    padding-bottom: to-rem(8);
+    gap: var(--sp-lg);
+    padding-bottom: var(--sp-sm);
   }
 
   .path {
-    font-family: var(--n-ff-mono);
-    font-size: 13px;
-    color: var(--n-text-primary);
+    font-family: var(--ff-mono);
+    font-size: var(--fs-body-sm);
+    color: var(--c-body);
   }
 
-  .file .n-button {
+  .file .label {
+    color: var(--c-mute);
+  }
+
+  .copy-file {
     margin-left: auto;
+    // Tighter than the page-level pill: it sits inside a file row.
+    padding: var(--sp-xs) var(--sp-md);
+    font-size: var(--fs-micro);
   }
 
   pre {
-    font-family: var(--n-ff-mono);
-    font-size: 12px;
+    padding: var(--sp-lg) 0;
+    border-top: 1px solid var(--c-hairline);
+    font-family: var(--ff-mono);
+    font-size: var(--fs-micro);
     line-height: 1.6;
-    color: var(--n-text-secondary);
-    padding: to-rem(16) 0;
-    border-top: 1px solid var(--n-border);
+    color: var(--c-body);
     overflow-x: auto;
     tab-size: 2;
   }
 
   .more {
-    color: var(--n-text-disabled);
-    padding-top: to-rem(8);
+    padding-top: var(--sp-sm);
+    color: var(--c-mute);
   }
 
   // -- Meta ------------------------------------------------------------------
 
   .meta {
     max-width: 64ch;
-    margin-top: to-rem(48);
+    margin-top: var(--sp-3xl);
   }
 
   .lede {
-    color: var(--n-text-secondary);
+    color: var(--c-body);
   }
 
   dl {
     display: grid;
-    grid-template-columns: 8ch 1fr;
-    gap: to-rem(8) to-rem(24);
-    margin-top: to-rem(24);
-    font-size: 14px;
+    grid-template-columns: 10ch 1fr;
+    gap: var(--sp-sm) var(--sp-xl);
+    margin-top: var(--sp-xl);
+    font-size: var(--fs-body-sm);
+  }
+
+  dt {
+    color: var(--c-mute);
   }
 
   dd a {
-    color: var(--n-text-primary);
-    text-decoration-color: var(--n-border-visible);
-    transition: color 150ms var(--n-ease);
+    color: var(--c-body);
+    text-underline-offset: 0.25em;
+    text-decoration-color: var(--c-canvas-mid);
+    transition:
+      color 0.25s var(--ease-smooth),
+      text-decoration-color 0.25s var(--ease-smooth);
 
-    &:hover {
-      color: var(--n-text-display);
+    @include has-hover {
+      &:hover {
+        color: var(--c-ink);
+        text-decoration-color: currentColor;
+      }
     }
   }
 </style>

@@ -4,10 +4,26 @@ import Layout from '@layouts/Layout.astro';
 // Showcase gallery — placeholder imagery from Pexels per user reference.
 // Replace src URLs with real work when available.
 const gallery = [
-  { src: 'https://images.pexels.com/photos/8467429/pexels-photo-8467429.jpeg', title: 'Ethereal Dreams', sub: 'Visual storytelling' },
-  { src: 'https://images.pexels.com/photos/33276110/pexels-photo-33276110.jpeg', title: 'Midnight Bloom', sub: 'Dark elegance' },
-  { src: 'https://images.pexels.com/photos/3378993/pexels-photo-3378993.jpeg', title: 'Golden Hour', sub: 'Warm minimalism' },
-  { src: 'https://images.pexels.com/photos/1231258/pexels-photo-1231258.jpeg', title: 'Urban Solace', sub: 'City life reimagined' },
+  {
+    src: 'https://images.pexels.com/photos/8467429/pexels-photo-8467429.jpeg',
+    title: 'Ethereal Dreams',
+    sub: 'Visual storytelling',
+  },
+  {
+    src: 'https://images.pexels.com/photos/33276110/pexels-photo-33276110.jpeg',
+    title: 'Midnight Bloom',
+    sub: 'Dark elegance',
+  },
+  {
+    src: 'https://images.pexels.com/photos/3378993/pexels-photo-3378993.jpeg',
+    title: 'Golden Hour',
+    sub: 'Warm minimalism',
+  },
+  {
+    src: 'https://images.pexels.com/photos/1231258/pexels-photo-1231258.jpeg',
+    title: 'Urban Solace',
+    sub: 'City life reimagined',
+  },
 ];
 
 // Capabilities — three "stands" with the scroll-stand 3D-card reveal.
@@ -82,7 +98,12 @@ const stands = [
           gallery.map(({ src, title, sub }) => (
             <li class="gallery__item">
               <figure class="gallery__figure">
-                <img class="gallery__img" src={src} alt={title} loading="lazy" />
+                <img
+                  class="gallery__img"
+                  src={src}
+                  alt={title}
+                  loading="lazy"
+                />
                 <figcaption class="gallery__caption">
                   <p class="gallery__title">{title}</p>
                   <span class="gallery__sub">{sub}</span>
@@ -183,8 +204,8 @@ const stands = [
 
   // Read live design tokens so palette tweaks in _vars.scss flow through.
   const css = getComputedStyle(document.documentElement);
-  const cLight = css.getPropertyValue('--c-light').trim() || '#FFFFFF';
-  const cMuted = css.getPropertyValue('--c-on-surface-muted').trim() || '#7D7D7D';
+  const cLight = css.getPropertyValue('--c-ink').trim() || '#ffffff';
+  const cMuted = css.getPropertyValue('--c-mute').trim() || '#7d8187';
 
   // Per-card initial 3D state — center card is most vertical, edges fan out.
   const cardStart = [
@@ -198,7 +219,9 @@ const stands = [
   document.querySelectorAll<HTMLElement>('.stand').forEach((section) => {
     const cards = section.querySelectorAll<HTMLElement>('.stand__card');
     const copy = section.querySelector<HTMLElement>('.stand__copy');
-    const words = section.querySelectorAll<HTMLElement>('.stand__heading .word');
+    const words = section.querySelectorAll<HTMLElement>(
+      '.stand__heading .word',
+    );
 
     cards.forEach((card, i) => {
       gsap.set(card, {
@@ -211,15 +234,20 @@ const stands = [
     if (copy) gsap.set(copy, { y: -10 });
     gsap.set(words, { color: cLight });
 
-    gsap.timeline({
-      scrollTrigger: {
-        trigger: section,
-        start: 'top 40%',
-        end: 'top 0%',
-        scrub: 1,
-      },
-    })
-      .to(cards, { rotateX: 0, rotateY: 0, y: 0, ease: 'power1.inOut', duration: 1 }, 0)
+    gsap
+      .timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: 'top 40%',
+          end: 'top 0%',
+          scrub: 1,
+        },
+      })
+      .to(
+        cards,
+        { rotateX: 0, rotateY: 0, y: 0, ease: 'power1.inOut', duration: 1 },
+        0,
+      )
       .to(copy, { y: 0 }, 0)
       .to(words, { color: cMuted, stagger: 0.2 }, 0.1);
   });
@@ -237,11 +265,14 @@ const stands = [
     display: grid;
     grid-template-rows: auto 1fr auto;
     min-height: calc(100svh - 4rem);
+    // Matches .container so the hero lines up with the header above it.
+    max-width: var(--container-max-width);
+    margin-inline: auto;
     padding: to-rem(24) var(--grid-margin) to-rem(40);
   }
 
   .hero__index {
-    color: var(--c-on-surface-muted);
+    color: var(--c-mute);
   }
 
   .hero__center {
@@ -253,23 +284,22 @@ const stands = [
 
   .hero__mark {
     margin: 0;
-    color: var(--c-light);
+    color: var(--c-ink);
     letter-spacing: -0.02em;
   }
 
   .hero__tagline {
     max-width: 32ch;
-    color: var(--c-light);
-    font-size: clamp-fluid(14, 18);
-    line-height: 1.4;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    color: var(--c-ink);
+    font-size: clamp-fluid(16, 18);
+    line-height: 1.56;
+    letter-spacing: 0;
   }
 
   .hero__cue {
     justify-self: end;
     align-self: end;
-    color: var(--c-on-surface-muted);
+    color: var(--c-body);
     display: inline-flex;
     align-items: center;
     gap: to-rem(8);
@@ -292,15 +322,15 @@ const stands = [
   }
 
   .work__header .label {
-    color: var(--c-on-surface-muted);
+    color: var(--c-mute);
   }
 
   .work__title-block {
-    color: var(--c-light);
+    color: var(--c-ink);
   }
 
   .work__years {
-    color: var(--c-on-surface-muted);
+    color: var(--c-mute);
   }
 
   // GALLERY — 2-col on desktop, 1-col on mobile. Each tile is animated in
@@ -345,7 +375,7 @@ const stands = [
     width: 100%;
     aspect-ratio: 1 / 1;
     object-fit: cover;
-    background-color: var(--c-surface-1);
+    background-color: var(--c-canvas-card);
     display: block;
     // GSAP-driven entrance, no CSS transition.
     will-change: transform, opacity;
@@ -358,16 +388,15 @@ const stands = [
   }
 
   .gallery__title {
-    color: var(--c-light);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    color: var(--c-ink);
+    letter-spacing: 0;
     font-size: clamp-fluid(14, 16);
-    font-weight: var(--fw-medium);
+    font-weight: var(--fw-regular);
     margin: 0;
   }
 
   .gallery__sub {
-    color: var(--c-on-surface-muted);
+    color: var(--c-body);
     font-size: clamp-fluid(12, 14);
   }
 
@@ -382,7 +411,7 @@ const stands = [
     margin-bottom: clamp-fluid(40, 80);
 
     .label {
-      color: var(--c-on-surface-muted);
+      color: var(--c-mute);
     }
   }
 
@@ -415,23 +444,22 @@ const stands = [
   .stand__heading {
     font-size: clamp-fluid(40, 80);
     font-weight: var(--fw-regular);
-    line-height: 0.92;
-    letter-spacing: -0.02em;
-    text-transform: uppercase;
+    line-height: 1;
+    letter-spacing: var(--ls-2);
     text-align: center;
     margin: 0;
   }
 
   .stand__heading .word {
     display: inline-block;
-    // GSAP animates this from --c-light → --c-on-surface-muted with stagger
+    // GSAP animates this from --c-ink → --c-mute with stagger
     // as the stand scrolls into view. Static fallback if JS is disabled.
-    color: var(--c-on-surface-muted);
+    color: var(--c-mute);
   }
 
   .stand__sub {
     font-size: clamp-fluid(14, 16);
-    color: var(--c-on-surface-muted);
+    color: var(--c-body);
     max-width: 36ch;
   }
 
@@ -463,9 +491,9 @@ const stands = [
     flex-shrink: 0;
     transform-origin: 50% 100%;
     transform-style: preserve-3d;
-    border-radius: 0; // sharp corners per DESIGN.md §7
+    border-radius: var(--r-sm); // sharp corners per DESIGN.md §7
     overflow: hidden;
-    background-color: var(--c-surface-1);
+    background-color: var(--c-canvas-card);
     will-change: transform;
 
     img {

@@ -101,7 +101,8 @@
 
     &.is-hover {
       .cursor-inner {
-        background-color: var(--c-light);
+        background-color: var(--c-ink);
+        border-color: var(--c-ink);
         transform: scale(0.5);
       }
     }
@@ -111,15 +112,17 @@
     }
   }
 
+  // An outline ring that fills on hover — the same outline-to-filled logic
+  // the pills use. The old dot was canvas-on-canvas and never visible.
   .cursor-inner {
     width: 100%;
     height: 100%;
     border-radius: 100%;
-    color: var(--c-light);
-    background-color: var(--c-dark);
-    border: 1px solid var(--c-dark);
+    background-color: transparent;
+    border: 1px solid var(--c-hairline-bright);
     transition:
       transform 0.4s var(--ease-smooth),
+      border-color 0.4s var(--ease-smooth),
       background-color 0.4s var(--ease-smooth);
   }
 </style>
