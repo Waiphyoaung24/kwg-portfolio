@@ -45,8 +45,29 @@
     raf = requestAnimationFrame(calcLerp);
   };
 
+  // Media hover is read off the event target rather than bound with
+  // mouseenter/mouseleave: it self-corrects. When the work-detail overlay
+  // Flips open under a stationary pointer the tile leaves from under the
+  // cursor without a mouseleave ever firing, and a bound listener would
+  // strand the disc open.
+  const setMediaState = (target: EventTarget | null) => {
+    if (!cursor) return;
+
+    const media =
+      target instanceof Element
+        ? target.closest('[data-cursor-media]')
+        : null;
+
+    if (media) {
+      cursor.dataset.media = media.getAttribute('data-cursor-media') || 'image';
+    } else {
+      delete cursor.dataset.media;
+    }
+  };
+
   window.addEventListener('mousemove', (event) => {
     setCursorPosTarget(event.clientX, event.clientY);
+    setMediaState(event.target);
 
     if (!raf && hasHover()) {
       cursor?.classList.add('is-active');
@@ -76,6 +97,27 @@
 
 <div class="cursor" data-js="cursor" aria-hidden="true">
   <div class="cursor-inner"></div>
+  <svg
+    class="cursor-icon cursor-icon--image"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M7 17 17 7"></path>
+    <path d="M8 7h9v9"></path>
+  </svg>
+  <svg
+    class="cursor-icon cursor-icon--video"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+  >
+    <path d="M8 5.5v13l11-6.5z"></path>
+  </svg>
 </div>
 
 <style lang="scss">
@@ -88,9 +130,12 @@
     opacity: 0;
     user-select: none;
     pointer-events: none;
+    // Centred on the pointer. The trailing offset lives on .cursor-inner
+    // instead: this transform is rewritten by the lerp every frame, so a
+    // transition on it would smear rather than tween.
     transform: translate3d(
-      calc((100vw * var(--cursor-x) - 50%) + to-rem(24)),
-      calc((100vh * var(--cursor-y) - 50%) + to-rem(24)),
+      calc(100vw * var(--cursor-x) - 50%),
+      calc(100vh * var(--cursor-y) - 50%),
       0
     );
     transition: opacity 0.4s var(--ease-smooth);
@@ -103,7 +148,7 @@
       .cursor-inner {
         background-color: var(--c-ink);
         border-color: var(--c-ink);
-        transform: scale(0.5);
+        transform: translate3d(to-rem(24), to-rem(24), 0) scale(0.5);
       }
     }
 
@@ -120,9 +165,68 @@
     border-radius: 100%;
     background-color: transparent;
     border: 1px solid var(--c-hairline-bright);
+    transform: translate3d(to-rem(24), to-rem(24), 0);
     transition:
       transform 0.4s var(--ease-smooth),
       border-color 0.4s var(--ease-smooth),
       background-color 0.4s var(--ease-smooth);
+  }
+
+  // Kept outside .cursor-inner so they render at a real 28px instead of a
+  // 2px glyph blown up 13x. .cursor is centred on the pointer, so is the
+  // expanded disc, so these land dead centre on it.
+  .cursor-icon {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    // max-width:none overrides the `svg { max-width: 100% }` reset in
+    // _base.scss, which otherwise clamps the icon to .cursor's 12px box —
+    // max-width beats width no matter the specificity.
+    max-width: none;
+    width: to-rem(44);
+    height: to-rem(44);
+    color: var(--c-canvas);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+    transition:
+      opacity 0.4s var(--ease-smooth),
+      transform 0.4s var(--ease-smooth);
+  }
+
+  // MEDIA HOVER — the trailer becomes a big filled disc over an image or a
+  // video, after Hyperplexed's "Intelligent Mouse Trailer"
+  // (codepen.io/Hyperplexed/pen/abYJQxP). Opt in with data-cursor-media on
+  // the element: "image" gets the arrow, "video" gets the play triangle.
+  //
+  // DESIGN.md exception, deliberate: a solid --c-ink fill this size breaks
+  // "hairline borders carry elevation" and "don't use filled broadly". Taken
+  // knowingly to keep the reference effect intact. It is a pointer, not
+  // chrome, and it exists only while the pointer is over an exhibit.
+  //
+  // Must stay AFTER the .is-hover block above — identical specificity
+  // (0,3,0), so source order is the only thing making it win. Do not reorder.
+  .cursor[data-media] .cursor-inner {
+    background-color: var(--c-ink);
+    border-color: transparent;
+    // to-rem(12) -> to-rem(160), the pen's 8x on its own 20px dot.
+    transform: translate3d(0, 0, 0) scale(13.333);
+  }
+
+  .cursor[data-media='image'] .cursor-icon--image,
+  .cursor[data-media='video'] .cursor-icon--video {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  // A 13x sweep across the viewport is real motion. Drop transform from the
+  // transitions so the disc snaps rather than grows; the fade stays.
+  @media (prefers-reduced-motion: reduce) {
+    .cursor-inner {
+      transition-property: border-color, background-color;
+    }
+
+    .cursor-icon {
+      transition-property: opacity;
+    }
   }
 </style>
