@@ -246,13 +246,29 @@ html.lenis body {
   transition:
     background-color 0.25s var(--ease-smooth),
     border-color 0.25s var(--ease-smooth),
-    color 0.25s var(--ease-smooth);
+    color 0.25s var(--ease-smooth),
+    transform 0.16s var(--ease-out-expo);
 
   @include has-hover {
     &:hover {
       border-color: var(--c-ink);
       background-color: rgba(255, 255, 255, 0.06);
     }
+  }
+
+  // Press feedback: the interface confirming it heard you. Every pill on the
+  // site presses the same way, which is the point of fixing it here.
+  &:active {
+    transform: scale(0.97);
+  }
+
+  // The scale stays — it is feedback, not decoration — but it lands instantly
+  // rather than travelling.
+  @media (prefers-reduced-motion: reduce) {
+    transition:
+      background-color 0.25s var(--ease-smooth),
+      border-color 0.25s var(--ease-smooth),
+      color 0.25s var(--ease-smooth);
   }
 }
 
