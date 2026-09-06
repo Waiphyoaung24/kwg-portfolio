@@ -8,27 +8,32 @@ const email = 'nexuslab.dev.mm@gmail.com';
 // Showcase gallery — placeholder imagery from Pexels per user reference.
 // Replace src URLs with real work when available. The markup appends Pexels
 // size params (w=1200): the originals are 12 MP and their decode stalled the
-// entrance animation.
+// entrance animation. `body` is the copy the card expands into (see the
+// work-detail overlay below); placeholder like the images, replace together.
 const gallery = [
   {
     src: 'https://images.pexels.com/photos/8467429/pexels-photo-8467429.jpeg',
     title: 'Ethereal Dreams',
     sub: 'Visual storytelling',
+    body: 'A gallery site where the sequence of images sets the pace. Scroll drives the narrative and the type stays out of the way.',
   },
   {
     src: 'https://images.pexels.com/photos/33276110/pexels-photo-33276110.jpeg',
     title: 'Midnight Bloom',
     sub: 'Dark elegance',
+    body: 'A dark editorial layout for a fashion label. Large imagery, sparse copy, and motion that never competes with the product.',
   },
   {
     src: 'https://images.pexels.com/photos/3378993/pexels-photo-3378993.jpeg',
     title: 'Golden Hour',
     sub: 'Warm minimalism',
+    body: 'A launch page built around light and negative space. One idea per screen, one action at the end.',
   },
   {
     src: 'https://images.pexels.com/photos/1231258/pexels-photo-1231258.jpeg',
     title: 'Urban Solace',
     sub: 'City life reimagined',
+    body: 'A city guide reworked as a scrolling map of moments. Photography leads and the interface follows.',
   },
 ];
 
@@ -266,6 +271,45 @@ const steps = [
         }
       </ol>
     </section>
+
+    <!--
+      Work detail: the overlay a Selected Work card expands into
+      (src/scripts/workTransition.ts). Sits outside the hero, which scales on
+      exit and would otherwise trap the fixed overlay. data-lenis-prevent lets
+      the column scroll natively on short viewports while Lenis is frozen.
+    -->
+    <div
+      class="work-detail"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Selected work"
+      data-lenis-prevent
+    >
+      <div class="work-detail__backdrop" aria-hidden="true"></div>
+      <figure class="work-detail__preview">
+        <img alt="" />
+      </figure>
+      <div class="work-detail__column">
+        <button class="work-detail__back pill-btn" type="button">
+          <span aria-hidden="true">&larr;</span> Back
+          <span class="micro" aria-hidden="true">Esc</span>
+        </button>
+        {
+          gallery.map(({ title, sub, body }, i) => (
+            <div class="work-detail__group" data-index={i}>
+              <p class="work-detail__eyebrow label">
+                0{i + 1} &mdash; {sub}
+              </p>
+              <h3 class="work-detail__title h2">{title}</h3>
+              <p class="work-detail__body">{body}</p>
+              <a class="pill-btn" href="/works">
+                See all work <span aria-hidden="true">&#8599;&#65038;</span>
+              </a>
+            </div>
+          ))
+        }
+      </div>
+    </div>
   </main>
 </Layout>
 
@@ -308,6 +352,23 @@ const steps = [
       },
     });
   });
+</script>
+
+<script>
+  // Selected Work cards expand into the work-detail overlay: the image
+  // Flip-morphs into the preview, the copy reveals, Back/Esc reverse it.
+  import { WorkTransition } from '../scripts/workTransition';
+
+  const overlay = document.querySelector<HTMLElement>('.work-detail');
+  if (overlay) {
+    new WorkTransition({
+      items: Array.from(
+        document.querySelectorAll<HTMLElement>('.gallery__figure'),
+      ),
+      img: '.gallery__img',
+      overlay,
+    });
+  }
 </script>
 
 <script>
@@ -873,11 +934,19 @@ const steps = [
     }
   }
 
+  // The figure is the click target (role=button from workTransition.ts), not
+  // the <li>, so the list keeps its semantics.
   .gallery__figure {
     margin: 0;
     display: flex;
     flex-direction: column;
     gap: to-rem(12);
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 1px solid var(--c-ink);
+      outline-offset: to-rem(4);
+    }
   }
 
   .gallery__img {
@@ -907,6 +976,111 @@ const steps = [
   .gallery__sub {
     color: var(--c-body);
     font-size: clamp-fluid(12, 14);
+  }
+
+  // WORK DETAIL — the overlay a gallery card expands into, after Codrops'
+  // image-to-content transition (see src/scripts/workTransition.ts). Hidden
+  // until opened. The backdrop is the canvas fading over the page; the
+  // preview is where the clicked image lands, full height on the left and
+  // square like the tiles, capped at half the viewport so the copy keeps a
+  // column. Stacks under the sticky header (10): the script fades the header
+  // with the backdrop, and keeping it on top means it never pops in front of
+  // the image on the last frame of the close.
+  .work-detail {
+    --preview-w: min(100vh, 50vw);
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
+    @media (max-width: 768px) {
+      --preview-w: 100vw;
+    }
+  }
+
+  .work-detail__backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--c-canvas);
+  }
+
+  .work-detail__preview {
+    position: fixed;
+    top: 0;
+    left: 0;
+    margin: 0;
+    width: var(--preview-w);
+    height: 100vh;
+    overflow: hidden;
+    background: var(--c-canvas-card);
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    @media (max-width: 768px) {
+      height: 50vh;
+    }
+  }
+
+  .work-detail__column {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2xl);
+    padding: var(--sp-xl) var(--grid-margin) var(--sp-xl)
+      calc(var(--preview-w) + var(--sp-4xl));
+
+    @media (max-width: 768px) {
+      padding: calc(50vh + var(--sp-xl)) var(--grid-margin) var(--sp-xl);
+    }
+  }
+
+  .work-detail__back .micro {
+    color: var(--c-mute);
+  }
+
+  // One group per card; the script marks the open one active.
+  .work-detail__group {
+    display: none;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-lg);
+    margin-block: auto;
+    padding-block: var(--sp-2xl);
+
+    &.is-active {
+      display: flex;
+    }
+  }
+
+  .work-detail__eyebrow {
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  .work-detail__title {
+    margin: 0;
+    color: var(--c-ink);
+  }
+
+  .work-detail__body {
+    margin: 0;
+    max-width: 40ch;
+    color: var(--c-body);
+    font-size: var(--fs-body-lg);
+    line-height: 1.56;
+  }
+
+  .work-detail__group .pill-btn {
+    margin-top: var(--sp-sm);
   }
 
   // CAPABILITIES — 3 "stand" sections where 5 cards are fanned in 3D
