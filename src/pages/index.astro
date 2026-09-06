@@ -726,12 +726,48 @@ const steps = [
   }
 
   .cubeblock__scene {
+    position: relative;
     width: var(--face);
     height: var(--face);
     // Short enough that the far wall foreshortens visibly — that inner
     // rectangle, and the four side walls raking back to meet it, are what
     // make the block read as a box you are looking into.
     perspective: to-rem(800);
+  }
+
+  // Corner brackets, as the illumine card wore before it: a hairline frame
+  // just outside the block, clipped back to its corners so it marks the
+  // volume without a second closed rectangle competing with the box.
+  .cubeblock__scene::after {
+    --ax: #{to-rem(44)};
+    content: '';
+    position: absolute;
+    inset: to-rem(-10);
+    border: 1px solid var(--c-hairline-bright);
+    border-radius: var(--r-sm);
+    pointer-events: none;
+    clip-path: polygon(
+      var(--ax) 0,
+      0 0,
+      0 var(--ax),
+      var(--ax) var(--ax),
+      var(--ax) calc(100% - var(--ax)),
+      0 calc(100% - var(--ax)),
+      0 100%,
+      var(--ax) 100%,
+      var(--ax) calc(100% - var(--ax)),
+      calc(100% - var(--ax)) calc(100% - var(--ax)),
+      calc(100% - var(--ax)) 100%,
+      100% 100%,
+      100% calc(100% - var(--ax)),
+      calc(100% - var(--ax)) calc(100% - var(--ax)),
+      calc(100% - var(--ax)) var(--ax),
+      100% var(--ax),
+      100% 0,
+      calc(100% - var(--ax)) 0,
+      calc(100% - var(--ax)) var(--ax),
+      var(--ax) var(--ax)
+    );
   }
 
   .cube {
@@ -759,11 +795,50 @@ const steps = [
     // the same copy a 460px one does on a laptop.
     gap: clamp-fluid(10, 16);
     padding: clamp-fluid(18, 24);
-    background: color-mix(in srgb, var(--c-canvas-card) 55%, transparent);
+    // Monochrome falloff down each wall — the mid grey catches the top edge
+    // and dissolves into the card grey, the way the illumine card did.
+    // Still translucent, so the far wall reads through it.
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--c-canvas-mid) 38%, transparent),
+      color-mix(in srgb, var(--c-canvas-card) 62%, transparent) 58%
+    );
     // Every face keeps its edge at full strength whichever way the block is
     // turned: the eight hairlines are what describe the volume, and dimming
     // them with the face dissolves it back into a panel.
     border-color: var(--c-hairline-bright);
+  }
+
+  // Both decorative layers sit at -1: above the wall's own fill, under its
+  // type. .cube__face is transformed, so the negative index cannot escape
+  // the face's own stacking context.
+  .cube__face::before,
+  .cube__face::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  // An inner frame, square against the face's rounded outer edge. Four of
+  // them at four depths nest into each other and give the box its interior.
+  .cube__face::before {
+    inset: clamp-fluid(8, 12);
+    border: 1px solid var(--c-hairline);
+  }
+
+  // The wall facing you catches the light; the rest stay flat. Opacity, not
+  // a second fill, so it crossfades through the turn.
+  .cube__face::after {
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      color-mix(in srgb, var(--c-canvas-mid) 50%, transparent),
+      transparent 70%
+    );
+    opacity: 0.25;
+    transition: opacity var(--turn);
   }
 
   // The type is the part that ghosts back instead. Four sets of copy over the
@@ -778,6 +853,10 @@ const steps = [
   .cube[data-side='right'] .cube__face--right,
   .cube[data-side='back'] .cube__face--back,
   .cube[data-side='left'] .cube__face--left {
+    &::after {
+      opacity: 1;
+    }
+
     .cube__label,
     .cube__body {
       opacity: 1;
@@ -908,6 +987,7 @@ const steps = [
 
   @media (prefers-reduced-motion: reduce) {
     .cube,
+    .cube__face::after,
     .cube__label,
     .cube__body {
       transition: none;
