@@ -101,6 +101,32 @@ const stands = [
   },
 ];
 
+// Background — the places behind the work. Each row is a list entry and,
+// when it has coordinates, a marker on the globe. `coords: null` renders the
+// row but pins nothing, the way `media: null` in src/data/works.ts renders a
+// labelled empty panel rather than a stock photo.
+//
+// EVERY ROW MARKED "TODO" IS A PLACEHOLDER. None of this exists anywhere in
+// the repo and none of it is invented — fill it in here and the list, the
+// markers and the globe all follow. Bangkok is the one real entry; the hero
+// already states it.
+const background = [
+  {
+    place: 'Bangkok, Thailand',
+    coords: [13.7563, 100.5018],
+    org: 'TODO — employer',
+    role: 'TODO — role',
+    years: 'TODO — years',
+  },
+  {
+    place: 'TODO — city, country',
+    coords: null,
+    org: 'TODO — university',
+    role: 'TODO — degree',
+    years: 'TODO — years',
+  },
+];
+
 // How I work — the process a stranger will live through. Four steps, no
 // pricing (PRODUCT.md: no fabricated numbers). Edit the specifics here.
 const steps = [
@@ -287,9 +313,45 @@ const steps = [
       </ul>
     </section>
 
+    <section
+      id="background"
+      class="container background"
+      aria-labelledby="background-heading"
+    >
+      <header class="background__header">
+        <p class="label" data-inview>03 &mdash; Background</p>
+        <h2 id="background-heading" class="visually-hidden">Background</h2>
+      </header>
+
+      <div class="background__body">
+        <div class="background__globe" data-inview>
+          <canvas
+            class="globe"
+            data-globe
+            data-markers={JSON.stringify(
+              background.filter((b) => b.coords).map((b) => b.coords),
+            )}
+            aria-hidden="true"></canvas>
+        </div>
+
+        <ol class="background__list" role="list" data-inview>
+          {
+            background.map(({ place, org, role, years }) => (
+              <li class="background__row">
+                <p class="label background__place">{place}</p>
+                <p class="background__org">{org}</p>
+                <p class="background__role">{role}</p>
+                <p class="micro background__years">{years}</p>
+              </li>
+            ))
+          }
+        </ol>
+      </div>
+    </section>
+
     <section class="capabilities" aria-labelledby="capabilities-heading">
       <header class="container capabilities__header">
-        <p class="label" data-inview>03 &mdash; Capabilities</p>
+        <p class="label" data-inview>04 &mdash; Capabilities</p>
         <h2 id="capabilities-heading" class="visually-hidden">Capabilities</h2>
       </header>
 
@@ -333,7 +395,7 @@ const steps = [
       aria-labelledby="process-heading"
     >
       <header class="process__header">
-        <p class="label" data-inview>04 &mdash; How I work</p>
+        <p class="label" data-inview>05 &mdash; How I work</p>
         <h2 id="process-heading" data-inview>
           What the next few months look like
         </h2>
@@ -452,6 +514,77 @@ const steps = [
       img: '.gallery__img',
       overlay,
     });
+  }
+</script>
+
+<script>
+  // Background globe — COBE (5kB, vanilla, no deps). The light globe from the
+  // library's own homepage: dark: 0, a pale base, white markers, and the glow
+  // pulled right down so it does not halo against the near-black canvas. A
+  // globe is illustration, which is the one place DESIGN.md allows this
+  // system light and glow at all.
+  //
+  // v2 has no onRender and runs no loop of its own — you drive it by calling
+  // update(). That is the better shape here anyway: the globe is built on
+  // first intersection so WebGL init stays off the critical path, and it only
+  // spins while the section is actually on screen.
+  import createGlobe from 'cobe';
+
+  const globeCanvas = document.querySelector<HTMLCanvasElement>('[data-globe]');
+  if (globeCanvas) {
+    const markers = (
+      JSON.parse(globeCanvas.dataset.markers || '[]') as [number, number][]
+    ).map((location) => ({ location, size: 0.06 }));
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // devicePixelRatio below multiplies this, so pass CSS pixels — doubling
+    // here too would render a 4x buffer for a 2x screen.
+    const px = () => globeCanvas.offsetWidth;
+
+    let globe: ReturnType<typeof createGlobe> | null = null;
+    let phi = 0;
+    let raf = 0;
+
+    const tick = () => {
+      phi += 0.0025;
+      globe?.update({ phi });
+      raf = requestAnimationFrame(tick);
+    };
+
+    const build = () => {
+      globe = createGlobe(globeCanvas, {
+        devicePixelRatio: 2,
+        width: px(),
+        height: px(),
+        phi: 0,
+        // Tilted so the northern hemisphere reads rather than the equator.
+        theta: 0.25,
+        dark: 0,
+        diffuse: 1.2,
+        scale: 1,
+        mapSamples: 16000,
+        mapBrightness: 6,
+        baseColor: [0.72, 0.73, 0.75],
+        // Near-black markers, not white: on a pale globe a white dot is
+        // invisible. This is the canvas colour punched back through the
+        // illustration, so the pins read as the page marking the sphere.
+        markerColor: [0.04, 0.04, 0.04],
+        glowColor: [0.14, 0.15, 0.16],
+        markers,
+      });
+      new ResizeObserver(() =>
+        globe?.update({ width: px(), height: px() }),
+      ).observe(globeCanvas);
+    };
+
+    new IntersectionObserver(
+      ([entry]) => {
+        if (!globe && entry.isIntersecting) build();
+        cancelAnimationFrame(raf);
+        // Reduced motion holds the globe still; the markers still read.
+        if (entry.isIntersecting && !reduce) raf = requestAnimationFrame(tick);
+      },
+      { rootMargin: '200px' },
+    ).observe(globeCanvas);
   }
 </script>
 
@@ -1017,6 +1150,105 @@ const steps = [
     .cube__body {
       transition: opacity 0.2s var(--ease-out-expo);
     }
+  }
+
+  // BACKGROUND — a globe and the places behind the work. Two columns on wide
+  // screens, globe first on narrow ones so the section still opens on the
+  // thing that makes it worth stopping for.
+  .background {
+    margin-block: var(--sp-band);
+  }
+
+  .background__header {
+    margin-bottom: clamp-fluid(32, 56);
+  }
+
+  .background__body {
+    display: grid;
+    gap: clamp-fluid(40, 80);
+    align-items: center;
+
+    @media (min-width: 769px) {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+
+  .background__globe {
+    // Square, and capped so it never outgrows the copy beside it.
+    width: min(100%, #{to-rem(480)});
+    aspect-ratio: 1;
+    justify-self: center;
+  }
+
+  // COBE v2 inserts its own unclassed wrapper around the canvas.
+  .background__globe > * {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .globe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    // Until WebGL initialises the canvas is transparent; nothing to hide.
+    contain: layout paint;
+  }
+
+  .background__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  // Hairline between rows, none above the first: the rule separates, it does
+  // not frame.
+  .background__row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'place years'
+      'org org'
+      'role role';
+    gap: var(--sp-xs) var(--sp-lg);
+    padding-block: var(--sp-xl);
+
+    & + & {
+      border-top: 1px solid var(--c-hairline);
+    }
+  }
+
+  .background__place {
+    grid-area: place;
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  .background__years {
+    grid-area: years;
+    margin: 0;
+    color: var(--c-mute);
+    white-space: nowrap;
+  }
+
+  .background__org {
+    grid-area: org;
+    margin: 0;
+    font-size: var(--fs-5);
+    letter-spacing: var(--ls-5);
+    line-height: 1.3;
+    color: var(--c-ink);
+  }
+
+  .background__role {
+    grid-area: role;
+    margin: 0;
+    font-size: var(--fs-body-sm);
+    line-height: 1.5;
+    color: var(--c-body);
   }
 
   .hero__headline {
