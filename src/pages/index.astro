@@ -234,13 +234,15 @@ const steps = [
                       I'm <em>Wai Phyo Aung</em>, an AI and software engineer
                       in Bangkok.
                     </p>
-                    <p class="cube__para">
+                    <p class="cube__para cube__para--more">
                       Three kinds of work: sites where the interface carries
                       the argument, internal systems for people who live in
                       them all day, and commissioned builds shaped to one
                       operation.
                     </p>
-                    <p class="cube__para">Evidence replaces claims.</p>
+                    <p class="cube__para cube__para--close">
+                      Evidence replaces claims.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -901,10 +903,15 @@ const steps = [
   .cubeblock {
     // Sized to leave the headline its column: the block and its pills share
     // the hero with the front-door statement, and the statement keeps its
-    // display size. The svh and vw caps hold on short screens and phones.
-    // All three terms are lengths — --face feeds translateZ, which rejects
-    // percentages.
-    --face: min(#{to-rem(360)}, 40svh, 84vw);
+    // display size. Width-bound only: on phones the block spans the column,
+    // edge-aligned with the pills above it. No viewport-height term — the
+    // copy on a face has a height of its own, and a face capped by a short
+    // window (a laptop with browser chrome, a 667px phone) shrinks below
+    // what its words need. The hero still fits one screen down to ~550px
+    // tall. Both terms are lengths — --face feeds translateZ, which rejects
+    // percentages. The vw term only wins under ~410px, where no scrollbar
+    // gutter can widen it past the column.
+    --face: min(#{to-rem(360)}, calc(100vw - 2 * var(--grid-margin)));
     --turn: 0.7s var(--ease-out-expo);
     display: grid;
     gap: var(--sp-xl);
@@ -945,6 +952,9 @@ const steps = [
     position: relative;
     width: var(--face);
     height: var(--face);
+    // The faces query this, not the viewport: what fits on a face depends
+    // on the face.
+    container: cube / inline-size;
     // Short enough that the far wall foreshortens visibly — that inner
     // rectangle, and the four side walls raking back to meet it, are what
     // make the block read as a box you are looking into.
@@ -1169,6 +1179,23 @@ const steps = [
     color: var(--c-body);
   }
 
+  // The Intro face carries the most copy. Under 21rem the closing line goes;
+  // under 19rem the middle paragraph too, leaving the lede. Type keeps its
+  // size and floors throughout — what changes is how much is said, not how
+  // small it is said. Thresholds from measurement: at 320px the full copy
+  // overruns the face by ~14px, at 280px by ~25px more.
+  @container cube (width < 21rem) {
+    .cube__para--close {
+      display: none;
+    }
+  }
+
+  @container cube (width < 19rem) {
+    .cube__para--more {
+      display: none;
+    }
+  }
+
   // Stack entries as a wrapped row of hairline chips, not a bulleted list:
   // every interactive-looking thing in this system is a pill, and these read
   // as the same family without pretending to be buttons.
@@ -1199,15 +1226,14 @@ const steps = [
     text-transform: none;
   }
 
-  // The W mark in a hairline disc, in the slot the reference gives a portrait.
+  // The W mark, bare, in the slot the reference gives a portrait. It keeps
+  // the disc's footprint so the label row's height does not change.
   .cube__mark {
     flex: none;
     display: grid;
     place-items: center;
     width: clamp-fluid(52, 72);
     height: clamp-fluid(52, 72);
-    border: 1px solid var(--c-hairline-bright);
-    border-radius: var(--r-pill);
     color: var(--c-ink);
 
     svg {
