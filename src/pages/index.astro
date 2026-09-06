@@ -5,6 +5,31 @@ import HeroGradient from '@components/HeroGradient.tsx';
 // Same address as the Footer; the hero is the front door for freelance work.
 const email = 'nexuslab.dev.mm@gmail.com';
 
+// Hero cube — four faces on the Y axis; the pills beside it turn the block.
+// Order is the rotation order, not a ranking: the script steps between
+// indices to work out the short way round. Copy comes from what the page
+// already states; nothing here is invented (PRODUCT.md).
+const cubeFaces = [
+  { side: 'front', label: 'Intro' },
+  { side: 'right', label: 'Where' },
+  { side: 'back', label: 'Craft' },
+  { side: 'left', label: 'Contact' },
+];
+
+// The Craft face. Every entry is verifiable from this repo — the first four
+// from the Operating Context in PRODUCT.md, the rest from the Kage entry in
+// src/data/works.ts. Nothing aspirational goes in this list.
+const stack = [
+  'Astro',
+  'Node',
+  'Postgres',
+  'Docker',
+  'Dokploy',
+  'Three.js',
+  'GSAP',
+  'Lenis',
+];
+
 // Showcase gallery — placeholder imagery from Pexels per user reference.
 // Replace src URLs with real work when available. The markup appends Pexels
 // size params (w=1200): the originals are 12 MP and their decode stalled the
@@ -124,46 +149,106 @@ const steps = [
           </div>
         </div>
 
-        <article class="lumen card" data-inview-manual>
-          <div class="lumen__light" aria-hidden="true">
-            <div class="lumen__bloom lumen__bloom--far"></div>
-            <div class="lumen__bloom lumen__bloom--near"></div>
-            <div class="lumen__slit"></div>
-            <div class="lumen__shade"></div>
+        <div class="cubeblock" data-inview-manual>
+          <nav class="cubeblock__nav" aria-label="Turn the cube">
+            {
+              cubeFaces.map(({ side, label }, i) => (
+                <button
+                  class="pill-btn cubeblock__btn"
+                  type="button"
+                  data-side={side}
+                  aria-pressed={i === 0 ? 'true' : 'false'}
+                  aria-controls={`cube-${side}`}
+                >
+                  {label}
+                </button>
+              ))
+            }
+          </nav>
+
+          <div class="cubeblock__scene">
+            <div class="cube" data-side="front">
+              <div class="card cube__face cube__face--front" id="cube-front">
+                <div class="cube__head">
+                  <p class="label cube__label">Intro</p>
+                  <span class="cube__mark" aria-hidden="true">
+                    <svg viewBox="0 0 32 32">
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M26.2636 20.4752L29.7034 6.2832H22.8238L26.2636 20.4752Z"
+                      ></path>
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M12.2636 6.2832L17.0473 26.0199H23.9568L19.1731 6.2832H12.2636Z"
+                      ></path>
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M8.61287 6.28336L1.70337 6.28373L6.48706 26.0203L13.3966 26.02L8.61287 6.28336Z"
+                      ></path>
+                    </svg>
+                  </span>
+                </div>
+                <div class="cube__body">
+                  <div class="cube__prose">
+                    <p class="cube__lede">
+                      I'm <em>Wai Phyo Aung</em>, a designer and engineer in
+                      Bangkok.
+                    </p>
+                    <p class="cube__para">
+                      Three kinds of work: sites where the interface carries
+                      the argument, internal systems for people who live in
+                      them all day, and commissioned builds shaped to one
+                      operation.
+                    </p>
+                    <p class="cube__para">Evidence replaces claims.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card cube__face cube__face--right" id="cube-right">
+                <p class="label cube__label">Where</p>
+                <div class="cube__body">
+                  <p class="cube__lede">
+                    <em>Bangkok</em>, Thailand. UTC+7.
+                  </p>
+                  <p class="cube__para">
+                    A written update every week, whatever the time zone.
+                  </p>
+                  <time class="micro cube__time" data-clock></time>
+                </div>
+              </div>
+
+              <div class="card cube__face cube__face--back" id="cube-back">
+                <p class="label cube__label">Craft</p>
+                <div class="cube__body">
+                  <p class="cube__lede">
+                    Every piece comes with its decisions, its <em>stack</em>,
+                    and where it runs.
+                  </p>
+                  <ul class="cube__stack" role="list">
+                    {stack.map((s) => <li class="micro">{s}</li>)}
+                  </ul>
+                </div>
+              </div>
+
+              <div class="card cube__face cube__face--left" id="cube-left">
+                <p class="label cube__label">Contact</p>
+                <div class="cube__body">
+                  <p class="cube__lede">
+                    One door: <em>email</em>. No forms, no booking funnel.
+                  </p>
+                  <p class="micro cube__addr">{email}</p>
+                  <a class="pill-btn" href={`mailto:${email}?subject=New%20project`}>
+                    Email me <span aria-hidden="true">&#8599;&#65038;</span>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="lumen__icon" aria-hidden="true">
-            <svg viewBox="0 0 32 32">
-              <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                d="M26.2636 20.4752L29.7034 6.2832H22.8238L26.2636 20.4752Z"
-              ></path>
-              <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                d="M12.2636 6.2832L17.0473 26.0199H23.9568L19.1731 6.2832H12.2636Z"
-              ></path>
-              <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                d="M8.61287 6.28336L1.70337 6.28373L6.48706 26.0203L13.3966 26.02L8.61287 6.28336Z"
-              ></path>
-            </svg>
-          </div>
-          <div class="lumen__bottom">
-            <p class="lumen__title">Available for new projects</p>
-            <p class="lumen__sub">Bangkok, Thailand</p>
-            <button
-              class="lumen__switch"
-              type="button"
-              role="switch"
-              aria-checked="false"
-            >
-              <span class="lumen__track"><span class="lumen__handle"></span></span>
-              <span class="micro">Lights on</span>
-            </button>
-          </div>
-        </article>
+        </div>
       </div>
 
       <p class="hero__cue label" data-inview-manual>
@@ -373,21 +458,40 @@ const steps = [
 </script>
 
 <script>
-  // Lumen card: lights itself shortly after load, the pen's "on" state without
-  // making the visitor find the switch; the switch then toggles it.
-  const card = document.querySelector<HTMLElement>('.lumen');
-  const sw = card?.querySelector<HTMLButtonElement>('.lumen__switch');
-  if (card && sw) {
-    const set = (lit: boolean) => {
-      card.classList.toggle('is-lit', lit);
-      sw.setAttribute('aria-checked', String(lit));
-    };
-    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion) set(true);
-    else setTimeout(() => set(true), 800);
-    sw.addEventListener('click', () =>
-      set(sw.getAttribute('aria-checked') !== 'true'),
+  // Hero cube: the pills beside it turn the block to a face. Rotation is
+  // cumulative rather than a fixed angle per face, so every turn takes the
+  // short way round — Contact back to Status is a quarter turn, not three.
+  const cube = document.querySelector<HTMLElement>('.cube');
+  const btns = document.querySelectorAll<HTMLButtonElement>('.cubeblock__btn');
+  if (cube && btns.length) {
+    const order = ['front', 'right', 'back', 'left'];
+    let angle = 0;
+    btns.forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const side = btn.dataset.side!;
+        const step =
+          (order.indexOf(side) - order.indexOf(cube.dataset.side!) + 4) % 4;
+        // A step of 3 is a quarter turn the other way.
+        angle -= (step > 2 ? step - 4 : step) * 90;
+        cube.style.setProperty('--rot', `${angle}deg`);
+        cube.dataset.side = side;
+        btns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      }),
     );
+  }
+
+  // Bangkok clock on the Where face. Rendered empty rather than at build
+  // time, so a stale hour never ships with the page.
+  const clock = document.querySelector<HTMLTimeElement>('[data-clock]');
+  if (clock) {
+    const fmt = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Bangkok',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const tick = () => (clock.textContent = `${fmt.format(new Date())} ICT`);
+    tick();
+    setInterval(tick, 30_000);
   }
 </script>
 
@@ -555,6 +659,7 @@ const steps = [
   }
 
   // Copy left, illumine card right; the card drops under the pills on mobile.
+  // Copy left, cube right; the block drops under the pills on mobile.
   .hero__center {
     display: grid;
     align-items: center;
@@ -571,175 +676,228 @@ const steps = [
     gap: clamp-fluid(20, 40);
   }
 
-  // LUMEN CARD — after RAFA3L's "Card Illumine" (codepen.io/RAFA3L/pen/ZYbabEa,
-  // inspo Camden). Rebuilt on the .card primitive: hairlines carry elevation,
-  // so the pen's stacked shadows go; the switch is a pill. The light itself is
-  // illustration, the one place the system draws glow, so its geometry below
-  // is raw values. `.is-lit` toggles it; the inline script flips it on after
-  // load and wires the switch.
-  .lumen {
-    --t: 0.4s var(--ease-smooth);
-    position: relative;
-    // Grey falloff from the top, as the pen: the mid canvas grey fading into
-    // the card grey.
-    background: radial-gradient(
-      circle at 50% 0%,
-      var(--c-canvas-mid),
-      var(--c-canvas-card) 64%
-    );
-    width: min(100%, #{to-rem(300)});
-    aspect-ratio: 3 / 4;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    transition: translate var(--t);
+  // HERO CUBE — after l-ignatova's "Cube CV" (codepen.io/l-ignatova/pen/qByExmV).
+  // The pen's mechanics, nothing else: one --face size drives the scene depth
+  // and every face's translateZ, so the block stays a true cube at any width.
+  // Four faces on the Y axis only — top and bottom are never turned to, so
+  // they are not drawn. Faces are the .card primitive, so hairlines carry the
+  // elevation and nothing casts a shadow. The inline script sets --rot.
+  .cubeblock {
+    // Sized to leave the headline its column: the block and its pills share
+    // the hero with the front-door statement, and the statement keeps its
+    // display size. The svh and vw caps hold on short screens and phones.
+    // All three terms are lengths — --face feeds translateZ, which rejects
+    // percentages.
+    --face: min(#{to-rem(360)}, 40svh, 84vw);
+    --turn: 0.7s var(--ease-out-expo);
+    display: grid;
+    gap: var(--sp-xl);
 
-    &:hover {
-      translate: 0 #{to-rem(-3)};
+    // Pills to the right of the block. The nav stays first in the DOM, so
+    // tab order still reaches the controls before the face they turn to;
+    // `order` moves it visually without touching that.
+    @media (min-width: 769px) {
+      grid-template-columns: var(--face) auto;
+      align-items: center;
+
+      .cubeblock__nav {
+        order: 2;
+      }
     }
   }
 
-  // Corner brackets: a hairline frame outside the card, clipped to its
-  // corners, that tightens and widens on hover.
-  .lumen::before {
-    content: '';
-    position: absolute;
-    --ax: #{to-rem(56)};
-    inset: to-rem(-12);
-    border: 1px solid var(--c-hairline-bright);
-    border-radius: var(--r-sm);
-    pointer-events: none;
-    clip-path: polygon(
-      var(--ax) 0,
-      0 0,
-      0 var(--ax),
-      var(--ax) var(--ax),
-      var(--ax) calc(100% - var(--ax)),
-      0 calc(100% - var(--ax)),
-      0 100%,
-      var(--ax) 100%,
-      var(--ax) calc(100% - var(--ax)),
-      calc(100% - var(--ax)) calc(100% - var(--ax)),
-      calc(100% - var(--ax)) 100%,
-      100% 100%,
-      100% calc(100% - var(--ax)),
-      calc(100% - var(--ax)) calc(100% - var(--ax)),
-      calc(100% - var(--ax)) var(--ax),
-      100% var(--ax),
-      100% 0,
-      calc(100% - var(--ax)) 0,
-      calc(100% - var(--ax)) var(--ax),
-      var(--ax) var(--ax)
-    );
-    transition:
-      inset var(--t),
-      clip-path var(--t);
+  .cubeblock__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-sm);
+
+    @media (min-width: 769px) {
+      flex-direction: column;
+      // Stretch so the four pills share one width and read as a column.
+      align-items: stretch;
+    }
   }
 
-  .lumen:hover::before {
-    --ax: #{to-rem(100)};
-    inset: to-rem(-6);
+  // The face on show. Outline pills throughout: the hero's one filled pill is
+  // already spent on Email me.
+  .cubeblock__btn[aria-pressed='true'] {
+    border-color: var(--c-ink);
+    background-color: color-mix(in srgb, var(--c-ink) 6%, transparent);
   }
 
-  .lumen__light {
+  .cubeblock__scene {
+    width: var(--face);
+    height: var(--face);
+    // Short enough that the far wall foreshortens visibly — that inner
+    // rectangle, and the four side walls raking back to meet it, are what
+    // make the block read as a box you are looking into.
+    perspective: to-rem(800);
+  }
+
+  .cube {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    // Half a face back, so the face on show sits on the scene plane instead
+    // of floating toward the viewer.
+    transform: translateZ(calc(var(--face) / -2)) rotateY(var(--rot, 0deg));
+    transition: transform var(--turn);
+  }
+
+  // Faces are translucent, as the pen's are: you look through the front wall
+  // at the far one, and the side walls rake back to meet it. That read is the
+  // whole point of a cube — opaque faces are just the flat card again, which
+  // is why the .card primitive's fill is thinned here and its hairline
+  // brightened. backface-visibility stays visible so the far faces draw.
+  .cube__face {
     position: absolute;
     inset: 0;
-    overflow: hidden;
-    border-radius: inherit;
-    pointer-events: none;
-    perspective: 400px;
-    // Vanishing point on the slit so its tilt foreshortens symmetrically.
-    perspective-origin: 50% 50%;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    // Gap and padding scale with the face so a 325px one on a phone holds
+    // the same copy a 460px one does on a laptop.
+    gap: clamp-fluid(10, 16);
+    padding: clamp-fluid(18, 24);
+    background: color-mix(in srgb, var(--c-canvas-card) 55%, transparent);
+    // Every face keeps its edge at full strength whichever way the block is
+    // turned: the eight hairlines are what describe the volume, and dimming
+    // them with the face dissolves it back into a panel.
+    border-color: var(--c-hairline-bright);
+  }
 
-    > * {
-      position: absolute;
-      left: 50%;
-      translate: -50%;
-      transition: opacity var(--t);
+  // The type is the part that ghosts back instead. Four sets of copy over the
+  // same pixels is noise; four sets of edges is a box.
+  .cube__label,
+  .cube__body {
+    opacity: 0.1;
+    transition: opacity var(--turn);
+  }
+
+  .cube[data-side='front'] .cube__face--front,
+  .cube[data-side='right'] .cube__face--right,
+  .cube[data-side='back'] .cube__face--back,
+  .cube[data-side='left'] .cube__face--left {
+    .cube__label,
+    .cube__body {
+      opacity: 1;
     }
   }
 
-  .lumen__slit {
-    top: 50%;
-    width: 64%;
-    height: to-rem(12);
-    transform: rotateX(-76deg);
-    background: var(--c-canvas);
-    box-shadow: 0 0 12px 1px transparent;
-    transition:
-      background var(--t),
-      box-shadow var(--t);
+  .cube__face--front {
+    transform: rotateY(0deg) translateZ(calc(var(--face) / 2));
   }
 
-  .is-lit .lumen__slit {
-    background: var(--c-ink);
-    box-shadow: 0 0 12px 1px color-mix(in srgb, var(--c-ink) 70%, transparent);
+  .cube__face--right {
+    transform: rotateY(90deg) translateZ(calc(var(--face) / 2));
   }
 
-  // Light spill as half-ellipses anchored on the slit: a hot core close in,
-  // a wide soft wash further out. Dark until lit.
-  .lumen__bloom {
-    bottom: calc(50% - #{to-rem(6)});
-    opacity: 0;
+  .cube__face--back {
+    transform: rotateY(180deg) translateZ(calc(var(--face) / 2));
   }
 
-  .is-lit .lumen__bloom {
-    opacity: 1;
+  .cube__face--left {
+    transform: rotateY(-90deg) translateZ(calc(var(--face) / 2));
   }
 
-  .lumen__bloom--far {
-    width: 120%;
-    height: 60%;
-    background: radial-gradient(
-      ellipse 50% 100% at 50% 100%,
-      color-mix(in srgb, var(--c-ink) 28%, transparent),
-      transparent 70%
-    );
-    filter: blur(24px);
+  .cube__label {
+    margin: 0;
+    color: var(--c-mute);
   }
 
-  .lumen__bloom--near {
-    width: 74%;
-    height: 34%;
-    background: radial-gradient(
-      ellipse 55% 100% at 50% 100%,
-      color-mix(in srgb, var(--c-ink) 60%, transparent),
-      transparent 70%
-    );
-    filter: blur(12px);
+  // Content sits on the floor of the face; the label holds the ceiling.
+  .cube__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: var(--sp-lg);
   }
 
-  .lumen__shade {
-    top: calc(50% + #{to-rem(6)});
-    width: 80%;
-    height: 40%;
-    background: radial-gradient(
-      ellipse 50% 100% at 50% 0,
-      color-mix(in srgb, var(--c-canvas) 90%, transparent),
-      transparent 70%
-    );
-    filter: blur(16px);
-    opacity: 0.4;
+  // Intro is the one face with a companion element: the mark takes the slot
+  // the pen gives a portrait. It rides the label row rather than sitting
+  // beside the prose — at this face size a side-by-side split leaves the
+  // copy in a column too narrow to read.
+  .cube__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-lg);
   }
 
-  .is-lit .lumen__shade {
-    opacity: 1;
+  .cube__prose {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-md);
+    // The column is narrow enough that the global hyphens: auto breaks
+    // words mid-syllable ("commis-sioned"). Wrap on spaces instead.
+    hyphens: manual;
   }
 
-  // The W mark in a hairline disc, brightening when lit.
-  .lumen__icon {
-    position: absolute;
-    top: 18%;
-    left: 50%;
-    translate: -50%;
-    width: to-rem(56);
-    height: to-rem(56);
+  // The pen holds its key phrase in cyan. Accent colour is illustration
+  // only in this system, so the emphasis inverts instead: the line sits in
+  // body grey and the phrase steps up to ink. Brighter, never coloured.
+  .cube__lede {
+    margin: 0;
+    font-size: clamp-fluid(17, 20);
+    letter-spacing: var(--ls-5);
+    line-height: 1.35;
+    color: var(--c-body);
+    text-wrap: balance;
+
+    em {
+      font-style: normal;
+      color: var(--c-ink);
+    }
+  }
+
+  .cube__para {
+    margin: 0;
+    font-size: clamp-fluid(13, 14);
+    line-height: 1.5;
+    color: var(--c-body);
+  }
+
+  // Stack entries as a wrapped row of hairline chips, not a bulleted list:
+  // every interactive-looking thing in this system is a pill, and these read
+  // as the same family without pretending to be buttons.
+  .cube__stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      padding: var(--sp-xs) var(--sp-md);
+      border: 1px solid var(--c-hairline-bright);
+      border-radius: var(--r-pill);
+      color: var(--c-body);
+    }
+  }
+
+  .cube__time,
+  .cube__addr {
+    margin: 0;
+    color: var(--c-body);
+  }
+
+  // .micro uppercases; an address is not a label and should read as typed.
+  .cube__addr {
+    text-transform: none;
+  }
+
+  // The W mark in a hairline disc, in the slot the reference gives a portrait.
+  .cube__mark {
+    flex: none;
     display: grid;
     place-items: center;
-    border: 1px solid var(--c-hairline);
+    width: clamp-fluid(52, 72);
+    height: clamp-fluid(52, 72);
+    border: 1px solid var(--c-hairline-bright);
     border-radius: var(--r-pill);
-    color: var(--c-body);
-    transition: color var(--t);
+    color: var(--c-ink);
 
     svg {
       width: to-rem(28);
@@ -748,104 +906,10 @@ const steps = [
     }
   }
 
-  .is-lit .lumen__icon {
-    color: var(--c-ink);
-  }
-
-  .lumen__bottom {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      'title title'
-      'sub switch';
-    align-items: end;
-    column-gap: var(--sp-md);
-    row-gap: var(--sp-md);
-  }
-
-  .lumen__title {
-    grid-area: title;
-    margin: 0;
-    font-size: var(--fs-5);
-    letter-spacing: var(--ls-5);
-    line-height: 1.3;
-    color: var(--c-ink);
-  }
-
-  .lumen__sub {
-    grid-area: sub;
-    margin: 0;
-    padding-bottom: var(--sp-sm);
-    border-bottom: 1px solid var(--c-hairline);
-    font-size: var(--fs-body-sm);
-    white-space: nowrap;
-    color: var(--c-body);
-  }
-
-  // Pill switch: outline track, ink handle that slides when lit.
-  .lumen__switch {
-    grid-area: switch;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-sm);
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--c-body);
-    white-space: nowrap;
-    cursor: pointer;
-
-    &:focus-visible {
-      outline: 1px solid var(--c-ink);
-      outline-offset: to-rem(4);
-      border-radius: var(--r-pill);
-    }
-  }
-
-  .lumen__track {
-    position: relative;
-    width: to-rem(40);
-    height: to-rem(22);
-    border: 1px solid var(--c-hairline-bright);
-    border-radius: var(--r-pill);
-    transition: border-color var(--t);
-  }
-
-  .lumen__handle {
-    position: absolute;
-    top: to-rem(3);
-    left: to-rem(3);
-    width: to-rem(14);
-    height: to-rem(14);
-    border-radius: var(--r-pill);
-    background: var(--c-body);
-    transition:
-      translate var(--t),
-      background var(--t);
-  }
-
-  .lumen__switch[aria-checked='true'] {
-    color: var(--c-ink);
-
-    .lumen__track {
-      border-color: var(--c-ink);
-    }
-
-    .lumen__handle {
-      translate: to-rem(18);
-      background: var(--c-ink);
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .lumen,
-    .lumen::before,
-    .lumen__light > *,
-    .lumen__slit,
-    .lumen__icon,
-    .lumen__track,
-    .lumen__handle {
+    .cube,
+    .cube__label,
+    .cube__body {
       transition: none;
     }
   }
@@ -854,6 +918,10 @@ const steps = [
     margin: 0;
     max-width: 16ch;
     color: var(--c-ink);
+    // The cube column is wider than the card it replaced, and the global
+    // hyphens: auto starts breaking words mid-headline at display sizes.
+    // Display type in this system never hyphenates; it wraps on spaces.
+    hyphens: manual;
   }
 
   .hero__actions {
