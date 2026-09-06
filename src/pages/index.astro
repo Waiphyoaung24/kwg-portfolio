@@ -101,17 +101,21 @@ const stands = [
   },
 ];
 
-// Background — the places behind the work. Each row is a list entry and,
-// when it has coordinates, a marker on the globe. `coords: null` renders the
-// row but pins nothing, the way `media: null` in src/data/works.ts renders a
-// labelled empty panel rather than a stock photo.
+// Background — the places behind the work, split into the two things a
+// client asks about: where you worked and where you studied. `kind` drives
+// both the filter and which pins the globe carries. `id` is the CSS anchor
+// name COBE exposes as --cobe-{id}, which the floating labels hang off.
+// `coords: null` renders the row but pins nothing, the way `media: null` in
+// src/data/works.ts renders a labelled empty panel rather than a stock photo.
 //
 // EVERY ROW MARKED "TODO" IS A PLACEHOLDER. None of this exists anywhere in
 // the repo and none of it is invented — fill it in here and the list, the
-// markers and the globe all follow. Bangkok is the one real entry; the hero
-// already states it.
+// pins, the labels and the filter all follow. Bangkok is the one real entry;
+// the hero already states it. A row still needs coords before it pins.
 const background = [
   {
+    id: 'bangkok',
+    kind: 'work',
     place: 'Bangkok, Thailand',
     coords: [13.7563, 100.5018],
     org: 'TODO — employer',
@@ -119,12 +123,19 @@ const background = [
     years: 'TODO — years',
   },
   {
+    id: 'uni',
+    kind: 'study',
     place: 'TODO — city, country',
     coords: null,
     org: 'TODO — university',
     role: 'TODO — degree',
     years: 'TODO — years',
   },
+];
+
+const backgroundFilters = [
+  { kind: 'work', label: 'Worked' },
+  { kind: 'study', label: 'Studied' },
 ];
 
 // How I work — the process a stranger will live through. Four steps, no
@@ -321,6 +332,26 @@ const steps = [
       <header class="background__header">
         <p class="label" data-inview>03 &mdash; Background</p>
         <h2 id="background-heading" class="visually-hidden">Background</h2>
+
+        <div
+          class="background__filter"
+          role="group"
+          aria-label="Show where I worked or where I studied"
+          data-inview
+        >
+          {
+            backgroundFilters.map(({ kind, label }, i) => (
+              <button
+                class="pill-btn background__btn"
+                type="button"
+                data-kind={kind}
+                aria-pressed={i === 0 ? 'true' : 'false'}
+              >
+                {label}
+              </button>
+            ))
+          }
+        </div>
       </header>
 
       <div class="background__body">
@@ -329,15 +360,36 @@ const steps = [
             class="globe"
             data-globe
             data-markers={JSON.stringify(
-              background.filter((b) => b.coords).map((b) => b.coords),
+              background
+                .filter((b) => b.coords)
+                .map(({ id, kind, coords }) => ({ id, kind, location: coords })),
             )}
             aria-hidden="true"></canvas>
+
+          {
+            background
+              .filter((b) => b.coords)
+              .map(({ id, kind, place }) => (
+                <span
+                  class="micro globe__label"
+                  data-kind={kind}
+                  aria-hidden="true"
+                  style={`position-anchor: --cobe-${id}; --v: var(--cobe-visible-${id}, 0)`}
+                >
+                  {place}
+                </span>
+              ))
+          }
         </div>
 
         <ol class="background__list" role="list" data-inview>
           {
-            background.map(({ place, org, role, years }) => (
-              <li class="background__row">
+            background.map(({ kind, place, org, role, years }) => (
+              <li
+                class="background__row"
+                data-kind={kind}
+                hidden={kind !== 'work'}
+              >
                 <p class="label background__place">{place}</p>
                 <p class="background__org">{org}</p>
                 <p class="background__role">{role}</p>
@@ -532,9 +584,14 @@ const steps = [
 
   const globeCanvas = document.querySelector<HTMLCanvasElement>('[data-globe]');
   if (globeCanvas) {
-    const markers = (
-      JSON.parse(globeCanvas.dataset.markers || '[]') as [number, number][]
-    ).map((location) => ({ location, size: 0.06 }));
+    type Pin = { id: string; kind: string; location: [number, number] };
+    const pins: Pin[] = JSON.parse(globeCanvas.dataset.markers || '[]');
+    // id becomes COBE's --cobe-{id} anchor name, which the labels hang off.
+    const markersFor = (kind: string) =>
+      pins
+        .filter((pin) => pin.kind === kind)
+        .map(({ id, location }) => ({ id, location, size: 0.06 }));
+    let kind = 'work';
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     // devicePixelRatio below multiplies this, so pass CSS pixels — doubling
     // here too would render a 4x buffer for a 2x screen.
@@ -569,7 +626,7 @@ const steps = [
         // illustration, so the pins read as the page marking the sphere.
         markerColor: [0.04, 0.04, 0.04],
         glowColor: [0.14, 0.15, 0.16],
-        markers,
+        markers: markersFor(kind),
       });
       new ResizeObserver(() =>
         globe?.update({ width: px(), height: px() }),
@@ -585,6 +642,28 @@ const steps = [
       },
       { rootMargin: '200px' },
     ).observe(globeCanvas);
+
+    // Worked / Studied. One switch drives all three views of the same data:
+    // the rows, the floating labels, and the pins on the globe. No animation
+    // on the swap — a filter's job is to show the answer, not to travel.
+    const filters =
+      document.querySelectorAll<HTMLButtonElement>('.background__btn');
+    const rows = document.querySelectorAll<HTMLElement>('.background__row');
+    const labels = document.querySelectorAll<HTMLElement>('.globe__label');
+
+    const show = (next: string) => {
+      kind = next;
+      rows.forEach((el) => (el.hidden = el.dataset.kind !== next));
+      labels.forEach((el) => (el.hidden = el.dataset.kind !== next));
+      filters.forEach((el) =>
+        el.setAttribute('aria-pressed', String(el.dataset.kind === next)),
+      );
+      globe?.update({ markers: markersFor(next) });
+    };
+
+    filters.forEach((btn) =>
+      btn.addEventListener('click', () => show(btn.dataset.kind!)),
+    );
   }
 </script>
 
@@ -1160,7 +1239,24 @@ const steps = [
   }
 
   .background__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-lg);
     margin-bottom: clamp-fluid(32, 56);
+  }
+
+  .background__filter {
+    display: flex;
+    gap: var(--sp-sm);
+  }
+
+  // Outline pills throughout — the page's one filled pill is spent on the
+  // hero's Email me. Same pressed treatment as the cube's face nav.
+  .background__btn[aria-pressed='true'] {
+    border-color: var(--c-ink);
+    background-color: color-mix(in srgb, var(--c-ink) 6%, transparent);
   }
 
   .background__body {
@@ -1174,14 +1270,58 @@ const steps = [
   }
 
   .background__globe {
+    position: relative;
     // Square, and capped so it never outgrows the copy beside it.
     width: min(100%, #{to-rem(480)});
     aspect-ratio: 1;
     justify-self: center;
   }
 
-  // COBE v2 inserts its own unclassed wrapper around the canvas.
-  .background__globe > * {
+  // Place labels pinned to their marker. COBE exposes an anchor name and a
+  // 0–1 visibility value per marker id; --v carries that value in from the
+  // inline style so opacity and blur can both read it. A pin rotating behind
+  // the globe fades and blurs out rather than clipping.
+  //
+  // Anchor positioning is Chromium-only for now. Elsewhere the whole block
+  // is skipped and the labels stay hidden — no loss, since every place is
+  // already named in the list beside the globe.
+  .globe__label {
+    display: none;
+  }
+
+  @supports (position-anchor: --a) {
+    .globe__label {
+      position: absolute;
+      bottom: anchor(top);
+      left: anchor(center);
+      display: block;
+      translate: -50% #{to-rem(-8)};
+      padding: var(--sp-xxs) var(--sp-sm);
+      border: 1px solid var(--c-hairline-bright);
+      border-radius: var(--r-pill);
+      background: var(--c-canvas-card);
+      color: var(--c-body);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: var(--v);
+      filter: blur(calc((1 - var(--v)) * #{to-rem(8)}));
+      transition:
+        opacity 0.3s var(--ease-out-expo),
+        filter 0.3s var(--ease-out-expo);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .globe__label {
+        filter: none;
+        transition: opacity 0.2s var(--ease-out-expo);
+      }
+    }
+  }
+
+  // COBE v2 inserts its own unclassed wrapper around the canvas. Scoped to
+  // the div, not `> *` — the label spans are siblings and must stay
+  // shrink-to-fit.
+  .background__globe > div {
     display: block;
     width: 100%;
     height: 100%;
@@ -1206,6 +1346,12 @@ const steps = [
 
   // Hairline between rows, none above the first: the rule separates, it does
   // not frame.
+  // [hidden] must be restated: the UA rule loses to the author display below.
+  .background__row[hidden],
+  .globe__label[hidden] {
+    display: none;
+  }
+
   .background__row {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -1216,7 +1362,9 @@ const steps = [
     gap: var(--sp-xs) var(--sp-lg);
     padding-block: var(--sp-xl);
 
-    & + & {
+    // Adjacency has to skip filtered-out rows, or the first visible row
+    // draws a rule above itself with nothing on the other side of it.
+    &:not([hidden]) + &:not([hidden]) {
       border-top: 1px solid var(--c-hairline);
     }
   }
