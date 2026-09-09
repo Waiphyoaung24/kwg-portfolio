@@ -227,6 +227,26 @@ export const works: Work[] = [
   // exhibit (`homeOnly`). Category is still required by the type but never
   // reaches a chapter, so it is chosen for accuracy rather than routing.
   {
+    id: 'parallel',
+    category: 'creative-web',
+    title: 'Parallel',
+    client: 'Parallel',
+    year: 2026,
+    stack: ['Astro', 'WebGL', 'GSAP', 'Lenis'],
+    summary:
+      'A studio site for a Bangkok branding and technology practice. Imagery runs through a WebGL ASCII pass rather than being shown straight, and the work index scrolls sideways across a perspective plane instead of down a grid. Static Astro carrying three client scripts in total, so the frame budget goes to the canvas rather than a framework runtime.',
+    media: {
+      kind: 'image',
+      poster: '/works/parallel-poster.webp',
+      posterWidth: 1920,
+      posterHeight: 1080,
+      alt: 'The Parallel home page, its wordmark over the studio’s gradient hero',
+    },
+    url: 'https://parallelsolution.co/',
+    featured: 'Studio site · Web',
+    homeOnly: true,
+  },
+  {
     id: 'redhorse-group',
     category: 'creative-web',
     title: 'Red Horse Group',
