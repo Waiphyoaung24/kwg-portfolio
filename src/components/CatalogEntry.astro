@@ -319,9 +319,7 @@ const prompt = [
     z-index: 2;
     display: grid;
     min-width: to-rem(240);
-    border: 1px solid var(--c-hairline);
-    border-radius: var(--r-sm);
-    background: var(--c-canvas-card);
+    @include liquid-glass(var(--r-sm));
     overflow: hidden;
   }
 

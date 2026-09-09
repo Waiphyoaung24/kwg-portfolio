@@ -266,6 +266,26 @@ export const works: Work[] = [
     featured: 'Desktop & iOS · Inventory',
     homeOnly: true,
   },
+  {
+    id: 'gaigai',
+    category: 'custom-build',
+    title: 'GaiGai',
+    client: 'An Xing Technology',
+    year: 2022,
+    stack: ['Flutter', 'Dart'],
+    summary:
+      'A grocery commerce app for a Singapore e-supermarket, carrying a catalogue of over 7,000 products browsable by category and by country of origin. Cart, checkout and voucher promotions run off the same catalogue, and one Flutter codebase serves both the phone layout and the wider tablet grid.',
+    media: {
+      kind: 'image',
+      poster: '/works/gaigai-poster.webp',
+      posterWidth: 1920,
+      posterHeight: 1080,
+      alt: 'The GaiGai tablet storefront with the phone home screen alongside it',
+    },
+    url: null,
+    featured: 'iOS & Android · Grocery commerce',
+    homeOnly: true,
+  },
 ];
 
 /** Projects for one chapter, in file order. Home-only work is excluded. */

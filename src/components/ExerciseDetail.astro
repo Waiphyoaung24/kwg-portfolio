@@ -24,8 +24,7 @@
     overflow-y: auto;
     margin: auto; // center within the viewport
     color: var(--c-ink);
-    background: var(--c-canvas-card);
-    border: 1px solid var(--c-mute);
+    @include liquid-glass(var(--r-sm));
     padding: clamp-fluid(16, 28);
 
     &::backdrop {

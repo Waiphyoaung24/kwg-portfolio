@@ -22,3 +22,18 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# nested showcase repo — has its own .git, would commit as a broken gitlink
+showcases/
+
+# browser automation output (console logs, page snapshots)
+.playwright-mcp/
+
+# working files for the posters, not shipped assets
+poster-sources/
+public/works/capabilities/
+
+# agent tooling
+.claude/
+.superpowers/
+task_plan.md

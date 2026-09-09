@@ -1,0 +1,76 @@
+---
+// The KWG initials for the Intro face of the hero cube — the companion to
+// BangkokSkyline on the Where face, same vocabulary: hairline strokes, no
+// fill, drawn on when the wall is first seen.
+//
+// Monoline geometric letterforms, not the faceted mark from the header. The
+// mark is a solid shape and would have to be wiped rather than drawn, which
+// is a different gesture from the one the skyline established; a monoline
+// letter is a stroke, and a stroke can draw itself.
+//
+// Cap height runs the full 6–46 of the band and the three letters are centred
+// across it, because a monogram at this height spans about 160 of 300 units —
+// left-aligning it would leave a third of the band visibly empty.
+//
+// The 300 x 52 viewBox is a measurement, not a taste. The W mark makes the
+// Intro label row 72px tall, so the band left over runs 54–100px depending on
+// the viewport — a drawing taller than its slot can only shrink into the
+// middle of it.
+//
+// Centred in that band rather than pinned to its top, which is what the
+// skyline does: the skyline nearly fills the room it gets, so the two read
+// the same, while these initials use half of theirs and pinning them up
+// under the label leaves the gap all on one side.
+//
+// No motion path here: the initials are the animation, so there is no
+// [data-mover] and the cube script's dot step simply does not run.
+---
+
+<svg
+  class="initials"
+  viewBox="0 0 300 52"
+  fill="none"
+  preserveAspectRatio="xMidYMid meet"
+  aria-hidden="true"
+  focusable="false"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- K — stem, then arm and leg as one path meeting it at mid-height. -->
+  <path class="initials__line" data-draw d="M70 6 V46" />
+  <path class="initials__line" data-draw d="M106 6 L70 26 L107 46" />
+
+  <!-- W — one unbroken zigzag, the way the brand mark reads. -->
+  <path class="initials__line" data-draw d="M118 6 L131 46 L148 18 L165 46 L178 6" />
+
+  <!-- G — a circle opened at the right, closed by the crossbar. -->
+  <path class="initials__line" data-draw d="M225.3 13.1 A20 20 0 1 0 225.3 38.9 V26 H213" />
+</svg>
+
+<style lang="scss">
+  // Fills the positioned box the face gives it and scales to fit, pinned to
+  // the top of that box: when the copy needs the room the drawing shrinks
+  // rather than shoving the prose off the wall. Absolute rather than a
+  // percentage height, which does not resolve against a flex item's box —
+  // and sized explicitly, because an SVG is a replaced element whose auto
+  // height falls back to its intrinsic one and drops the bottom offset.
+  .initials {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    color: var(--c-hairline-bright);
+  }
+
+  .initials__line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    // The face scales with the viewport; the stroke must not. A hairline is a
+    // hairline at every size or it stops being one.
+    vector-effect: non-scaling-stroke;
+    // Letterforms, so the joins are drawn the way a pen would leave them.
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>

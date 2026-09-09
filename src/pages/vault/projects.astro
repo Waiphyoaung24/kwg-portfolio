@@ -141,8 +141,8 @@ export const prerender = false;
         gap: to-rem(8);
       }
       .pcard {
-        background: var(--c-canvas-card);
-        border: 1px solid var(--c-hairline);
+        @include liquid-glass(var(--r-sm));
+        // Owner bar re-declared after the mixin, which sets the shorthand.
         border-left: to-rem(3) solid var(--c-mute);
       }
       .pcard--you {
@@ -353,8 +353,7 @@ export const prerender = false;
         display: grid;
         gap: to-rem(8);
         padding: to-rem(12) to-rem(16);
-        background: var(--c-canvas-card);
-        border: 1px solid var(--c-hairline);
+        @include liquid-glass(var(--r-sm));
         border-left: to-rem(3) solid var(--c-mute);
       }
       // Owner-colored left bar: internal = accent, client = muted, shared = info blue.

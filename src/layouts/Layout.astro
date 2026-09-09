@@ -6,6 +6,7 @@ import Header from '@components/Header.astro';
 import Footer from '@components/Footer.astro';
 import Splash from '@components/Splash.astro';
 import Canvas from '@components/Canvas.astro';
+import GlassFilter from '@components/GlassFilter.astro';
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
@@ -55,6 +56,7 @@ const shareImage = new URL('og-image.jpg', Astro.site);
     </script>
   </head>
   <body>
+    <GlassFilter />
     <Cursor />
 
     <Header />

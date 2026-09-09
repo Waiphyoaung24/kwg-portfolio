@@ -1,11 +1,15 @@
 ---
 import Layout from '@layouts/Layout.astro';
 import HeroGradient from '@components/HeroGradient.tsx';
+import BangkokSkyline from '@components/BangkokSkyline.astro';
+import InitialsKWG from '@components/InitialsKWG.astro';
+import DeployPipeline from '@components/DeployPipeline.astro';
+import ContactEnvelope from '@components/ContactEnvelope.astro';
 import { Image } from 'astro:assets';
 import { works, type Work } from '../data/works';
 
 // Same address as the Footer; the hero is the front door for freelance work.
-const email = 'nexuslab.dev.mm@gmail.com';
+const email = 'waiphyoag.cs34@gmail.com';
 
 // Hero cube — four faces on the Y axis; the pills beside it turn the block.
 // Order is the rotation order, not a ranking: the script steps between
@@ -18,18 +22,26 @@ const cubeFaces = [
   { side: 'left', label: 'Contact' },
 ];
 
-// The Craft face. Every entry is verifiable from this repo — the first four
-// from the Operating Context in PRODUCT.md, the rest from the Kage entry in
-// src/data/works.ts. Nothing aspirational goes in this list.
+// The Craft face. The working stack, given by Wai Phyo Aung rather than read
+// off this repo — the earlier list described what this site is built with,
+// which is a narrower claim than the face makes. Web and backend entries are
+// still traceable to src/data/works.ts (Astro and React on Red Horse, Three.js
+// and GSAP on Kage, FastAPI on CastraNova); the two native languages are not
+// recorded anywhere here, so they stand on his word. Nothing aspirational
+// goes in this list.
+//
+// Nine is the ceiling, not a preference: a tenth chip wraps to a fourth row
+// and a fourth row is exactly the band the pipeline drawing above needs.
 const stack = [
   'Astro',
-  'Node',
-  'Postgres',
-  'Docker',
-  'Dokploy',
-  'Three.js',
+  'React',
   'GSAP',
-  'Lenis',
+  'Three.js',
+  'Node',
+  'FastAPI',
+  'Postgres',
+  'Kotlin',
+  'Swift',
 ];
 
 type FeaturedWork = Work & {
@@ -182,6 +194,26 @@ const steps = [
     body: 'Source, documentation, and deployment handed over. A support period after launch, agreed in the scope.',
   },
 ];
+
+// Testimonials — verbatim excerpts from LinkedIn recommendations, trimmed to
+// the load-bearing sentences. Nothing paraphrased (PRODUCT.md: no invented
+// claims). Avatars are the recommenders' own LinkedIn photos.
+const testimonials = [
+  {
+    quote:
+      'He was the team’s go-to person for the toughest bugs and integration issues. He single-handedly built a web app for our Inventory and Logistics teams in one week, saving the company hundreds of hours.',
+    name: 'Stephan Koch',
+    role: 'Agile Project Manager · Scrum Master',
+    photo: '/testimonials/stephan-koch.webp',
+  },
+  {
+    quote:
+      'I was impressed by how little time he took to complete many UI pages despite constant changes to the design. His ability to adapt to new technologies and frameworks still astonishes me to this day.',
+    name: 'Jazsley Zainal',
+    role: 'Software Engineer · PALO IT',
+    photo: '/testimonials/jazsley-zainal.webp',
+  },
+];
 ---
 
 <Layout>
@@ -253,19 +285,17 @@ const steps = [
                   </span>
                 </div>
                 <div class="cube__body">
+                  <div class="cube__art">
+                    <InitialsKWG />
+                  </div>
                   <div class="cube__prose">
                     <p class="cube__lede">
                       I'm <em>Wai Phyo Aung</em>, an AI and software engineer
                       in Bangkok.
                     </p>
                     <p class="cube__para cube__para--more">
-                      Three kinds of work: sites where the interface carries
-                      the argument, internal systems for people who live in
-                      them all day, and commissioned builds shaped to one
-                      operation.
-                    </p>
-                    <p class="cube__para cube__para--close">
-                      Evidence replaces claims.
+                      I build websites, the systems a business runs on,
+                      custom web and mobile apps, and AI integration.
                     </p>
                   </div>
                 </div>
@@ -274,6 +304,9 @@ const steps = [
               <div class="card cube__face cube__face--right" id="cube-right">
                 <p class="label cube__label">Where</p>
                 <div class="cube__body">
+                  <div class="cube__art">
+                    <BangkokSkyline />
+                  </div>
                   <p class="cube__lede">Bangkok, Thailand. UTC+7.</p>
                   <p class="cube__para">
                     A written update every week, whatever the time zone.
@@ -285,6 +318,9 @@ const steps = [
               <div class="card cube__face cube__face--back" id="cube-back">
                 <p class="label cube__label">Craft</p>
                 <div class="cube__body">
+                  <div class="cube__art">
+                    <DeployPipeline />
+                  </div>
                   <p class="cube__lede">
                     Every piece comes with its decisions, its stack, and where
                     it runs.
@@ -298,6 +334,9 @@ const steps = [
               <div class="card cube__face cube__face--left" id="cube-left">
                 <p class="label cube__label">Contact</p>
                 <div class="cube__body">
+                  <div class="cube__art">
+                    <ContactEnvelope />
+                  </div>
                   <p class="cube__lede">
                     One door: email. No forms, no booking funnel.
                   </p>
@@ -523,6 +562,51 @@ const steps = [
       </ol>
     </section>
 
+    <section
+      id="testimonials"
+      class="container testimonials"
+      aria-labelledby="testimonials-heading"
+    >
+      <header class="testimonials__header">
+        <p class="label" data-inview>06 &mdash; Testimonials</p>
+        <h2 id="testimonials-heading" data-inview>
+          What the people I worked with say
+        </h2>
+      </header>
+
+      <div class="testimonials__grid">
+        {
+          testimonials.map(({ quote, name, role, photo }, i) => (
+            <figure
+              class="testimonial card"
+              data-inview
+              style={`--delay: ${i * 0.08}s`}
+            >
+              <span class="testimonial__mark" aria-hidden="true">
+                &ldquo;
+              </span>
+              <blockquote class="testimonial__quote">{quote}</blockquote>
+              <figcaption class="testimonial__person">
+                <img
+                  class="testimonial__avatar"
+                  src={photo}
+                  alt=""
+                  width="128"
+                  height="128"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span class="testimonial__id">
+                  <span class="testimonial__name">{name}</span>
+                  <span class="testimonial__role micro">{role}</span>
+                </span>
+              </figcaption>
+            </figure>
+          ))
+        }
+      </div>
+    </section>
+
     <!--
       Work detail: the overlay a Selected Work card expands into
       (src/scripts/workTransition.ts). Sits outside the hero, which scales on
@@ -736,6 +820,67 @@ const steps = [
 </script>
 
 <script>
+  import { gsap } from 'gsap';
+  import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
+  import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
+
+  gsap.registerPlugin(DrawSVGPlugin, MotionPathPlugin);
+
+  // Three faces carry a drawing — Intro its initials, Where its city, Craft
+  // its pipeline — and all work the same way: every [data-draw] stroke draws
+  // itself in the first time that wall is seen, then the [data-mover] dot, if
+  // the drawing has one, runs the path it names. Ornament in every case, which
+  // is what lets reduced motion simply not run them.
+  //
+  // The boat's and the pipeline dot's routes span the full frame, so a loop
+  // seam falls off the edge where nobody sees it. The initials carry no dot.
+  const drawing = (selector: string, seconds: number) => {
+    const svg = document.querySelector<SVGSVGElement>(selector);
+    let drawn = false;
+    return () => {
+      if (drawn || !svg) return;
+      drawn = true;
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      // Delayed past the turn: the wall is edge-on for the first half of it,
+      // and a stroke drawn side-on is a stroke nobody sees.
+      gsap.from(svg.querySelectorAll('[data-draw]'), {
+        drawSVG: 0,
+        duration: 0.9,
+        stagger: 0.06,
+        delay: 0.35,
+        ease: 'power2.out',
+      });
+
+      const mover = svg.querySelector<SVGElement>('[data-mover]');
+      const route =
+        mover && svg.querySelector<SVGPathElement>(`#${mover.dataset.mover}`);
+      if (!mover || !route) return;
+
+      gsap.set(mover, { visibility: 'visible' });
+      gsap.to(mover, {
+        motionPath: { path: route, align: route, alignOrigin: [0.5, 0.5] },
+        duration: seconds,
+        delay: 0.35,
+        repeat: -1,
+        ease: 'none',
+      });
+    };
+  };
+
+  const drawWork = drawing('.initials', 12);
+  const drawCity = drawing('.skyline', 14);
+  const drawCraft = drawing('.pipeline', 11);
+  // A 300-unit straight traverse, so the number sits between the river's 14s
+  // (~22 units/s) and the wire's 11s (~27). Those two do not agree with each
+  // other, so there is no speed to match exactly — this splits them.
+  const drawDoor = drawing('.envelope', 12);
+
+  // Intro is the face the cube opens on, so its drawing waits on the splash
+  // rather than a turn. The event fires either way — Splash dispatches it
+  // immediately when it has already played this session.
+  window.addEventListener('splash:done', drawWork, { once: true });
+
   // Hero cube: the pills beside it turn the block to a face. Rotation is
   // cumulative rather than a fixed angle per face, so every turn takes the
   // short way round — Contact back to Status is a quarter turn, not three.
@@ -754,6 +899,10 @@ const steps = [
         cube.style.setProperty('--rot', `${angle}deg`);
         cube.dataset.side = side;
         btns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+        if (side === 'front') drawWork();
+        if (side === 'right') drawCity();
+        if (side === 'back') drawCraft();
+        if (side === 'left') drawDoor();
       }),
     );
   }
@@ -1011,6 +1160,16 @@ const steps = [
     flex-wrap: wrap;
     gap: var(--sp-sm);
 
+    // Four labels come to 158px of ink between them; the pill primitive's own
+    // 24px of horizontal padding comes to 192px — more than the words. That
+    // is what pushes Contact onto a second row, so below ~421px the padding
+    // is what gives, not the row. Wrap stays as the floor under 320px.
+    @media (max-width: 27.5rem) {
+      .cubeblock__btn {
+        padding-inline: var(--sp-sm);
+      }
+    }
+
     @media (min-width: $cube-aside) {
       flex-direction: column;
       // Stretch so the four pills share one width and read as a column.
@@ -1094,10 +1253,10 @@ const steps = [
     transition: transform var(--turn);
   }
 
-  // Faces are translucent, as the pen's are: you look through the front wall
+  // Faces are transparent, as the pen's are: you look through the front wall
   // at the far one, and the side walls rake back to meet it. That read is the
   // whole point of a cube — opaque faces are just the flat card again, which
-  // is why the .card primitive's fill is thinned here and its hairline
+  // is why the .card primitive's fill is dropped here and its hairline
   // brightened. backface-visibility stays visible so the far faces draw.
   .cube__face {
     position: absolute;
@@ -1108,18 +1267,23 @@ const steps = [
     // the same copy a 460px one does on a laptop.
     gap: clamp-fluid(10, 16);
     padding: clamp-fluid(18, 24);
-    // Monochrome falloff down each wall — the mid grey catches the top edge
-    // and dissolves into the card grey, the way the illumine card did.
-    // Still translucent, so the far wall reads through it.
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--c-canvas-mid) 38%, transparent),
-      color-mix(in srgb, var(--c-canvas-card) 62%, transparent) 58%
-    );
+    // No fill at all: the hairlines and the ::after highlight carry the
+    // volume, and the hero gradient reads straight through the walls. `none`
+    // rather than a removed declaration, because .card's liquid-glass frost
+    // would otherwise take the slot back.
+    background: none;
     // Every face keeps its edge at full strength whichever way the block is
     // turned: the eight hairlines are what describe the volume, and dimming
     // them with the face dissolves it back into a panel.
     border-color: var(--c-hairline-bright);
+
+    // Accessibility floor (PRODUCT.md: WCAG 2.2 AA), matching the fallback in
+    // the liquid-glass mixin. Readers who ask for less transparency get the
+    // flat card fill instead — see-through walls are the effect they opted
+    // out of, and their contrast should not depend on the gradient behind.
+    @media (prefers-reduced-transparency: reduce) {
+      background: var(--c-canvas-card);
+    }
   }
 
   // Both decorative layers sit at -1: above the wall's own fill, under its
@@ -1138,6 +1302,14 @@ const steps = [
   .cube__face::before {
     inset: clamp-fluid(8, 12);
     border: 1px solid var(--c-hairline);
+    // The face takes .card for its rim and hairline but opts out of the glass
+    // backdrop: this pseudo-element is already the inner frame, and a
+    // backdrop-filter inside preserve-3d flattens the cube in several engines.
+    // The face's own translucent gradient above is what glazes it.
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    filter: none;
+    z-index: auto;
   }
 
   // The wall facing you catches the light; the rest stay flat. Opacity, not
@@ -1206,6 +1378,19 @@ const steps = [
     gap: var(--sp-lg);
   }
 
+  // Three faces carry a drawing above their copy. It is the flexible item in a
+  // body of fixed ones, so it takes exactly the room the copy leaves and gives
+  // it all back when there is none — at a fixed aspect it pushed the last line
+  // of prose out through the bottom of the face instead. The drawing is
+  // ornament; ornament is what yields.
+  .cube__art {
+    position: relative;
+    align-self: stretch;
+    flex: 1 1 0;
+    min-height: 0;
+    pointer-events: none;
+  }
+
   // Intro is the one face with a companion element: the mark takes the slot
   // the pen gives a portrait. It rides the label row rather than sitting
   // beside the prose — at this face size a side-by-side split leaves the
@@ -1256,19 +1441,15 @@ const steps = [
     color: var(--c-body);
   }
 
-  // The Intro face carries the most copy. Under 21rem the closing line goes;
-  // under 19rem the middle paragraph too, leaving the lede. Type keeps its
-  // size and floors throughout — what changes is how much is said, not how
-  // small it is said. Thresholds from measurement: at 320px the full copy
-  // overruns the face by ~14px, at 280px by ~25px more.
-  @container cube (width < 21rem) {
-    .cube__para--close {
-      display: none;
-    }
-  }
-
+  // The Intro face carries the most copy. Under 19rem the middle paragraph
+  // goes, leaving the lede. Type keeps its size and floors throughout — what
+  // changes is how much is said, not how small it is said. Threshold from
+  // measurement: at 280px the full copy overruns the face.
   @container cube (width < 19rem) {
-    .cube__para--more {
+    .cube__para--more,
+    // Below this the band between label and copy is shorter than the drawing,
+    // which would push the prose off the face. Drop it, the way the copy drops.
+    .cube__art {
       display: none;
     }
   }
@@ -1967,5 +2148,97 @@ const steps = [
     color: var(--c-body);
     font-size: clamp-fluid(14, 16);
     line-height: 1.56;
+  }
+
+  // TESTIMONIALS — two recommendations on the .card primitive. Hairline
+  // chrome, no shadow; the quote is the only thing at body size.
+  .testimonials {
+    margin-block: clamp-fluid(80, 160);
+    display: flex;
+    flex-direction: column;
+    gap: clamp-fluid(40, 80);
+  }
+
+  .testimonials__header {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(16);
+
+    .label {
+      color: var(--c-mute);
+    }
+
+    h2 {
+      max-width: 18ch;
+      color: var(--c-ink);
+    }
+  }
+
+  .testimonials__grid {
+    display: grid;
+    gap: var(--grid-gutter);
+
+    @media (min-width: 769px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .testimonial {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-lg);
+    margin: 0;
+    padding: clamp-fluid(24, 32);
+  }
+
+  // The open quote sits on the mono ladder so it reads as chrome, not copy,
+  // and hangs at the card's optical left edge.
+  .testimonial__mark {
+    font-family: var(--ff-mono);
+    font-size: to-rem(32);
+    line-height: 1;
+    color: var(--c-mute);
+  }
+
+  .testimonial__quote {
+    margin: 0;
+    color: var(--c-body);
+    font-size: clamp-fluid(16, 18);
+    line-height: 1.56;
+    // The quote fills the card; the attribution pins to the bottom edge so
+    // two cards of unequal copy still line their faces up.
+    flex: 1;
+  }
+
+  .testimonial__person {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-md);
+    padding-top: var(--sp-lg);
+    border-top: 1px solid var(--c-hairline);
+  }
+
+  .testimonial__avatar {
+    flex: none;
+    width: to-rem(44);
+    height: to-rem(44);
+    border-radius: var(--r-pill);
+    object-fit: cover;
+  }
+
+  .testimonial__id {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-xxs);
+  }
+
+  .testimonial__name {
+    color: var(--c-ink);
+    font-size: var(--fs-body-sm);
+    line-height: 1.43;
+  }
+
+  .testimonial__role {
+    color: var(--c-mute);
   }
 </style>

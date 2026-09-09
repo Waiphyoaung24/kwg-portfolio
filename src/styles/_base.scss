@@ -236,9 +236,10 @@ html.lenis body {
   // 44px floor keeps the touch target at the WCAG minimum.
   min-height: to-rem(44);
   padding: var(--sp-sm) var(--sp-xl);
-  border: 1px solid var(--c-hairline-bright);
-  border-radius: var(--r-pill);
-  background: transparent;
+  // Glass carries the border, radius, fill and rim (see _mixins.scss). A
+  // lighter frost than the default: a pill is small, and the tint is the
+  // only thing between its label and whatever scrolls behind it.
+  @include liquid-glass(var(--r-pill), 0.2);
   color: var(--c-ink);
   font-size: var(--fs-body-sm);
   line-height: 1.43;
@@ -252,7 +253,9 @@ html.lenis body {
   @include has-hover {
     &:hover {
       border-color: var(--c-ink);
-      background-color: rgba(255, 255, 255, 0.06);
+      // Lifts the frost rather than replacing it, so the lens underneath
+      // stays visible through the hover state.
+      background-color: rgba(255, 255, 255, 0.1);
     }
   }
 
@@ -273,10 +276,17 @@ html.lenis body {
 }
 
 // The rare filled pill. One per page, on the primary action only.
+// The rare filled pill opts out: it is a solid white surface, so there is
+// nothing to see through it and the lens would only cost a filter pass.
 .pill-btn--filled {
   border-color: var(--c-ink);
   background: var(--c-ink);
   color: var(--c-canvas);
+  box-shadow: none;
+
+  &::before {
+    display: none;
+  }
 
   @include has-hover {
     &:hover {
@@ -289,9 +299,7 @@ html.lenis body {
 
 .card {
   padding: var(--sp-xl);
-  border: 1px solid var(--c-hairline);
-  border-radius: var(--r-sm);
-  background: var(--c-canvas-card);
+  @include liquid-glass(var(--r-sm));
 }
 
 // Hairline borders carry every elevation cue; the system uses no shadows.

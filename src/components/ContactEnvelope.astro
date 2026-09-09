@@ -1,0 +1,102 @@
+---
+// An envelope on a wire for the Contact face of the hero cube — the fourth
+// and last of the face drawings, same vocabulary as InitialsKWG on Intro,
+// BangkokSkyline on Where and DeployPipeline on Craft: strokes only, hairline
+// weight, one dot on a path.
+//
+// It draws the clause the copy opens on. "One door: email" — the route runs
+// the full width and the envelope is the one thing standing on it, which is
+// the whole claim: a single way in, no forms and no funnel beside it.
+//
+// The 300 x 128 viewBox is a measurement, not a taste. Contact carries the
+// least copy of the four faces — a two-line lede, one mono address, one pill —
+// and leaves a 149px band on a 360px face, against Craft's 85 and Where's 101.
+// That is the skyline's proportion, not the 52-unit strip Intro and Craft
+// share, so this borrows the skyline's frame rather than the pipeline's.
+//
+// The envelope is centred on y=64 so the route enters and leaves at its
+// middle. 120 x 76 leaves air either side; the route is what fills it.
+//
+// `#route` is load-bearing beyond the drawing: the cube script in index.astro
+// runs the dot along it as a motion path. It spans the full frame, so the loop
+// seam falls off the edge where nobody sees it.
+---
+
+<svg
+  class="envelope"
+  viewBox="0 0 300 128"
+  fill="none"
+  preserveAspectRatio="xMidYMid meet"
+  aria-hidden="true"
+  focusable="false"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- The route stops at the envelope rather than running through it. A mask
+       does that with nothing painted, which an opaque fill could not: every
+       face is transparent now, and a filled box is the one thing on a
+       see-through wall that still reads as a panel. It also leaves #route one
+       unbroken path, so it stays usable as a motion path and DrawSVG keeps
+       ownership of its stroke-dasharray. maskUnits is explicit because the
+       default region is a share of the object's bounding box, and a
+       horizontal line's box is zero-height. -->
+  <defs>
+    <mask id="route-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="128">
+      <rect x="0" y="0" width="300" height="128" fill="#fff" />
+      <rect x="90" y="26" width="120" height="76" fill="#000" />
+    </mask>
+  </defs>
+
+  <!-- The route first, so the envelope sits over it rather than under. -->
+  <path
+    id="route"
+    class="envelope__line envelope__route"
+    data-draw
+    mask="url(#route-gap)"
+    d="M0 64 H300"
+  />
+
+  <!-- The envelope: the body, then the flap folded down into it. -->
+  <path class="envelope__line" data-draw d="M90 26 H210 V102 H90 Z" />
+  <path class="envelope__line" data-draw d="M90 26 L150 68 L210 26" />
+
+  <!-- Parked at the origin and hidden until the script places it on the route:
+       with no JS there is no stray dot in the corner. -->
+  <circle class="envelope__dot" data-mover="route" cx="0" cy="0" r="1.8" />
+</svg>
+
+<style lang="scss">
+  // Fills the positioned box the face gives it and scales to fit. Absolute
+  // rather than a percentage height, which does not resolve against a flex
+  // item's box.
+  .envelope {
+    position: absolute;
+    inset: 0;
+    display: block;
+    // Both explicitly, not left to `inset`: an SVG is a replaced element, so
+    // an auto height resolves to its intrinsic one and the bottom offset is
+    // dropped. Sized this way the viewBox letterboxes to fit instead.
+    width: 100%;
+    height: 100%;
+    color: var(--c-hairline-bright);
+  }
+
+  .envelope__line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    // The face scales with the viewport; the stroke must not. A hairline is a
+    // hairline at every size or it stops being one.
+    vector-effect: non-scaling-stroke;
+  }
+
+  // The route sits back from the envelope so the envelope stays the subject —
+  // the same relation the river has to the skyline and the wire to its nodes.
+  .envelope__route {
+    opacity: 0.55;
+  }
+
+  .envelope__dot {
+    fill: #fff;
+    visibility: hidden;
+  }
+</style>

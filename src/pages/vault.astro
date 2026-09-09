@@ -395,8 +395,7 @@ const tools = [
         grid-template-rows: auto 1fr auto;
         height: var(--tile-h);
         padding: to-rem(20);
-        border: 1px solid var(--c-hairline);
-        border-radius: to-rem(8);
+        @include liquid-glass(to-rem(8));
         color: var(--c-mute);
         text-decoration: none;
         transition:

@@ -87,6 +87,22 @@
   --c-breeze: #a0c3ec;
   --c-midnight: #0d1726;
 
+  // glass — the liquid-glass chrome (src/components/GlassFilter.astro).
+  // A deliberate, owner-approved exception to the "no shadows" rule in
+  // DESIGN.md; the inner rim IS the elevation cue here, in place of the
+  // hairline. Frost is the canvas tint that keeps label contrast over
+  // imagery — do not take it to 0 on any surface carrying text.
+  --glass-frost: 0.28;
+  --glass-saturation: 1.2;
+  --glass-blur: #{to-rem(4)};
+  // The lit rim and the settling shadows, as one reusable stack.
+  --glass-rim:
+    inset 0 0 2px 1px rgba(255, 255, 255, 0.35),
+    inset 0 0 10px 4px rgba(255, 255, 255, 0.15),
+    inset 0 4px 16px rgba(17, 17, 26, 0.05),
+    inset 0 8px 24px rgba(17, 17, 26, 0.05),
+    inset 0 6px 56px rgba(17, 17, 26, 0.05);
+
   // radii — 8px card chrome, pill for every interactive element.
   --r-none: 0;
   --r-sm: #{to-rem(8)};

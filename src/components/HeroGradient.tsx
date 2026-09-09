@@ -44,8 +44,15 @@ export default function HeroGradient() {
         cameraZoom={15.1}
         // 3d, not env: the env presets tint the greys blue.
         lightType="3d"
-        brightness={1}
-        grain="on"
+        // grain is a halftone pass, not film grain: it dithers most pixels to
+        // black, which read as chromatic speckle through the cube's
+        // translucent faces (~sigma 28 per channel on the open backdrop).
+        // Off, the speckle goes (sigma 2.4) but the sphere's real brightness
+        // is unmasked and the backdrop lifts to a mid grey that swallows the
+        // cube's hairline rim. 0.4 puts it back on the near-black canvas
+        // DESIGN.md requires while keeping the bloom lower right.
+        brightness={0.4}
+        grain="off"
         toggleAxis={false}
         zoomOut={false}
         hoverState=""

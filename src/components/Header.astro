@@ -14,16 +14,8 @@ const isActive = (href: string) =>
   href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`);
 
 // Same address as the Footer and hero: the one door on every public page.
-const email = 'nexuslab.dev.mm@gmail.com';
+const email = 'waiphyoag.cs34@gmail.com';
 ---
-
-<!-- Displacement map for the glass backdrop; referenced by filter: url(#nav-glass). -->
-<svg width="0" height="0" aria-hidden="true" style="position:absolute">
-  <filter id="nav-glass" x="0" y="0" width="100%" height="100%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.004 0.012" numOctaves="1" seed="3" result="n"></feTurbulence>
-    <feDisplacementMap in="SourceGraphic" in2="n" scale="18" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
-  </filter>
-</svg>
 
 <header>
   <div class="container">
@@ -131,34 +123,8 @@ const email = 'nexuslab.dev.mm@gmail.com';
     padding-block: var(--sp-md);
   }
 
-  // Liquid glass after ui-layouts' LiquidGlassCard at its "sm" presets: a
-  // 4px blurred, faintly displaced backdrop; a 2px inner highlight for the
-  // lit rim; and a soft outer glow. Owner's explicit reference — the glow is
-  // a drop shadow and the frosted look a frosted card, both deliberate
-  // exceptions to DESIGN.md / PRODUCT.md anti-reference 1. The hairline and a
-  // light canvas tint stay so labels keep their contrast over imagery.
-  @mixin glass {
-    position: relative;
-    isolation: isolate;
-    border: 1px solid var(--c-hairline-bright);
-    background: color-mix(in srgb, var(--c-canvas) 25%, transparent);
-    box-shadow:
-      inset 2px 2px 2px 0 rgba(255, 255, 255, 0.35),
-      inset -2px -2px 2px 0 rgba(255, 255, 255, 0.35),
-      0 4px 4px rgba(0, 0, 0, 0.15),
-      0 0 12px rgba(0, 0, 0, 0.08),
-      0 0 24px rgba(255, 255, 255, 0.1);
-
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-      border-radius: inherit;
-      backdrop-filter: blur(4px);
-      filter: url('#nav-glass');
-    }
-  }
+  // Every rail surface here is glass; the mixin and its owner-approved
+  // exception to DESIGN.md's no-shadow rule live in _mixins.scss.
 
   // Three columns so the rail centres on the page, not between its siblings.
   .container {
@@ -169,7 +135,7 @@ const email = 'nexuslab.dev.mm@gmail.com';
   }
 
   .header-cta {
-    @include glass;
+    @include liquid-glass(var(--r-pill));
     justify-self: end;
     min-height: var(--nav-h);
     padding-block: 0;
@@ -205,7 +171,7 @@ const email = 'nexuslab.dev.mm@gmail.com';
   // uninterrupted and only the active page gets a fill. Translucent white, the
   // same edge as every outline pill (DESIGN.md Do's).
   .pill-nav-items {
-    @include glass;
+    @include liquid-glass(var(--r-pill));
     height: var(--nav-h);
     border-radius: var(--r-pill);
   }
@@ -261,7 +227,7 @@ const email = 'nexuslab.dev.mm@gmail.com';
     align-items: center;
     justify-content: center;
     gap: var(--sp-xs);
-    @include glass;
+    @include liquid-glass(var(--r-pill));
     width: var(--nav-h);
     height: var(--nav-h);
     border-radius: var(--r-pill);
@@ -297,7 +263,7 @@ const email = 'nexuslab.dev.mm@gmail.com';
     z-index: 998;
     display: none;
     min-width: to-rem(200);
-    @include glass;
+    @include liquid-glass(var(--r-pill));
     // The mixin's relative positioning must not win over the dropdown's.
     position: absolute;
     padding: var(--sp-sm);

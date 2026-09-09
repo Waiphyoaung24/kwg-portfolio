@@ -9,3 +9,69 @@
     @content;
   }
 }
+
+// Liquid glass — the shared chrome for every surface on the site.
+//
+// Structure matters here. The displacement filter goes on a ::before BEHIND
+// the content, never on the element: putting `filter` on the element itself
+// would displace its own text, and the reference implementation's
+// `pointer-events: none` would kill every button it touched.
+//
+// Layering, back to front:
+//   1. ::before   — backdrop-filter blur + saturate, then the SVG lens
+//   2. background — the frost tint, which is what keeps labels legible
+//   3. --glass-rim — inner highlight reading as a lit edge
+//
+// Support: SVG filter refs inside `backdrop-filter` are Chromium-only, so the
+// lens is applied as a separate `filter` on the already-blurred pseudo-element
+// instead. Safari and Firefox get blur + saturate + rim, which still reads as
+// glass; only the chromatic bend is missing.
+@mixin liquid-glass($radius: var(--r-sm), $frost: var(--glass-frost)) {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--c-hairline-bright);
+  border-radius: $radius;
+  background: rgba(10, 10, 10, $frost);
+  box-shadow: var(--glass-rim);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    backdrop-filter: blur(var(--glass-blur))
+      saturate(var(--glass-saturation));
+    -webkit-backdrop-filter: blur(var(--glass-blur))
+      saturate(var(--glass-saturation));
+  }
+
+  // The lens itself. Scoped to Chromium, which is the only engine that
+  // resolves an SVG filter over a backdrop-filtered layer; elsewhere this
+  // whole block is skipped rather than producing an opaque grey box.
+  //
+  // The blur above drops to 0 here: the filter already ends in a 3px
+  // feGaussianBlur, and stacking the two smeared the refraction into mush.
+  // Engines without the lens keep the blur, or they would get frost alone.
+  @supports (backdrop-filter: blur(1px)) and (not (-moz-appearance: none)) {
+    &::before {
+      backdrop-filter: saturate(var(--glass-saturation));
+      -webkit-backdrop-filter: saturate(var(--glass-saturation));
+      filter: url('#liquid-glass');
+    }
+  }
+
+  // Accessibility floor (PRODUCT.md: WCAG 2.2 AA). Readers who ask for less
+  // transparency get the flat card chrome from DESIGN.md instead — the frost
+  // and the blur both go, so contrast is the token value, not a gamble on
+  // whatever is scrolling past underneath.
+  @media (prefers-reduced-transparency: reduce) {
+    background: var(--c-canvas-card);
+    border-color: var(--c-hairline);
+    box-shadow: none;
+
+    &::before {
+      display: none;
+    }
+  }
+}

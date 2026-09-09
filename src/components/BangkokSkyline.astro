@@ -1,0 +1,107 @@
+---
+// A hairline Bangkok skyline for the Where face of the hero cube.
+//
+// DESIGN.md allows exactly one kind of imagery — sparse SVG illustration — so
+// this is strokes and nothing else: no fill, no accent colour, no shadow. It
+// is drawn in the same hairline that describes the cube's own edges, which is
+// what keeps an illustration from reading as a picture pasted onto the wall.
+//
+// Wat Arun's stepped prang and MahaNakhon's pixel ribbon are the two forms
+// carrying the identification; strip either and this is any city's skyline.
+//
+// `#river` is load-bearing beyond the drawing: the cube script in index.astro
+// runs the boat along it as a motion path.
+---
+
+<svg
+  class="skyline"
+  viewBox="0 0 300 128"
+  fill="none"
+  preserveAspectRatio="xMidYMin meet"
+  aria-hidden="true"
+  focusable="false"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Wat Arun — the prang in tiers, its two encircling ledges. -->
+  <path class="skyline__line" data-draw d="M14 104 V88 H20 L25 68 H29 L32 48 L35 18 L38 48 H42 L47 68 H51 L56 88 V104" />
+  <path class="skyline__line" data-draw d="M22 80 H48" />
+  <path class="skyline__line" data-draw d="M27 61 H43" />
+
+  <path class="skyline__line" data-draw d="M62 104 V80 H76 V104" />
+  <path class="skyline__line" data-draw d="M78 104 V88 H92 V104" />
+
+  <!-- Baiyoke Tower II — chamfered crown and the mast above it. -->
+  <path class="skyline__line" data-draw d="M98 104 V44 L104 34 H110 L116 44 V104" />
+  <path class="skyline__line" data-draw d="M98 60 H116" />
+  <path class="skyline__line" data-draw d="M107 34 V12" />
+
+  <path class="skyline__line" data-draw d="M122 104 V74 H134 V104" />
+  <path class="skyline__line" data-draw d="M136 104 V84 H150 V104" />
+
+  <!-- MahaNakhon — the slab, then the ribbon of cut cubes down its face. -->
+  <path class="skyline__line" data-draw d="M156 104 V30 H192 V104" />
+  <path class="skyline__line" data-draw d="M158 44 H166 V52 H158 Z" />
+  <path class="skyline__line" data-draw d="M166 56 H174 V64 H166 Z" />
+  <path class="skyline__line" data-draw d="M174 68 H182 V76 H174 Z" />
+  <path class="skyline__line" data-draw d="M182 80 H190 V88 H182 Z" />
+
+  <path class="skyline__line" data-draw d="M198 104 V64 H212 V104" />
+  <path class="skyline__line" data-draw d="M216 104 V78 H230 V104" />
+  <path class="skyline__line" data-draw d="M234 104 V88 H246 V104" />
+  <path class="skyline__line" data-draw d="M252 104 V54 H266 V104" />
+  <path class="skyline__line" data-draw d="M259 54 V42" />
+
+  <!-- The Chao Phraya, in front of the city rather than behind it. -->
+  <path
+    id="river"
+    class="skyline__line skyline__water"
+    data-draw
+    d="M0 112 C48 105 92 119 140 112 S232 103 300 110"
+  />
+  <path
+    class="skyline__line skyline__water"
+    data-draw
+    d="M0 120 C56 114 104 126 158 119 S246 110 300 117"
+  />
+
+  <!-- Parked at the origin and hidden until the script places it on the
+       river: with no JS there is no stray dot in the corner. -->
+  <circle class="skyline__boat" data-mover="river" r="1.8" cx="0" cy="0" />
+</svg>
+
+<style lang="scss">
+  // Fills the positioned box the face gives it and scales to fit, pinned to
+  // the top of that box: when the copy needs the room the drawing shrinks
+  // rather than shoving the prose off the wall. Absolute rather than a
+  // percentage height, which does not resolve against a flex item's box.
+  .skyline {
+    position: absolute;
+    inset: 0;
+    display: block;
+    // Both explicitly, not left to `inset`: an SVG is a replaced element, so
+    // an auto height resolves to its intrinsic one and the bottom offset is
+    // dropped. Sized this way the viewBox letterboxes to fit instead.
+    width: 100%;
+    height: 100%;
+    color: var(--c-hairline-bright);
+  }
+
+  .skyline__line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    // The face scales with the viewport; the stroke must not. A hairline is a
+    // hairline at every size or it stops being one.
+    vector-effect: non-scaling-stroke;
+  }
+
+  // Water sits back from the built edges so the skyline stays the subject.
+  .skyline__water {
+    opacity: 0.55;
+  }
+
+  .skyline__boat {
+    fill: #fff;
+    visibility: hidden;
+  }
+</style>
