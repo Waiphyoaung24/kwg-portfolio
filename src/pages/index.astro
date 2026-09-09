@@ -108,28 +108,73 @@ const stands = [
 // `coords: null` renders the row but pins nothing, the way `media: null` in
 // src/data/works.ts renders a labelled empty panel rather than a stock photo.
 //
-// EVERY ROW MARKED "TODO" IS A PLACEHOLDER. None of this exists anywhere in
-// the repo and none of it is invented — fill it in here and the list, the
-// pins, the labels and the filter all follow. Bangkok is the one real entry;
-// the hero already states it. A row still needs coords before it pins.
+// Work and education are supplied by the owner, newest first in each group.
+// Coordinates mark cities; unspecified locations do not add a globe pin.
 const background = [
   {
-    id: 'bangkok',
+    id: 'parallel-solution',
     kind: 'work',
     place: 'Bangkok, Thailand',
     coords: [13.7563, 100.5018],
-    org: 'TODO — employer',
-    role: 'TODO — role',
-    years: 'TODO — years',
+    org: 'Parallel Solution',
+    website: 'https://parallelsolution.co/',
+    role: 'AI and Lead Engineer',
+    years: '2025–Current',
   },
   {
-    id: 'uni',
+    id: 'nexapex',
+    kind: 'work',
+    place: 'Bangkok, Thailand',
+    coords: [13.7563, 100.5018],
+    org: 'NexApex',
+    website: 'https://www.nexapex.ai/',
+    role: 'AI and Lead Engineer',
+    years: '2024–2025',
+  },
+  {
+    id: 'an-xing',
+    kind: 'work',
+    place: 'Singapore',
+    coords: [1.3521, 103.8198],
+    org: 'An Xing Technology Pte. Ltd.',
+    role: 'Software Developer · Full-time',
+    years: '2021–2023',
+  },
+  {
+    id: 'mmsoftware',
+    kind: 'work',
+    place: 'Yangon, Myanmar',
+    coords: [16.8409, 96.1735],
+    org: 'PADC (Myanmar)',
+    role: 'Mobile Developer Intern',
+    years: '2018–2019',
+  },
+  {
+    id: 'coventry',
     kind: 'study',
-    place: 'TODO — city, country',
-    coords: null,
-    org: 'TODO — university',
-    role: 'TODO — degree',
-    years: 'TODO — years',
+    place: 'Coventry, England',
+    coords: [52.4068, -1.5197],
+    org: 'Coventry University',
+    role: 'MSc. Computer Science',
+    years: '2024–2025',
+  },
+  {
+    id: 'singapore',
+    kind: 'study',
+    place: 'Singapore',
+    coords: [1.3521, 103.8198],
+    org: 'National University of Singapore',
+    role: 'Graduate Diploma in Systems Analysis · G.Dip(SA)',
+    years: '2021–2022',
+  },
+  {
+    id: 'yangon',
+    kind: 'study',
+    place: 'Yangon, Myanmar',
+    coords: [16.8409, 96.1735],
+    org: 'Yangon University',
+    role: 'BSc. Computer Science',
+    years: '2015–2019',
   },
 ];
 
@@ -386,14 +431,31 @@ const steps = [
 
         <ol class="background__list" role="list" data-inview>
           {
-            background.map(({ kind, place, org, role, years }) => (
+            background.map(({ kind, place, org, role, years, website }) => (
               <li
                 class="background__row"
                 data-kind={kind}
                 hidden={kind !== 'work'}
               >
-                <p class="label background__place">{place}</p>
-                <p class="background__org">{org}</p>
+                {place && <p class="label background__place">{place}</p>}
+                <div class="background__org-line">
+                  <p class="background__org">{org}</p>
+                  {website && (
+                    <a
+                      class="background__website"
+                      href={website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Visit ${org} website`}
+                      title={`Visit ${org} website`}
+                    >
+                      <span
+                        class="background__website-icon"
+                        aria-hidden="true"
+                      />
+                    </a>
+                  )}
+                </div>
                 <p class="background__role">{role}</p>
                 <p class="micro background__years">{years}</p>
               </li>
@@ -1408,8 +1470,14 @@ const steps = [
     white-space: nowrap;
   }
 
-  .background__org {
+  .background__org-line {
     grid-area: org;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-sm);
+  }
+
+  .background__org {
     margin: 0;
     font-size: var(--fs-5);
     letter-spacing: var(--ls-5);
@@ -1423,6 +1491,37 @@ const steps = [
     font-size: var(--fs-body-sm);
     line-height: 1.5;
     color: var(--c-body);
+  }
+
+  .background__website {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: var(--sp-xl);
+    height: var(--sp-xl);
+    color: var(--c-body);
+    text-decoration: none;
+
+    &::after {
+      position: absolute;
+      inset: calc(var(--sp-sm) * -1) calc(var(--sp-md) * -1);
+      content: '';
+    }
+
+    @include has-hover {
+      &:hover {
+        color: var(--c-ink);
+      }
+    }
+  }
+
+  .background__website-icon {
+    width: var(--sp-lg);
+    height: var(--sp-lg);
+    background-color: currentColor;
+    mask: url('/external-link.png') center / contain no-repeat;
   }
 
   .hero__headline {
