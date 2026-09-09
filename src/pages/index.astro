@@ -843,7 +843,12 @@ const steps = [
   };
 
   document.querySelectorAll<HTMLElement>('.stand').forEach((section) => {
-    const cards = section.querySelectorAll<HTMLElement>('.stand__card');
+    // Narrow viewports hide the outer cards, and a hidden card must not take
+    // a slot in the fan or the visible ones sit lopsided. offsetParent is
+    // null for `display: none`, which is exactly the cards CSS dropped.
+    const cards = [
+      ...section.querySelectorAll<HTMLElement>('.stand__card'),
+    ].filter((card) => card.offsetParent !== null);
     const copy = section.querySelector<HTMLElement>('.stand__copy');
     const words = section.querySelectorAll<HTMLElement>(
       '.stand__heading .word',
@@ -1880,6 +1885,16 @@ const steps = [
     .stand__card {
       --card-w: 28vw;
       --card-h: 36vw;
+    }
+
+    // Five cards at 28vw plus four 0.5vw gaps is 142vw: the row was always
+    // 42vw wider than the viewport, so ~21vw was clipped off each side and
+    // the outer two cards showed as slivers. Shrinking them to fit instead
+    // would need ~17vw each — 64px on a 375px screen, too small to read as
+    // an image. Three cards fan and stay legible; the fan script measures
+    // the laid-out cards, so it stays symmetric over three.
+    .stand__card:nth-child(n + 4) {
+      display: none;
     }
   }
 
