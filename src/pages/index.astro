@@ -1,6 +1,8 @@
 ---
 import Layout from '@layouts/Layout.astro';
 import HeroGradient from '@components/HeroGradient.tsx';
+import { Image } from 'astro:assets';
+import { works, type Work } from '../data/works';
 
 // Same address as the Footer; the hero is the front door for freelance work.
 const email = 'nexuslab.dev.mm@gmail.com';
@@ -30,73 +32,50 @@ const stack = [
   'Lenis',
 ];
 
-// Showcase gallery — placeholder imagery from Pexels per user reference.
-// Replace src URLs with real work when available. The markup appends Pexels
-// size params (w=1200): the originals are 12 MP and their decode stalled the
-// entrance animation. `body` is the copy the card expands into (see the
-// work-detail overlay below); placeholder like the images, replace together.
-const gallery = [
-  {
-    src: 'https://images.pexels.com/photos/8467429/pexels-photo-8467429.jpeg',
-    title: 'Ethereal Dreams',
-    sub: 'Visual storytelling',
-    body: 'A gallery site where the sequence of images sets the pace. Scroll drives the narrative and the type stays out of the way.',
-  },
-  {
-    src: 'https://images.pexels.com/photos/33276110/pexels-photo-33276110.jpeg',
-    title: 'Midnight Bloom',
-    sub: 'Dark elegance',
-    body: 'A dark editorial layout for a fashion label. Large imagery, sparse copy, and motion that never competes with the product.',
-  },
-  {
-    src: 'https://images.pexels.com/photos/3378993/pexels-photo-3378993.jpeg',
-    title: 'Golden Hour',
-    sub: 'Warm minimalism',
-    body: 'A launch page built around light and negative space. One idea per screen, one action at the end.',
-  },
-  {
-    src: 'https://images.pexels.com/photos/1231258/pexels-photo-1231258.jpeg',
-    title: 'Urban Solace',
-    sub: 'City life reimagined',
-    body: 'A city guide reworked as a scrolling map of moments. Photography leads and the interface follows.',
-  },
-];
+type FeaturedWork = Work & {
+  media: NonNullable<Work['media']>;
+  featured: string;
+};
 
-// Capabilities — three "stands" with the scroll-stand 3D-card reveal.
+// Selected Work is a view of the same verified project data as /works.
+const gallery = works.filter(
+  (work): work is FeaturedWork => Boolean(work.featured && work.media),
+);
+
+// Capabilities — two "stands" with the scroll-stand 3D-card reveal.
 // Heading words are pre-split server-side (no runtime SplitText) so the
 // inline script can simply select `.word`s and animate their color.
+//
+// Card imagery is PLACEHOLDER stock from Pexels, not this studio's work.
+// PRODUCT.md ("Evidence on Hand") requires it be replaced with real work
+// before launch and never described as real work.
+//
+// Sized by Pexels' own CDN to 900x1165 — the 17vw x 22vw card ratio — so
+// `object-fit: cover` has nothing left to crop. Every URL was checked for a
+// 200, exact dimensions, and mean luminance low enough to sit on the
+// near-black canvas: two ids from these searches 404'd and several results
+// that the colour filter called "black" measured over 200.
 const stands = [
   {
     heading: 'Websites & Landing Pages',
     sub: 'High-end sites built to perform and convert.',
     cards: [
-      'https://i.pinimg.com/webp85/1200x/18/32/a0/1832a0151330ab6d294430e4514c8d62.webp',
-      'https://i.pinimg.com/webp85/736x/48/b1/78/48b17830b4d8357cc77c00cc3b305d33.webp',
-      'https://i.pinimg.com/736x/98/64/06/9864062eb69f36ababb1c7b9eafe9041.jpg',
-      'https://i.pinimg.com/736x/91/26/3d/91263d9faaf8c0cb2dc6d0895cf9a4c9.jpg',
-      'https://i.pinimg.com/webp85/1200x/f6/71/df/f671dfeb4fdcd20ce3f735856becd301.webp',
-    ],
-  },
-  {
-    heading: 'Brand & Identity',
-    sub: 'Visual systems that feel intentional, memorable, and unmistakably yours.',
-    cards: [
-      'https://i.pinimg.com/736x/04/51/50/045150afa7b4c1cba03c820404a797da.jpg',
-      'https://i.pinimg.com/webp85/1200x/1f/72/fa/1f72fa7b97455361a75ce32e9231a1e0.webp',
-      'https://i.pinimg.com/webp85/736x/e7/67/ee/e767ee0e687bad29566e3572649ef158.webp',
-      'https://i.pinimg.com/webp85/1200x/11/ad/d7/11add7639770b4af0d80fc196e6b047d.webp',
-      'https://i.pinimg.com/736x/a9/d4/41/a9d441397c2182a4d338fce6e0b1a7a7.jpg',
+      'https://images.pexels.com/photos/10817253/pexels-photo-10817253.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+      'https://images.pexels.com/photos/11184286/pexels-photo-11184286.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+      'https://images.pexels.com/photos/6332018/pexels-photo-6332018.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+      'https://images.pexels.com/photos/13507175/pexels-photo-13507175.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+      'https://images.pexels.com/photos/13900522/pexels-photo-13900522.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
     ],
   },
   {
     heading: 'Product & UI',
     sub: 'Interfaces crafted with clarity — every screen considered, every interaction refined.',
     cards: [
-      'https://i.pinimg.com/webp85/1200x/e5/c3/7a/e5c37a81fd544d98e80575c046d8f11e.webp',
-      'https://i.pinimg.com/736x/3d/2e/c1/3d2ec1c74d737e1318c85b0f1a7dbca2.jpg',
-      'https://i.pinimg.com/736x/0c/41/bb/0c41bbd2138ece6834fc488bace34cc9.jpg',
-      'https://i.pinimg.com/webp85/1200x/18/32/a0/1832a0151330ab6d294430e4514c8d62.webp',
-      'https://i.pinimg.com/webp85/736x/48/b1/78/48b17830b4d8357cc77c00cc3b305d33.webp',
+      'https://images.pexels.com/photos/30959438/pexels-photo-30959438.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+      'https://images.pexels.com/photos/9637500/pexels-photo-9637500.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+      'https://images.pexels.com/photos/31024672/pexels-photo-31024672.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+      'https://images.pexels.com/photos/13507187/pexels-photo-13507187.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+      'https://images.pexels.com/photos/12219068/pexels-photo-12219068.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
     ],
   },
 ];
@@ -349,20 +328,25 @@ const steps = [
 
       <ul class="gallery" role="list">
         {
-          gallery.map(({ src, title, sub }) => (
+          gallery.map(({ media, title, featured }) => (
             <li class="gallery__item">
               <figure class="gallery__figure">
-                <img
+                <Image
                   class="gallery__img"
-                  src={`${src}?auto=compress&cs=tinysrgb&w=1200`}
-                  alt={title}
+                  src={media.poster}
+                  width={media.posterWidth}
+                  height={media.posterHeight}
+                  widths={[480, 800, 1200]}
+                  sizes="(max-width: 768px) calc(100vw - 40px), 46vw"
+                  alt={media.alt}
                   loading="lazy"
                   decoding="async"
+                  quality="high"
                   data-cursor-media="image"
                 />
                 <figcaption class="gallery__caption">
                   <p class="gallery__title">{title}</p>
-                  <span class="gallery__sub">{sub}</span>
+                  <span class="gallery__sub">{featured}</span>
                 </figcaption>
               </figure>
             </li>
@@ -493,7 +477,12 @@ const steps = [
                   <div class="stand__stage">
                     {cards.map((src) => (
                       <article class="stand__card">
-                        <img src={src} alt="" loading="lazy" />
+                        <img
+                          src={src}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </article>
                     ))}
                   </div>
@@ -557,18 +546,33 @@ const steps = [
           <span class="micro" aria-hidden="true">Esc</span>
         </button>
         {
-          gallery.map(({ title, sub, body }, i) => (
-            <div class="work-detail__group" data-index={i}>
-              <p class="work-detail__eyebrow label">
-                0{i + 1} &mdash; {sub}
-              </p>
-              <h3 class="work-detail__title h2">{title}</h3>
-              <p class="work-detail__body">{body}</p>
-              <a class="pill-btn" href="/works">
-                See all work <span aria-hidden="true">&#8599;&#65038;</span>
-              </a>
-            </div>
-          ))
+          gallery.map(({ id, title, featured, summary, homeOnly, url }, i) => {
+            // Home-only work has no /works panel to deep-link into, so its CTA
+            // points at the live site instead. Work with neither — an internal
+            // tool with nothing public — gets no CTA rather than a dead one.
+            const href = homeOnly ? url : `/works#panel-${id}`;
+            return (
+              <div class="work-detail__group" data-index={i}>
+                <p class="work-detail__eyebrow label">
+                  0{i + 1} &mdash; {featured}
+                </p>
+                <h3 class="work-detail__title h2">{title}</h3>
+                <p class="work-detail__body">{summary}</p>
+                {href && (
+                  <a
+                    class="pill-btn"
+                    href={href}
+                    {...(homeOnly
+                      ? { target: '_blank', rel: 'noopener noreferrer' }
+                      : {})}
+                  >
+                    {homeOnly ? 'Visit site' : 'View project'}{' '}
+                    <span aria-hidden="true">&#8599;&#65038;</span>
+                  </a>
+                )}
+              </div>
+            );
+          })
         }
       </div>
     </div>
@@ -810,7 +814,7 @@ const steps = [
 </script>
 
 <script>
-  // Scroll-stand: 5 cards per stand start fanned in 3D and flatten into a
+  // Scroll-stand: each stand's cards start fanned in 3D and flatten into a
   // row as the section enters the viewport. Heading words stagger color
   // from white → muted. Scrubbed to scroll position via the Lenis-driven
   // GSAP ticker wired in src/scripts/scroll.ts.
@@ -823,14 +827,20 @@ const steps = [
   const cLight = css.getPropertyValue('--c-ink').trim() || '#ffffff';
   const cMuted = css.getPropertyValue('--c-mute').trim() || '#7d8187';
 
-  // Per-card initial 3D state — center card is most vertical, edges fan out.
-  const cardStart = [
-    { rotateX: 58, rotateY: 18, y: 48 },
-    { rotateX: 74, rotateY: 5, y: 32 },
-    { rotateX: 90, rotateY: 0, y: 18 },
-    { rotateX: 74, rotateY: -5, y: 32 },
-    { rotateX: 58, rotateY: -18, y: 48 },
-  ];
+  // Per-card initial 3D state — centre card is most vertical, edges fan out.
+  // Derived from position rather than a fixed table: the stands no longer hold
+  // the same number of cards, and indexing a five-entry table with four cards
+  // fanned them lopsided. For five this reproduces the original values
+  // (rotateX 58/74/90/74/58, rotateY +18/+5/0/-5/-18, y 48/32/18/32/48).
+  const cardStart = (i: number, n: number) => {
+    const t = n < 2 ? 0 : (i / (n - 1)) * 2 - 1; // -1 left edge … 1 right edge
+    const a = Math.abs(t);
+    return {
+      rotateX: 90 - 32 * a,
+      rotateY: -18 * Math.sign(t) * a ** 1.85,
+      y: 18 + 30 * a,
+    };
+  };
 
   document.querySelectorAll<HTMLElement>('.stand').forEach((section) => {
     const cards = section.querySelectorAll<HTMLElement>('.stand__card');
@@ -841,7 +851,7 @@ const steps = [
 
     cards.forEach((card, i) => {
       gsap.set(card, {
-        ...cardStart[i % cardStart.length],
+        ...cardStart(i, cards.length),
         transformOrigin: '50% 100%',
         transformPerspective: 1560,
       });
@@ -1762,7 +1772,7 @@ const steps = [
     margin-top: var(--sp-sm);
   }
 
-  // CAPABILITIES — 3 "stand" sections where 5 cards are fanned in 3D
+  // CAPABILITIES — 2 "stand" sections whose cards are fanned in 3D
   // perspective and flatten into a row as you scroll. Word color staggers
   // from white → muted gray across each heading reveal.
   .capabilities {

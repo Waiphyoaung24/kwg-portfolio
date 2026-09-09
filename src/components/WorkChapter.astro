@@ -61,14 +61,23 @@ const tablistLabel = `${heading} projects`;
           aria-labelledby={`tab-${w.id}`}
           tabindex="0"
         >
-          {w.media ? (
-            <img
-              class="panel__media"
-              src={w.media}
-              alt={`${w.title} — ${w.client}`}
-              loading="lazy"
-              decoding="async"
-            />
+          {w.media?.kind === 'video' ? (
+            <video
+              class="panel__media panel__media--video"
+              controls
+              playsinline
+              preload="metadata"
+              poster={w.media.poster}
+              aria-label={`${w.title} showcase film`}
+            >
+              <source
+                src={w.media.portrait}
+                media="(max-width: 767px)"
+                type="video/mp4"
+              />
+              <source src={w.media.landscape} type="video/mp4" />
+              <a href={w.media.landscape}>Download the showcase film</a>
+            </video>
           ) : (
             <div class="panel__media panel__media--empty">
               <span class="micro">No media yet</span>
@@ -83,7 +92,12 @@ const tablistLabel = `${heading} projects`;
           <p class="panel__summary">{w.summary}</p>
 
           {w.url && (
-            <a class="panel__link label" href={w.url}>
+            <a
+              class="panel__link label"
+              href={w.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               {/* U+FE0E forces text presentation; the bare arrow renders as
                     a colour emoji in some system fallback fonts. */}
               View live <span aria-hidden="true">&#8599;&#65038;</span>
@@ -222,6 +236,15 @@ const tablistLabel = `${heading} projects`;
     place-items: center;
     border: 1px solid var(--c-hairline);
     color: var(--c-mute);
+  }
+
+  .panel__media--video {
+    object-fit: cover;
+
+    @media (max-width: 767px) {
+      width: min(100%, #{to-rem(432)});
+      aspect-ratio: 9 / 16;
+    }
   }
 
   .panel__meta {
