@@ -671,37 +671,66 @@ const testimonials = [
   import '../scripts/scroll';
 
   const imgs = gsap.utils.toArray<HTMLImageElement>('.gallery__img');
-  const isDesktop = window.innerWidth > 768;
-  // Reduced motion: the tiles simply appear (PRODUCT.md a11y floor).
-  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  imgs.forEach((img, i) => {
-    if (reduceMotion) return;
-    gsap.set(img, {
-      rotation: i % 2 === 0 ? -50 : 50,
-      transformOrigin: 'center center',
-      y: isDesktop ? 500 : 350,
-      opacity: 0,
-    });
+  // matchMedia rather than a `window.innerWidth > 768` read: that read
+  // happened once at load and was never re-checked, so rotating the phone or
+  // resizing the window left the tiles running the other side's numbers. The
+  // context reverts whatever gsap.set wrote when its queries stop matching,
+  // so crossing the breakpoint never strands a tile mid-transform.
+  //
+  // isPhone is not redundant with isDesktop. .add() runs the callback only if
+  // at least one query matches, so a set that leaves a gap — isDesktop plus
+  // reduceMotion alone — never fires at all on a phone with reduced motion
+  // off, and every mobile branch inside becomes dead code. The two width
+  // queries have to cover every width between them.
+  //
+  // Reduced motion is a condition too, so the tiles simply appear, and start
+  // appearing the moment the OS setting flips (PRODUCT.md a11y floor).
+  gsap.matchMedia().add(
+    {
+      isDesktop: '(min-width: 769px)',
+      isPhone: '(max-width: 768px)',
+      reduceMotion: '(prefers-reduced-motion: reduce)',
+    },
+    (ctx) => {
+      const { isDesktop, reduceMotion } = ctx.conditions as Record<
+        string,
+        boolean
+      >;
+      if (reduceMotion) return;
 
-    ScrollTrigger.create({
-      trigger: img,
-      start: isDesktop ? 'top 100%' : 'top 120%',
-      once: true,
-      onEnter: () => {
-        gsap.to(img, {
-          rotation: 0,
-          y: 0,
-          opacity: 1,
-          duration: 0.8,
-          // Entrances ease out (the --ease-out-expo token); an in-out start
-          // reads as a stall on arrival.
-          ease: 'expo.out',
-          delay: isDesktop ? (i % 2 === 0 ? 0 : 0.25) : 0,
+      imgs.forEach((img, i) => {
+        gsap.set(img, {
+          // Phones skip the spin entirely. A 320px tile held at 50° sweeps a
+          // 451px box — ~45px past each edge of the column — and holds it
+          // from load until that tile scrolls in, which is most of the page.
+          // The rise alone reads the same at phone size.
+          rotation: isDesktop ? (i % 2 === 0 ? -50 : 50) : 0,
+          transformOrigin: 'center center',
+          y: isDesktop ? 500 : 350,
+          opacity: 0,
         });
-      },
-    });
-  });
+
+        ScrollTrigger.create({
+          trigger: img,
+          start: isDesktop ? 'top 100%' : 'top 120%',
+          once: true,
+          onEnter: () => {
+            gsap.to(img, {
+              rotation: 0,
+              y: 0,
+              opacity: 1,
+              duration: 0.8,
+              // Entrances ease out (the --ease-out-expo token); an in-out
+              // start reads as a stall on arrival.
+              ease: 'expo.out',
+              delay: isDesktop ? (i % 2 === 0 ? 0 : 0.25) : 0,
+            });
+          },
+        });
+      });
+    },
+  );
 </script>
 
 <script>
@@ -932,34 +961,62 @@ const testimonials = [
   import { gsap } from 'gsap';
   import '../scripts/scroll';
 
-  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    gsap
-      .timeline({
+  // isPhone pairs with isDesktop so one of the two always matches — see the
+  // gallery script above for why a gap here silences the whole callback.
+  gsap.matchMedia().add(
+    {
+      isDesktop: '(min-width: 769px)',
+      isPhone: '(max-width: 768px)',
+      reduceMotion: '(prefers-reduced-motion: reduce)',
+    },
+    (ctx) => {
+      const { isDesktop, reduceMotion } = ctx.conditions as Record<
+        string,
+        boolean
+      >;
+      if (reduceMotion) return;
+
+      gsap
+        .timeline({
+          scrollTrigger: {
+            trigger: '.hero',
+            start: 'bottom bottom',
+            end: 'bottom top',
+            scrub: 1,
+          },
+        })
+        .to(
+          '.hero',
+          {
+            // The hero is capped at 1200px and centred, so on desktop the
+            // zoom grows into its own gutters. On a phone it already spans
+            // the viewport, and 1.5 would put 90px past each edge for the
+            // whole length of the handoff — the fade carries it there.
+            scale: isDesktop ? 1.5 : 1,
+            opacity: 0,
+            ease: 'power1.in',
+          },
+          0,
+        )
+        // Blur only the type; blurring the WebGL canvas every frame is costly.
+        .to('.hero__center', { filter: 'blur(16px)', ease: 'power1.in' }, 0);
+
+      // Scales up to 1 from a left origin, so it never reaches past the edge.
+      gsap.from('.work__header', {
+        scale: 0.6,
+        opacity: 0,
+        filter: 'blur(16px)',
+        transformOrigin: '0% 50%',
+        ease: 'power1.out',
         scrollTrigger: {
-          trigger: '.hero',
-          start: 'bottom bottom',
-          end: 'bottom top',
+          trigger: '.work__header',
+          start: 'top bottom',
+          end: 'top 40%',
           scrub: 1,
         },
-      })
-      .to('.hero', { scale: 1.5, opacity: 0, ease: 'power1.in' }, 0)
-      // Blur only the type; blurring the WebGL canvas every frame is costly.
-      .to('.hero__center', { filter: 'blur(16px)', ease: 'power1.in' }, 0);
-
-    gsap.from('.work__header', {
-      scale: 0.6,
-      opacity: 0,
-      filter: 'blur(16px)',
-      transformOrigin: '0% 50%',
-      ease: 'power1.out',
-      scrollTrigger: {
-        trigger: '.work__header',
-        start: 'top bottom',
-        end: 'top 40%',
-        scrub: 1,
-      },
-    });
-  }
+      });
+    },
+  );
 </script>
 
 <script>
@@ -991,46 +1048,71 @@ const testimonials = [
     };
   };
 
-  document.querySelectorAll<HTMLElement>('.stand').forEach((section) => {
-    // Narrow viewports hide the outer cards, and a hidden card must not take
-    // a slot in the fan or the visible ones sit lopsided. offsetParent is
-    // null for `display: none`, which is exactly the cards CSS dropped.
-    const cards = [
-      ...section.querySelectorAll<HTMLElement>('.stand__card'),
-    ].filter((card) => card.offsetParent !== null);
-    const copy = section.querySelector<HTMLElement>('.stand__copy');
-    const words = section.querySelectorAll<HTMLElement>(
-      '.stand__heading .word',
+  gsap
+    .matchMedia()
+    .add(
+      { isDesktop: '(min-width: 769px)', isPhone: '(max-width: 768px)' },
+      (ctx) => {
+        const { isDesktop } = ctx.conditions as Record<string, boolean>;
+
+        document.querySelectorAll<HTMLElement>('.stand').forEach((section) => {
+          // Phones lay the cards out as a flat 2-up grid with no perspective, so
+          // there is no fan to flatten — the copy and the heading still move.
+          // On desktop, narrow viewports hide the outer cards, and a hidden card
+          // must not take a slot in the fan or the visible ones sit lopsided.
+          // offsetParent is null for `display: none`, which is what CSS dropped.
+          const cards = isDesktop
+            ? [...section.querySelectorAll<HTMLElement>('.stand__card')].filter(
+                (card) => card.offsetParent !== null,
+              )
+            : [];
+          const copy = section.querySelector<HTMLElement>('.stand__copy');
+          const words = section.querySelectorAll<HTMLElement>(
+            '.stand__heading .word',
+          );
+
+          cards.forEach((card, i) => {
+            gsap.set(card, {
+              ...cardStart(i, cards.length),
+              transformOrigin: '50% 100%',
+              transformPerspective: 1560,
+            });
+          });
+
+          if (copy) gsap.set(copy, { y: -10 });
+          gsap.set(words, { color: cLight });
+
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: section,
+              start: 'top 40%',
+              end: 'top 0%',
+              scrub: 1,
+            },
+          });
+
+          if (cards.length) {
+            tl.to(
+              cards,
+              {
+                rotateX: 0,
+                rotateY: 0,
+                y: 0,
+                ease: 'power1.inOut',
+                duration: 1,
+              },
+              0,
+            );
+          }
+
+          tl.to(copy, { y: 0 }, 0).to(
+            words,
+            { color: cMuted, stagger: 0.2 },
+            0.1,
+          );
+        });
+      },
     );
-
-    cards.forEach((card, i) => {
-      gsap.set(card, {
-        ...cardStart(i, cards.length),
-        transformOrigin: '50% 100%',
-        transformPerspective: 1560,
-      });
-    });
-
-    if (copy) gsap.set(copy, { y: -10 });
-    gsap.set(words, { color: cLight });
-
-    gsap
-      .timeline({
-        scrollTrigger: {
-          trigger: section,
-          start: 'top 40%',
-          end: 'top 0%',
-          scrub: 1,
-        },
-      })
-      .to(
-        cards,
-        { rotateX: 0, rotateY: 0, y: 0, ease: 'power1.inOut', duration: 1 },
-        0,
-      )
-      .to(copy, { y: 0 }, 0)
-      .to(words, { color: cMuted, stagger: 0.2 }, 0.1);
-  });
 </script>
 
 <style lang="scss">
@@ -1141,6 +1223,17 @@ const testimonials = [
     --turn: 0.7s var(--ease-out-expo);
     display: grid;
     gap: var(--sp-xl);
+
+    // A turning cube is wider than its face. Under the 800px perspective the
+    // near corners project ~21% past the scene box, and the bracket frame's
+    // -10px inset adds to that. Above this width the block sits in a column
+    // narrower than the page, so the bleed lands in the gutter; on a phone
+    // the column IS the viewport, so a full-width --face put the corners past
+    // the edge on every turn and drove page scroll. 0.78 is that 21% back
+    // out, which buys the rotation its gutter.
+    @media (max-width: 768px) {
+      --face: calc((100vw - 2 * var(--grid-margin)) * 0.78);
+    }
 
     // Pills to the right of the block. The nav stays first in the DOM, so
     // tab order still reaches the controls before the face they turn to;
@@ -1598,6 +1691,18 @@ const testimonials = [
       .globe__label {
         filter: none;
         transition: opacity 0.2s var(--ease-out-expo);
+      }
+    }
+
+    // Phones fall back to the same no-label state as non-Chromium. A label is
+    // centred on its marker and never wraps, so one pinned near the globe's
+    // edge hangs half its width past it — up to 60px. On desktop the globe is
+    // one of two columns and that lands in the gutter; on a phone the globe
+    // spans the column, so the pill is cut off by the viewport instead. Every
+    // place is already named in the list below, which is why this is no loss.
+    @media (max-width: 768px) {
+      .globe__label {
+        display: none;
       }
     }
   }
@@ -2075,6 +2180,39 @@ const testimonials = [
     // an image. Three cards fan and stay legible; the fan script measures
     // the laid-out cards, so it stays symmetric over three.
     .stand__card:nth-child(n + 4) {
+      display: none;
+    }
+  }
+
+  // Phones drop the fan. Three cards at 28vw is 105px each on a 375px screen
+  // — an image too small to read, and the perspective that makes the fan work
+  // also throws the outer cards past the column. A flat 2-up grid gives each
+  // card ~46vw, and a fourth card fills the second row so it has no widow.
+  // The fan script sits out this breakpoint, so nothing re-applies a rotate.
+  @media (max-width: 768px) {
+    .stand__stage {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--grid-gutter);
+      perspective: none;
+      transform-style: flat;
+    }
+
+    .stand__card {
+      width: auto;
+      height: auto;
+      // The 17/22 of the desktop card, kept so the crop does not shift.
+      aspect-ratio: 17 / 22;
+    }
+
+    // Matches the n+4 rule above on specificity, and wins on source order —
+    // a bare `.stand__card { display: block }` does not, so the fourth card
+    // stayed hidden and left a widow in the second row.
+    .stand__card:nth-child(4) {
+      display: block;
+    }
+
+    .stand__card:nth-child(n + 5) {
       display: none;
     }
   }

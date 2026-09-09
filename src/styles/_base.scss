@@ -21,13 +21,18 @@ html,
 body {
   height: auto;
   min-height: 100%;
+  // Both elements, not body alone: a body-only clip depends on overflow
+  // propagating body → viewport, and the .lenis-stopped rule below sets
+  // overflow on html, which cuts the propagation and lets the page scroll
+  // sideways again. `clip` rather than `hidden` so no scroll container is
+  // created and `position: sticky` keeps working.
+  overflow-x: clip;
   -webkit-text-size-adjust: none;
   text-size-adjust: none;
 }
 
 body {
   width: 100%;
-  overflow-x: clip;
   hyphens: auto;
   -webkit-hyphenate-character: '-';
   hyphenate-character: '-';
