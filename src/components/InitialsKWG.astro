@@ -24,10 +24,20 @@
 //
 // No motion path here: the initials are the animation, so there is no
 // [data-mover] and the cube script's dot step simply does not run.
+//
+// Two copies of this drawing exist — the Intro face and the splash — and each
+// is drawn by its own script. `class` is how a caller addresses its own copy;
+// without it both would answer to `.initials` and the first in the document
+// would take both animations.
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
 ---
 
 <svg
-  class="initials"
+  class:list={['initials', className]}
   viewBox="0 0 300 52"
   fill="none"
   preserveAspectRatio="xMidYMid meet"

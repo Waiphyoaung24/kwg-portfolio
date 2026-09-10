@@ -1,46 +1,151 @@
 ---
-interface Props {
-  text?: string;
-}
+// The once-per-session front door. Three things happen at the same time: the
+// monogram strokes itself in, a counter rolls 0 to 100 under it, then the
+// whole plate scales down and fades out.
+//
+// The counter is a pacing device, not a measurement — nothing here waits on a
+// real asset. A preloader tied to actual progress stalls at 90 on one slow
+// request and finishes instantly on a warm cache, which is the behaviour that
+// makes real ones feel broken. A fixed duration is the honest version of a
+// number that was never load-bearing.
+import InitialsKWG from './InitialsKWG.astro';
 
-const { text = 'splash' } = Astro.props;
+// Three columns of eleven digits: 0-9 and a second 0, so the tenth roll lands
+// on a zero below the nine rather than snapping back up over it.
+//
+// Rendered here rather than built in the script: Astro scopes component CSS
+// with an attribute selector, and nodes created in JS never carry it, so a
+// script-built reel silently loses `overflow: hidden` and prints all thirty
+// three digits in a row. The script only moves what the template already laid
+// out. Each column's place value is what the counter divides by.
+const COLUMNS = [100, 10, 1];
+const REEL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
 ---
 
 <script>
   import { gsap } from 'gsap';
+  import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 
   import { scrollStop, scrollStart } from '../scripts/scroll';
+
+  gsap.registerPlugin(DrawSVGPlugin);
 
   const splash: HTMLElement | null =
     document.querySelector('[data-js="splash"]');
 
-  window.addEventListener('load', () => {
-    if (!sessionStorage.getItem('splash:played') && splash) {
-      scrollStop();
+  // Each column is the value in its own place, wrapped to one reel: the units
+  // column turns ten times while the tens column turns once, so the carry is
+  // the arithmetic rather than a rule about when to advance. Place values come
+  // from the markup, so the template stays the one place the reel is defined.
+  const reels = () => {
+    const strips = [
+      ...(splash?.querySelectorAll<HTMLElement>('[data-js="reel"]') ?? []),
+    ];
+    if (!strips.length) return null;
 
-      gsap
-        .timeline({
-          delay: 0.2,
-          defaults: { duration: 1, ease: 'power4.inOut' },
-        })
-        .to(splash, {
-          scale: 0.8,
-        })
-        .to(splash, {
+    // em, not %: a percentage translate resolves against the strip's own
+    // height, which is eleven digits, so digit 1 travelled 1.1 digits and
+    // every column sat a tenth of a digit low — a sliver of the next number
+    // showing under the one meant to be centred. A digit is 1em tall by
+    // construction, so em is the unit that means "one digit".
+    return (value: number) => {
+      strips.forEach((strip) => {
+        const place = Number(strip.dataset.place);
+        const turns = (value / place) % 10;
+        strip.style.transform = `translateY(${-turns}em)`;
+      });
+    };
+  };
+
+  const play = () => {
+    if (!splash) return;
+    scrollStop();
+
+    const done = () => {
+      window.dispatchEvent(new Event('splash:done'));
+    };
+    const finish = () => {
+      scrollStart();
+      sessionStorage.setItem('splash:played', 'true');
+    };
+
+    const setCount = reels();
+    const marks = splash.querySelectorAll('.splash__mark [data-draw]');
+
+    // Reduced motion keeps the plate and drops the performance: the monogram
+    // is simply there, the counter is simply 100, and the plate fades. The
+    // splash still has to leave, so this cannot be the usual "ornament does
+    // not run" and nothing else changes.
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCount?.(100);
+      gsap.to(splash, {
+        autoAlpha: 0,
+        duration: 0.3,
+        delay: 0.2,
+        onStart: done,
+        onComplete: finish,
+      });
+      return;
+    }
+
+    const counter = { value: 0 };
+
+    gsap
+      .timeline({ delay: 0.2 })
+      .to(
+        counter,
+        {
+          value: 100,
+          duration: 1.4,
+          // The long tail your reference had: quick off the mark, then a
+          // settle you can read the last few digits through.
+          ease: 'power4.out',
+          onUpdate: () => setCount?.(counter.value),
+        },
+        0,
+      )
+      .from(
+        marks,
+        {
+          drawSVG: 0,
+          duration: 1.2,
+          stagger: 0.05,
+          ease: 'power2.out',
+        },
+        0,
+      )
+      // Two stages, because one is a plate sliding away and two is a plate
+      // settling and then leaving. The budget is what keeps them short: this
+      // whole timeline is a gate in front of the page, and the exit tweens
+      // run back to back, so their durations add rather than overlap.
+      .to(
+        splash,
+        {
+          scale: 0.9,
+          duration: 0.4,
+          ease: 'power4.inOut',
+        },
+        1.4,
+      )
+      .to(
+        splash,
+        {
           scale: 0.5,
           autoAlpha: 0,
-        })
-        .call(
-          () => {
-            window.dispatchEvent(new Event('splash:done'));
-          },
-          [],
-          '<0.4',
-        )
-        .call(() => {
-          scrollStart();
-          sessionStorage.setItem('splash:played', 'true');
-        });
+          duration: 0.7,
+          ease: 'power4.inOut',
+          onComplete: finish,
+        },
+        '>',
+      )
+      // Ahead of the plate clearing, so the page behind is already moving
+      // when it goes — the same overlap the scale-only version used.
+      .call(done, [], '<0.4');
+  };
+
+  window.addEventListener('load', () => {
+    if (!sessionStorage.getItem('splash:played') && splash) {
+      play();
     } else {
       window.dispatchEvent(new Event('splash:done'));
     }
@@ -55,7 +160,22 @@ const { text = 'splash' } = Astro.props;
 
 <div class="splash" data-js="splash">
   <div class="content">
-    <h1>{text}</h1>
+    <div class="mark">
+      <InitialsKWG class="splash__mark" />
+    </div>
+    <p class="count" aria-hidden="true">
+      {
+        COLUMNS.map((place) => (
+          <span class="count__cell">
+            <span class="count__strip" data-js="reel" data-place={place}>
+              {REEL.map((d) => (
+                <span class="count__digit">{d}</span>
+              ))}
+            </span>
+          </span>
+        ))
+      }
+    </p>
   </div>
 </div>
 
@@ -72,7 +192,11 @@ const { text = 'splash' } = Astro.props;
     position: fixed;
     inset: 0;
     display: none;
-    width: 100vw;
+    // 100%, not 100vw: 100vw counts the scrollbar gutter, so the plate ran
+    // ~15px wider than the layout and anything measured off it sat that much
+    // out of line with .container, which centres inside the layout width.
+    // inset: 0 already sizes the box; these two just say so.
+    width: 100%;
     height: 100%;
     z-index: var(--zi-splash);
     background-color: var(--c-canvas);
@@ -85,7 +209,81 @@ const { text = 'splash' } = Astro.props;
     place-items: center;
   }
 
-  h1 {
+  // The drawing is absolutely positioned against the box it is given, so the
+  // splash's job is to be that box.
+  //
+  // 640, not the 420 this started at. The letterforms are centred in a 300
+  // unit viewBox and span about 160 of it, so the mark draws at roughly half
+  // the box it is given — a 420px box put a 224px monogram in the middle of a
+  // 1440px screen, which reads as a favicon rather than a front door. 640
+  // lands it near 340.
+  .mark {
+    position: relative;
+    width: min(#{to-rem(640)}, calc(100% - 2 * var(--grid-margin)));
+    aspect-ratio: 300 / 52;
+  }
+
+  // The drawing's own colour is --c-hairline-bright, which is right on the
+  // cube face where it sits behind copy and must not compete with it. Here it
+  // IS the subject, so it takes the ink. :global because the stroke class
+  // belongs to InitialsKWG's scope, not this one.
+  .mark :global(.initials) {
     color: var(--c-ink);
+  }
+
+  // Bottom-right: a diagonal counterweight to the mark rather than a caption
+  // under it, so the two read as two things and neither crowds the other.
+  //
+  // Right edge on the page's own gutter, not the viewport's. .container caps
+  // at 1200 and centres, so content sits (100% - 1200) / 2 + margin in from
+  // the edge; a plain --grid-margin would leave the counter visibly out of
+  // line with everything the splash lifts off. max() hands the narrow case
+  // back to the margin, before the cap binds.
+  //
+  // Display size, not the --fs-micro this started at. At 12px in a corner of
+  // a near-empty plate, with the eye held by a 340px monogram and each column
+  // showing two half-digits mid-roll, the counter read as texture rather than
+  // a number. Size was the fix: --c-mute measures 5.06:1 here and was never
+  // the problem, though the ink is right for what this now is.
+  .count {
+    position: absolute;
+    right: max(
+      var(--grid-margin),
+      calc((100% - var(--container-max-width)) / 2 + var(--grid-margin))
+    );
+    bottom: var(--grid-margin);
+    display: flex;
+    font-family: var(--ff-mono);
+    font-size: var(--fs-2);
+    letter-spacing: var(--ls-mono);
+    line-height: 1;
+    color: var(--c-ink);
+    // Tracking is applied after every character, the last one included, so a
+    // flush-right element hangs its own trailing space over the margin — 7px
+    // at the top of the clamp. Pull it back so the digits align to the gutter
+    // and not the space behind them.
+    margin-right: calc(-1 * var(--ls-mono));
+  }
+
+  // One digit tall with the rest of the reel clipped away. The strip is moved
+  // by percentage, so the cell height is the only measurement either needs.
+  .count__cell {
+    display: block;
+    overflow: hidden;
+    height: 1em;
+  }
+
+  .count__strip {
+    display: block;
+    will-change: transform;
+  }
+
+  .count__digit {
+    display: block;
+    height: 1em;
+    text-align: right;
+    // Reel digits must not reflow as they pass: proportional numerals would
+    // make the column breathe on every turn.
+    font-variant-numeric: tabular-nums;
   }
 </style>
