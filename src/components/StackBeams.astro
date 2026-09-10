@@ -1,0 +1,335 @@
+---
+// STACK BEAMS — six tools wired into the mark, beside the cube in section 02.
+//
+// This is where the working stack lives now. It used to be nine chips on the
+// cube's Craft face; a chip list and a wiring diagram of the same nine words,
+// three feet apart in one section, said the thing twice. The face kept its
+// lede and its drawing, and the stack moved here.
+//
+// The stack is given by Wai Phyo Aung rather than read off this repo. Astro,
+// React, GSAP and Node are traceable to src/data/works.ts (Astro and React on
+// Red Horse, GSAP on Kage); Postgres backs the vault tools per PRODUCT.md;
+// Swift is not recorded anywhere here and stands on his word. Nothing
+// aspirational goes in this list.
+//
+// Six, not the nine the chips carried: three a side is what the layout reads
+// at, and a fourth row each way turns a diagram into a logo wall — which is
+// PRODUCT.md anti-reference 3. Three.js, FastAPI and Kotlin are the three the
+// cut loses.
+//
+// Monochrome by decision. PRODUCT.md anti-reference 1 names "dark + neon" as
+// the explicit enemy and anti-reference 3 rules out "powered by" badges, so
+// these are hairline pills with mono labels — the vocabulary the chips they
+// replace already used — and the beams speak DeployPipeline's language: a
+// dotted hairline path with one white head travelling it.
+const left = ['Astro', 'React', 'GSAP'];
+const right = ['Node', 'Postgres', 'Swift'];
+---
+
+<div class="stackbeams" data-stackbeams>
+  <svg
+    class="sb__beams"
+    data-sb-beams
+    aria-hidden="true"
+    focusable="false"
+    xmlns="http://www.w3.org/2000/svg"></svg>
+
+  <ul class="sb__col sb__col--left" role="list">
+    {
+      left.map((name) => (
+        <li class="sb__node label" data-sb-node>
+          {name}
+        </li>
+      ))
+    }
+  </ul>
+
+  {/* The same three-stroke W the cube's Craft face wears, and the favicon. */}
+  <div class="sb__hub" data-sb-hub>
+    <span class="sb__mark" aria-hidden="true">
+      <svg viewBox="0 0 36 24" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M0 0h6.4l3.3 15.2L13.4 0h5.2l3.7 15.2L25.6 0H32l-6 24h-6.2L16 9.6 12.2 24H6z"
+        />
+      </svg>
+    </span>
+    <span class="visually-hidden">KWG</span>
+  </div>
+
+  <ul class="sb__col sb__col--right" role="list">
+    {
+      right.map((name) => (
+        <li class="sb__node label" data-sb-node>
+          {name}
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<style lang="scss">
+  // Three tracks: the two label columns and the hub between them. The hub
+  // track is `auto` so the columns take the slack, which is what gives the
+  // beams a channel long enough to read as travel rather than a tick.
+  // No .card: the wiring sits straight on the canvas, the way the figures
+  // under it do. A border made it a panel competing with the cube's own
+  // frame; a fill with no border read as a smudge. Padding stays so the
+  // outer pills keep clear of whatever sits beside the block.
+  .stackbeams {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(#{to-rem(56)}, 1fr) auto;
+    align-items: center;
+    gap: var(--sp-lg);
+    padding: clamp-fluid(8, 16) 0;
+  }
+
+  .sb__col {
+    display: flex;
+    flex-direction: column;
+    // Generous, because the vertical gap between nodes is what fans the
+    // beams apart. Tight rows collapse the three paths into one stroke.
+    gap: clamp-fluid(28, 44);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    // Over the beams, so a path terminating under a pill is hidden by it
+    // rather than crossing its border.
+    position: relative;
+    z-index: 1;
+  }
+
+  .sb__col--left {
+    grid-column: 1;
+    align-items: flex-start;
+  }
+
+  .sb__col--right {
+    grid-column: 3;
+    align-items: flex-end;
+  }
+
+  // The pill primitive's shape and the .label primitive's type, but inert:
+  // these name the stack, they do not do anything, so they are <li> and carry
+  // no hover, no focus ring and no pointer cursor.
+  .sb__node {
+    padding: to-rem(6) to-rem(14);
+    border: 1px solid var(--c-hairline-bright);
+    border-radius: var(--r-pill);
+    background-color: var(--c-canvas);
+    color: var(--c-body);
+    white-space: nowrap;
+  }
+
+  .sb__hub {
+    grid-column: 2;
+    justify-self: center;
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: clamp-fluid(56, 76);
+    aspect-ratio: 1;
+    border: 1px solid var(--c-ink);
+    border-radius: var(--r-pill);
+    background-color: var(--c-canvas);
+  }
+
+  .sb__mark {
+    display: block;
+    width: 44%;
+    color: var(--c-ink);
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      fill: currentColor;
+    }
+  }
+
+  // The <svg> ships empty; the script fills it once the grid has placed the
+  // nodes, because their coordinates only exist after layout.
+  .sb__beams {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  // Dotted, like a wiring diagram rather than a drawn line — it reads as the
+  // route the head travels rather than as a second object competing with the
+  // pills at either end.
+  .sb__beams :global(.sb__path) {
+    fill: none;
+    stroke: var(--c-hairline-bright);
+    stroke-width: 1;
+    stroke-dasharray: 2 5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  // Every path carries pathLength="100", so one dash pattern and one keyframe
+  // serve all six regardless of their real lengths — which differ, because
+  // the outer nodes are further from the hub than the middle pair.
+  .sb__beams :global(.sb__head) {
+    fill: none;
+    stroke: var(--c-ink);
+    stroke-width: 1;
+    stroke-linecap: round;
+    stroke-dasharray: 10 90;
+    vector-effect: non-scaling-stroke;
+    animation: sb-travel 3.2s linear infinite;
+    // Negative, so all six are already in flight on the first frame rather
+    // than leaving the card empty for a beat.
+    animation-delay: calc(var(--sb-i) * -0.52s);
+  }
+
+  @keyframes sb-travel {
+    from {
+      stroke-dashoffset: 100;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  // The same diagram rotated a quarter turn. At 390px the card has 308px of
+  // inner width and the widest pill is 108 — two columns plus a 56px hub
+  // leaves 18px a side, which is not a beam, it is a tick. Stacked, the
+  // channel runs vertically instead, where there is room to spare.
+  //
+  // The gap is the channel: below about 40px the beams stop being worth
+  // drawing, which is what sets the floor of the clamp.
+  @media (max-width: 767px) {
+    .stackbeams {
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
+      gap: clamp-fluid(44, 60);
+    }
+
+    .sb__col,
+    .sb__hub {
+      grid-column: 1;
+    }
+
+    .sb__col {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--sp-sm);
+    }
+
+    .sb__col--left,
+    .sb__col--right {
+      align-items: center;
+    }
+
+    // Hub between the two rows, the way the desktop layout reads.
+    .sb__hub {
+      order: 0;
+    }
+
+    .sb__col--left {
+      order: -1;
+    }
+
+  }
+
+  // PRODUCT.md a11y floor: fewer and gentler, not none. The routes still
+  // draw, so the wiring stays legible; only the travel stops.
+  @media (prefers-reduced-motion: reduce) {
+    .sb__beams :global(.sb__head) {
+      animation: none;
+      stroke-dasharray: none;
+      opacity: 0.3;
+    }
+  }
+</style>
+
+<script>
+  // Wires each stack node to the hub.
+  //
+  // No animation library: the travel is a CSS animation, which runs off the
+  // main thread and keeps its frames while the page is still booting its
+  // React islands and WebGL. There is nothing to drive from JS here — unlike
+  // the cube's nav, these nodes are labels, not controls, so there is no
+  // click to give feedback about.
+  //
+  // Geometry is measured, not authored: the grid's middle track is fluid and
+  // the pills size to their words, so paths can only be built after layout
+  // and have to be rebuilt when it changes.
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const WIDE = window.matchMedia('(min-width: 768px)');
+
+  const card = document.querySelector<HTMLElement>('[data-stackbeams]');
+  const svg = card?.querySelector<SVGSVGElement>('[data-sb-beams]');
+  const hub = card?.querySelector<HTMLElement>('[data-sb-hub]');
+  const nodes = card
+    ? [...card.querySelectorAll<HTMLElement>('[data-sb-node]')]
+    : [];
+
+  const build = () => {
+    if (!card || !svg || !hub) return;
+    svg.replaceChildren();
+
+    const box = card.getBoundingClientRect();
+    const h = hub.getBoundingClientRect();
+    svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+    const hubX = h.left + h.width / 2 - box.left;
+    const hubY = h.top + h.height / 2 - box.top;
+    // Wide: columns either side of the hub. Narrow: rows above and below it.
+    // Same diagram, quarter turn, so the only thing that changes is which
+    // pair of edges a path runs between.
+    const stacked = !WIDE.matches;
+
+    nodes.forEach((node, i) => {
+      const r = node.getBoundingClientRect();
+
+      // Every path is built node-first, hub-last in BOTH orientations, so
+      // stroke-dashoffset travels inward either way — no reversed animation
+      // and no second keyframe. These tools feed the mark; nothing flows out.
+      let d: string;
+      if (stacked) {
+        const above = r.top + r.height / 2 - box.top < hubY;
+        const x1 = r.left + r.width / 2 - box.left;
+        const y1 = (above ? r.bottom : r.top) - box.top;
+        const y2 = (above ? h.top : h.bottom) - box.top;
+        // Control point over the hub's x at the node's y: the path leaves the
+        // pill vertically and arrives at the hub square-on.
+        d = `M${x1},${y1} Q${hubX},${y1} ${hubX},${y2}`;
+      } else {
+        const fromLeft = r.left - box.left < box.width / 2;
+        const x1 = (fromLeft ? r.right : r.left) - box.left;
+        const y1 = r.top + r.height / 2 - box.top;
+        const x2 = (fromLeft ? h.left : h.right) - box.left;
+
+        // One right-angle-ish elbow rather than a straight line: the middle
+        // node is level with the hub and would otherwise be the only straight
+        // path, which made the other two look like mistakes. A quadratic with
+        // its control point over the hub's x gives all three the same shape.
+        d = `M${x1},${y1} Q${x2},${y1} ${x2},${hubY}`;
+      }
+
+      for (const cls of ['sb__path', 'sb__head']) {
+        const path = document.createElementNS(SVG_NS, 'path');
+        path.setAttribute('class', cls);
+        path.setAttribute('d', d);
+        // Normalised length: one dash pattern and one keyframe fit all six.
+        path.setAttribute('pathLength', '100');
+        if (cls === 'sb__head') path.style.setProperty('--sb-i', String(i));
+        svg.append(path);
+      }
+    });
+  };
+
+  if (card && svg) {
+    build();
+    // The middle track is fluid, the pills wrap, and crossing 768px swaps the
+    // diagram's orientation — every one of those moves both ends of a beam.
+    new ResizeObserver(build).observe(card);
+    WIDE.addEventListener('change', build);
+  }
+</script>

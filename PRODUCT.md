@@ -66,7 +66,7 @@ Three kinds of work sit here: sites where the interface carries the argument, in
 Things this must never look like, in order of priority:
 
 1. **Generic dev portfolio: dark + neon + glassmorphism.** No neon accents, no frosted-glass cards, no gradient text, no animated-particle hero. The "AI made that" first-order reflex for technical portfolios is the explicit enemy.
-2. **The SaaS hero-metric template.** Big number, small label, supporting stats, gradient accent block: outlawed. No "10x productivity," no fake usage stats, no metric-card grids.
+2. **Fabricated metrics, and the SaaS hero-metric template.** No "10x productivity," no invented usage stats, no metric-card grids, no gradient accent block behind a number. Narrowed from a blanket ban on figures by the owner's decision: section 02 carries two — years building, and projects delivered. Both are attested by him, both are declared in `src/pages/index.astro` with their provenance in the comment above them, and neither wears card chrome or an accent. A figure that cannot be sourced still does not ship.
 3. **The crypto / AI-wrapper aesthetic family.** Grid backgrounds, gradient buttons, "powered by" badges, and shimmer animations. Sharing a canvas colour with AI labs is not a licence to borrow their marketing tropes.
 4. **Corporate agency polish.** Stock-photo hero, vague capability list, "we craft experiences" copy, case-study-as-marketing-funnel. The writing must not be hollow.
 5. **Awwwards-bait spectacle.** Scroll-jacked WebGL playgrounds with no point. Motion serves the work, not the demo reel.
@@ -77,7 +77,8 @@ Things this must never look like, in order of priority:
 - Catalog entries ship real, copyable source (`src/catalog/`).
 - Home page capability imagery is real shipped work: live site heroes in Websites & Landing Pages, and real product screens in device mocks in Product & UI (`public/works/product/`).
 - Any remaining placeholder imagery must be replaced with real work before launch and must not be described as real work.
-- No testimonials, client logos, metrics, or press exist. Do not fabricate any.
+- No client logos or press exist. Do not fabricate any.
+- The two figures in section 02 (8 years building, 20+ projects delivered) are the owner's own count, not derived from `src/data/works.ts` — which holds 7 entries, being a portfolio selection rather than a career total. They stand on his word, the way Swift does in the stack list. Do not add a figure that has no source.
 
 ## Product Principles
 

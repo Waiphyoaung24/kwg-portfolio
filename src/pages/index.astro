@@ -1,49 +1,14 @@
 ---
 import Layout from '@layouts/Layout.astro';
 import HeroGradient from '@components/HeroGradient.tsx';
-import BangkokSkyline from '@components/BangkokSkyline.astro';
-import InitialsKWG from '@components/InitialsKWG.astro';
-import DeployPipeline from '@components/DeployPipeline.astro';
-import ContactEnvelope from '@components/ContactEnvelope.astro';
 import DeviceMock from '@components/DeviceMock.astro';
+import IntroCube from '@components/IntroCube.astro';
+import StackBeams from '@components/StackBeams.astro';
 import { Image } from 'astro:assets';
 import { works, type Work } from '../data/works';
 
 // Same address as the Footer; the hero is the front door for freelance work.
 const email = 'waiphyoag.cs34@gmail.com';
-
-// Hero cube — four faces on the Y axis; the pills beside it turn the block.
-// Order is the rotation order, not a ranking: the script steps between
-// indices to work out the short way round. Copy comes from what the page
-// already states; nothing here is invented (PRODUCT.md).
-const cubeFaces = [
-  { side: 'front', label: 'Intro' },
-  { side: 'right', label: 'Where' },
-  { side: 'back', label: 'Craft' },
-  { side: 'left', label: 'Contact' },
-];
-
-// The Craft face. The working stack, given by Wai Phyo Aung rather than read
-// off this repo — the earlier list described what this site is built with,
-// which is a narrower claim than the face makes. Web and backend entries are
-// still traceable to src/data/works.ts (Astro and React on Red Horse, Three.js
-// and GSAP on Kage, FastAPI on CastraNova); the two native languages are not
-// recorded anywhere here, so they stand on his word. Nothing aspirational
-// goes in this list.
-//
-// Nine is the ceiling, not a preference: a tenth chip wraps to a fourth row
-// and a fourth row is exactly the band the pipeline drawing above needs.
-const stack = [
-  'Astro',
-  'React',
-  'GSAP',
-  'Three.js',
-  'Node',
-  'FastAPI',
-  'Postgres',
-  'Kotlin',
-  'Swift',
-];
 
 type FeaturedWork = Work & {
   media: NonNullable<Work['media']>;
@@ -178,6 +143,34 @@ const productScreens = [
     sub: 'People',
     alt: 'NexApex HRM — people dashboard',
   },
+];
+
+// Section 02's two figures. Both are attested by Wai Phyo Aung, not derived
+// from this repo, which is why they are declared here rather than counted:
+//
+// `8` is the SPAN since 2018, his first professional role (PADC), not eight
+// continuous years — the background list below shows two study gaps inside it.
+// `20+` is his own count of shipped work; src/data/works.ts holds 7 entries,
+// but that file is the portfolio selection, not the career total. Same footing
+// as Swift in the StackBeams list: his word, recorded as his word.
+//
+// These break PRODUCT.md anti-reference 2 as it was originally written. That
+// was a deliberate call by the owner, and the anti-reference has been narrowed
+// to match rather than left contradicting the page.
+//
+// The third is a status, not a count: where he takes work. Thailand is where
+// he is (Bangkok, per the Where face); Myanmar is where he is from (Yangon
+// University, PADC). It is his statement to make, and a client is the reader
+// it is for — PRODUCT.md's second audience wants to know how to start.
+// `text` entries have nothing to roll, so the script reveals them and skips
+// the counter.
+const introStats: (
+  | { value: number; suffix: string; label: string }
+  | { text: string; label: string }
+)[] = [
+  { value: 8, suffix: '', label: 'Years building' },
+  { value: 20, suffix: '+', label: 'Projects delivered' },
+  { text: 'TH · MM', label: 'Available for work' },
 ];
 
 // Background — the places behind the work, split into the two things a
@@ -330,113 +323,6 @@ const testimonials = [
           </div>
         </div>
 
-        <div class="cubeblock" data-inview-manual>
-          <nav class="cubeblock__nav" aria-label="Turn the cube">
-            {
-              cubeFaces.map(({ side, label }, i) => (
-                <button
-                  class="pill-btn cubeblock__btn"
-                  type="button"
-                  data-side={side}
-                  aria-pressed={i === 0 ? 'true' : 'false'}
-                  aria-controls={`cube-${side}`}
-                >
-                  {label}
-                </button>
-              ))
-            }
-          </nav>
-
-          <div class="cubeblock__scene">
-            <div class="cube" data-side="front">
-              <div class="card cube__face cube__face--front" id="cube-front">
-                <div class="cube__head">
-                  <p class="label cube__label">Intro</p>
-                  <span class="cube__mark" aria-hidden="true">
-                    <svg viewBox="0 0 32 32">
-                      <path
-                        fill-rule="evenodd"
-                        clip-rule="evenodd"
-                        d="M26.2636 20.4752L29.7034 6.2832H22.8238L26.2636 20.4752Z"
-                      ></path>
-                      <path
-                        fill-rule="evenodd"
-                        clip-rule="evenodd"
-                        d="M12.2636 6.2832L17.0473 26.0199H23.9568L19.1731 6.2832H12.2636Z"
-                      ></path>
-                      <path
-                        fill-rule="evenodd"
-                        clip-rule="evenodd"
-                        d="M8.61287 6.28336L1.70337 6.28373L6.48706 26.0203L13.3966 26.02L8.61287 6.28336Z"
-                      ></path>
-                    </svg>
-                  </span>
-                </div>
-                <div class="cube__body">
-                  <div class="cube__art">
-                    <InitialsKWG />
-                  </div>
-                  <div class="cube__prose">
-                    <p class="cube__lede">
-                      I'm <em>Wai Phyo Aung</em>, an AI and software engineer
-                      in Bangkok.
-                    </p>
-                    <p class="cube__para cube__para--more">
-                      I build websites, the systems a business runs on,
-                      custom web and mobile apps, and AI integration.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="card cube__face cube__face--right" id="cube-right">
-                <p class="label cube__label">Where</p>
-                <div class="cube__body">
-                  <div class="cube__art">
-                    <BangkokSkyline />
-                  </div>
-                  <p class="cube__lede">Bangkok, Thailand. UTC+7.</p>
-                  <p class="cube__para">
-                    A written update every week, whatever the time zone.
-                  </p>
-                  <time class="micro cube__time" data-clock></time>
-                </div>
-              </div>
-
-              <div class="card cube__face cube__face--back" id="cube-back">
-                <p class="label cube__label">Craft</p>
-                <div class="cube__body">
-                  <div class="cube__art">
-                    <DeployPipeline />
-                  </div>
-                  <p class="cube__lede">
-                    Every piece comes with its decisions, its stack, and where
-                    it runs.
-                  </p>
-                  <ul class="cube__stack" role="list">
-                    {stack.map((s) => <li class="micro">{s}</li>)}
-                  </ul>
-                </div>
-              </div>
-
-              <div class="card cube__face cube__face--left" id="cube-left">
-                <p class="label cube__label">Contact</p>
-                <div class="cube__body">
-                  <div class="cube__art">
-                    <ContactEnvelope />
-                  </div>
-                  <p class="cube__lede">
-                    One door: email. No forms, no booking funnel.
-                  </p>
-                  <p class="micro cube__addr">{email}</p>
-                  <a class="pill-btn" href={`mailto:${email}?subject=New%20project`}>
-                    Email me <span aria-hidden="true">&#8599;&#65038;</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <p class="hero__cue label" data-inview-manual>
@@ -444,9 +330,70 @@ const testimonials = [
       </p>
     </section>
 
+    {/* Two independent panels, not one merged widget: the cube owns its own
+        pill nav and knows nothing about the beams, and StackBeams knows
+        nothing about the cube. Either can move or be dropped on its own. */}
+    <section id="intro" class="container intro" aria-labelledby="intro-heading">
+      <header class="intro__header">
+        <p class="label" data-inview>02 &mdash; Introduction</p>
+        <h2 id="intro-heading" class="visually-hidden">Introduction</h2>
+      </header>
+
+      <div class="intro__grid">
+        <IntroCube email={email} />
+
+        <div class="intro__aside">
+          <StackBeams />
+
+          {/* Figures, not a metric-card grid: no surrounding card chrome and
+              no accent block, so they read as two numbers set on the canvas.
+              aria-hidden on the rolling digits because the roll would spam a
+              screen reader with every intermediate value; the visually-hidden
+              span carries the final figure once, in words. */}
+          <dl class="intro__stats">
+            {
+              introStats.map((stat) =>
+                'text' in stat ? (
+                  <div class="intro__stat">
+                    <dt class="visually-hidden">{stat.label}</dt>
+                    <dd class="intro__figure" data-stat-text>
+                      {stat.text}
+                    </dd>
+                    <p class="micro intro__statlabel" aria-hidden="true">
+                      {stat.label}
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    class="intro__stat"
+                    data-stat={stat.value}
+                    data-suffix={stat.suffix}
+                  >
+                    <dt class="visually-hidden">{stat.label}</dt>
+                    <dd class="intro__figure">
+                      <span aria-hidden="true" data-stat-value>
+                        0{stat.suffix}
+                      </span>
+                      {/* One expression, not two on separate lines: JSX
+                          turns the line break into a space and a reader
+                          would get "20 +". */}
+                      <span class="visually-hidden">{`${stat.value}${stat.suffix}`}</span>
+                    </dd>
+                    <p class="micro intro__statlabel" aria-hidden="true">
+                      {stat.label}
+                    </p>
+                  </div>
+                ),
+              )
+            }
+          </dl>
+        </div>
+      </div>
+    </section>
+
     <section id="work" class="container work" aria-labelledby="work-heading">
       <header class="work__header">
-        <p class="label">02 &mdash; Selected Work</p>
+        <p class="label">03 &mdash; Selected Work</p>
         <h2 id="work-heading" class="work__title-block">
           Selected Work<br />
           <span class="work__years">2024 &mdash; 2026</span>
@@ -488,7 +435,7 @@ const testimonials = [
       aria-labelledby="background-heading"
     >
       <header class="background__header">
-        <p class="label" data-inview>03 &mdash; Background</p>
+        <p class="label" data-inview>04 &mdash; Background</p>
         <h2 id="background-heading" class="visually-hidden">Background</h2>
 
         <div
@@ -578,7 +525,7 @@ const testimonials = [
 
     <section class="capabilities" aria-labelledby="capabilities-heading">
       <header class="container capabilities__header">
-        <p class="label" data-inview>04 &mdash; Capabilities</p>
+        <p class="label" data-inview>05 &mdash; Capabilities</p>
         <h2 id="capabilities-heading" class="visually-hidden">Capabilities</h2>
       </header>
 
@@ -713,7 +660,7 @@ const testimonials = [
       aria-labelledby="process-heading"
     >
       <header class="process__header">
-        <p class="label" data-inview>05 &mdash; How I work</p>
+        <p class="label" data-inview>06 &mdash; How I work</p>
         <h2 id="process-heading" data-inview>
           What the next few months look like
         </h2>
@@ -742,7 +689,7 @@ const testimonials = [
       aria-labelledby="testimonials-heading"
     >
       <header class="testimonials__header">
-        <p class="label" data-inview>06 &mdash; Testimonials</p>
+        <p class="label" data-inview>07 &mdash; Testimonials</p>
         <h2 id="testimonials-heading" data-inview>
           What the people I worked with say
         </h2>
@@ -1022,108 +969,6 @@ const testimonials = [
   }
 </script>
 
-<script>
-  import { gsap } from 'gsap';
-  import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
-  import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
-
-  gsap.registerPlugin(DrawSVGPlugin, MotionPathPlugin);
-
-  // Three faces carry a drawing — Intro its initials, Where its city, Craft
-  // its pipeline — and all work the same way: every [data-draw] stroke draws
-  // itself in the first time that wall is seen, then the [data-mover] dot, if
-  // the drawing has one, runs the path it names. Ornament in every case, which
-  // is what lets reduced motion simply not run them.
-  //
-  // The boat's and the pipeline dot's routes span the full frame, so a loop
-  // seam falls off the edge where nobody sees it. The initials carry no dot.
-  const drawing = (selector: string, seconds: number) => {
-    const svg = document.querySelector<SVGSVGElement>(selector);
-    let drawn = false;
-    return () => {
-      if (drawn || !svg) return;
-      drawn = true;
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-      // Delayed past the turn: the wall is edge-on for the first half of it,
-      // and a stroke drawn side-on is a stroke nobody sees.
-      gsap.from(svg.querySelectorAll('[data-draw]'), {
-        drawSVG: 0,
-        duration: 0.9,
-        stagger: 0.06,
-        delay: 0.35,
-        ease: 'power2.out',
-      });
-
-      const mover = svg.querySelector<SVGElement>('[data-mover]');
-      const route =
-        mover && svg.querySelector<SVGPathElement>(`#${mover.dataset.mover}`);
-      if (!mover || !route) return;
-
-      gsap.set(mover, { visibility: 'visible' });
-      gsap.to(mover, {
-        motionPath: { path: route, align: route, alignOrigin: [0.5, 0.5] },
-        duration: seconds,
-        delay: 0.35,
-        repeat: -1,
-        ease: 'none',
-      });
-    };
-  };
-
-  const drawWork = drawing('.initials', 12);
-  const drawCity = drawing('.skyline', 14);
-  const drawCraft = drawing('.pipeline', 11);
-  // A 300-unit straight traverse, so the number sits between the river's 14s
-  // (~22 units/s) and the wire's 11s (~27). Those two do not agree with each
-  // other, so there is no speed to match exactly — this splits them.
-  const drawDoor = drawing('.envelope', 12);
-
-  // Intro is the face the cube opens on, so its drawing waits on the splash
-  // rather than a turn. The event fires either way — Splash dispatches it
-  // immediately when it has already played this session.
-  window.addEventListener('splash:done', drawWork, { once: true });
-
-  // Hero cube: the pills beside it turn the block to a face. Rotation is
-  // cumulative rather than a fixed angle per face, so every turn takes the
-  // short way round — Contact back to Status is a quarter turn, not three.
-  const cube = document.querySelector<HTMLElement>('.cube');
-  const btns = document.querySelectorAll<HTMLButtonElement>('.cubeblock__btn');
-  if (cube && btns.length) {
-    const order = ['front', 'right', 'back', 'left'];
-    let angle = 0;
-    btns.forEach((btn) =>
-      btn.addEventListener('click', () => {
-        const side = btn.dataset.side!;
-        const step =
-          (order.indexOf(side) - order.indexOf(cube.dataset.side!) + 4) % 4;
-        // A step of 3 is a quarter turn the other way.
-        angle -= (step > 2 ? step - 4 : step) * 90;
-        cube.style.setProperty('--rot', `${angle}deg`);
-        cube.dataset.side = side;
-        btns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-        if (side === 'front') drawWork();
-        if (side === 'right') drawCity();
-        if (side === 'back') drawCraft();
-        if (side === 'left') drawDoor();
-      }),
-    );
-  }
-
-  // Bangkok clock on the Where face. Rendered empty rather than at build
-  // time, so a stale hour never ships with the page.
-  const clock = document.querySelector<HTMLTimeElement>('[data-clock]');
-  if (clock) {
-    const fmt = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Asia/Bangkok',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    const tick = () => (clock.textContent = `${fmt.format(new Date())} ICT`);
-    tick();
-    setInterval(tick, 30_000);
-  }
-</script>
 
 <script>
   // Zoom handoff, after Giana's "zoom scroll" (codepen.io/giana/pen/BabdgjB)
@@ -1289,6 +1134,85 @@ const testimonials = [
     );
 </script>
 
+<script>
+  // Section 02's two figures roll up as the section arrives.
+  //
+  // The mechanic is Splash.astro's, not a second opinion: tween a plain
+  // { value } proxy and write the number in onUpdate, 1.4s on power4.out —
+  // "quick off the mark, then a settle you can read the last few digits
+  // through", as the comment there puts it. Matching it means the page has
+  // one counter behaviour rather than two that nearly agree.
+  //
+  // Math.round, not toFixed: the tween's final frame lands on 7.999… as often
+  // as on 8, and a portfolio that reads "7" for one frame is worse than no
+  // animation. The tween is also set to its end value on complete, so the
+  // displayed figure is the authored one and not whatever the last frame was.
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  import '../scripts/scroll';
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  document.querySelectorAll<HTMLElement>('.intro__stat').forEach((stat, i) => {
+    const out = stat.querySelector<HTMLElement>('[data-stat-value]');
+    const text = stat.querySelector<HTMLElement>('[data-stat-text]');
+    const label = stat.querySelector<HTMLElement>('.intro__statlabel');
+    const end = Number(stat.dataset.stat ?? 0);
+    const suffix = stat.dataset.suffix ?? '';
+
+    // A status has nothing to count up to: it rises with its label, on the
+    // same trigger and the same stagger slot as the figures either side.
+    if (text) {
+      if (reduced) return;
+      gsap
+        .timeline({
+          scrollTrigger: { trigger: stat, start: 'top 85%', once: true },
+        })
+        .from(
+          [text, label],
+          { y: 14, opacity: 0, duration: 0.6, ease: 'power3.out', stagger: 0.1 },
+          i * 0.12,
+        );
+      return;
+    }
+    if (!out) return;
+
+    const write = (v: number) => (out.textContent = `${Math.round(v)}${suffix}`);
+
+    // Fewer and gentler, not none: the figure is simply there and the label
+    // fades, the same fallback Splash uses.
+    if (reduced) {
+      write(end);
+      return;
+    }
+
+    const proxy = { value: 0 };
+    gsap
+      .timeline({
+        scrollTrigger: { trigger: stat, start: 'top 85%', once: true },
+      })
+      .to(
+        proxy,
+        {
+          value: end,
+          duration: 1.4,
+          ease: 'power4.out',
+          onUpdate: () => write(proxy.value),
+          // Belt and braces against a last frame that never quite arrives.
+          onComplete: () => write(end),
+        },
+        i * 0.12,
+      )
+      .from(
+        label,
+        { y: 14, opacity: 0, duration: 0.6, ease: 'power3.out' },
+        i * 0.12 + 0.1,
+      );
+  });
+</script>
+
 <style lang="scss">
   // HERO — the front door: who, what, where, one way to reach out.
   // Three rows: top label, centered headline + proof + pills, bottom cue.
@@ -1352,495 +1276,20 @@ const testimonials = [
     color: var(--c-body);
   }
 
-  // Copy left, illumine card right; the card drops under the pills on mobile.
-  // Copy left, cube right; the block drops under the pills below $cube-aside.
-  // That threshold is 1060px, not the 769px used elsewhere on this page: the
-  // block and its pills claim ~546px, so at 960px the headline is left a
-  // 306px column and stacks seven lines deep. The three queries that switch
-  // this layout share the number. It tracks --face: grow the cube and this
-  // grows with it, or the headline loses its column.
-  $cube-aside: 1060px;
-
+  // One column. This was a two-column grid with the cube in the right-hand
+  // track and a $cube-aside: 1060px breakpoint to collapse it; the cube now
+  // has its own section, so the track, the breakpoint and the variable are all
+  // gone and the hero is a headline over two pills.
   .hero__center {
     display: grid;
     align-items: center;
     gap: clamp-fluid(40, 80);
-
-    @media (min-width: $cube-aside) {
-      grid-template-columns: 1fr auto;
-    }
   }
 
   .hero__copy {
     display: flex;
     flex-direction: column;
     gap: clamp-fluid(20, 40);
-  }
-
-  // HERO CUBE — after l-ignatova's "Cube CV" (codepen.io/l-ignatova/pen/qByExmV).
-  // The pen's mechanics, nothing else: one --face size drives the scene depth
-  // and every face's translateZ, so the block stays a true cube at any width.
-  // Four faces on the Y axis only — top and bottom are never turned to, so
-  // they are not drawn. Faces are the .card primitive, so hairlines carry the
-  // elevation and nothing casts a shadow. The inline script sets --rot.
-  .cubeblock {
-    // One expression at every width, no breakpoint. The cap is the budget the
-    // faces' copy is written against; the column term is what a phone can
-    // show. $cube-aside above moves with the cap.
-    //
-    // 420, not the 360 this started at: at 360 the Craft face — the fullest,
-    // with a drawing, a three-line lede and nine chips — ran its last chip
-    // row into the bottom padding and starved the drawing. The face is the
-    // budget, so the fix was the budget, not the copy.
-    //
-    // 0.90 of the column, not the 0.78 a max-width: 768px rule used to carry.
-    // A turning cube is wider than its face: the near corners project past
-    // the scene box and the bracket frame's -10px inset adds to that. 0.78
-    // was set when that bleed drove page scroll; html and body now carry
-    // overflow-x: clip, so the failure mode is a clipped corner and the
-    // budget is the wider one. Measured by sweeping the turn in 5° steps over
-    // the union of the four faces' projected boxes: nothing clips from 320px
-    // up, with ~18px to spare at 390.
-    //
-    // Folding the cap into the same min() retires that breakpoint: uncapped,
-    // the phone rule grew the face to 653px by 768px and then snapped back to
-    // 420 at 769px. Capped, the column term stops winning near 510px and the
-    // ramp is continuous. No viewport-height term — a face capped by a short
-    // window shrinks below what its words need. Both terms are lengths;
-    // --face feeds translateZ, which rejects percentages.
-    --face: min(#{to-rem(420)}, calc((100vw - 2 * var(--grid-margin)) * 0.9));
-    --turn: 0.7s var(--ease-out-expo);
-    display: grid;
-    gap: var(--sp-xl);
-
-    // Pills to the right of the block. The nav stays first in the DOM, so
-    // tab order still reaches the controls before the face they turn to;
-    // `order` moves it visually without touching that.
-    @media (min-width: $cube-aside) {
-      grid-template-columns: var(--face) auto;
-      align-items: center;
-
-      .cubeblock__nav {
-        order: 2;
-      }
-    }
-  }
-
-  .cubeblock__nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-sm);
-
-    // Four labels come to 158px of ink between them; the pill primitive's own
-    // 24px of horizontal padding comes to 192px — more than the words. That
-    // is what pushes Contact onto a second row, so below ~421px the padding
-    // is what gives, not the row. Wrap stays as the floor under 320px.
-    @media (max-width: 27.5rem) {
-      .cubeblock__btn {
-        padding-inline: var(--sp-sm);
-      }
-    }
-
-    @media (min-width: $cube-aside) {
-      flex-direction: column;
-      // Stretch so the four pills share one width and read as a column.
-      align-items: stretch;
-    }
-  }
-
-  // The face on show. Outline pills throughout: the hero's one filled pill is
-  // already spent on Email me.
-  .cubeblock__btn[aria-pressed='true'] {
-    border-color: var(--c-ink);
-    background-color: color-mix(in srgb, var(--c-ink) 6%, transparent);
-  }
-
-  .cubeblock__scene {
-    position: relative;
-    width: var(--face);
-    height: var(--face);
-    // The face is 0.78 of the column below 769px, so the block does not fill
-    // the row the pills above it do. Left-aligned, that shortfall all landed
-    // on the right as ~67px of dead column; centred, it reads as a gutter the
-    // rotation turns into and splits the corner bleed evenly between the two
-    // sides. Above $cube-aside the scene's grid column IS --face, so this is
-    // a no-op there and the two-column layout is untouched.
-    justify-self: center;
-    // The faces query this, not the viewport: what fits on a face depends
-    // on the face.
-    container: cube / inline-size;
-    // Short enough that the far wall foreshortens visibly — that inner
-    // rectangle, and the four side walls raking back to meet it, are what
-    // make the block read as a box you are looking into.
-    perspective: to-rem(800);
-  }
-
-  // Corner brackets, as the illumine card wore before it: a hairline frame
-  // just outside the block, clipped back to its corners so it marks the
-  // volume without a second closed rectangle competing with the box.
-  .cubeblock__scene::after {
-    --ax: #{to-rem(44)};
-    content: '';
-    position: absolute;
-    inset: to-rem(-10);
-    border: 1px solid var(--c-hairline-bright);
-    border-radius: var(--r-sm);
-    pointer-events: none;
-    clip-path: polygon(
-      var(--ax) 0,
-      0 0,
-      0 var(--ax),
-      var(--ax) var(--ax),
-      var(--ax) calc(100% - var(--ax)),
-      0 calc(100% - var(--ax)),
-      0 100%,
-      var(--ax) 100%,
-      var(--ax) calc(100% - var(--ax)),
-      calc(100% - var(--ax)) calc(100% - var(--ax)),
-      calc(100% - var(--ax)) 100%,
-      100% 100%,
-      100% calc(100% - var(--ax)),
-      calc(100% - var(--ax)) calc(100% - var(--ax)),
-      calc(100% - var(--ax)) var(--ax),
-      100% var(--ax),
-      100% 0,
-      calc(100% - var(--ax)) 0,
-      calc(100% - var(--ax)) var(--ax),
-      var(--ax) var(--ax)
-    );
-  }
-
-  // One orchestrated arrival. The page's own reveal fades and lifts every
-  // [data-inview] element; the block adds a quarter-turn to the front on top
-  // of it, so its first act shows what it is rather than that it faded in.
-  // Gated the way the reveal itself is, in _base.scss.
-  @media (prefers-reduced-motion: no-preference) {
-    .cubeblock:not(.inview) .cube {
-      --rot: -28deg;
-    }
-  }
-
-  .cube {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transform-style: preserve-3d;
-    // Half a face back, so the face on show sits on the scene plane instead
-    // of floating toward the viewer.
-    transform: translateZ(calc(var(--face) / -2)) rotateY(var(--rot, 0deg));
-    transition: transform var(--turn);
-  }
-
-  // Faces are transparent, as the pen's are: you look through the front wall
-  // at the far one, and the side walls rake back to meet it. That read is the
-  // whole point of a cube — opaque faces are just the flat card again, which
-  // is why the .card primitive's fill is dropped here and its hairline
-  // brightened. backface-visibility stays visible so the far faces draw.
-  .cube__face {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    // Gap and padding scale with the face so a 325px one on a phone holds
-    // the same copy a 460px one does on a laptop.
-    gap: clamp-fluid(10, 16);
-    padding: clamp-fluid(18, 24);
-    // No fill at all: the hairlines and the ::after highlight carry the
-    // volume, and the hero gradient reads straight through the walls. `none`
-    // rather than a removed declaration, because .card's liquid-glass frost
-    // would otherwise take the slot back.
-    background: none;
-    // Every face keeps its edge at full strength whichever way the block is
-    // turned: the eight hairlines are what describe the volume, and dimming
-    // them with the face dissolves it back into a panel.
-    border-color: var(--c-hairline-bright);
-
-    // Accessibility floor (PRODUCT.md: WCAG 2.2 AA), matching the fallback in
-    // the liquid-glass mixin. Readers who ask for less transparency get the
-    // flat card fill instead — see-through walls are the effect they opted
-    // out of, and their contrast should not depend on the gradient behind.
-    @media (prefers-reduced-transparency: reduce) {
-      background: var(--c-canvas-card);
-    }
-  }
-
-  // Both decorative layers sit at -1: above the wall's own fill, under its
-  // type. .cube__face is transformed, so the negative index cannot escape
-  // the face's own stacking context.
-  .cube__face::before,
-  .cube__face::after {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    pointer-events: none;
-  }
-
-  // An inner frame, square against the face's rounded outer edge. Four of
-  // them at four depths nest into each other and give the box its interior.
-  .cube__face::before {
-    inset: clamp-fluid(8, 12);
-    border: 1px solid var(--c-hairline);
-    // The face takes .card for its rim and hairline but opts out of the glass
-    // backdrop: this pseudo-element is already the inner frame, and a
-    // backdrop-filter inside preserve-3d flattens the cube in several engines.
-    // The face's own translucent gradient above is what glazes it.
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    filter: none;
-    z-index: auto;
-  }
-
-  // The wall facing you catches the light; the rest stay flat. Opacity, not
-  // a second fill, so it crossfades through the turn.
-  .cube__face::after {
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(
-      ellipse 80% 60% at 50% 0%,
-      color-mix(in srgb, var(--c-canvas-mid) 50%, transparent),
-      transparent 70%
-    );
-    opacity: 0.25;
-    transition: opacity var(--turn);
-  }
-
-  // The type is the part that ghosts back instead. Four sets of copy over the
-  // same pixels is noise; four sets of edges is a box.
-  .cube__label,
-  .cube__body {
-    opacity: 0.1;
-    transition: opacity var(--turn);
-  }
-
-  .cube[data-side='front'] .cube__face--front,
-  .cube[data-side='right'] .cube__face--right,
-  .cube[data-side='back'] .cube__face--back,
-  .cube[data-side='left'] .cube__face--left {
-    &::after {
-      opacity: 1;
-    }
-
-    .cube__label,
-    .cube__body {
-      opacity: 1;
-    }
-  }
-
-  .cube__face--front {
-    transform: rotateY(0deg) translateZ(calc(var(--face) / 2));
-  }
-
-  .cube__face--right {
-    transform: rotateY(90deg) translateZ(calc(var(--face) / 2));
-  }
-
-  .cube__face--back {
-    transform: rotateY(180deg) translateZ(calc(var(--face) / 2));
-  }
-
-  .cube__face--left {
-    transform: rotateY(-90deg) translateZ(calc(var(--face) / 2));
-  }
-
-  .cube__label {
-    margin: 0;
-    color: var(--c-mute);
-  }
-
-  // Content sits on the floor of the face; the label holds the ceiling.
-  .cube__body {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-end;
-    gap: var(--sp-lg);
-  }
-
-  // Three faces carry a drawing above their copy. It is the flexible item in a
-  // body of fixed ones, so it takes exactly the room the copy leaves and gives
-  // it all back when there is none — at a fixed aspect it pushed the last line
-  // of prose out through the bottom of the face instead. The drawing is
-  // ornament; ornament is what yields.
-  .cube__art {
-    position: relative;
-    align-self: stretch;
-    flex: 1 1 0;
-    min-height: 0;
-    pointer-events: none;
-  }
-
-  // Intro is the one face with a companion element: the mark takes the slot
-  // the pen gives a portrait. It rides the label row rather than sitting
-  // beside the prose — at this face size a side-by-side split leaves the
-  // copy in a column too narrow to read.
-  .cube__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--sp-lg);
-  }
-
-  .cube__prose {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-md);
-    // The column is narrow enough that the global hyphens: auto breaks
-    // words mid-syllable ("commis-sioned"). Wrap on spaces instead.
-    hyphens: manual;
-  }
-
-  .cube__lede {
-    margin: 0;
-    font-size: clamp-fluid(17, 20);
-    letter-spacing: var(--ls-5);
-    line-height: 1.35;
-    color: var(--c-ink);
-    text-wrap: balance;
-  }
-
-  // Intro alone splits its lede: the sentence in body grey, the name stepping
-  // up to ink. The pen holds its key phrase in cyan and accent colour is
-  // illustration only here, so the emphasis inverts — brighter, never
-  // coloured. Once, on the name. Doing it to every face would be the
-  // one-accented-phrase-per-headline tell rather than a signature.
-  .cube__face--front .cube__lede {
-    color: var(--c-body);
-
-    em {
-      font-style: normal;
-      color: var(--c-ink);
-    }
-  }
-
-  .cube__para {
-    margin: 0;
-    font-size: clamp-fluid(13, 14);
-    line-height: 1.5;
-    color: var(--c-body);
-  }
-
-  // The Intro face carries the most copy. Under 19rem the middle paragraph
-  // goes, leaving the lede. Type keeps its size and floors throughout — what
-  // changes is how much is said, not how small it is said. Threshold from
-  // measurement: at 280px the full copy overruns the face.
-  @container cube (width < 19rem) {
-    .cube__para--more,
-    // Below this the band between label and copy is shorter than the drawing,
-    // which would push the prose off the face. Drop it, the way the copy drops.
-    .cube__art {
-      display: none;
-    }
-
-    // Dropping the drawing is not enough on the two fullest faces. On a 273px
-    // face (a 390px phone) Intro ran 4px past the bottom padding and Craft 5px,
-    // because what is left is measured against a budget written for a 420px
-    // face. Padding and gaps are what give next, before any more words do —
-    // type keeps its size and floors throughout. clamp-fluid is keyed to the
-    // viewport, not the container, so both are already at their floor here and
-    // have to be set outright. 14px still clears the ::before inner frame at
-    // its own 8px inset, so no copy crosses that hairline.
-    .cube__face {
-      padding: #{to-rem(14)};
-    }
-
-    .cube__body {
-      gap: var(--sp-sm);
-    }
-
-    // ponytail: this band — a face under 304px, so a viewport under ~378px —
-    // is the one place the fit is exact rather than roomy. Above it the
-    // drawing is the flexible item and soaks up whatever the copy leaves, so
-    // there is visible slack; here the drawing is gone, every remaining item
-    // is fixed, and Craft's nine chips land within a couple of pixels of the
-    // floor (four rows at a 320px viewport, three at 375px). Nothing clips at
-    // any width from 320 up, measured, but a device font that renders the
-    // chips wider would wrap one more row and overrun. If that shows up, the
-    // upgrade is to drop the trailing chips here the way .cube__para--more
-    // drops — the established move on this component is to say less, not to
-    // set it smaller.
-  }
-
-  // Stack entries as a wrapped row of hairline chips, not a bulleted list:
-  // every interactive-looking thing in this system is a pill, and these read
-  // as the same family without pretending to be buttons.
-  .cube__stack {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-sm);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-
-    // Craft alone carries nine chips, and a narrow face wraps them to four
-    // rows — five at the 320px floor, where they ran 13px past the padding.
-    // The chips' own horizontal padding is what puts them there, as it is on
-    // the nav pills above: 8px instead of 12px. The rows then close up to 4px
-    // between them, which is the last 16px, while the 8px between chips in a
-    // row stays — a dense block of chips still reads as rows, and this is the
-    // floor case, not the common one. Nothing here drops a word or a type
-    // size; all nine chips survive to 320px.
-    //
-    // Nested here rather than in the @container block above, which is where
-    // the rest of the small-face rules live: that block sits earlier in the
-    // file than this one, and at equal specificity the later rule wins — a
-    // `row-gap` there loses to this `gap` shorthand, silently. Nesting makes
-    // the override order-proof.
-    @container cube (width < 19rem) {
-      row-gap: var(--sp-xs);
-    }
-
-    li {
-      padding: var(--sp-xs) var(--sp-md);
-      border: 1px solid var(--c-hairline-bright);
-      border-radius: var(--r-pill);
-      color: var(--c-body);
-
-      @container cube (width < 19rem) {
-        padding-inline: var(--sp-sm);
-      }
-    }
-  }
-
-  .cube__time,
-  .cube__addr {
-    margin: 0;
-    color: var(--c-body);
-  }
-
-  // .micro uppercases; an address is not a label and should read as typed.
-  .cube__addr {
-    text-transform: none;
-  }
-
-  // The W mark, bare, in the slot the reference gives a portrait. It keeps
-  // the disc's footprint so the label row's height does not change.
-  .cube__mark {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: clamp-fluid(52, 72);
-    height: clamp-fluid(52, 72);
-    color: var(--c-ink);
-
-    svg {
-      width: to-rem(28);
-      height: to-rem(28);
-      fill: currentColor;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    // Fewer and gentler, not none. The 3D turn goes; the crossfade stays, so
-    // a face swap reads as a change rather than a teleport.
-    .cube {
-      transition: none;
-    }
-
-    .cube__face::after,
-    .cube__label,
-    .cube__body {
-      transition: opacity 0.2s var(--ease-out-expo);
-    }
   }
 
   // BACKGROUND — a globe and the places behind the work. Two columns on wide
@@ -2087,6 +1536,144 @@ const testimonials = [
     display: inline-flex;
     align-items: center;
     gap: to-rem(8);
+  }
+
+  // Stretched to the row and spread: the card pins to the top, level with
+  // the pill row, and the figures drop to the bottom, level with the cube's
+  // bottom edge. Whatever height the cube lands at, the gap between the two
+  // absorbs it — no number to keep in step with --face. Below the two-column
+  // breakpoint the column is a plain stack and the spread is inert.
+  .intro__aside {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-self: stretch;
+    gap: clamp-fluid(28, 44);
+    // Figures size themselves to this column (see .intro__figure), so it has
+    // to be a container.
+    container-type: inline-size;
+
+    // Row 2 only above the two-column threshold. Below it the grid is one
+    // column and the cube block already spans rows 1-2, so this auto-places
+    // into row 3 underneath it — pinning it to 2 there would collide.
+    @media (min-width: 1024px) {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    // Stacked under the cube, the figures come first and the wiring last:
+    // the numbers are the quicker read, and the diagram is a better thing to
+    // end the section on than to interrupt it with. `order` moves the
+    // figures visually only — neither block is interactive, so there is no
+    // tab order to put out of step with the DOM.
+    @media (max-width: 1023px) {
+      .intro__stats {
+        order: -1;
+      }
+    }
+  }
+
+  .intro__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp-fluid(32, 72);
+    margin: 0;
+
+    // One line beside the cube, always. The figures scale to the column
+    // (below), so three of them fit at any column width the two-column
+    // layout can produce; spread rather than packed, so the row reads as
+    // the width of the column and not as three things huddled left.
+    @media (min-width: 1024px) {
+      flex-wrap: nowrap;
+      justify-content: space-between;
+      gap: var(--sp-lg);
+    }
+
+    // Stacked under a centred cube and above a centred wiring diagram, the
+    // figures centre too — and so does the text inside each, or a centred
+    // row of left-aligned pairs reads as slightly off.
+    @media (max-width: 1023px) {
+      justify-content: center;
+    }
+  }
+
+  .intro__stat {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(4);
+
+    @media (max-width: 1023px) {
+      align-items: center;
+      text-align: center;
+    }
+  }
+
+  // Display scale, weight 400 — DESIGN.md never bolds, and the size plus the
+  // negative tracking is what carries the emphasis instead.
+  .intro__figure {
+    margin: 0;
+    // Sized to the column, not the viewport. "TH · MM" is ~3.5 characters
+    // wider than "8", and three figures have to share whatever width the
+    // right column has — 9cqi lands at ~72px on a wide column and shrinks
+    // with it, so the row never wraps above the two-column threshold. The
+    // floor is what a phone's single column gets.
+    font-size: clamp(#{to-rem(40)}, 9cqi, #{to-rem(72)});
+    font-weight: var(--fw-regular);
+    line-height: 1;
+    letter-spacing: var(--ls-2);
+    color: var(--c-ink);
+    // The number changes width as it rolls (0 → 8, 0+ → 20+) and a
+    // proportional face would shuffle the label under it on every frame.
+    font-variant-numeric: tabular-nums;
+  }
+
+  .intro__statlabel {
+    color: var(--c-body);
+  }
+
+  // INTRODUCTION — section 02. Two panels side by side: the cube, and the
+  // stack wired into the mark. The cube used to sit in the hero's right
+  // column; it has a section of its own now so the hero can be a headline
+  // over two pills.
+  .intro {
+    // The hero scales to 1.5x and fades on exit (see the zoom handoff script)
+    // and overflows its own box while it does; without a stacking order it
+    // paints over this section and the scroll cue ghosts through the cube.
+    // .work carries the same pair for the same reason.
+    position: relative;
+    z-index: 1;
+    margin-block: var(--sp-band);
+    display: flex;
+    flex-direction: column;
+    gap: clamp-fluid(32, 56);
+  }
+
+  .intro__header .label {
+    color: var(--c-mute);
+  }
+
+  // `auto 1fr`, not two equal halves: the cube's width is set by its --face
+  // expression and will not compress, so giving it a share of the row would
+  // either overflow the column or starve the beams. The card takes what is
+  // left, which is the track that can actually flex.
+  // Two rows, not one. The cube block subgrids its rows (see IntroCube), so
+  // its pill nav lands in row 1 and the cube itself in row 2 — which lets
+  // the right column be placed in row 2 and start level with the cube's top
+  // edge rather than with the pills. That is the only way to align to a
+  // child of another component without measuring it.
+  //
+  // The row gap is the nav-to-cube gap the block used to own; a subgrid
+  // takes its gutters from here.
+  .intro__grid {
+    display: grid;
+    column-gap: clamp-fluid(32, 56);
+    row-gap: var(--sp-xl);
+    align-items: start;
+
+    @media (min-width: 1024px) {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+    }
   }
 
   // SELECTED WORK — title block only. Cards intentionally absent (curtainsjs
