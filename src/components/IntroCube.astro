@@ -54,28 +54,6 @@ const cubeFaces = [
       <div class="cubeblock__scene">
         <div class="cube" data-side="front">
           <div class="card cube__face cube__face--front" id="cube-front">
-            <div class="cube__head">
-              <p class="label cube__label">Intro</p>
-              <span class="cube__mark" aria-hidden="true">
-                <svg viewBox="0 0 32 32">
-                  <path
-                    fill-rule="evenodd"
-                    clip-rule="evenodd"
-                    d="M26.2636 20.4752L29.7034 6.2832H22.8238L26.2636 20.4752Z"
-                  ></path>
-                  <path
-                    fill-rule="evenodd"
-                    clip-rule="evenodd"
-                    d="M12.2636 6.2832L17.0473 26.0199H23.9568L19.1731 6.2832H12.2636Z"
-                  ></path>
-                  <path
-                    fill-rule="evenodd"
-                    clip-rule="evenodd"
-                    d="M8.61287 6.28336L1.70337 6.28373L6.48706 26.0203L13.3966 26.02L8.61287 6.28336Z"
-                  ></path>
-                </svg>
-              </span>
-            </div>
             <div class="cube__body">
               <div class="cube__art">
                 <InitialsKWG />
@@ -94,7 +72,6 @@ const cubeFaces = [
           </div>
 
           <div class="card cube__face cube__face--right" id="cube-right">
-            <p class="label cube__label">Where</p>
             <div class="cube__body">
               <div class="cube__art">
                 <BangkokSkyline />
@@ -111,7 +88,6 @@ const cubeFaces = [
               StackBeams, beside this cube — one home for the stack, and that
               one is bigger and wired. The face keeps its lede and drawing. */}
           <div class="card cube__face cube__face--back" id="cube-back">
-            <p class="label cube__label">Craft</p>
             <div class="cube__body">
               <div class="cube__art">
                 <DeployPipeline />
@@ -124,7 +100,6 @@ const cubeFaces = [
           </div>
 
           <div class="card cube__face cube__face--left" id="cube-left">
-            <p class="label cube__label">Contact</p>
             <div class="cube__body">
               <div class="cube__art">
                 <ContactEnvelope />
@@ -132,7 +107,13 @@ const cubeFaces = [
               <p class="cube__lede">
                 One door: email. No forms, no booking funnel.
               </p>
-              <p class="micro cube__addr">{email}</p>
+              {/* A break opportunity at the @: inside the inner square the
+                  address is wider than a phone's face allows, and the local
+                  part / domain split is the one line break an address can
+                  take and still read as one. */}
+              <p class="micro cube__addr">
+                {email.split('@')[0]}<wbr />@{email.split('@')[1]}
+              </p>
               <a class="pill-btn" href={`mailto:${email}?subject=New%20project`}>
                 Email me <span aria-hidden="true">&#8599;&#65038;</span>
               </a>
@@ -248,8 +229,10 @@ const cubeFaces = [
     container: cube / inline-size;
     // Short enough that the far wall foreshortens visibly — that inner
     // rectangle, and the four side walls raking back to meet it, are what
-    // make the block read as a box you are looking into.
-    perspective: to-rem(800);
+    // make the block read as a box you are looking into. A token, because
+    // .cube__body sizes itself from it below.
+    --persp: #{to-rem(800)};
+    perspective: var(--persp);
   }
 
   // Corner brackets, as the illumine card wore before it: a hairline frame
@@ -298,6 +281,14 @@ const cubeFaces = [
   }
 
   .cube {
+    // The far wall's projected size. It sits one face-length behind the
+    // scene plane, so perspective scales it by persp / (persp + face);
+    // tan(atan2()) is how CSS divides one length by another. The copy is
+    // laid out inside this square so it reads as inside the box rather than
+    // printed on the front glass over the walls.
+    --inner: calc(
+      var(--face) * tan(atan2(var(--persp), var(--persp) + var(--face)))
+    );
     position: relative;
     width: 100%;
     height: 100%;
@@ -316,11 +307,8 @@ const cubeFaces = [
   .cube__face {
     position: absolute;
     inset: 0;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    // Gap and padding scale with the face so a 325px one on a phone holds
-    // the same copy a 460px one does on a laptop.
-    gap: clamp-fluid(10, 16);
+    // Padding scales with the face so a 325px one on a phone holds the same
+    // copy a 460px one does on a laptop.
     padding: clamp-fluid(18, 24);
     // No fill at all: the hairlines and the ::after highlight carry the
     // volume, and the hero gradient reads straight through the walls. `none`
@@ -383,10 +371,24 @@ const cubeFaces = [
 
   // The type is the part that ghosts back instead. Four sets of copy over the
   // same pixels is noise; four sets of edges is a box.
-  .cube__label,
   .cube__body {
     opacity: 0.1;
     transition: opacity var(--turn);
+  }
+
+  // Except the wall opposite. Every body sits in the same centred square, so
+  // the far wall's mirrored copy lands exactly behind the live copy and reads
+  // as smudged letters through it. Named pairs rather than backface-visibility:
+  // the body is a child of a flat-transformed wall, and Chromium only tests
+  // an element's own transform for that. Opacity, so it crossfades with the
+  // turn; the side walls keep their ghost and the far wall keeps its edges.
+  .cube[data-side='front'] .cube__face--back,
+  .cube[data-side='back'] .cube__face--front,
+  .cube[data-side='right'] .cube__face--left,
+  .cube[data-side='left'] .cube__face--right {
+    .cube__body {
+      opacity: 0;
+    }
   }
 
   .cube[data-side='front'] .cube__face--front,
@@ -397,7 +399,6 @@ const cubeFaces = [
       opacity: 1;
     }
 
-    .cube__label,
     .cube__body {
       opacity: 1;
     }
@@ -419,42 +420,44 @@ const cubeFaces = [
     transform: rotateY(-90deg) translateZ(calc(var(--face) / 2));
   }
 
-  .cube__label {
-    margin: 0;
-    color: var(--c-mute);
-  }
-
-  // Content sits on the floor of the face; the label holds the ceiling.
+  // Content sits inside the inner square — the far wall's footprint — with
+  // the copy on its floor.
   .cube__body {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: var(--inner);
+    height: var(--inner);
+    padding: var(--sp-md);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    justify-content: flex-end;
+    // Centred, not floored: the drawing is exactly as tall as it draws now
+    // (below), so drawing and copy are one group with nothing to push it
+    // to the floor.
+    justify-content: center;
     gap: var(--sp-lg);
   }
 
-  // Three faces carry a drawing above their copy. It is the flexible item in a
-  // body of fixed ones, so it takes exactly the room the copy leaves and gives
-  // it all back when there is none — at a fixed aspect it pushed the last line
-  // of prose out through the bottom of the face instead. The drawing is
-  // ornament; ornament is what yields.
+  // Every face carries a drawing above its copy. The box is as tall as the
+  // drawing is at the square's width — the SVG's own ratio — so there is no
+  // letterbox band between drawing and copy. It shrinks but never grows:
+  // when a face is tight the drawing still yields to the prose rather than
+  // pushing the last line out through the bottom. The drawing is ornament;
+  // ornament is what yields.
   .cube__art {
     position: relative;
     align-self: stretch;
-    flex: 1 1 0;
+    flex: 0 1 auto;
     min-height: 0;
+    aspect-ratio: 300 / 52;
     pointer-events: none;
   }
 
-  // Intro is the one face with a companion element: the mark takes the slot
-  // the pen gives a portrait. It rides the label row rather than sitting
-  // beside the prose — at this face size a side-by-side split leaves the
-  // copy in a column too narrow to read.
-  .cube__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--sp-lg);
+  // The city and the envelope draw in the skyline's taller frame.
+  .cube__face--right .cube__art,
+  .cube__face--left .cube__art {
+    aspect-ratio: 300 / 128;
   }
 
   .cube__prose {
@@ -496,12 +499,19 @@ const cubeFaces = [
     color: var(--c-body);
   }
 
-  // The Intro face carries the most copy. Under 19rem the middle paragraph
+  // The Intro face carries the most copy. Under 24rem the middle paragraph
   // goes, leaving the lede. Type keeps its size and floors throughout — what
   // changes is how much is said, not how small it is said. Threshold from
-  // measurement: at 280px the full copy overruns the face.
+  // measurement: the copy lives in the inner square now, and on a 315px face
+  // (a 390px phone) the full copy left the drawing 27px, a sliver. Without
+  // the paragraph it gets ~105px.
+  @container cube (width < 24rem) {
+    .cube__para--more {
+      display: none;
+    }
+  }
+
   @container cube (width < 19rem) {
-    .cube__para--more,
     // Below this the band between label and copy is shorter than the drawing,
     // which would push the prose off the face. Drop it, the way the copy drops.
     .cube__art {
@@ -551,23 +561,6 @@ const cubeFaces = [
     text-transform: none;
   }
 
-  // The W mark, bare, in the slot the reference gives a portrait. It keeps
-  // the disc's footprint so the label row's height does not change.
-  .cube__mark {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: clamp-fluid(52, 72);
-    height: clamp-fluid(52, 72);
-    color: var(--c-ink);
-
-    svg {
-      width: to-rem(28);
-      height: to-rem(28);
-      fill: currentColor;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     // Fewer and gentler, not none. The 3D turn goes; the crossfade stays, so
     // a face swap reads as a change rather than a teleport.
@@ -576,7 +569,6 @@ const cubeFaces = [
     }
 
     .cube__face::after,
-    .cube__label,
     .cube__body {
       transition: opacity 0.2s var(--ease-out-expo);
     }
