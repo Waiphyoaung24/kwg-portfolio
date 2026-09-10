@@ -58,36 +58,70 @@ const gallery = works.filter(
 // Heading words are pre-split server-side (no runtime SplitText) so the
 // inline script can simply select `.word`s and animate their color.
 //
-// Card imagery is PLACEHOLDER stock from Pexels, not this studio's work.
-// PRODUCT.md ("Evidence on Hand") requires it be replaced with real work
-// before launch and never described as real work.
+// Websites & Landing Pages carries REAL work: the live hero of each shipped
+// site, so the stand is evidence rather than decoration (PRODUCT.md,
+// "Evidence on Hand"). Captured with Playwright at a 480x621 viewport — the
+// 17vw x 22vw card ratio, and under the 768px breakpoint, so each site
+// serves its own mobile hero and fills the portrait card with no crop. A
+// desktop capture would have lost ~60% of its width to `object-fit: cover`.
 //
-// Sized by Pexels' own CDN to 900x1165 — the 17vw x 22vw card ratio — so
-// `object-fit: cover` has nothing left to crop. Every URL was checked for a
-// 200, exact dimensions, and mean luminance low enough to sit on the
-// near-black canvas: two ids from these searches 404'd and several results
-// that the colour filter called "black" measured over 200.
+// Product & UI is still PLACEHOLDER stock from Pexels, not this studio's
+// work. PRODUCT.md requires it be replaced with real work before launch and
+// never described as real work. Sized by Pexels' own CDN to 900x1165 — the
+// same card ratio. Every URL was checked for a 200, exact dimensions, and
+// mean luminance low enough to sit on the near-black canvas: two ids from
+// these searches 404'd and several results that the colour filter called
+// "black" measured over 200.
+//
+// `alt` names the client on real work and stays empty on the stock cards,
+// which are decorative and would only add noise to a screen reader.
 const stands = [
   {
     heading: 'Websites & Landing Pages',
     sub: 'High-end sites built to perform and convert.',
     cards: [
-      'https://images.pexels.com/photos/10817253/pexels-photo-10817253.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-      'https://images.pexels.com/photos/11184286/pexels-photo-11184286.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-      'https://images.pexels.com/photos/6332018/pexels-photo-6332018.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-      'https://images.pexels.com/photos/13507175/pexels-photo-13507175.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-      'https://images.pexels.com/photos/13900522/pexels-photo-13900522.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+      {
+        src: '/works/site-mcm-hero.webp',
+        alt: 'Miracle Cutting Machine — landing page hero',
+      },
+      {
+        src: '/works/site-parallel-hero.webp',
+        alt: 'Parallel Solution — studio site hero',
+      },
+      {
+        src: '/works/site-redhorse-hero.webp',
+        alt: 'Red Horse Group — corporate site hero',
+      },
+      {
+        src: '/works/site-nexapex-hero.webp',
+        alt: 'NexApex — landing page hero',
+      },
     ],
   },
   {
     heading: 'Product & UI',
     sub: 'Interfaces crafted with clarity — every screen considered, every interaction refined.',
     cards: [
-      'https://images.pexels.com/photos/30959438/pexels-photo-30959438.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-      'https://images.pexels.com/photos/9637500/pexels-photo-9637500.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-      'https://images.pexels.com/photos/31024672/pexels-photo-31024672.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-      'https://images.pexels.com/photos/13507187/pexels-photo-13507187.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-      'https://images.pexels.com/photos/12219068/pexels-photo-12219068.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+      {
+        src: 'https://images.pexels.com/photos/30959438/pexels-photo-30959438.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+        alt: '',
+      },
+      {
+        src: 'https://images.pexels.com/photos/9637500/pexels-photo-9637500.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+        alt: '',
+      },
+      {
+        src: 'https://images.pexels.com/photos/31024672/pexels-photo-31024672.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+        alt: '',
+      },
+      {
+        src: 'https://images.pexels.com/photos/13507187/pexels-photo-13507187.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+        alt: '',
+      },
+      {
+        src: 'https://images.pexels.com/photos/12219068/pexels-photo-12219068.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
+        alt: '',
+      },
     ],
   },
 ];
@@ -514,11 +548,11 @@ const testimonials = [
 
                 <div class="stand__cards">
                   <div class="stand__stage">
-                    {cards.map((src) => (
+                    {cards.map(({ src, alt }) => (
                       <article class="stand__card">
                         <img
                           src={src}
-                          alt=""
+                          alt={alt}
                           loading="lazy"
                           decoding="async"
                         />
@@ -2164,6 +2198,12 @@ const testimonials = [
       height: 100%;
       object-fit: cover;
       display: block;
+      // Real site heroes carry their clients' brand colour, and a light one
+      // would punch a hole in the near-black canvas. Mono plus a darken
+      // sinks every card to the same value, so the stand reads as one set
+      // rather than four unrelated screenshots. A no-op on the Product & UI
+      // stand, whose stock photos are already monochrome.
+      filter: grayscale(1) brightness(0.62);
     }
   }
 
