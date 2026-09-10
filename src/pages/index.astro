@@ -2077,22 +2077,16 @@ const testimonials = [
     margin-top: var(--sp-sm);
   }
 
+  // Centred at every width. Hard right parked it in the cube's bottom corner
+  // with nothing to balance it; centred, it reads as what it is — the
+  // instruction for the whole column, not a corner note.
   .hero__cue {
-    justify-self: end;
+    justify-self: center;
     align-self: end;
     color: var(--c-body);
     display: inline-flex;
     align-items: center;
     gap: to-rem(8);
-  }
-
-  // On a phone the cue sits under a full-width cube, and hard right put it
-  // in the cube's bottom corner with nothing to balance it. Centred, it reads
-  // as what it is: the instruction for the whole column, not a corner note.
-  @media (max-width: 768px) {
-    .hero__cue {
-      justify-self: center;
-    }
   }
 
   // SELECTED WORK — title block only. Cards intentionally absent (curtainsjs
