@@ -1214,11 +1214,12 @@ const testimonials = [
 
   // Copy left, illumine card right; the card drops under the pills on mobile.
   // Copy left, cube right; the block drops under the pills below $cube-aside.
-  // That threshold is 1000px, not the 769px used elsewhere on this page: the
-  // block and its pills claim ~486px, so at 900px the headline is left a
+  // That threshold is 1060px, not the 769px used elsewhere on this page: the
+  // block and its pills claim ~546px, so at 960px the headline is left a
   // 306px column and stacks seven lines deep. The three queries that switch
-  // this layout share the number.
-  $cube-aside: 1000px;
+  // this layout share the number. It tracks --face: grow the cube and this
+  // grows with it, or the headline loses its column.
+  $cube-aside: 1060px;
 
   .hero__center {
     display: grid;
@@ -1243,31 +1244,34 @@ const testimonials = [
   // they are not drawn. Faces are the .card primitive, so hairlines carry the
   // elevation and nothing casts a shadow. The inline script sets --rot.
   .cubeblock {
-    // Sized to leave the headline its column: the block and its pills share
-    // the hero with the front-door statement, and the statement keeps its
-    // display size. Width-bound only: on phones the block spans the column,
-    // edge-aligned with the pills above it. No viewport-height term — the
-    // copy on a face has a height of its own, and a face capped by a short
-    // window (a laptop with browser chrome, a 667px phone) shrinks below
-    // what its words need. The hero still fits one screen down to ~550px
-    // tall. Both terms are lengths — --face feeds translateZ, which rejects
-    // percentages. The vw term only wins under ~410px, where no scrollbar
-    // gutter can widen it past the column.
-    --face: min(#{to-rem(360)}, calc(100vw - 2 * var(--grid-margin)));
+    // One expression at every width, no breakpoint. The cap is the budget the
+    // faces' copy is written against; the column term is what a phone can
+    // show. $cube-aside above moves with the cap.
+    //
+    // 420, not the 360 this started at: at 360 the Craft face — the fullest,
+    // with a drawing, a three-line lede and nine chips — ran its last chip
+    // row into the bottom padding and starved the drawing. The face is the
+    // budget, so the fix was the budget, not the copy.
+    //
+    // 0.90 of the column, not the 0.78 a max-width: 768px rule used to carry.
+    // A turning cube is wider than its face: the near corners project past
+    // the scene box and the bracket frame's -10px inset adds to that. 0.78
+    // was set when that bleed drove page scroll; html and body now carry
+    // overflow-x: clip, so the failure mode is a clipped corner and the
+    // budget is the wider one. Measured by sweeping the turn in 5° steps over
+    // the union of the four faces' projected boxes: nothing clips from 320px
+    // up, with ~18px to spare at 390.
+    //
+    // Folding the cap into the same min() retires that breakpoint: uncapped,
+    // the phone rule grew the face to 653px by 768px and then snapped back to
+    // 420 at 769px. Capped, the column term stops winning near 510px and the
+    // ramp is continuous. No viewport-height term — a face capped by a short
+    // window shrinks below what its words need. Both terms are lengths;
+    // --face feeds translateZ, which rejects percentages.
+    --face: min(#{to-rem(420)}, calc((100vw - 2 * var(--grid-margin)) * 0.9));
     --turn: 0.7s var(--ease-out-expo);
     display: grid;
     gap: var(--sp-xl);
-
-    // A turning cube is wider than its face. Under the 800px perspective the
-    // near corners project ~21% past the scene box, and the bracket frame's
-    // -10px inset adds to that. Above this width the block sits in a column
-    // narrower than the page, so the bleed lands in the gutter; on a phone
-    // the column IS the viewport, so a full-width --face put the corners past
-    // the edge on every turn and drove page scroll. 0.78 is that 21% back
-    // out, which buys the rotation its gutter.
-    @media (max-width: 768px) {
-      --face: calc((100vw - 2 * var(--grid-margin)) * 0.78);
-    }
 
     // Pills to the right of the block. The nav stays first in the DOM, so
     // tab order still reaches the controls before the face they turn to;
@@ -1315,6 +1319,13 @@ const testimonials = [
     position: relative;
     width: var(--face);
     height: var(--face);
+    // The face is 0.78 of the column below 769px, so the block does not fill
+    // the row the pills above it do. Left-aligned, that shortfall all landed
+    // on the right as ~67px of dead column; centred, it reads as a gutter the
+    // rotation turns into and splits the corner bleed evenly between the two
+    // sides. Above $cube-aside the scene's grid column IS --face, so this is
+    // a no-op there and the two-column layout is untouched.
+    justify-self: center;
     // The faces query this, not the viewport: what fits on a face depends
     // on the face.
     container: cube / inline-size;
@@ -1579,6 +1590,34 @@ const testimonials = [
     .cube__art {
       display: none;
     }
+
+    // Dropping the drawing is not enough on the two fullest faces. On a 273px
+    // face (a 390px phone) Intro ran 4px past the bottom padding and Craft 5px,
+    // because what is left is measured against a budget written for a 420px
+    // face. Padding and gaps are what give next, before any more words do —
+    // type keeps its size and floors throughout. clamp-fluid is keyed to the
+    // viewport, not the container, so both are already at their floor here and
+    // have to be set outright. 14px still clears the ::before inner frame at
+    // its own 8px inset, so no copy crosses that hairline.
+    .cube__face {
+      padding: #{to-rem(14)};
+    }
+
+    .cube__body {
+      gap: var(--sp-sm);
+    }
+
+    // ponytail: this band — a face under 304px, so a viewport under ~378px —
+    // is the one place the fit is exact rather than roomy. Above it the
+    // drawing is the flexible item and soaks up whatever the copy leaves, so
+    // there is visible slack; here the drawing is gone, every remaining item
+    // is fixed, and Craft's nine chips land within a couple of pixels of the
+    // floor (four rows at a 320px viewport, three at 375px). Nothing clips at
+    // any width from 320 up, measured, but a device font that renders the
+    // chips wider would wrap one more row and overrun. If that shows up, the
+    // upgrade is to drop the trailing chips here the way .cube__para--more
+    // drops — the established move on this component is to say less, not to
+    // set it smaller.
   }
 
   // Stack entries as a wrapped row of hairline chips, not a bulleted list:
@@ -1592,11 +1631,33 @@ const testimonials = [
     padding: 0;
     list-style: none;
 
+    // Craft alone carries nine chips, and a narrow face wraps them to four
+    // rows — five at the 320px floor, where they ran 13px past the padding.
+    // The chips' own horizontal padding is what puts them there, as it is on
+    // the nav pills above: 8px instead of 12px. The rows then close up to 4px
+    // between them, which is the last 16px, while the 8px between chips in a
+    // row stays — a dense block of chips still reads as rows, and this is the
+    // floor case, not the common one. Nothing here drops a word or a type
+    // size; all nine chips survive to 320px.
+    //
+    // Nested here rather than in the @container block above, which is where
+    // the rest of the small-face rules live: that block sits earlier in the
+    // file than this one, and at equal specificity the later rule wins — a
+    // `row-gap` there loses to this `gap` shorthand, silently. Nesting makes
+    // the override order-proof.
+    @container cube (width < 19rem) {
+      row-gap: var(--sp-xs);
+    }
+
     li {
       padding: var(--sp-xs) var(--sp-md);
       border: 1px solid var(--c-hairline-bright);
       border-radius: var(--r-pill);
       color: var(--c-body);
+
+      @container cube (width < 19rem) {
+        padding-inline: var(--sp-sm);
+      }
     }
   }
 
