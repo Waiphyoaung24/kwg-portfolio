@@ -1,6 +1,6 @@
 ---
 import Layout from '@layouts/Layout.astro';
-import HeroGradient from '@components/HeroGradient.tsx';
+import HeroNoise from '@components/HeroNoise.astro';
 import DeviceMock from '@components/DeviceMock.astro';
 import IntroCube from '@components/IntroCube.astro';
 import StackBeams from '@components/StackBeams.astro';
@@ -301,7 +301,7 @@ const testimonials = [
   <main>
     <section class="hero" aria-labelledby="hero-headline">
       <div class="hero__gradient" aria-hidden="true">
-        <HeroGradient client:only="react" />
+        <HeroNoise />
       </div>
       <p class="hero__index label" data-inview-manual>
         01 &mdash; Wai Phyo Aung
@@ -1216,7 +1216,7 @@ const testimonials = [
 <style lang="scss">
   // HERO — the front door: who, what, where, one way to reach out.
   // Three rows: top label, centered headline + proof + pills, bottom cue.
-  // No imagery; a mesh gradient in the canvas greys (HeroGradient) behind the type.
+  // No imagery; a granular dot field (HeroNoise) behind the type.
   // 4rem subtracts the Header's vertical footprint (padding-block 1.25rem × 2
   // + ~1rem label content ≈ 3.5rem, rounded to 4rem) so the cue sits inside
   // the viewport instead of below the fold.
@@ -1246,10 +1246,10 @@ const testimonials = [
     transform: translateX(-50%);
     z-index: -1;
 
-    // Dark washes over the left half, where the copy sits, and the top strip,
-    // where the header sits, so the white in the sphere blooms lower right and
-    // the type keeps its contrast. A bottom wash dissolves the canvas into the
-    // page so the hero has no hard edge against the next section.
+    // A top wash under the header and a bottom wash that dissolves the canvas
+    // into the page so the hero has no hard edge against the next section.
+    // There used to be a left wash too, for the sphere's bloom; the dot field
+    // is dim enough to sit under the type without it.
     &::after {
       content: '';
       position: absolute;
@@ -1261,12 +1261,6 @@ const testimonials = [
           var(--c-canvas) 0%,
           color-mix(in srgb, var(--c-canvas) 60%, transparent) 12%,
           transparent 30%
-        ),
-        linear-gradient(
-          90deg,
-          var(--c-canvas) 0%,
-          color-mix(in srgb, var(--c-canvas) 70%, transparent) 40%,
-          transparent 75%
         );
     }
   }
