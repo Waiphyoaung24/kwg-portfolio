@@ -1994,6 +1994,10 @@ const testimonials = [
     overflow: hidden;
     background-color: var(--c-canvas-card);
     will-change: transform;
+    // The row above it passes the pointer through; the card itself takes it
+    // back so it can be hovered into colour (below). Nothing on the page
+    // reacts to a hovered image otherwise.
+    pointer-events: auto;
 
     // The plain portrait image of the Websites stand. Direct child, so the
     // images inside a Product & UI mock take their own treatment below.
@@ -2003,10 +2007,22 @@ const testimonials = [
       object-fit: cover;
       display: block;
       // Real site heroes carry their clients' brand colour, and a light one
-      // would punch a hole in the near-black canvas. Mono plus a darken
-      // sinks every card to the same value, so the stand reads as one set
-      // rather than four unrelated screenshots.
-      filter: grayscale(1) brightness(0.62);
+      // would punch a hole in the near-black canvas. Most of the way to mono
+      // plus a darken sinks every card to about the same value, so the stand
+      // reads as one set rather than four unrelated screenshots — with a
+      // hint of each brand left through, since colour lives in exhibited
+      // work and nowhere else on the page (DESIGN.md).
+      filter: grayscale(0.7) brightness(0.72);
+      transition: filter 0.5s var(--ease-out-expo);
+    }
+
+    // The hovered card comes up to the Product & UI stand's value, so both
+    // stands share one "in colour". Pointer devices only: a tap would leave
+    // one card stuck in colour on a phone.
+    @media (hover: hover) {
+      &:hover > img {
+        filter: saturate(0.85);
+      }
     }
   }
 
