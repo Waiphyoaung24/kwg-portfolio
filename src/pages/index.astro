@@ -4,6 +4,7 @@ import HeroNoise from '@components/HeroNoise.astro';
 import DeviceMock from '@components/DeviceMock.astro';
 import IntroCube from '@components/IntroCube.astro';
 import StackBeams from '@components/StackBeams.astro';
+import HairlineRoute from '@components/HairlineRoute.astro';
 import { Image } from 'astro:assets';
 import { works, type Work } from '../data/works';
 
@@ -342,8 +343,19 @@ const testimonials = [
       <div class="intro__grid">
         <IntroCube email={email} />
 
+        {/* Between the cube's pills and the figures, where the column stacks
+            them. Above the two-column threshold the figures sit beside the
+            cube, so there is nothing for it to part and it hides. */}
+        <div class="intro__rule">
+          <HairlineRoute />
+        </div>
+
         <div class="intro__aside">
           <StackBeams />
+
+          {/* Between the wiring and the figures at every width: the column
+              reverses below the two-column threshold, so it stays between. */}
+          <HairlineRoute />
 
           {/* Figures, not a metric-card grid: no surrounding card chrome and
               no accent block, so they read as two numbers set on the canvas.
@@ -1557,13 +1569,12 @@ const testimonials = [
 
     // Stacked under the cube, the figures come first and the wiring last:
     // the numbers are the quicker read, and the diagram is a better thing to
-    // end the section on than to interrupt it with. `order` moves the
-    // figures visually only — neither block is interactive, so there is no
-    // tab order to put out of step with the DOM.
+    // end the section on than to interrupt it with. Reversing the column
+    // moves them visually only — neither block is interactive, so there is
+    // no tab order to put out of step with the DOM — and keeps the hairline
+    // route between them, which a single `order` on the figures would not.
     @media (max-width: 1023px) {
-      .intro__stats {
-        order: -1;
-      }
+      flex-direction: column-reverse;
     }
   }
 
@@ -1658,6 +1669,12 @@ const testimonials = [
   //
   // The row gap is the nav-to-cube gap the block used to own; a subgrid
   // takes its gutters from here.
+  .intro__rule {
+    @media (min-width: 1024px) {
+      display: none;
+    }
+  }
+
   .intro__grid {
     display: grid;
     column-gap: clamp-fluid(32, 56);

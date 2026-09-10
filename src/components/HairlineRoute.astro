@@ -1,0 +1,89 @@
+---
+// HAIRLINE ROUTE — a divider in the drawings' vocabulary: one hairline across
+// the column and one white head travelling it, the way the pipeline wire and
+// the envelope's route do. It sits between the figures and the stack wiring
+// in section 02, where the two otherwise run together in a single column.
+//
+// Geometry is measured, not authored, as StackBeams measures its beams: the
+// column is fluid and GSAP's motion path aligns once at tween start, so the
+// path is rebuilt and the tween restarted whenever the width changes. A
+// stretched viewBox would have done the line but squashed the dot.
+---
+
+<svg
+  class="route"
+  data-route
+  aria-hidden="true"
+  focusable="false"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <path class="route__line" data-route-line d="M0,4 H0" />
+  <circle class="route__dot" data-route-dot cx="0" cy="0" r="1.8" />
+</svg>
+
+<style lang="scss">
+  .route {
+    display: block;
+    width: 100%;
+    height: to-rem(8);
+    overflow: visible;
+  }
+
+  .route__line {
+    fill: none;
+    stroke: var(--c-hairline-bright);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  // Hidden until the script places it, so there is no stray dot in the
+  // corner without JS — and none at all for readers who asked for less
+  // motion, who keep the hairline.
+  .route__dot {
+    fill: var(--c-ink);
+    visibility: hidden;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+  import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
+
+  gsap.registerPlugin(MotionPathPlugin);
+
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // One script serves every instance: Astro ships a component's script once
+  // however many times it is placed.
+  document.querySelectorAll<SVGSVGElement>('[data-route]').forEach((svg) => {
+    const line = svg.querySelector<SVGPathElement>('[data-route-line]');
+    const dot = svg.querySelector<SVGCircleElement>('[data-route-dot]');
+    if (!line || !dot) return;
+
+    let tween: gsap.core.Tween | undefined;
+
+    const build = () => {
+      const w = svg.getBoundingClientRect().width;
+      tween?.kill();
+      // Hidden at this width (display: none reports 0): nothing to draw and
+      // no zero-length loop to run. The observer fires again when it shows.
+      if (!w) return;
+      svg.setAttribute('viewBox', `0 0 ${w} 8`);
+      line.setAttribute('d', `M0,4 H${w}`);
+      if (still) return;
+
+      gsap.set(dot, { visibility: 'visible' });
+      // Speed, not duration: ~27 units/s is the pipeline wire's pace, so the
+      // head crosses a phone column in about 13s and a laptop's in about 20.
+      tween = gsap.to(dot, {
+        motionPath: { path: line, align: line, alignOrigin: [0.5, 0.5] },
+        duration: w / 27,
+        repeat: -1,
+        ease: 'none',
+      });
+    };
+
+    build();
+    new ResizeObserver(build).observe(svg);
+  });
+</script>
