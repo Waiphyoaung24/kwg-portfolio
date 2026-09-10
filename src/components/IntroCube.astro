@@ -229,10 +229,9 @@ const cubeFaces = [
     container: cube / inline-size;
     // Short enough that the far wall foreshortens visibly — that inner
     // rectangle, and the four side walls raking back to meet it, are what
-    // make the block read as a box you are looking into. A token, because
-    // .cube__body sizes itself from it below.
-    --persp: #{to-rem(800)};
-    perspective: var(--persp);
+    // make the block read as a box you are looking into. The script reads
+    // the computed value back to size the inner square.
+    perspective: to-rem(800);
   }
 
   // Corner brackets, as the illumine card wore before it: a hairline frame
@@ -281,14 +280,13 @@ const cubeFaces = [
   }
 
   .cube {
-    // The far wall's projected size. It sits one face-length behind the
-    // scene plane, so perspective scales it by persp / (persp + face);
-    // tan(atan2()) is how CSS divides one length by another. The copy is
-    // laid out inside this square so it reads as inside the box rather than
-    // printed on the front glass over the walls.
-    --inner: calc(
-      var(--face) * tan(atan2(var(--persp), var(--persp) + var(--face)))
-    );
+    // --inner is the far wall's projected size, set by the script below:
+    // the wall sits one face-length behind the scene plane, so perspective
+    // scales it by persp / (persp + face). CSS can only divide one length
+    // by another through tan(atan2()), and iOS 18 Safari evaluates that to
+    // zero — so it is measured, not authored. The copy is laid out inside
+    // this square so it reads as inside the box rather than printed on the
+    // front glass over the walls.
     position: relative;
     width: 100%;
     height: 100%;
@@ -426,8 +424,10 @@ const cubeFaces = [
     position: absolute;
     inset: 0;
     margin: auto;
-    width: var(--inner);
-    height: var(--inner);
+    // The fallback is the ratio at the 420px cap, for the moment before the
+    // script runs and for no script at all.
+    width: var(--inner, 66%);
+    height: var(--inner, 66%);
     padding: var(--sp-md);
     display: flex;
     flex-direction: column;
@@ -508,6 +508,15 @@ const cubeFaces = [
   @container cube (width < 24rem) {
     .cube__para--more {
       display: none;
+    }
+
+    // A phone's face holds one drawing and one short lede, and a left-set
+    // block under a centred drawing reads as slipped. Centre both and close
+    // the gap so the copy sits right under the strokes.
+    .cube__body {
+      align-items: center;
+      text-align: center;
+      gap: var(--sp-sm);
     }
   }
 
@@ -643,6 +652,21 @@ const cubeFaces = [
   // short way round — Contact back to Status is a quarter turn, not three.
   const cube = document.querySelector<HTMLElement>('.cube');
   const btns = document.querySelectorAll<HTMLButtonElement>('.cubeblock__btn');
+
+  // The inner square: the far wall's projected size, persp / (persp + face)
+  // of the face. Measured here because the CSS expression for the same
+  // number (tan(atan2())) comes out as zero on iOS 18 Safari.
+  const scene = document.querySelector<HTMLElement>('.cubeblock__scene');
+  if (cube && scene) {
+    const size = () => {
+      const face = scene.getBoundingClientRect().width;
+      const persp = parseFloat(getComputedStyle(scene).perspective);
+      cube.style.setProperty('--inner', `${(face * persp) / (persp + face)}px`);
+    };
+    size();
+    new ResizeObserver(size).observe(scene);
+  }
+
   if (cube && btns.length) {
     const order = ['front', 'right', 'back', 'left'];
     let angle = 0;
