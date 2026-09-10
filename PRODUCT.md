@@ -75,7 +75,8 @@ Things this must never look like, in order of priority:
 
 - Works page lists real projects by chapter with stack and deployment notes (`src/data/works.ts`).
 - Catalog entries ship real, copyable source (`src/catalog/`).
-- Home page gallery and capability imagery are placeholders from Pexels and Pinterest. They must be replaced with real work before launch and must not be described as real work.
+- Home page capability imagery is real shipped work: live site heroes in Websites & Landing Pages, and real product screens in device mocks in Product & UI (`public/works/product/`).
+- Any remaining placeholder imagery must be replaced with real work before launch and must not be described as real work.
 - No testimonials, client logos, metrics, or press exist. Do not fabricate any.
 
 ## Product Principles

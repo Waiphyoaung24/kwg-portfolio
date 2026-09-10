@@ -1,0 +1,210 @@
+---
+// A laptop and a phone drawn in hairline stroke, holding a real screenshot.
+// Same vocabulary as DeployPipeline, BangkokSkyline and InitialsKWG: strokes
+// only, one weight, no fill, `vector-effect: non-scaling-stroke` so the line
+// stays a hairline at every size. DESIGN.md §Elevation: hairline borders carry
+// all elevation, so there is no shadow under either device — the chassis is a
+// drawing, not a render.
+//
+// A photographic device render was the obvious alternative and was rejected:
+// DESIGN.md §Image Behavior says the surface uses drawn SVG and no photography,
+// and a 800px raster would have gone soft at the hero size this component is
+// built for.
+//
+// The screenshot is a real <img> behind an aria-hidden <svg>, not an <image>
+// inside it. That keeps `alt`, `loading` and the intrinsic `width`/`height`
+// working, and the SVG stays purely decorative to a screen reader.
+//
+// Geometry is the contract between the two layers. The screen cut-out in each
+// viewBox below is expressed again as percentages in the CSS, so the <img>
+// lands exactly inside the drawn bezel. The chassis is drawn with SHARP screen
+// corners on purpose: a rounded cut-out would need the image rounded to match,
+// and any mismatch shows as a bright wedge in the corner. Change one, change
+// the other.
+//
+//   laptop  viewBox 400 x 238   screen x=40 y=12 w=320 h=200  (16:10)
+//   tablet  viewBox 236 x 292   screen x=10 y=10 w=216 h=272  (900:1134)
+//   phone   viewBox 120 x 246   screen x=6  y=6  w=108 h=234  (~9:19.5)
+
+interface Props {
+  device: 'laptop' | 'tablet' | 'phone';
+  src: string;
+  alt: string;
+  /** Intrinsic pixel size of `src`, so the box is known before decode. */
+  width: number;
+  height: number;
+  loading?: 'lazy' | 'eager';
+  class?: string;
+}
+
+const {
+  device,
+  src,
+  alt,
+  width,
+  height,
+  loading = 'lazy',
+  class: className,
+} = Astro.props;
+---
+
+<div class:list={['device', `device--${device}`, className]}>
+  <img
+    class="device__screen"
+    src={src}
+    alt={alt}
+    width={width}
+    height={height}
+    loading={loading}
+    decoding="async"
+  />
+
+  {
+    device === 'laptop' ? (
+      <svg
+        class="device__chassis"
+        viewBox="0 0 400 238"
+        fill="none"
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+        focusable="false"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Lid. The only rounded corners on the device — 10 units, which at a
+            hero-size render lands near the 8px card radius in DESIGN.md. */}
+        <rect class="device__line" x="34" y="0.5" width="332" height="227.5" rx="10" />
+        {/* Screen. Sharp corners, sitting exactly over the <img> edges. */}
+        <rect class="device__line" x="40" y="12" width="320" height="200" />
+        {/* Camera, centred in the 12-unit top bezel. */}
+        <circle class="device__line" cx="200" cy="6.5" r="2" />
+        {/* Base, drawn as an OPEN path with no top edge. A closed rect here
+            put a second line directly under the lid's own bottom edge and the
+            two shapes read as a tray with a screen resting on it. Open, the
+            lid's bottom edge closes the base and the whole chassis is one
+            object. The 6-unit flare each side is what separates a laptop
+            silhouette from a monitor; earlier it was 26 and looked like
+            furniture. */}
+        <path class="device__line" d="M32 228 L26 237.5 H374 L368 228" />
+      </svg>
+    ) : device === 'tablet' ? (
+      <svg
+        class="device__chassis"
+        viewBox="0 0 236 292"
+        fill="none"
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+        focusable="false"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Body. An even 10-unit bezel all round — a tablet has no chin, which
+            is most of what separates its silhouette from the phone's. */}
+        <rect class="device__line" x="0.5" y="0.5" width="235" height="291" rx="14" />
+        {/* Screen, sharp-cornered under the rounded body as on the laptop. */}
+        <rect class="device__line" x="10" y="10" width="216" height="272" />
+        {/* Camera, centred in the top bezel. */}
+        <circle class="device__line" cx="118" cy="5" r="1.8" />
+      </svg>
+    ) : (
+      <svg
+        class="device__chassis"
+        viewBox="0 0 120 246"
+        fill="none"
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+        focusable="false"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Body. */}
+        <rect class="device__line" x="0.5" y="0.5" width="119" height="245" rx="16" />
+        {/* Screen, sharp-cornered under the rounded body for the same reason
+            as the laptop. */}
+        <rect class="device__line" x="6" y="6" width="108" height="234" />
+        {/* Dynamic island. Drawn, not a notch cut — a cut-out would need the
+            image masked, and the island is the current hardware anyway.
+            No side button: at the ~130px this phone renders at beside the
+            laptop it was two pixels of noise on the edge, the same reason
+            DeployPipeline carries no labels under its nodes. */}
+        <rect class="device__line" x="47" y="13" width="26" height="7" rx="3.5" />
+      </svg>
+    )
+  }
+</div>
+
+<style lang="scss">
+  // The wrapper owns the aspect ratio so the absolutely-positioned screen
+  // percentages below resolve against a box the exact shape of the viewBox.
+  // Get this wrong and the drawn bezel and the screenshot drift apart.
+  .device {
+    position: relative;
+    display: block;
+    width: 100%;
+  }
+
+  .device--laptop {
+    aspect-ratio: 400 / 238;
+  }
+
+  .device--tablet {
+    aspect-ratio: 236 / 292;
+  }
+
+  .device--phone {
+    aspect-ratio: 120 / 246;
+  }
+
+  .device__chassis {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    // Stroke colour for the whole drawing, picked up by currentColor below.
+    color: var(--c-hairline-bright);
+    // The chassis sits over the screenshot so the bezel line reads as an edge
+    // on top of the image rather than being hidden behind it.
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .device__line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    // The device scales with the viewport; the hairline must not.
+    vector-effect: non-scaling-stroke;
+  }
+
+  // Percentages of the viewBox, restated. See the geometry note in the
+  // frontmatter — these four numbers and the <rect> above are one decision.
+  .device__screen {
+    position: absolute;
+    display: block;
+    object-fit: cover;
+    // A screen is a thing that emits light, so the capture keeps its value.
+    // Only the saturation comes down, enough to sit on the near-black canvas
+    // without the brand colour — CastraNova's gold, Mr Spinel's blue — going
+    // to grey the way the site heroes deliberately do.
+    filter: saturate(0.85);
+  }
+
+  .device--laptop .device__screen {
+    left: 10%; // 40 / 400
+    top: 5.042%; // 12 / 238
+    width: 80%; // 320 / 400
+    height: 84.034%; // 200 / 238
+  }
+
+  .device--tablet .device__screen {
+    left: 4.237%; // 10 / 236
+    top: 3.425%; // 10 / 292
+    width: 91.525%; // 216 / 236
+    height: 93.151%; // 272 / 292
+  }
+
+  .device--phone .device__screen {
+    left: 5%; // 6 / 120
+    top: 2.439%; // 6 / 246
+    width: 90%; // 108 / 120
+    height: 95.122%; // 234 / 246
+  }
+</style>

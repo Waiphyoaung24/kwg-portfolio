@@ -5,6 +5,7 @@ import BangkokSkyline from '@components/BangkokSkyline.astro';
 import InitialsKWG from '@components/InitialsKWG.astro';
 import DeployPipeline from '@components/DeployPipeline.astro';
 import ContactEnvelope from '@components/ContactEnvelope.astro';
+import DeviceMock from '@components/DeviceMock.astro';
 import { Image } from 'astro:assets';
 import { works, type Work } from '../data/works';
 
@@ -54,7 +55,12 @@ const gallery = works.filter(
   (work): work is FeaturedWork => Boolean(work.featured && work.media),
 );
 
-// Capabilities — two "stands" with the scroll-stand 3D-card reveal.
+// Capabilities — two stands. They share a heading, a sub, and the same
+// scroll reveal (see the scroll-stand script), and they deliberately present
+// differently below that: a site is judged as one of a set, so Websites fans
+// four of them; a product is examined one at a time, so Product & UI puts a
+// single one at hero size and lets the rest sit quiet underneath.
+//
 // Heading words are pre-split server-side (no runtime SplitText) so the
 // inline script can simply select `.word`s and animate their color.
 //
@@ -64,17 +70,6 @@ const gallery = works.filter(
 // 17vw x 22vw card ratio, and under the 768px breakpoint, so each site
 // serves its own mobile hero and fills the portrait card with no crop. A
 // desktop capture would have lost ~60% of its width to `object-fit: cover`.
-//
-// Product & UI is still PLACEHOLDER stock from Pexels, not this studio's
-// work. PRODUCT.md requires it be replaced with real work before launch and
-// never described as real work. Sized by Pexels' own CDN to 900x1165 — the
-// same card ratio. Every URL was checked for a 200, exact dimensions, and
-// mean luminance low enough to sit on the near-black canvas: two ids from
-// these searches 404'd and several results that the colour filter called
-// "black" measured over 200.
-//
-// `alt` names the client on real work and stays empty on the stock cards,
-// which are decorative and would only add noise to a screen reader.
 const stands = [
   {
     heading: 'Websites & Landing Pages',
@@ -98,31 +93,90 @@ const stands = [
       },
     ],
   },
+];
+
+// Product & UI — one product examined, not five glimpsed. Mr Spinel takes the
+// hero because it is the only client here with a real desktop AND a real iOS
+// capture, so the drawing states the section's claim instead of asserting it:
+// the same product, both sizes, side by side.
+//
+// The three underneath are the rest of the evidence at a size that supports
+// rather than competes. GaiGai is deliberately absent — it is a consumer
+// storefront whose saturated packshots fought the near-black canvas, and as a
+// native app it has no desktop surface to put in a laptop at all. Its assets
+// stay in public/works/product/ unreferenced.
+//
+// Every capture is normalised to 1280x800 (16:10), which is the laptop screen
+// cut-out in DeviceMock exactly. The HRM frame is the top 16:10 slice of the
+// only screenshot that exists for it: its right-hand card runs off the edge,
+// which is what a narrow window does anyway.
+// Two heroes, each a product shown on the two devices it actually ships on.
+// Mr Spinel is desktop-and-phone, GaiGai is tablet-and-phone — which is not a
+// composition choice: works.ts records Mr Spinel as an Electron desktop app
+// plus an iOS staff app on one Postgres, and GaiGai as one Flutter codebase
+// serving "both the phone layout and the wider tablet grid".
+//
+// Titles and subs come straight off those entries rather than being retyped,
+// so the home page can never caption the same project two different ways.
+// Each caption then reads exactly like a Selected Work card.
+const mrSpinel = works.find((w) => w.id === 'mrspinel-staff');
+const gaiGai = works.find((w) => w.id === 'gaigai');
+
+// Every image carries its own alt: both devices in a pair stay on screen at
+// every breakpoint, so neither can lean on the other's description
+// (WCAG 2.2 AA, SC 1.1.1).
+const productHeroes = [
   {
-    heading: 'Product & UI',
-    sub: 'Interfaces crafted with clarity — every screen considered, every interaction refined.',
-    cards: [
-      {
-        src: 'https://images.pexels.com/photos/30959438/pexels-photo-30959438.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-        alt: '',
-      },
-      {
-        src: 'https://images.pexels.com/photos/9637500/pexels-photo-9637500.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-        alt: '',
-      },
-      {
-        src: 'https://images.pexels.com/photos/31024672/pexels-photo-31024672.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-        alt: '',
-      },
-      {
-        src: 'https://images.pexels.com/photos/13507187/pexels-photo-13507187.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-        alt: '',
-      },
-      {
-        src: 'https://images.pexels.com/photos/12219068/pexels-photo-12219068.jpeg?auto=compress&cs=tinysrgb&w=900&h=1165&fit=crop',
-        alt: '',
-      },
-    ],
+    title: mrSpinel?.title ?? 'Mr Spinel',
+    sub: mrSpinel?.featured ?? '',
+    primary: {
+      device: 'laptop' as const,
+      src: '/works/product/mrspinel-desktop.webp',
+      width: 1280,
+      height: 800,
+      alt: 'Mr Spinel — gemstone inventory overview on desktop',
+    },
+    phone: {
+      src: '/works/product/mrspinel-phone.webp',
+      width: 480,
+      height: 1041,
+      alt: 'Mr Spinel — the same inventory overview on iOS',
+    },
+  },
+  {
+    title: gaiGai?.title ?? 'GaiGai',
+    sub: gaiGai?.featured ?? '',
+    primary: {
+      device: 'tablet' as const,
+      src: '/works/product/gaigai-tablet.webp',
+      width: 640,
+      height: 806,
+      alt: 'GaiGai — grocery storefront on the tablet grid',
+    },
+    phone: {
+      src: '/works/product/gaigai-phone.webp',
+      width: 480,
+      height: 1008,
+      alt: 'GaiGai — the same storefront on the phone layout',
+    },
+  },
+];
+
+// Same title-then-sub shape as the hero and as a Selected Work card. These
+// are screens rather than whole products, so the sub names the screen — which
+// is also what keeps the two CastraNova entries apart.
+const productScreens = [
+  {
+    src: '/works/product/castranova-dashboard.webp',
+    title: 'CastraNova POS',
+    sub: 'Dashboard',
+    alt: 'CastraNova POS — dashboard',
+  },
+  {
+    src: '/works/product/nexapex-hrm.webp',
+    title: 'NexApex HRM',
+    sub: 'People',
+    alt: 'NexApex HRM — people dashboard',
   },
 ];
 
@@ -386,7 +440,7 @@ const testimonials = [
       </div>
 
       <p class="hero__cue label" data-inview-manual>
-        Scroll <span aria-hidden="true">&darr;</span> 2026
+        Scroll <span aria-hidden="true">&darr;</span>
       </p>
     </section>
 
@@ -565,6 +619,92 @@ const testimonials = [
           );
         })
       }
+
+      {/* Same `.stand`, `.stand__copy` and `.stand__heading .word` hooks as
+          above, so the scroll-stand script gives this stand the identical
+          copy rise and word-colour stagger with no changes to it. What it
+          does not carry is `.stand__card`, so the script's fan skips it —
+          `cards.length` is 0 and the timeline just drops that tween. */}
+      <article class="stand stand--product">
+        <div class="stand__inner">
+          <div class="stand__copy">
+            <h3 class="stand__heading">
+              <span class="word">Product</span> <span class="word">&amp;</span>{' '}
+              <span class="word">UI</span>
+            </h3>
+            {/* Replaces "Interfaces crafted with clarity — every screen
+                considered, every interaction refined", which was the hollow
+                capability copy PRODUCT.md anti-reference 4 rules out and the
+                claimed-not-shown confidence the voice section forbids.
+                Every noun below is a product on this stand.
+
+                It no longer opens on "internal systems built for people who
+                live in them all day" — PRODUCT.md's own positioning line, but
+                a false frame once GaiGai is here: a consumer grocery
+                storefront is not an internal system. */}
+            <p class="stand__sub">
+              Inventory, point of sale, HR, and grocery commerce — the same
+              system rendered for desktop, tablet, and phone.
+            </p>
+          </div>
+
+          <div class="product__heroes">
+            {productHeroes.map(({ title, sub, primary, phone }, i) => (
+              <figure class="product" data-inview style={`--delay:${i * 0.1}s`}>
+                <div class="product__stage">
+                  <div class:list={['product__primary', `product__primary--${primary.device}`]}>
+                    <DeviceMock
+                      device={primary.device}
+                      src={primary.src}
+                      alt={primary.alt}
+                      width={primary.width}
+                      height={primary.height}
+                    />
+                  </div>
+                  <div class="product__phone">
+                    <DeviceMock
+                      device="phone"
+                      src={phone.src}
+                      alt={phone.alt}
+                      width={phone.width}
+                      height={phone.height}
+                    />
+                  </div>
+                </div>
+
+                {/* A real <figcaption>, since the devices are already a
+                    <figure>. Each hero names itself the way a Selected Work
+                    card does. */}
+                <figcaption class="product__caption">
+                  <p class="product__title">{title}</p>
+                  <span class="product__sub">{sub}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+
+          <ul class="product__more">
+            {productScreens.map(({ src, title, sub, alt }, i) => (
+              <li class="product__screen" data-inview style={`--delay:${i * 0.08}s`}>
+                <img
+                  src={src}
+                  alt={alt}
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                  decoding="async"
+                />
+                {/* A plain div, not a <figcaption>: that element is only valid
+                    inside a <figure>, and the hero above is the figure here. */}
+                <div class="product__caption">
+                  <p class="product__title">{title}</p>
+                  <span class="product__sub">{sub}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </article>
     </section>
 
     <section
@@ -1946,6 +2086,15 @@ const testimonials = [
     gap: to-rem(8);
   }
 
+  // On a phone the cue sits under a full-width cube, and hard right put it
+  // in the cube's bottom corner with nothing to balance it. Centred, it reads
+  // as what it is: the instruction for the whole column, not a corner note.
+  @media (max-width: 768px) {
+    .hero__cue {
+      justify-self: center;
+    }
+  }
+
   // SELECTED WORK — title block only. Cards intentionally absent (curtainsjs
   // alignment bug, see Canvas.astro). Holds the page section anchor for
   // future content.
@@ -2254,7 +2403,9 @@ const testimonials = [
     background-color: var(--c-canvas-card);
     will-change: transform;
 
-    img {
+    // The plain portrait image of the Websites stand. Direct child, so the
+    // images inside a Product & UI mock take their own treatment below.
+    > img {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -2262,10 +2413,175 @@ const testimonials = [
       // Real site heroes carry their clients' brand colour, and a light one
       // would punch a hole in the near-black canvas. Mono plus a darken
       // sinks every card to the same value, so the stand reads as one set
-      // rather than four unrelated screenshots. A no-op on the Product & UI
-      // stand, whose stock photos are already monochrome.
+      // rather than four unrelated screenshots.
       filter: grayscale(1) brightness(0.62);
     }
+  }
+
+  // PRODUCT & UI — no fan. A site is judged as one of a set, so the stand
+  // above fans four of them; a product is examined one at a time, so this one
+  // puts a single product at a size where the interface is actually readable
+  // and lets the rest of the evidence sit quiet underneath. The two stands
+  // still share the heading, the sub, and the scroll reveal, which is what
+  // keeps them one system rather than two designs.
+  // Two products, side by side. Each is a product shown on the two devices it
+  // ships on, so the pair of pairs is the section's whole argument: the work
+  // is the same system rendered for whatever the person is holding.
+  // Columns are 1.55:1, not equal. Matching the two groups on HEIGHT is what
+  // makes the row read as one row, and a portrait tablet the same height as a
+  // landscape laptop is necessarily much narrower — so equal columns left
+  // GaiGai filling barely half of its own, and the pair looked lopsided with
+  // a hole in the middle. Weighting the columns to the shapes they hold puts
+  // similar slack either side of both.
+  .product__heroes {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: clamp-fluid(24, 48);
+    align-items: end;
+    width: 100%;
+    max-width: to-rem(1240);
+    margin: clamp-fluid(40, 72) auto 0;
+  }
+
+  // The figure stacks: devices, then the caption naming them.
+  .product {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin: 0;
+  }
+
+  // Devices are bottom-aligned so each pair stands on one surface.
+  //
+  // Sized as percentages of the COLUMN, not in vw, so the pair holds its
+  // proportions at every width with no breakpoint restating them.
+  //
+  // The two numbers below are tied to the 1.55:1 column ratio above and to
+  // each device's own aspect. Height of the laptop group is 84% x 1.55 x
+  // (238/400) = 0.775 units; height of the tablet group is 63% x 1 x
+  // (292/236) = 0.780. That near-match is the whole point — change a column
+  // ratio or a device width and the other numbers have to move with it.
+  .product__stage {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .product__primary--laptop {
+    width: 84%;
+    flex: none;
+  }
+
+  .product__primary--tablet {
+    width: 63%;
+    flex: none;
+  }
+
+  // Captions on this stand read exactly like a Selected Work card, because a
+  // visitor scrolling past has already learned that pattern two sections up:
+  // the project name, then one short line under it. The values below mirror
+  // .gallery__title / .gallery__sub deliberately — if those change, these
+  // should follow.
+  //
+  // This replaced a mono uppercase .micro label plus a three-clause sentence.
+  // The sentence was accurate but it made the hero argue its case in prose,
+  // which is the one thing this section does not need to do: the two screens
+  // above it are the argument.
+  .product__caption {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(4);
+  }
+
+  // The hero's caption is a direct child of the figure and sits under a
+  // centred composition; the thumbnails' captions sit left under their own
+  // left-aligned frames.
+  .product > .product__caption {
+    margin-top: clamp-fluid(20, 28);
+    text-align: center;
+  }
+
+  .product__title {
+    color: var(--c-ink);
+    font-size: clamp-fluid(14, 16);
+    font-weight: var(--fw-regular);
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .product__sub {
+    color: var(--c-body);
+    font-size: clamp-fluid(12, 14);
+  }
+
+  // The phone tucks close to its partner so the two read as one object on one
+  // surface — but it must never cover the screenshot beside it, which is the
+  // evidence the section exists to show.
+  //
+  // The pull is NOT the same number for both, because the two viewBoxes carry
+  // different amounts of dead canvas around their chassis:
+  //
+  //   laptop  viewBox 400 wide, lid x=34..366  → 8.5% empty each side
+  //   tablet  viewBox 236 wide, body x=0..236  → none, the body is the box
+  //
+  // So -5% on the laptop still leaves the phone ~2% clear of the lid, while
+  // the same pull on the tablet lands it directly on the storefront. The
+  // tablet's phone therefore sits just off the body instead, which puts the
+  // same visible gap beside both products.
+  .product__phone {
+    width: 17%;
+    margin-left: -5%;
+    flex: none;
+    // Own stacking context, so the phone is unambiguously the nearer object.
+    position: relative;
+    z-index: 1;
+  }
+
+  .product__primary--tablet + .product__phone {
+    width: 26%;
+    margin-left: 1%;
+  }
+
+  // The rest of the evidence: three screens at a size that supports the hero
+  // instead of competing with it.
+  // Two columns for two screens. A three-column grid holding two items leaves
+  // a hole on the right that reads as a missing card.
+  .product__more {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--grid-gutter);
+    width: 100%;
+    max-width: to-rem(760);
+    margin: clamp-fluid(48, 88) auto 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .product__screen {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(12);
+
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+      // Matches the source captures and the laptop's screen cut-out, so a
+      // thumbnail is the same frame at a smaller size, never a re-crop.
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      border: 1px solid var(--c-hairline-bright);
+      border-radius: var(--r-sm);
+      // Same treatment as DeviceMock's screen: value kept, saturation eased.
+      filter: saturate(0.85);
+    }
+
+    // Both caption colours clear the 4.5:1 AA floor. --c-mute stays unused on
+    // this stand: PRODUCT.md scopes it to non-essential metadata because it
+    // measures ~3.5:1 on the canvas, and a client's name under its own screen
+    // is the evidence, not metadata.
   }
 
   @media (max-width: 991px) {
@@ -2283,6 +2599,7 @@ const testimonials = [
     .stand__card:nth-child(n + 4) {
       display: none;
     }
+
   }
 
   // Phones drop the fan. Three cards at 28vw is 105px each on a 375px screen
@@ -2315,6 +2632,15 @@ const testimonials = [
 
     .stand__card:nth-child(n + 5) {
       display: none;
+    }
+
+    // Two heroes side by side would give each a ~170px column at 390px, which
+    // is not a readable dashboard. Stacked, each gets the full column and the
+    // devices inside keep their proportions untouched — the percentages above
+    // are column-relative, so nothing about the pair needs restating here.
+    .product__heroes {
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp-fluid(40, 64);
     }
   }
 
