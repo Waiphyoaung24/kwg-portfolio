@@ -53,7 +53,11 @@ const classes = ['action-pill', 'pill-btn', variant === 'filled' && 'pill-btn--f
       background-color 0.5s var(--ease-pill),
       border-color 0.5s var(--ease-pill),
       color 0.5s var(--ease-pill),
-      transform 0.5s var(--ease-pill);
+      transform 0.16s var(--ease-out-expo);
+    // The transform channel syncs with .pill-btn's :active press timing,
+    // which is a site-wide invariant (DESIGN.md makes the pill the entire
+    // interactive vocabulary). Every pill on the site presses the same way;
+    // do not retime this channel for local consistency.
 
     @include has-hover {
       // The reference lifts to 1.1. At our pill sizes that reads as a jump,
@@ -118,11 +122,22 @@ const classes = ['action-pill', 'pill-btn', variant === 'filled' && 'pill-btn--f
     }
   }
 
-  // The clone stays parked and nothing travels, matching the reference's own
-  // reduced-motion block. The pill still reports hover through its border.
+  // Under reduced motion: keep the colour feedback channels but drop all
+  // transforms. This matches .pill-btn's own reduced-motion behaviour (scale
+  // stays as feedback, but lands instantly; we do the same with translations).
+  // The clone stays parked at -250%.
   @media (prefers-reduced-motion: reduce) {
-    .action-pill,
-    .action-pill__badge,
+    .action-pill {
+      transition:
+        background-color 0.5s var(--ease-pill),
+        border-color 0.5s var(--ease-pill),
+        color 0.5s var(--ease-pill);
+    }
+
+    .action-pill__badge {
+      transition: background-color 0.5s var(--ease-pill);
+    }
+
     .action-pill__icon {
       transition: none;
     }
