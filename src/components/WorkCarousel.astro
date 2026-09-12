@@ -410,4 +410,10 @@ const { index, category, heading, intro } = chapter;
       transition: none;
     }
   }
+
+  // SplitText's mask wrapper. The bottom padding stops the mask clipping
+  // descenders on the final line (spec §4: the reference uses .09em).
+  :global(.reveal-line) {
+    padding-bottom: 0.09em;
+  }
 </style>
