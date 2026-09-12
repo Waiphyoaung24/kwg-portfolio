@@ -1,6 +1,7 @@
 ---
 import Layout from '@layouts/Layout.astro';
 import WorkCarousel from '@components/WorkCarousel.astro';
+import PageCurtain from '@components/PageCurtain.astro';
 
 import { chapters, worksFor } from '../data/works';
 
@@ -51,6 +52,8 @@ const sections = chapters.map((chapter) => ({
         Get in touch <span aria-hidden="true">&#8599;&#65038;</span>
       </a>
     </section>
+
+    <PageCurtain />
   </main>
 </Layout>
 
@@ -58,6 +61,7 @@ const sections = chapters.map((chapter) => ({
   import { mountCarousels } from '../scripts/works/carousel';
   import { mountLineReveals } from '../scripts/works/lineReveal';
   import { mountPlanes } from '../scripts/works/planes';
+  import { mountCurtain } from '../scripts/works/curtain';
 
   const carousels = mountCarousels();
   mountLineReveals();
@@ -70,6 +74,9 @@ const sections = chapters.map((chapter) => ({
   } else {
     window.addEventListener('curtains:ready', () => mountPlanes(carousels), { once: true });
   }
+  // The curtain sheet is a plain DOM element, not a curtains.js plane, so it
+  // does not need WebGL readiness — mount it independently of the branch above.
+  mountCurtain(carousels);
 </script>
 
 <style lang="scss">

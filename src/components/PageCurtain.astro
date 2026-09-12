@@ -1,0 +1,28 @@
+---
+// The chapter-boundary curtain. Purely decorative and never interactive:
+// pointer-events are off and the whole layer is hidden from assistive tech.
+---
+
+<div class="curtain" aria-hidden="true" data-curtain>
+  <div class="curtain__sheet" data-curtain-sheet></div>
+</div>
+
+<style lang="scss">
+  .curtain {
+    position: fixed;
+    inset: 0;
+    // Above the page, below the sticky header (10) so the header never
+    // disappears mid-transition.
+    z-index: 9;
+    pointer-events: none;
+  }
+
+  .curtain__sheet {
+    position: absolute;
+    inset: 0;
+    background-color: var(--c-canvas);
+    // Parked below the fold; the timeline drives it up and away.
+    transform: translateY(100%);
+    will-change: transform;
+  }
+</style>
