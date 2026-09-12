@@ -27,6 +27,26 @@ gsap.ticker.add((time) => {
 // desync from Lenis's own scroll lerp and cause a hitch.
 gsap.ticker.lagSmoothing(0);
 
+// Lenis writes document.scrollTop from its own animated target on every
+// gsap.ticker frame above. That means when the browser's native keyboard
+// focus handling tries to scroll a newly focused element into view, Lenis's
+// very next frame stomps that position back to wherever ITS target already
+// was — the native focus-scroll is silently undone a frame later. Left
+// alone, a keyboard user can Tab onto a control that's off-screen with no
+// way to see it (this is how /works' carousel controls were found to be
+// unreachable by sight). Fix is to reconcile focus with Lenis explicitly,
+// rather than let the two fight: only jump when the target is actually out
+// of view, and jump instantly (`immediate`) so it doesn't lag behind the
+// next Tab press.
+document.addEventListener('focusin', (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const rect = target.getBoundingClientRect();
+  const inView = rect.top >= 0 && rect.bottom <= window.innerHeight;
+  if (inView) return;
+  lenis.scrollTo(target, { immediate: true });
+});
+
 export const scrollStop = () => {
   if (!lenis.isStopped) {
     const scrollBarWidth = window.innerWidth - document.body.offsetWidth;
