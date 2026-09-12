@@ -5,9 +5,15 @@ import ActionPill from '@components/ActionPill.astro';
 interface Props {
   chapter: Chapter;
   items: Work[];
+  /**
+   * True for the page's first carousel; only its first slide loads eagerly.
+   * Eagerness is a page-level decision — a component instance can't know
+   * whether it's the one above the fold — so the page must pass this in.
+   */
+  first?: boolean;
 }
 
-const { chapter, items } = Astro.props;
+const { chapter, items, first = false } = Astro.props;
 const { index, category, heading, intro } = chapter;
 ---
 
@@ -44,7 +50,7 @@ const { index, category, heading, intro } = chapter;
                 width={w.media.posterWidth}
                 height={w.media.posterHeight}
                 alt={w.media.alt}
-                loading={i === 0 ? 'eager' : 'lazy'}
+                loading={first && i === 0 ? 'eager' : 'lazy'}
                 decoding="async"
               />
             </div>

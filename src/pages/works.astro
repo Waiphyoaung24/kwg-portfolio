@@ -37,8 +37,8 @@ const sections = chapters.map((chapter) => ({
     </section>
 
     {
-      sections.map(({ chapter, items }) => (
-        <WorkCarousel chapter={chapter} items={items} />
+      sections.map(({ chapter, items }, i) => (
+        <WorkCarousel chapter={chapter} items={items} first={i === 0} />
       ))
     }
 
