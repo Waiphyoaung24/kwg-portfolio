@@ -350,4 +350,49 @@ const { index, category, heading, intro } = chapter;
       transform: translateX(#{to-rem(35)});
     }
   }
+
+  // Live mode: the script has run, so the stack becomes a one-slide viewport.
+  // Everything in this block is scoped to .is-live, which means the no-JS
+  // document above is untouched by it.
+  .carousel.is-live {
+    .carousel__stage {
+      display: grid;
+      gap: 0;
+    }
+
+    .slide {
+      // All slides share one cell; only the active one is visible. Laying
+      // them out rather than display:none keeps the plane layer able to
+      // measure a slide before it is shown.
+      grid-area: 1 / 1;
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity 0.5s var(--ease-out-expo),
+        visibility 0s linear 0.5s;
+    }
+
+    .slide.is-active {
+      opacity: 1;
+      visibility: visible;
+      transition:
+        opacity 0.5s var(--ease-out-expo),
+        visibility 0s;
+    }
+
+    .carousel__stage {
+      touch-action: pan-y;
+      cursor: grab;
+    }
+
+    .carousel__stage:active {
+      cursor: grabbing;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .carousel.is-live .slide {
+      transition: none;
+    }
+  }
 </style>

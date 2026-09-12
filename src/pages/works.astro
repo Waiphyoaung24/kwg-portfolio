@@ -54,6 +54,12 @@ const sections = chapters.map((chapter) => ({
   </main>
 </Layout>
 
+<script>
+  import { mountCarousels } from '../scripts/works/carousel';
+
+  mountCarousels();
+</script>
+
 <style lang="scss">
   // 4rem subtracts the Header's footprint.
   .hero {
