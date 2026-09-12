@@ -54,7 +54,9 @@ export const disposeChapter = (root: HTMLElement) => {
 const createChapter = (controller: WorkCarouselController) => {
   const curtains = window.__curtains;
   const root = controller.root;
-  if (!curtains || chapters.has(root)) return;
+  // .gl, not truthiness — see mountPlanes's gate below for why a live
+  // instance proves nothing on its own.
+  if (!curtains?.gl || chapters.has(root)) return;
 
   const chapter: ChapterEntry = { planes: [], velocity: 0 };
 
