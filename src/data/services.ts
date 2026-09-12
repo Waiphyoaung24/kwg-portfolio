@@ -91,7 +91,11 @@ export const sectors: Sector[] = [
         category: 'erp',
       },
     ],
-    proof: ['castranova-pos', 'mrspinel-staff'],
+    // CastraNova only. Mr Spinel is also an inventory system, but citing both
+    // here and on `inventory` showed a visitor the same two summaries twice
+    // across neighbouring sectors. Split by what each build leads with: the
+    // till and the counter here, the stock ledger there.
+    proof: ['castranova-pos'],
   },
   {
     slug: 'commerce',
@@ -197,13 +201,11 @@ export const sectors: Sector[] = [
         category: 'erp',
       },
     ],
-    // The same two builds evidence retail-pos, because both genuinely are
-    // inventory systems: works.ts records CastraNova as "a point-of-sale and
-    // inventory system" with stock control and offline sync, and Mr Spinel as
-    // "a gemstone inventory book" tracking parcels and goods on consignment.
-    // One project can be proof for two sectors; what it cannot be is retyped,
-    // which is why both are cited by id.
-    proof: ['castranova-pos', 'mrspinel-staff'],
+    // Mr Spinel only, as the counterpart to retail-pos keeping CastraNova.
+    // works.ts records it as "a gemstone inventory book" tracking loose stones
+    // and parcels, goods out on consignment, and partial lot sales — a stock
+    // ledger, which is what this sector is about.
+    proof: ['mrspinel-staff'],
   },
   {
     slug: 'workforce',
