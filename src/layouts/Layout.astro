@@ -8,11 +8,23 @@ import Splash from '@components/Splash.astro';
 import Canvas from '@components/Canvas.astro';
 import GlassFilter from '@components/GlassFilter.astro';
 
+interface Props {
+  /** Page name. Suffixed with the wordmark; omit on the home page. */
+  title?: string;
+  description?: string;
+}
+
+const { title: pageTitle, description: pageDescription } = Astro.props;
+
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
 const lang = 'en';
-const title = 'KWG';
-const description = 'Personal portfolio. An exhibit, not a funnel.';
+// Ten Services routes shipping one shared title would defeat a page built to
+// be found. Defaults are the previous hardcoded values exactly, so every page
+// that passes nothing renders byte-identical metadata.
+const title = pageTitle ? `${pageTitle} — KWG` : 'KWG';
+const description =
+  pageDescription ?? 'Personal portfolio. An exhibit, not a funnel.';
 const shareImage = new URL('og-image.jpg', Astro.site);
 ---
 
