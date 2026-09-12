@@ -769,10 +769,9 @@ const testimonials = [
           <span class="micro" aria-hidden="true">Esc</span>
         </button>
         {
-          gallery.map(({ id, title, featured, summary, url, screens }, i) => {
+          gallery.map(({ id, title, featured, summary, screens }, i) => {
             // Every featured work now has a chapter slide to deep-link into, so
-            // the CTA always points to its panel. Work with no live link still
-            // gets no CTA rather than a dead one (url will be null).
+            // every CTA points to its panel.
             const href = `/works#panel-${id}`;
             return (
               <div class="work-detail__group" data-index={i}>
@@ -817,12 +816,10 @@ const testimonials = [
                     </div>
                   </>
                 )}
-                {href && (
-                  <a class="pill-btn" href={href}>
-                    View project{' '}
-                    <span aria-hidden="true">&#8599;&#65038;</span>
-                  </a>
-                )}
+                <a class="pill-btn" href={href}>
+                  View project{' '}
+                  <span aria-hidden="true">&#8599;&#65038;</span>
+                </a>
               </div>
             );
           })

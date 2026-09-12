@@ -131,6 +131,45 @@ export const works: Work[] = [
     media: null,
     url: '/catalog/kage/live',
   },
+    {
+    id: 'parallel',
+    category: 'creative-web',
+    title: 'Parallel',
+    client: 'Parallel',
+    year: 2026,
+    stack: ['Astro', 'WebGL', 'GSAP', 'Lenis'],
+    summary:
+      'A studio site for a Bangkok branding and technology practice. Imagery runs through a WebGL ASCII pass rather than being shown straight, and the work index scrolls sideways across a perspective plane instead of down a grid. Static Astro carrying three client scripts in total, so the frame budget goes to the canvas rather than a framework runtime.',
+    media: {
+      kind: 'image',
+      poster: '/works/parallel-poster.webp',
+      posterWidth: 1920,
+      posterHeight: 1080,
+      alt: 'The Parallel home page, its wordmark over the studio’s gradient hero',
+    },
+    url: 'https://parallelsolution.co/',
+    featured: 'Studio site · Web',
+  },
+    {
+    id: 'redhorse-group',
+    category: 'creative-web',
+    title: 'Red Horse Group',
+    client: 'Red Horse Group',
+    year: 2026,
+    stack: ['Astro', 'React', 'HTML/CSS'],
+    summary:
+      'A corporate site for a Myanmar group trading since 1993, covering manufacturing, distribution and dairy. Static Astro pages with React islands only where a section actually moves, so the scale figures and division stack carry the argument rather than the chrome.',
+    media: {
+      kind: 'image',
+      poster: '/works/redhorse-group-poster.webp',
+      posterWidth: 1920,
+      posterHeight: 1080,
+      alt: 'The Red Horse Group home page, its knight mark over the dairy pasture hero',
+    },
+    url: 'https://redhorse.nexapex.ai/',
+    featured: 'Corporate site · Web',
+  },
+  // ---- ERP software ------------------------------------------------------
   {
     id: 'castranova-pos',
     category: 'erp',
@@ -184,44 +223,7 @@ export const works: Work[] = [
     },
     url: null,
   },
-  {
-    id: 'parallel',
-    category: 'creative-web',
-    title: 'Parallel',
-    client: 'Parallel',
-    year: 2026,
-    stack: ['Astro', 'WebGL', 'GSAP', 'Lenis'],
-    summary:
-      'A studio site for a Bangkok branding and technology practice. Imagery runs through a WebGL ASCII pass rather than being shown straight, and the work index scrolls sideways across a perspective plane instead of down a grid. Static Astro carrying three client scripts in total, so the frame budget goes to the canvas rather than a framework runtime.',
-    media: {
-      kind: 'image',
-      poster: '/works/parallel-poster.webp',
-      posterWidth: 1920,
-      posterHeight: 1080,
-      alt: 'The Parallel home page, its wordmark over the studio’s gradient hero',
-    },
-    url: 'https://parallelsolution.co/',
-    featured: 'Studio site · Web',
-  },
-  {
-    id: 'redhorse-group',
-    category: 'creative-web',
-    title: 'Red Horse Group',
-    client: 'Red Horse Group',
-    year: 2026,
-    stack: ['Astro', 'React', 'HTML/CSS'],
-    summary:
-      'A corporate site for a Myanmar group trading since 1993, covering manufacturing, distribution and dairy. Static Astro pages with React islands only where a section actually moves, so the scale figures and division stack carry the argument rather than the chrome.',
-    media: {
-      kind: 'image',
-      poster: '/works/redhorse-group-poster.webp',
-      posterWidth: 1920,
-      posterHeight: 1080,
-      alt: 'The Red Horse Group home page, its knight mark over the dairy pasture hero',
-    },
-    url: 'https://redhorse.nexapex.ai/',
-    featured: 'Corporate site · Web',
-  },
+  // ---- Custom web & mobile ----------------------------------------------
   {
     id: 'mrspinel-staff',
     category: 'custom-build',
