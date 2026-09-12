@@ -44,9 +44,11 @@ const { items } = Astro.props;
         const href = `/works#slide-${id}`;
         return (
           <div class="work-detail__group" data-index={i}>
-            <p class="work-detail__eyebrow label">
-              0{i + 1} &mdash; {featured}
-            </p>
+            {/* `featured` means "appears on the home page" (works.ts) — a
+                work can reach this overlay from /works via the media-only
+                filter (Ruling A) without ever having one, so the caption
+                half is conditional rather than always dashed on. */}
+            <p class="work-detail__eyebrow label">0{i + 1}{featured && <> &mdash; {featured}</>}</p>
             <h3 class="work-detail__title h2">{title}</h3>
             <p class="work-detail__body">{summary}</p>
             {/* Store listing frames, when a work has them. Plain <img>:
