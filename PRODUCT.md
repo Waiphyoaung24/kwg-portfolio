@@ -35,7 +35,7 @@ Three kinds of work sit here: sites where the interface carries the argument, in
 ## Operating Context
 
 - Built with Astro on Node, deployed via Docker Compose to Dokploy. Postgres backs the vault tools.
-- Public surfaces: Home, Works, Catalog (copyable components and demos), My Portfolio (3D constellation), About.
+- Public surfaces: Home, Works, Catalog (copyable components and demos), Services (a sector directory: an index plus one page per sector), About. The 3D constellation remains at `/my-portfolio` but is no longer in the navbar and is excluded from the sitemap; it is an unmodified third-party template and is not presented as work.
 - Private surfaces under `/vault`: Fitness reference browser and workout generator, Projects tracker, and links out to self-hosted Notes and Finance tools.
 - Contact is a single email address. There is no CRM integration, booking tool, or contact form on the site.
 

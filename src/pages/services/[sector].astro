@@ -1,0 +1,262 @@
+---
+import Layout from '@layouts/Layout.astro';
+
+import type { GetStaticPaths, InferGetStaticPropsType } from 'astro';
+import type { Category, Work } from '../../data/works';
+import { works } from '../../data/works';
+import { sectors } from '../../data/services';
+
+export const getStaticPaths = (() =>
+  sectors.map((sector) => ({
+    params: { sector: sector.slug },
+    props: { sector },
+  }))) satisfies GetStaticPaths;
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const { sector }: Props = Astro.props;
+
+const email = 'waiphyoag.cs34@gmail.com';
+
+// Spelled out here, where there is room for the full phrase. The index prints
+// the short form in a meta row.
+const TAG: Record<Category, string> = {
+  'creative-web': 'Creative web',
+  erp: 'Internal system',
+  'custom-build': 'Custom build',
+};
+
+// Proof reads off works.ts by id, so a client name, year or stack is never
+// retyped on this page. src/data/services.test.mjs fails on an id that does
+// not resolve, which is why a missing entry cannot reach the build as a blank
+// chip.
+const proof = sector.proof
+  .map((id) => works.find((w) => w.id === id))
+  .filter((w): w is Work => w !== undefined);
+
+// Three siblings, wrapping past the end of the list so the last sector still
+// gets three rather than none.
+const others = sectors.filter((s) => s.slug !== sector.slug);
+const start = sectors.findIndex((s) => s.slug === sector.slug);
+const adjacent = Array.from(
+  { length: 3 },
+  (_, i) => others[(start + i) % others.length],
+);
+---
+
+<Layout title={sector.name} description={sector.lede}>
+  <main>
+    <section class="hero container" aria-labelledby="sector-mark">
+      <p class="hero__index label" data-inview-manual>
+        Services / {sector.name}
+      </p>
+      <h1 id="sector-mark" class="hero__mark h2" data-inview-manual>
+        {sector.name}
+      </h1>
+      <p class="hero__lede body-lg" data-inview-manual>{sector.lede}</p>
+    </section>
+
+    <section class="container offers" aria-labelledby="offers-heading">
+      <h2 id="offers-heading" class="offers__heading h4" data-inview>
+        What I would build
+      </h2>
+
+      <ul class="offers__grid" role="list">
+        {
+          sector.offers.map(({ title, body, category }, i) => (
+            <li class="card offer" data-inview style={`--delay: ${i * 0.06}s`}>
+              <p class="offer__tag micro">{TAG[category]}</p>
+              <h3 class="offer__title h5">{title}</h3>
+              <p class="offer__body">{body}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    {
+      /* Renders only where work exists. The four sectors with an empty proof
+         array omit the band entirely — no empty state, no "coming soon". */
+      proof.length > 0 && (
+        <section class="container proof" aria-labelledby="proof-heading">
+          <h2 id="proof-heading" class="proof__heading h4" data-inview>
+            Already built here
+          </h2>
+
+          <ul class="proof__list" role="list">
+            {proof.map(({ title, client, year, stack, summary }) => (
+              <li class="proof__item" data-inview>
+                <p class="proof__meta micro">
+                  {client} · {year}
+                </p>
+                <h3 class="proof__title h5">{title}</h3>
+                <p class="proof__body">{summary}</p>
+                <p class="proof__stack micro">{stack.join(' · ')}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    <section class="container adjacent" aria-labelledby="adjacent-heading">
+      <h2 id="adjacent-heading" class="adjacent__heading label" data-inview>
+        Not quite it
+      </h2>
+      <ul class="adjacent__list" role="list">
+        {
+          adjacent.map((s) => (
+            <li data-inview>
+              <a class="pill-btn" href={`/services/${s.slug}`}>
+                {s.name}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="container closing" aria-labelledby="closing-heading">
+      <h2 id="closing-heading" class="visually-hidden">Contact</h2>
+      <div class="closing__actions">
+        <a class="pill-btn" href="/services" data-inview>
+          <span aria-hidden="true">&larr;</span> All sectors
+        </a>
+        {
+          /* Outline, not filled — Footer.astro owns the page's one filled pill. */
+        }
+        <a
+          class="pill-btn"
+          href={`mailto:${email}?subject=New%20project`}
+          data-inview
+        >
+          Start a project
+        </a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style lang="scss">
+  // HERO — a band rather than a full viewport. A sector page is a document,
+  // and the offers are the reason to be here, so they start above the fold.
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-lg);
+    padding-block: clamp-fluid(48, 96) clamp-fluid(40, 72);
+  }
+
+  .hero__index {
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  .hero__mark {
+    margin: 0;
+    color: var(--c-ink);
+  }
+
+  .hero__lede {
+    max-width: 46ch;
+    margin: 0;
+    color: var(--c-body);
+  }
+
+  .offers,
+  .proof,
+  .adjacent {
+    padding-block: clamp-fluid(40, 72);
+    border-top: 1px solid var(--c-hairline);
+  }
+
+  .offers__heading,
+  .proof__heading {
+    margin: 0 0 var(--sp-xl);
+    color: var(--c-ink);
+  }
+
+  .offers__grid,
+  .proof__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(to-rem(280), 1fr));
+    gap: var(--grid-gutter);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .offer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-sm);
+  }
+
+  .offer__tag {
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  .offer__title {
+    margin: 0;
+    color: var(--c-ink);
+  }
+
+  .offer__body {
+    margin: 0;
+    color: var(--c-body);
+    font-size: var(--fs-body-sm);
+    line-height: 1.6;
+  }
+
+  // Proof carries no card chrome. It is evidence, not an offer, and the
+  // hairline above the band is already the elevation cue.
+  .proof__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-sm);
+  }
+
+  .proof__meta,
+  .proof__stack {
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  .proof__title {
+    margin: 0;
+    color: var(--c-ink);
+  }
+
+  .proof__body {
+    margin: 0;
+    color: var(--c-body);
+    font-size: var(--fs-body-sm);
+    line-height: 1.6;
+  }
+
+  .adjacent__heading {
+    margin: 0 0 var(--sp-lg);
+    color: var(--c-mute);
+  }
+
+  .adjacent__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-md);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .closing {
+    padding-block: clamp-fluid(48, 96);
+  }
+
+  .closing__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-md);
+  }
+</style>

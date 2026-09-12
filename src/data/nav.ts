@@ -3,6 +3,6 @@ export const nav = [
   { label: 'Home', href: '/' },
   { label: 'Works', href: '/works' },
   { label: 'Catalog', href: '/catalog' },
-  { label: 'Services', href: '/my-portfolio' },
+  { label: 'Services', href: '/services' },
   { label: 'About', href: '/about' },
 ];

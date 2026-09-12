@@ -14,20 +14,27 @@ export default defineConfig({
       ? 'http://localhost:4321'
       : 'https://kwg-portfolio.example.com',
   adapter: node({ mode: 'standalone' }),
-  integrations: [robotsTxt({
-    sitemapBaseFileName: 'sitemap-index',
-    // TODO: remove when going live
-    // policy: [
-    //   {
-    //     userAgent: '*',
-    //     disallow: '/',
-    //   },
-    // ],
-  }), sitemap({
-    filter: (page) => !page.includes('/vault'),
-    lastmod: new Date(),
-    xslURL: '/sitemap.xsl',
-  })],
+  integrations: [
+    robotsTxt({
+      sitemapBaseFileName: 'sitemap-index',
+      // TODO: remove when going live
+      // policy: [
+      //   {
+      //     userAgent: '*',
+      //     disallow: '/',
+      //   },
+      // ],
+    }),
+    sitemap({
+      // /my-portfolio frames an unmodified third-party template whose own
+      // metadata still says "Your Name". It keeps its route but should not
+      // compete with the Services pages in search.
+      filter: (page) =>
+        !page.includes('/vault') && !page.includes('/my-portfolio'),
+      lastmod: new Date(),
+      xslURL: '/sitemap.xsl',
+    }),
+  ],
   vite: {
     css: {
       preprocessorOptions: {
