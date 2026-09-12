@@ -1,5 +1,6 @@
 ---
 import Layout from '@layouts/Layout.astro';
+import Icon from '@components/Icon.astro';
 
 import type { Category } from '../../data/works';
 import { sectors } from '../../data/services';
@@ -55,7 +56,7 @@ const cards = sectors.map((sector) => ({
 
       <ul class="sectors__grid" role="list">
         {
-          cards.map(({ slug, name, qualifier, offers, tags }, i) => (
+          cards.map(({ slug, icon, name, qualifier, offers, tags }, i) => (
             <li
               class="sectors__item"
               data-inview
@@ -65,6 +66,7 @@ const cards = sectors.map((sector) => ({
                   inside it is focusable, so the card is a single tab stop
                   rather than four. */}
               <a class="card sector" href={`/services/${slug}`}>
+                <Icon name={icon} size={24} class="sector__icon" />
                 <h3 class="sector__name h4">{name}</h3>
                 <p class="sector__qualifier micro">{qualifier}</p>
 
@@ -195,6 +197,19 @@ const cards = sectors.map((sector) => ({
         border-color: var(--c-ink);
       }
     }
+  }
+
+  // Sits above the name as a recognition marker, so someone scanning nine
+  // cards finds their industry by shape before they read a heading. --c-body
+  // rather than --c-ink: it must not compete with the name underneath it.
+  //
+  // :global on the child because the svg is rendered by Icon.astro and so
+  // carries no scope attribute from this file — a plain `.sector__icon {}`
+  // here compiles to a selector that can never match, and the icon silently
+  // inherits --c-ink from .sector instead. Anchoring on the scoped `.sector`
+  // keeps the escape hatch from leaking past this page.
+  .sector :global(.sector__icon) {
+    color: var(--c-body);
   }
 
   .sector__name {

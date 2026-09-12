@@ -1,0 +1,54 @@
+---
+import { icons } from '../data/icons';
+
+interface Props {
+  /** A key of `icons` — a Feather glyph name. */
+  name: string;
+  /** Edge length in px. Feather is drawn on a 24 grid. */
+  size?: number;
+  class?: string;
+}
+
+const { name, size = 24, class: className } = Astro.props;
+
+// A name that is not in the set would otherwise render an empty box that looks
+// like a spacing bug. src/data/services.test.mjs fails the build before that
+// can ship, so reaching this throw means a page hardcoded a name rather than
+// taking one from the data file.
+const markup = icons[name];
+if (!markup) {
+  throw new Error(
+    `Icon "${name}" is not in src/data/icons.ts. Add it to the NAMES list and regenerate.`,
+  );
+}
+---
+
+<!-- Decorative: every icon on this site sits beside the text it illustrates,
+     so it is hidden from assistive tech rather than duplicating the label. -->
+<svg
+  class:list={['icon', className]}
+  style={`--icon-size: ${size}px`}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  focusable="false"
+  xmlns="http://www.w3.org/2000/svg"
+  set:html={markup}
+/>
+
+<style lang="scss">
+  .icon {
+    display: block;
+    width: var(--icon-size);
+    height: var(--icon-size);
+    // Feather ships 2. That is heavier than every other line on this site —
+    // the hairline borders are 1px — so the whole set is drawn back to 1.5.
+    stroke-width: 1.5;
+    // The glyph is geometry, not type: it must not inherit the negative
+    // tracking or line-height of whatever it sits next to.
+    flex: none;
+  }
+</style>

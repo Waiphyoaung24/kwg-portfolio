@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { sectors } from './services.ts';
 import { works } from './works.ts';
+import { icons } from './icons.ts';
 
 // The three kinds of work, as works.ts already defines them. A fourth
 // vocabulary for the same three things would drift, so this set is the only
@@ -22,6 +23,11 @@ for (const s of sectors) {
   assert.ok(s.qualifier && s.qualifier.trim(), `${s.slug}: qualifier required`);
   assert.ok(s.lede && s.lede.trim(), `${s.slug}: lede required`);
 
+  // A name that is not in the set renders an empty box, which reads as a
+  // spacing bug rather than as an error. Icon.astro throws on it too, but this
+  // fails first and names the sector.
+  assert.ok(icons[s.icon], `${s.slug}: icon not in icons.ts: ${s.icon}`);
+
   assert.ok(
     Array.isArray(s.offers) && s.offers.length > 0,
     `${s.slug}: at least one offer required`,
@@ -35,6 +41,10 @@ for (const s of sectors) {
     assert.ok(
       VALID.has(o.category),
       `${s.slug}: bad category ${o.category} on "${o.title}"`,
+    );
+    assert.ok(
+      icons[o.icon],
+      `${s.slug}: icon not in icons.ts: ${o.icon} on "${o.title}"`,
     );
   }
 
@@ -56,6 +66,10 @@ for (const s of sectors) {
 
 const offers = sectors.reduce((n, s) => n + s.offers.length, 0);
 const cited = new Set(sectors.flatMap((s) => s.proof));
+const used = new Set([
+  ...sectors.map((s) => s.icon),
+  ...sectors.flatMap((s) => s.offers.map((o) => o.icon)),
+]);
 console.log(
-  `ok: ${sectors.length} sectors, ${offers} offers, ${cited.size} works cited`,
+  `ok: ${sectors.length} sectors, ${offers} offers, ${cited.size} works cited, ${used.size} of ${Object.keys(icons).length} icons used`,
 );

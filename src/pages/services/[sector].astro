@@ -1,5 +1,6 @@
 ---
 import Layout from '@layouts/Layout.astro';
+import Icon from '@components/Icon.astro';
 
 import type { GetStaticPaths, InferGetStaticPropsType } from 'astro';
 import type { Category, Work } from '../../data/works';
@@ -63,9 +64,14 @@ const adjacent = Array.from(
 
       <ul class="offers__grid" role="list">
         {
-          sector.offers.map(({ title, body, category }, i) => (
+          sector.offers.map(({ title, body, category, icon }, i) => (
             <li class="card offer" data-inview style={`--delay: ${i * 0.06}s`}>
-              <p class="offer__tag micro">{TAG[category]}</p>
+              {/* The icon joins the tag row rather than claiming a line of its
+                  own: one less horizontal rule of rhythm to break. */}
+              <p class="offer__tag micro">
+                <Icon name={icon} size={16} />
+                {TAG[category]}
+              </p>
               <h3 class="offer__title h5">{title}</h3>
               <p class="offer__body">{body}</p>
             </li>
@@ -194,6 +200,9 @@ const adjacent = Array.from(
   }
 
   .offer__tag {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-sm);
     margin: 0;
     color: var(--c-mute);
   }
