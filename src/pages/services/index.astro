@@ -1,0 +1,261 @@
+---
+import Layout from '@layouts/Layout.astro';
+
+import type { Category } from '../../data/works';
+import { sectors } from '../../data/services';
+
+// Content lives entirely in src/data/services.ts. See
+// docs/superpowers/specs/2026-09-12-services-page-design.md.
+const email = 'waiphyoag.cs34@gmail.com';
+
+// Fixed order, so two sectors carrying the same mix of work always print the
+// same row. Derived rather than stored: the tags a sector shows are a fact
+// about its offers, and storing them separately invites the two to disagree.
+const ORDER: Category[] = ['creative-web', 'erp', 'custom-build'];
+const TAG: Record<Category, string> = {
+  'creative-web': 'Web',
+  erp: 'System',
+  'custom-build': 'Build',
+};
+
+const cards = sectors.map((sector) => ({
+  ...sector,
+  tags: ORDER.filter((c) => sector.offers.some((o) => o.category === c)).map(
+    (c) => TAG[c],
+  ),
+}));
+---
+
+<Layout
+  title="Services"
+  description="Nine sectors, and what I would build for each. Creative websites, internal systems, and custom builds."
+>
+  <main>
+    <section class="hero" aria-labelledby="services-mark">
+      <p class="hero__index label" data-inview-manual>01 &mdash; Services</p>
+
+      <div class="hero__center">
+        <h1 id="services-mark" class="hero__mark" data-inview-manual>
+          Nine sectors.<br />What I would build for each.
+        </h1>
+        <p class="hero__tagline" data-inview-manual>
+          Pick the one that describes your operation. Each page lists what I
+          would build for it, and names the clients where the work already
+          exists.
+        </p>
+      </div>
+
+      <p class="hero__cue label" data-inview-manual>
+        Scroll <span aria-hidden="true">&darr;</span> 2026
+      </p>
+    </section>
+
+    <section class="container sectors" aria-labelledby="sectors-heading">
+      <h2 id="sectors-heading" class="visually-hidden">Sectors</h2>
+
+      <ul class="sectors__grid" role="list">
+        {
+          cards.map(({ slug, name, qualifier, offers, tags }, i) => (
+            <li
+              class="sectors__item"
+              data-inview
+              style={`--delay: ${i * 0.06}s`}
+            >
+              {/* One anchor per card, wrapping the whole surface. Nothing
+                  inside it is focusable, so the card is a single tab stop
+                  rather than four. */}
+              <a class="card sector" href={`/services/${slug}`}>
+                <h3 class="sector__name h4">{name}</h3>
+                <p class="sector__qualifier micro">{qualifier}</p>
+
+                <ul class="sector__offers" role="list">
+                  {offers.map(({ title }) => (
+                    <li>{title}</li>
+                  ))}
+                </ul>
+
+                <p class="sector__meta micro">
+                  <span>{tags.join(' · ')}</span>
+                  <span aria-hidden="true">&rarr;</span>
+                </p>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="container process" aria-labelledby="process-heading">
+      <h2 id="process-heading" class="visually-hidden">How I work</h2>
+      <p class="process__body" data-inview>
+        Every one of these starts the same way. A call, a written scope with one
+        price and one timeline, then a weekly update until handover.
+      </p>
+      <a class="pill-btn" href="/#process" data-inview>How I work</a>
+    </section>
+
+    <section class="container closing" aria-labelledby="closing-heading">
+      <h2 id="closing-heading" class="visually-hidden">Contact</h2>
+      <p class="closing__body" data-inview>
+        If none of the nine describes you, the work is the same. Describe the
+        operation instead.
+      </p>
+      {
+        /* Not a filled pill. Footer.astro already puts the one filled pill on
+          every page, and DESIGN.md allows exactly one per view — so a content
+          page closes the way works.astro does, with an underlined mono link. */
+      }
+      <a
+        class="closing__link label"
+        href={`mailto:${email}?subject=New%20project`}
+        data-inview
+      >
+        Start a project <span aria-hidden="true">&#8599;&#65038;</span>
+      </a>
+    </section>
+  </main>
+</Layout>
+
+<style lang="scss">
+  // HERO — the typographic void from works.astro, same proportions. 4rem
+  // subtracts the Header's footprint.
+  .hero {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: calc(100svh - 4rem);
+    max-width: var(--container-max-width);
+    margin-inline: auto;
+    padding: to-rem(24) var(--grid-margin) to-rem(40);
+  }
+
+  .hero__index {
+    color: var(--c-mute);
+  }
+
+  .hero__center {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: clamp-fluid(20, 40);
+  }
+
+  .hero__mark {
+    margin: 0;
+    color: var(--c-ink);
+  }
+
+  .hero__tagline {
+    max-width: 42ch;
+    color: var(--c-body);
+    font-size: clamp-fluid(16, 18);
+    line-height: 1.56;
+    letter-spacing: 0;
+  }
+
+  .hero__cue {
+    justify-self: end;
+    align-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: to-rem(8);
+    color: var(--c-body);
+  }
+
+  // SECTOR GRID — auto-fit so the row count follows the viewport instead of a
+  // breakpoint, collapsing to one column on a phone without a media query.
+  .sectors {
+    margin-block: clamp-fluid(80, 140);
+  }
+
+  .sectors__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(to-rem(280), 1fr));
+    gap: var(--grid-gutter);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .sectors__item {
+    display: flex;
+  }
+
+  .sector {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--sp-md);
+    color: var(--c-ink);
+    text-decoration: none;
+    transition: border-color 0.25s var(--ease-smooth);
+
+    @include has-hover {
+      &:hover {
+        border-color: var(--c-ink);
+      }
+    }
+  }
+
+  .sector__name {
+    margin: 0;
+  }
+
+  // Metadata, which is the only thing --c-mute is cleared for (PRODUCT.md).
+  .sector__qualifier,
+  .sector__meta {
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  .sector__offers {
+    margin: 0;
+    // Pushes the meta row to the card's foot, so the arrow sits on one line
+    // across a row of cards with different offer counts.
+    margin-bottom: auto;
+    padding: 0;
+    color: var(--c-body);
+    font-size: var(--fs-body-sm);
+    line-height: 1.6;
+    list-style: none;
+  }
+
+  .sector__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-sm);
+    padding-top: var(--sp-md);
+    border-top: 1px solid var(--c-hairline);
+  }
+
+  // PROCESS + CLOSING — the measured prose column from works.astro.
+  .process,
+  .closing {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: to-rem(20);
+    margin-block: clamp-fluid(80, 140);
+  }
+
+  .process__body,
+  .closing__body {
+    max-width: 65ch;
+    margin: 0;
+    color: var(--c-body);
+    line-height: 1.55;
+  }
+
+  .closing__link {
+    color: var(--c-ink);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s var(--ease-smooth);
+
+    @include has-hover {
+      &:hover {
+        border-bottom-color: var(--c-ink);
+      }
+    }
+  }
+</style>
