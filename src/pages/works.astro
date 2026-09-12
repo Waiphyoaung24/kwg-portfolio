@@ -61,9 +61,15 @@ const sections = chapters.map((chapter) => ({
 
   const carousels = mountCarousels();
   mountLineReveals();
-  // Planes attach to the context Canvas.astro publishes on load, so this
-  // waits for that same event rather than racing it.
-  window.addEventListener('load', () => mountPlanes(carousels));
+  // Planes attach to the context Canvas.astro publishes, but which
+  // component's script runs first is not guaranteed. Handle both orders:
+  // mount now if the context already exists, otherwise wait for its
+  // explicit ready signal rather than assuming load-handler order.
+  if (window.__curtains) {
+    mountPlanes(carousels);
+  } else {
+    window.addEventListener('curtains:ready', () => mountPlanes(carousels), { once: true });
+  }
 </script>
 
 <style lang="scss">

@@ -32,13 +32,17 @@ const params: PlaneParams = {
   },
 };
 
-const chapters = new Map<HTMLElement, Plane[]>();
-let velocity = 0;
+// Velocity is per chapter, not global: Task 8 plants a second chapter's
+// planes immediately, and without this a drag on one chapter would lean the
+// other chapter's plane too, since they'd share one number.
+type ChapterEntry = { planes: Plane[]; velocity: number };
+
+const chapters = new Map<HTMLElement, ChapterEntry>();
 
 export const disposeChapter = (root: HTMLElement) => {
-  const planes = chapters.get(root);
-  if (!planes) return;
-  planes.forEach((plane) => plane.remove());
+  const chapter = chapters.get(root);
+  if (!chapter) return;
+  chapter.planes.forEach((plane) => plane.remove());
   chapters.delete(root);
   // Hand the element back to its <img>. Disposing without this leaves a blank
   // box where a poster should be.
@@ -52,7 +56,9 @@ const createChapter = (controller: WorkCarouselController) => {
   const root = controller.root;
   if (!curtains || chapters.has(root)) return;
 
-  const planes = Array.from(root.querySelectorAll<HTMLElement>('[data-carousel-plane]')).map(
+  const chapter: ChapterEntry = { planes: [], velocity: 0 };
+
+  chapter.planes = Array.from(root.querySelectorAll<HTMLElement>('[data-carousel-plane]')).map(
     (el) => {
       const plane = new Plane(curtains, el, params);
       // Slides share one grid cell (WorkCarousel.astro's .is-live block) and
@@ -63,7 +69,7 @@ const createChapter = (controller: WorkCarouselController) => {
       plane.visible = el.closest('[data-carousel-slide]') === controller.slides[controller.index];
       plane.onRender(() => {
         plane.uniforms.time.value = (plane.uniforms.time.value as number) + 1;
-        plane.uniforms.velocity.value = velocity;
+        plane.uniforms.velocity.value = chapter.velocity;
       });
       // Hide the <img> only once its plane is confirmed ready. Before this
       // fires — and if it never fires — the poster is what shows.
@@ -72,7 +78,7 @@ const createChapter = (controller: WorkCarouselController) => {
     },
   );
 
-  chapters.set(root, planes);
+  chapters.set(root, chapter);
 };
 
 export const mountPlanes = (controllers: WorkCarouselController[]) => {
@@ -83,14 +89,22 @@ export const mountPlanes = (controllers: WorkCarouselController[]) => {
   // about the fastest a real scroll goes, so it maps to roughly -1..1. Lenis
   // can report a non-finite value between frames (e.g. right after a resize);
   // an unguarded NaN would multiply through the 0.92 decay below forever and
-  // permanently collapse the geometry.
+  // permanently collapse the geometry. Scroll genuinely moves every chapter
+  // on the page, so it broadcasts to all of them, not just the one in view.
   lenis.on('scroll', ({ velocity: v }: { velocity: number }) => {
-    velocity = gsap.utils.clamp(-1, 1, Number.isFinite(v) ? v / 60 : 0);
+    const scrollVelocity = gsap.utils.clamp(-1, 1, Number.isFinite(v) ? v / 60 : 0);
+    chapters.forEach((chapter) => {
+      chapter.velocity = scrollVelocity;
+    });
   });
 
   gsap.ticker.add(() => {
     // Relax toward rest every frame, so the plane settles when nothing moves.
-    velocity *= 0.92;
+    // Once per chapter, not once per plane — a chapter's planes share one
+    // velocity.
+    chapters.forEach((chapter) => {
+      chapter.velocity *= 0.92;
+    });
   });
 
   controllers.forEach((controller, i) => {
@@ -101,7 +115,7 @@ export const mountPlanes = (controllers: WorkCarouselController[]) => {
 
     controller.onChange((index) => {
       const active = controller.slides[index];
-      chapters.get(controller.root)?.forEach((plane) => {
+      chapters.get(controller.root)?.planes.forEach((plane) => {
         // Re-derive visibility from the plane's own element rather than
         // trusting array position: not every slide has a plane (a slide with
         // no media has none), so a plane's index in this array does not line
@@ -119,8 +133,16 @@ export const mountPlanes = (controllers: WorkCarouselController[]) => {
     // state machine here just to get a speed number would be needless.
     controller.root.addEventListener('pointermove', (e) => {
       if (e.buttons !== 1) return;
-      const v = Number.isFinite(e.movementX) ? e.movementX / 60 : 0;
-      velocity = gsap.utils.clamp(-1, 1, v);
+      const chapter = chapters.get(controller.root);
+      if (!chapter) return;
+      const drag = gsap.utils.clamp(-1, 1, Number.isFinite(e.movementX) ? e.movementX / 60 : 0);
+      // A touch pan fires this alongside a genuine vertical scroll — the
+      // stage's touch-action: pan-y lets both happen at once — with
+      // movementX near zero while the scroll-driven value carries the real
+      // motion. Overwriting unconditionally would flatten the bulge for as
+      // long as a finger rests on the carousel, so keep whichever signal is
+      // actually larger instead of trusting the most recent write.
+      chapter.velocity = Math.abs(drag) > Math.abs(chapter.velocity) ? drag : chapter.velocity;
     });
   });
 };

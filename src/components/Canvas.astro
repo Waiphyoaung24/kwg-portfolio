@@ -41,6 +41,13 @@
     // rather than standing up a second WebGL canvas. Stays null if the
     // context never came up, which is the same signal as .no-curtains.
     window.__curtains = curtains;
+    // The plane layer (works.astro) needs this context but Astro does not
+    // guarantee whether this component's `load` handler or works.astro's
+    // runs first — component scripts are hoisted and bundled, so registration
+    // order is not registration order. An explicit signal replaces that
+    // assumption: works.astro checks window.__curtains directly and falls
+    // back to listening for this event, so either order is handled.
+    window.dispatchEvent(new Event('curtains:ready'));
 
     const planeElements = document.querySelectorAll('[data-canvas]');
 
