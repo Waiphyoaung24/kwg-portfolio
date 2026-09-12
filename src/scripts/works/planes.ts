@@ -120,6 +120,11 @@ export const mountPlanes = (controllers: WorkCarouselController[]) => {
   // plane at mount is therefore wherever the visitor actually is, not
   // necessarily the first — falling back to the first when nothing
   // intersects (e.g. still above the fold, in the hero).
+  // When the viewport straddles two chapters' shared edge, both satisfy the
+  // intersection test and find() takes the topmost. That's deliberate, not a
+  // missed "closest to viewport centre" case: the other chapter keeps
+  // showing its poster until its own boundary trigger fires, so exactly one
+  // chapter is planed either way and the VRAM budget holds.
   const initial =
     controllers.find((controller) => {
       const rect = controller.root.getBoundingClientRect();

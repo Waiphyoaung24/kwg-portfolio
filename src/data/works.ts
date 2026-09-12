@@ -131,7 +131,7 @@ export const works: Work[] = [
     media: null,
     url: '/catalog/kage/live',
   },
-    {
+  {
     id: 'parallel',
     category: 'creative-web',
     title: 'Parallel',
@@ -150,7 +150,7 @@ export const works: Work[] = [
     url: 'https://parallelsolution.co/',
     featured: 'Studio site · Web',
   },
-    {
+  {
     id: 'redhorse-group',
     category: 'creative-web',
     title: 'Red Horse Group',

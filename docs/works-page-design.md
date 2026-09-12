@@ -1,6 +1,16 @@
-# Works Page — Design
+# Works Page — Design (SUPERSEDED)
 
-Status: approved 2026-09-04. Produced through the `brainstorming` skill.
+> **Superseded 2026-09-13** by
+> `docs/superpowers/specs/2026-09-13-works-restructure-design.md`.
+>
+> Kept for its decision log, which records why the page was built the way it
+> was. Everything below describes a page that no longer exists: the tab
+> switcher is gone (that spec's D5), the home-only split is gone (D9), and the
+> colour, type and square-corner decisions were written against a previous
+> `DESIGN.md` — the system is now the near-black / Inter 400 / pill
+> interpretation recorded there.
+
+Status: superseded. Originally approved 2026-09-04.
 Reference studied: `https://openai.com/index/gpt-6-astra/` (layout only).
 
 ---
