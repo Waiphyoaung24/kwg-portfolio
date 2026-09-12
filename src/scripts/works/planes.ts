@@ -82,7 +82,12 @@ const createChapter = (controller: WorkCarouselController) => {
 };
 
 export const mountPlanes = (controllers: WorkCarouselController[]) => {
-  if (!window.__curtains) return; // no WebGL: .no-curtains already showed the imgs
+  // A truthy window.__curtains is not evidence of a working context: on a
+  // renderer error curtainsjs leaves the instance itself alive but with
+  // gl === null, and reports the error asynchronously (setTimeout(0)), so
+  // by the time curtains:ready fires the object can still look live. Gating
+  // on .gl catches that state directly, upstream of constructing any plane.
+  if (!window.__curtains?.gl) return; // no WebGL: .no-curtains already showed the imgs
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   // Scroll velocity, normalised and decayed. Lenis reports px/frame; 60 is
