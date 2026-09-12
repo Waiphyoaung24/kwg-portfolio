@@ -61,13 +61,6 @@ export interface Work {
   screens?: WorkScreen[];
   /** short homepage caption; presence includes the work in Selected Work */
   featured?: string;
-  /**
-   * Show in Selected Work on the home page but keep out of the /works
-   * exhibit. `worksFor` skips these, so they never reach a chapter panel —
-   * which also means their category is inert, and that nothing deep-links to
-   * `/works#panel-<id>` for them.
-   */
-  homeOnly?: true;
 }
 
 export interface Chapter {
@@ -139,20 +132,6 @@ export const works: Work[] = [
     url: '/catalog/kage/live',
   },
   {
-    id: 'placeholder-creative-03',
-    category: 'creative-web',
-    title: 'TODO — Project name',
-    client: 'TODO — Client',
-    year: 2025,
-    stack: ['TODO', 'TODO'],
-    summary:
-      'TODO — two or three technical sentences. What the constraint was, what you built, what it cost. No adjectives.',
-    media: null,
-    url: null,
-  },
-
-  // ---- ERP software ------------------------------------------------------
-  {
     id: 'castranova-pos',
     category: 'erp',
     title: 'CastraNova POS',
@@ -206,61 +185,6 @@ export const works: Work[] = [
     url: null,
   },
   {
-    id: 'placeholder-erp-03',
-    category: 'erp',
-    title: 'TODO — System name',
-    client: 'TODO — Client',
-    year: 2024,
-    stack: ['TODO', 'TODO'],
-    summary:
-      'TODO — which modules, how many users, what the data model had to absorb. Name the hard part.',
-    media: null,
-    url: null,
-  },
-
-  // ---- Custom web & mobile ----------------------------------------------
-  {
-    id: 'placeholder-custom-01',
-    category: 'custom-build',
-    title: 'TODO — Build name',
-    client: 'TODO — Client',
-    year: 2025,
-    stack: ['TODO', 'TODO'],
-    summary:
-      'TODO — platform, scope, and what shipping it required. State the delivery boundary.',
-    media: null,
-    url: null,
-  },
-  {
-    id: 'placeholder-custom-02',
-    category: 'custom-build',
-    title: 'TODO — Build name',
-    client: 'TODO — Client',
-    year: 2025,
-    stack: ['TODO', 'TODO'],
-    summary:
-      'TODO — platform, scope, and what shipping it required. State the delivery boundary.',
-    media: null,
-    url: null,
-  },
-  {
-    id: 'placeholder-custom-03',
-    category: 'custom-build',
-    title: 'TODO — Build name',
-    client: 'TODO — Client',
-    year: 2024,
-    stack: ['TODO', 'TODO'],
-    summary:
-      'TODO — platform, scope, and what shipping it required. State the delivery boundary.',
-    media: null,
-    url: null,
-  },
-
-  // ---- Home page only ----------------------------------------------------
-  // Selected Work on the home page, deliberately absent from the /works
-  // exhibit (`homeOnly`). Category is still required by the type but never
-  // reaches a chapter, so it is chosen for accuracy rather than routing.
-  {
     id: 'parallel',
     category: 'creative-web',
     title: 'Parallel',
@@ -278,7 +202,6 @@ export const works: Work[] = [
     },
     url: 'https://parallelsolution.co/',
     featured: 'Studio site · Web',
-    homeOnly: true,
   },
   {
     id: 'redhorse-group',
@@ -298,7 +221,6 @@ export const works: Work[] = [
     },
     url: 'https://redhorse.nexapex.ai/',
     featured: 'Corporate site · Web',
-    homeOnly: true,
   },
   {
     id: 'mrspinel-staff',
@@ -318,7 +240,6 @@ export const works: Work[] = [
     },
     url: null,
     featured: 'Desktop & iOS · Inventory',
-    homeOnly: true,
   },
   {
     id: 'gaigai',
@@ -360,10 +281,9 @@ export const works: Work[] = [
       alt,
     })),
     featured: 'iOS & Android · Grocery commerce',
-    homeOnly: true,
   },
 ];
 
-/** Projects for one chapter, in file order. Home-only work is excluded. */
+/** Projects for one chapter, in file order. */
 export const worksFor = (category: Category): Work[] =>
-  works.filter((w) => w.category === category && !w.homeOnly);
+  works.filter((w) => w.category === category);

@@ -33,12 +33,6 @@ for (const w of works) {
     }
   }
 
-  // Home-only work is reachable ONLY through Selected Work, so without both a
-  // caption and a poster it renders in neither place.
-  if (w.homeOnly) {
-    assert.ok(w.featured, `${w.id}: homeOnly needs featured`);
-    assert.ok(w.media, `${w.id}: homeOnly needs media`);
-  }
   assert.ok(w.url === null || typeof w.url === 'string', `${w.id}: bad url`);
 }
 
@@ -53,18 +47,33 @@ for (const c of chapters) {
   assert.ok(worksFor(c.category).length > 0, `${c.category}: no projects`);
 }
 
-// No project may be orphaned from a chapter — it would never render. Home-only
-// work is the deliberate exception: it renders in Selected Work instead, and
-// `worksFor` keeps it out of the exhibit.
+// Every project renders in a chapter. The home-only exception is gone: the
+// exhibit and Selected Work now draw from the same set, filtered differently
+// (index.astro selects on `featured && media`).
 for (const w of works) {
-  if (w.homeOnly) continue;
   assert.ok(seen.has(w.category), `${w.id}: category has no chapter`);
 }
 
 assert.equal(seen.size, VALID.size, 'every category needs a chapter');
 
-const homeOnly = works.filter((w) => w.homeOnly).length;
-console.log(
-  `ok: ${works.length} works across ${chapters.length} chapters ` +
-    `(${homeOnly} home-only)`,
-);
+// The exhibit is a carousel of full-viewport slides, so a placeholder costs a
+// whole screen. Nothing ships with TODO copy (spec D9).
+for (const w of works) {
+  const copy = [w.title, w.client, w.summary, ...w.stack].join(' ');
+  assert.ok(!copy.includes('TODO'), `${w.id}: placeholder copy in the exhibit`);
+}
+
+// A slide is textured from its poster. Kage is the one permitted gap and
+// renders the labelled empty panel instead.
+const ALLOWED_EMPTY = new Set(['kage']);
+for (const w of works) {
+  assert.ok(
+    w.media !== null || ALLOWED_EMPTY.has(w.id),
+    `${w.id}: needs media, or an entry in ALLOWED_EMPTY`,
+  );
+}
+
+const perChapter = chapters
+  .map((c) => `${c.index}:${worksFor(c.category).length}`)
+  .join(' ');
+console.log(`ok: ${works.length} works across ${chapters.length} chapters (${perChapter})`);

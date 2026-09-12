@@ -769,11 +769,11 @@ const testimonials = [
           <span class="micro" aria-hidden="true">Esc</span>
         </button>
         {
-          gallery.map(({ id, title, featured, summary, homeOnly, url, screens }, i) => {
-            // Home-only work has no /works panel to deep-link into, so its CTA
-            // points at the live site instead. Work with neither — an internal
-            // tool with nothing public — gets no CTA rather than a dead one.
-            const href = homeOnly ? url : `/works#panel-${id}`;
+          gallery.map(({ id, title, featured, summary, url, screens }, i) => {
+            // Every featured work now has a chapter slide to deep-link into, so
+            // the CTA always points to its panel. Work with no live link still
+            // gets no CTA rather than a dead one (url will be null).
+            const href = `/works#panel-${id}`;
             return (
               <div class="work-detail__group" data-index={i}>
                 <p class="work-detail__eyebrow label">
@@ -818,14 +818,8 @@ const testimonials = [
                   </>
                 )}
                 {href && (
-                  <a
-                    class="pill-btn"
-                    href={href}
-                    {...(homeOnly
-                      ? { target: '_blank', rel: 'noopener noreferrer' }
-                      : {})}
-                  >
-                    {homeOnly ? 'Visit site' : 'View project'}{' '}
+                  <a class="pill-btn" href={href}>
+                    View project{' '}
                     <span aria-hidden="true">&#8599;&#65038;</span>
                   </a>
                 )}
