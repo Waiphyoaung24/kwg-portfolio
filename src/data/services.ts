@@ -2,6 +2,12 @@ import type { Category } from './works';
 
 /** One thing that gets built, named in this sector's own nouns. */
 export interface Offer {
+  /**
+   * The product name a buyer already recognises — "Instant quoting", not
+   * "Enquiries that arrive complete". PRODUCT.md puts this audience as "less
+   * fluent in craft language": the craft voice belongs in the body and on the
+   * peer-facing surfaces, never in the thing a client is trying to identify.
+   */
   title: string;
   /** One sentence. What it does for this sector specifically. */
   body: string;
@@ -20,7 +26,7 @@ export interface Sector {
   offers: Offer[];
   /**
    * works.ts ids. Read back at build time so a client name, year or stack is
-   * never retyped here. Empty for the four sectors with no shipped work yet —
+   * never retyped here. Empty for the sectors with no shipped work yet —
    * those pages omit the proof band entirely rather than show an empty state.
    */
   proof: string[];
@@ -30,10 +36,8 @@ export interface Sector {
 // already cuts the same work by deliverable; a machine exporter and a
 // restaurant owner both have to translate that. These nine let them skip it.
 //
-// Five sectors carry real clients and four carry offers only. That asymmetry
-// is deliberate and recorded in the spec: the offers band comes before the
-// proof band on every sector page, so a page with no case study leads with
-// what would be built rather than with an absence.
+// Four offers per sector, so the nine cards carry the same weight and no row
+// reads as padding.
 export const sectors: Sector[] = [
   {
     slug: 'manufacturing',
@@ -42,23 +46,23 @@ export const sectors: Sector[] = [
     lede: 'You sell a machine that costs more than a car. Buyers research for months before they call, and the site is three photographs and a phone number.',
     offers: [
       {
-        title: 'The machine in motion',
-        body: 'The cut itself, filmed and set above the fold, with the page built around that one shot.',
+        title: 'Product film & landing page',
+        body: 'Your machine filmed running, on a page built around that one shot.',
         category: 'creative-web',
       },
       {
-        title: 'Spec sheets from one source',
-        body: 'Models, capacities, and tolerances held in one file and rendered to both the page and the PDF, so sales and the site cannot disagree.',
+        title: 'Spec & model catalogue',
+        body: 'Every model, capacity and tolerance on the site and in the downloadable PDF, out of one file.',
         category: 'creative-web',
       },
       {
-        title: 'Enquiries that arrive complete',
-        body: 'The form asks for material, thickness, and volume, so the first reply is a number instead of a question.',
+        title: 'Instant quoting',
+        body: 'The enquiry form captures material, thickness and volume, so your reply is a price instead of a question.',
         category: 'custom-build',
       },
       {
-        title: 'Production visible to the office',
-        body: 'What is on the floor, what is promised, and what is late, on one board.',
+        title: 'Production tracking',
+        body: 'What is on the floor, what is promised and what is late, on one board the office can read.',
         category: 'erp',
       },
     ],
@@ -71,23 +75,23 @@ export const sectors: Sector[] = [
     lede: 'Two branches and a spreadsheet works. Four branches and a spreadsheet is a daily phone call about stock.',
     offers: [
       {
-        title: 'A till that survives the internet',
-        body: 'Rings up a sale while the connection is down and reconciles when it returns.',
+        title: 'Point of sale',
+        body: 'Rings up sales offline when the connection drops, and reconciles when it returns.',
         category: 'erp',
       },
       {
-        title: 'One stock figure per branch',
-        body: 'Quantities moved by the till, not retyped into a sheet at closing.',
+        title: 'Multi-branch stock',
+        body: 'One quantity per item per location, moved by the till rather than by a sheet at closing.',
         category: 'erp',
       },
       {
-        title: 'The same system on the floor',
-        body: 'Inventory on a phone, so a stock check happens at the shelf.',
+        title: 'Stock app for staff',
+        body: 'The same inventory on a phone, so a stock check happens at the shelf.',
         category: 'custom-build',
       },
       {
-        title: 'Takings and margin per day',
-        body: 'Sales, discounts, and margin by branch, readable the next morning.',
+        title: 'Daily sales & margin',
+        body: 'Takings, discounts and margin by branch, ready the next morning.',
         category: 'erp',
       },
     ],
@@ -104,23 +108,23 @@ export const sectors: Sector[] = [
     lede: 'Selling through a marketplace or a chat account means renting the customer. The order history belongs to the platform.',
     offers: [
       {
-        title: 'A storefront on both stores',
-        body: 'One codebase serving the phone layout and the wider tablet grid, shipped to iOS and Android.',
+        title: 'Storefront app',
+        body: 'One build shipped to iOS and Android, serving the phone layout and the wider tablet grid.',
         category: 'custom-build',
       },
       {
-        title: 'A catalogue your staff edit',
-        body: 'Products, stock, and prices changed by the people who know them, without a developer.',
+        title: 'Catalogue & pricing',
+        body: 'Products, stock and prices edited by your own staff, live, without a developer.',
         category: 'erp',
       },
       {
-        title: 'Orders that move in the open',
-        body: 'Placed, packed, dispatched, and the customer watches it happen.',
+        title: 'Order & delivery tracking',
+        body: 'An order moves from placed to packed to out for delivery, and the customer watches it move.',
         category: 'erp',
       },
       {
-        title: 'One page whose job is the install',
-        body: 'Built for a single action, and measured against it.',
+        title: 'App install page',
+        body: 'One landing page built for a single action, and measured against it.',
         category: 'creative-web',
       },
     ],
@@ -133,18 +137,23 @@ export const sectors: Sector[] = [
     lede: 'The work is the pitch. A template flattens it into the same grid as everybody else.',
     offers: [
       {
-        title: 'A site the work earns',
+        title: 'Portfolio site',
         body: 'Scroll-driven WebGL and typography carrying the argument, on a frame budget every effect has to justify.',
         category: 'creative-web',
       },
       {
-        title: 'Projects as data',
-        body: 'Adding a case study is an entry in a file, not a rebuild of a page.',
+        title: 'Project CMS',
+        body: 'Adding a case study is an entry in a file, not a rebuild of the page.',
         category: 'creative-web',
       },
       {
-        title: 'Review without version names',
-        body: 'Comments land on the frame, versions are kept, and nothing is called final twice.',
+        title: 'Client review & approvals',
+        body: 'Comments land on the frame, versions are kept, and nothing gets called final twice.',
+        category: 'custom-build',
+      },
+      {
+        title: 'Proposal & contract builder',
+        body: 'The scope you already wrote becomes the document the client signs, no retyping.',
         category: 'custom-build',
       },
     ],
@@ -157,22 +166,22 @@ export const sectors: Sector[] = [
     lede: 'A group of companies usually reads online as one vague page about synergy. The subsidiaries are the substance.',
     offers: [
       {
-        title: 'Subsidiaries with their own depth',
+        title: 'Group & subsidiary site',
         body: 'Each company its own page and its own figures, under one identity.',
         category: 'creative-web',
       },
       {
-        title: 'A dated archive',
-        body: 'Releases, reports, and filings published by staff without opening a ticket.',
+        title: 'News & reports archive',
+        body: 'Releases, reports and filings published by staff without opening a ticket.',
         category: 'creative-web',
       },
       {
-        title: 'Careers HR can run',
-        body: 'Openings posted, applications collected, and CVs where HR can read them.',
+        title: 'Careers & applications',
+        body: 'Openings posted, applications collected, and CVs where HR can actually read them.',
         category: 'custom-build',
       },
       {
-        title: 'Figures on one definition',
+        title: 'Group reporting',
         body: 'Each entity’s numbers in one table, calculated the same way.',
         category: 'erp',
       },
@@ -186,18 +195,23 @@ export const sectors: Sector[] = [
     lede: 'Stock is right on the sheet and wrong on the shelf. Every correction costs somebody an afternoon.',
     offers: [
       {
-        title: 'Locations, picks, and counts',
-        body: 'Bin locations and pick lists on a handheld, without replacing the system you already run.',
+        title: 'Warehouse & bin locations',
+        body: 'Bin locations, pick lists and cycle counts on a handheld, without replacing the system you already run.',
         category: 'erp',
       },
       {
-        title: 'Recorded at the door',
-        body: 'Receipts and dispatches entered once, by the person who moved the box.',
+        title: 'Goods in & goods out',
+        body: 'Receipts and dispatches entered once, at the door, by whoever moved the box.',
         category: 'erp',
       },
       {
-        title: 'Where the count goes wrong',
-        body: 'Variance by item and by location, so the cause is visible rather than inferred.',
+        title: 'Stock accuracy reporting',
+        body: 'Variance by item and by location, so you can see where the count goes wrong.',
+        category: 'erp',
+      },
+      {
+        title: 'Purchase orders',
+        body: 'Orders to suppliers approved in one place, with what is still outstanding visible against each one.',
         category: 'erp',
       },
     ],
@@ -210,27 +224,30 @@ export const sectors: Sector[] = [
   {
     slug: 'workforce',
     name: 'HR & Workforce',
-    qualifier: 'rosters, onboarding, records',
+    qualifier: 'hiring, rosters, payroll, records',
     lede: 'Leave requests in a chat app, contracts in a drive folder, and one person who knows where everything is.',
+    // These four are what Parallel HRM below actually ships, read off its
+    // schema rather than guessed at. Performance reviews and attrition scoring
+    // are the two real modules left out for want of a fifth slot.
     offers: [
       {
-        title: 'A rota built once',
-        body: 'Open shifts posted and swaps accepted, inside the coverage rules you set.',
+        title: 'Applicant tracking',
+        body: 'Candidates from CV to offer, with interviews scheduled and CVs matched rather than read one at a time.',
         category: 'erp',
       },
       {
-        title: 'Leave with a balance',
-        body: 'Requests, approvals, and remaining days in one place, on a record that outlives the person keeping it.',
+        title: 'Onboarding & employee records',
+        body: 'Contracts, roles and history per person, behind a joining checklist that actually closes.',
         category: 'erp',
       },
       {
-        title: 'Onboarding that closes',
-        body: 'Documents collected and accounts created against a checklist that finishes.',
+        title: 'Leave, shifts & attendance',
+        body: 'One rota covers the month, staff claim open shifts themselves, and a swap only goes through if cover holds.',
         category: 'erp',
       },
       {
-        title: 'Records per person',
-        body: 'Contracts, roles, and history, with access you control.',
+        title: 'Payroll & payslips',
+        body: 'Salary structures, payroll runs and payslips, calculated from the attendance you already record.',
         category: 'erp',
       },
     ],
@@ -243,23 +260,23 @@ export const sectors: Sector[] = [
     lede: 'The aggregators take a share of every order and keep the customer. Your own channel costs nothing per order.',
     offers: [
       {
-        title: 'Ordering on your own page',
-        body: 'Table, pickup, or delivery, at your prices, through a channel you own.',
+        title: 'Online ordering',
+        body: 'Dine-in, pickup or delivery through a channel you own, at your prices.',
         category: 'custom-build',
       },
       {
-        title: 'Bookings off the phone',
-        body: 'Tables or rooms self-booked against real availability, confirmed and reminded automatically.',
+        title: 'Reservations & waitlist',
+        body: 'Guests pick a table or a room from live availability, and the confirmations and reminders send themselves.',
         category: 'erp',
       },
       {
-        title: 'One screen for the kitchen',
-        body: 'Every channel’s orders in the sequence they arrived.',
+        title: 'Kitchen display',
+        body: 'Every channel’s orders on one screen, in the sequence they arrived.',
         category: 'erp',
       },
       {
-        title: 'A room that photographs well',
-        body: 'The space and the plates at the size they deserve, loading fast on a phone outside.',
+        title: 'Venue website',
+        body: 'The room and the plates at the size they deserve, loading fast on a phone outside.',
         category: 'creative-web',
       },
     ],
@@ -272,23 +289,23 @@ export const sectors: Sector[] = [
     lede: 'The calendar is the product. Most of the admin around it is still typed twice.',
     offers: [
       {
-        title: 'Clients book themselves',
-        body: 'Self-scheduling against real availability, with reminders that cut no-shows.',
+        title: 'Appointment booking',
+        body: 'Clients pick a slot from your real calendar, and no-show reminders go out without anyone sending them.',
         category: 'erp',
       },
       {
-        title: 'Files per client',
-        body: 'Notes, documents, and history in one record, with access you can audit.',
+        title: 'Client records & files',
+        body: 'Notes, documents and history per client, with access you can audit.',
         category: 'erp',
       },
       {
-        title: 'Time that becomes an invoice',
+        title: 'Time tracking & invoicing',
         body: 'Hours booked against a matter raise the invoice, and the invoice chases itself.',
         category: 'erp',
       },
       {
-        title: 'The first three questions answered',
-        body: 'What you do, who for, and how to start, before the phone rings.',
+        title: 'Practice website',
+        body: 'What you do, who for, and how to start, answered before the phone rings.',
         category: 'creative-web',
       },
     ],
