@@ -1,0 +1,341 @@
+---
+// The overlay a work card expands into (src/scripts/workTransition.ts).
+// Shared by Selected Work on the home page and by the /works carousels.
+//
+// Must sit outside any element that transforms on exit — a transformed
+// ancestor becomes the containing block for a fixed child and traps it.
+// data-lenis-prevent lets the column scroll natively while Lenis is frozen.
+import type { Work } from '../data/works';
+
+interface Props {
+  /** Groups render in this order; WorkTransition matches them by index. */
+  items: Work[];
+}
+
+const { items } = Astro.props;
+---
+
+<!--
+  Work detail: the overlay a Selected Work card expands into
+  (src/scripts/workTransition.ts). Sits outside the hero, which scales on
+  exit and would otherwise trap the fixed overlay. data-lenis-prevent lets
+  the column scroll natively on short viewports while Lenis is frozen.
+-->
+<div
+  class="work-detail"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Selected work"
+  data-lenis-prevent
+>
+  <div class="work-detail__backdrop" aria-hidden="true"></div>
+  <figure class="work-detail__preview">
+    <img alt="" />
+  </figure>
+  <div class="work-detail__column">
+    <button class="work-detail__back pill-btn" type="button">
+      <span aria-hidden="true">&larr;</span> Back
+      <span class="micro" aria-hidden="true">Esc</span>
+    </button>
+    {
+      items.map(({ id, title, featured, summary, screens }, i) => {
+        // Every featured work now has a chapter slide to deep-link into, so
+        // every CTA points to its panel.
+        const href = `/works#slide-${id}`;
+        return (
+          <div class="work-detail__group" data-index={i}>
+            <p class="work-detail__eyebrow label">
+              0{i + 1} &mdash; {featured}
+            </p>
+            <h3 class="work-detail__title h2">{title}</h3>
+            <p class="work-detail__body">{summary}</p>
+            {/* Store listing frames, when a work has them. Plain <img>:
+                Astro's <Image> leaves public/ paths unprocessed, so the
+                half-size WebP is the one size served. */}
+            {screens && (
+              <>
+                <p class="micro work-detail__screens-label">
+                  App Store listing &middot; {screens.length} frames
+                </p>
+                <ul
+                  class="work-detail__screens"
+                  role="list"
+                  aria-label={`${title} App Store listing`}
+                  tabindex="0"
+                >
+                  {screens.map((s, j) => (
+                    <li class="work-detail__screen" style={`--i: ${j}`}>
+                      <img
+                        src={s.src}
+                        width={s.width}
+                        height={s.height}
+                        alt={s.alt}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </li>
+                  ))}
+                </ul>
+                {/* Where the strip scrolls sideways (phones), a hairline
+                    with one head that follows the scroll position — the
+                    route vocabulary, driven by the strip instead of a
+                    clock. Decorative: the strip itself is the control. */}
+                <div class="work-detail__scrollbar" aria-hidden="true">
+                  <span class="work-detail__scrollbar-dot"></span>
+                </div>
+              </>
+            )}
+            <a class="pill-btn" href={href}>
+              View project{' '}
+              <span aria-hidden="true">&#8599;&#65038;</span>
+            </a>
+          </div>
+        );
+      })
+    }
+  </div>
+</div>
+
+<style lang="scss">
+  // WORK DETAIL — the overlay a gallery card expands into, after Codrops'
+  // image-to-content transition (see src/scripts/workTransition.ts). Hidden
+  // until opened. The backdrop is the canvas fading over the page; the
+  // preview is where the clicked image lands, full height on the left and
+  // square like the tiles, capped at half the viewport so the copy keeps a
+  // column. Stacks under the sticky header (10): the script fades the header
+  // with the backdrop, and keeping it on top means it never pops in front of
+  // the image on the last frame of the close.
+  .work-detail {
+    --preview-w: min(100vh, 50vw);
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
+    @media (max-width: 768px) {
+      --preview-w: 100vw;
+    }
+  }
+
+  .work-detail__backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--c-canvas);
+  }
+
+  .work-detail__preview {
+    position: fixed;
+    top: 0;
+    left: 0;
+    margin: 0;
+    width: var(--preview-w);
+    height: 100vh;
+    overflow: hidden;
+    background: var(--c-canvas-card);
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    @media (max-width: 768px) {
+      height: 50vh;
+    }
+  }
+
+  .work-detail__column {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2xl);
+    padding: var(--sp-xl) var(--grid-margin) var(--sp-xl)
+      calc(var(--preview-w) + var(--sp-4xl));
+
+    @media (max-width: 768px) {
+      padding: calc(50vh + var(--sp-xl)) var(--grid-margin) var(--sp-xl);
+      // A sheet over the fixed preview: canvas from the top padding down,
+      // transparent above it, so the image shows through on open and the
+      // copy slides up over it as the column scrolls instead of landing on
+      // the picture. A hard-stop gradient rather than a content-box clip,
+      // which would leave the side padding clear and let a sliver of the
+      // image through beside the copy.
+      background-image: linear-gradient(
+        to bottom,
+        transparent calc(50vh + var(--sp-xl)),
+        var(--c-canvas) 0
+      );
+    }
+  }
+
+  .work-detail__back .micro {
+    color: var(--c-mute);
+  }
+
+  // One group per card; the script marks the open one active.
+  .work-detail__group {
+    display: none;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-lg);
+    margin-block: auto;
+    padding-block: var(--sp-2xl);
+    // The column's width, not the content's: shrink-wrapped, the group grows
+    // to fit the screens strip and nothing is left for the strip to scroll.
+    align-self: stretch;
+    min-width: 0;
+
+    &.is-active {
+      display: flex;
+    }
+  }
+
+  .work-detail__eyebrow {
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  .work-detail__title {
+    margin: 0;
+    color: var(--c-ink);
+  }
+
+  .work-detail__body {
+    margin: 0;
+    max-width: 40ch;
+    color: var(--c-body);
+    font-size: var(--fs-body-lg);
+    line-height: 1.56;
+  }
+
+  .work-detail__group .pill-btn {
+    margin-top: var(--sp-sm);
+  }
+
+  .work-detail__screens-label {
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  // A row that scrolls sideways under the copy: native scroll, snap per
+  // frame, no buttons. It bleeds through the column's right margin to the
+  // viewport edge so the next frame is cut off there, which is the only cue
+  // that there is more. Focusable, so arrow keys scroll it too.
+  .work-detail__screens {
+    align-self: stretch;
+    display: flex;
+    gap: var(--sp-md);
+    // One step under the label, the same step the frames keep between
+    // themselves, so label, frames and the indicator below read as one
+    // block with one rhythm.
+    margin: calc(-1 * var(--sp-xs)) calc(-1 * var(--grid-margin)) 0 0;
+    padding: 0 var(--grid-margin) 0 0;
+    list-style: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    // A sideways strip needs a trackpad or shift+wheel; with a plain mouse
+    // the frames past the edge are stuck. Above the overlay's own phone
+    // threshold the row wraps instead, every frame on the page, and the
+    // column's vertical scroll does the rest. Phones keep the strip: swipe
+    // is the natural gesture there and the half-height preview leaves
+    // little room to stack ten frames under the copy.
+    @media (min-width: 769px) {
+      flex-wrap: wrap;
+      margin-right: 0;
+      padding-right: 0;
+      overflow-x: visible;
+      scroll-snap-type: none;
+    }
+  }
+
+  // Exhibited frames: the site draws the hairline and the radius, and
+  // nothing else touches them. Set by height, not width: the phone and
+  // tablet cards have different shapes, and one height keeps them on a
+  // baseline while each takes the width its shape needs. The height is a
+  // share of the viewport so a short window shows a shorter row, and the
+  // cap keeps the cards readable rather than poster-sized.
+  .work-detail__screen {
+    flex: 0 0 auto;
+    height: clamp(#{to-rem(200)}, 32vh, #{to-rem(320)});
+    scroll-snap-align: start;
+
+    // Wrapped, the cards are a contact sheet, not a strip: shorter, so a
+    // 1440 screen gets the five phone cards on one line and three tablets a
+    // line after, rather than three tall lines to scroll past.
+    @media (min-width: 769px) {
+      height: #{to-rem(240)};
+    }
+
+    img {
+      display: block;
+      height: 100%;
+      width: auto;
+      border: 1px solid var(--c-hairline);
+      border-radius: var(--r-sm);
+    }
+  }
+
+  // The indicator track: a hairline the width of the column with the head
+  // on it, in the route's proportions. Phones only — above the threshold
+  // the frames wrap and there is nothing to indicate.
+  .work-detail__scrollbar {
+    align-self: stretch;
+    position: relative;
+    height: to-rem(8);
+    margin-top: calc(-1 * var(--sp-xs));
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 50% 0 auto;
+      border-top: 1px solid var(--c-hairline-bright);
+    }
+
+    @media (min-width: 769px) {
+      display: none;
+    }
+  }
+
+  .work-detail__scrollbar-dot {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: to-rem(4);
+    height: to-rem(4);
+    margin-top: to-rem(-2);
+    border-radius: var(--r-pill);
+    background-color: var(--c-ink);
+  }
+
+  // The frames rise in left to right once the copy has landed — the script
+  // starts the copy at 0.8s and lines finish near 1.1s, so the strip begins
+  // there rather than sitting fully drawn while the words are still
+  // arriving. CSS animation, so the Flip script stays untouched; `both` holds
+  // the hidden start through the delay. Under reduced motion the script fades
+  // the whole group at once and this rule does not apply.
+  @media (prefers-reduced-motion: no-preference) {
+    .work-detail__group.is-active .work-detail__screen {
+      animation: work-detail-screen-in 0.6s var(--ease-out-expo) both;
+      animation-delay: calc(1.1s + var(--i) * 50ms);
+    }
+  }
+
+  @keyframes work-detail-screen-in {
+    from {
+      opacity: 0;
+      transform: translateY(#{to-rem(16)});
+    }
+  }
+</style>
