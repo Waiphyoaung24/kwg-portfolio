@@ -114,11 +114,23 @@ export const mountPlanes = (controllers: WorkCarouselController[]) => {
     });
   });
 
-  controllers.forEach((controller, i) => {
-    // Budget (D7): only the first chapter is planed at mount. The curtain's
+  // A reload deep in the page restores scroll position without replaying any
+  // boundary crossings: ScrollTrigger seeds prevProgress at refresh, so a
+  // trigger already behind the visitor fires no callback. The chapter to
+  // plane at mount is therefore wherever the visitor actually is, not
+  // necessarily the first — falling back to the first when nothing
+  // intersects (e.g. still above the fold, in the hero).
+  const initial =
+    controllers.find((controller) => {
+      const rect = controller.root.getBoundingClientRect();
+      return rect.bottom > 0 && rect.top < window.innerHeight;
+    }) ?? controllers[0];
+
+  controllers.forEach((controller) => {
+    // Budget (D7): only one chapter is planed at mount. The curtain's
     // boundary triggers create and dispose the rest as they come into view,
     // so the resident set never exceeds two chapters.
-    if (i === 0) createChapter(controller);
+    if (controller === initial) createChapter(controller);
 
     controller.onChange((index) => {
       const active = controller.slides[index];

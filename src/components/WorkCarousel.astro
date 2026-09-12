@@ -355,6 +355,17 @@ const { index, category, heading, intro } = chapter;
   // Everything in this block is scoped to .is-live, which means the no-JS
   // document above is untouched by it.
   .carousel.is-live {
+    // Each chapter-boundary curtain trigger (works/curtain.ts) spans exactly
+    // one viewport (top bottom -> top top). A chapter shorter than the
+    // viewport would let adjacent boundaries overlap: the next boundary's
+    // onEnter would plane a third chapter before this one's onLeave disposes
+    // the first (blowing the VRAM budget), and both boundaries' timelines
+    // would scrub the same curtain sheet element at once, fighting over its
+    // yPercent every frame. svh, not dvh/vh, so a mobile URL-bar collapse
+    // doesn't itself reopen the overlap the debounced refresh already
+    // guards against.
+    min-height: 100svh;
+
     .carousel__stage {
       display: grid;
       gap: 0;
