@@ -1,6 +1,7 @@
 ---
 import Layout from '@layouts/Layout.astro';
 import WorkCarousel from '@components/WorkCarousel.astro';
+import WorkDetail from '@components/WorkDetail.astro';
 import PageCurtain from '@components/PageCurtain.astro';
 
 import { chapters, worksFor } from '../data/works';
@@ -53,6 +54,7 @@ const sections = chapters.map((chapter) => ({
       </a>
     </section>
 
+    <WorkDetail items={sections.flatMap(({ items }) => items).filter((w) => w.media)} />
     <PageCurtain />
   </main>
 </Layout>
@@ -62,6 +64,7 @@ const sections = chapters.map((chapter) => ({
   import { mountLineReveals } from '../scripts/works/lineReveal';
   import { mountPlanes } from '../scripts/works/planes';
   import { mountCurtain } from '../scripts/works/curtain';
+  import { WorkTransition } from '../scripts/workTransition';
 
   const carousels = mountCarousels();
   mountLineReveals();
@@ -77,6 +80,20 @@ const sections = chapters.map((chapter) => ({
   // The curtain sheet is a plain DOM element, not a curtains.js plane, so it
   // does not need WebGL readiness — mount it independently of the branch above.
   mountCurtain(carousels);
+
+  // Slides expand into the same work-detail overlay Selected Work uses.
+  // Kage has no media and so no [data-carousel-plane] — must throws on a
+  // missing image, so only media-bearing slides can become transition items.
+  // WorkDetail was rendered from the identical media filter above, in the
+  // same chapter order, so items[i] and its group still pair by index.
+  const overlay = document.querySelector<HTMLElement>('.work-detail');
+  if (overlay) {
+    new WorkTransition({
+      items: Array.from(document.querySelectorAll<HTMLElement>('[data-carousel-plane]')),
+      img: '.slide__img',
+      overlay,
+    });
+  }
 </script>
 
 <style lang="scss">
