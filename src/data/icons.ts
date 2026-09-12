@@ -11,8 +11,9 @@
 // stroke, fill, width and cap settings live on the wrapper in Icon.astro, so a
 // change there restyles all of them at once.
 //
-// Generated from feather-icons 4.29.2 — do not hand-edit; add a name to the
-// list and regenerate.
+// Transcribed from feather-icons 4.29.2. No generator is checked in, so new
+// glyphs are added by hand: copy the inner markup of the upstream 24x24 SVG
+// verbatim and keep the list alphabetical.
 //
 // Feather is MIT licensed:
 //
@@ -32,6 +33,8 @@
 
 /** Inner markup of one 24x24 Feather glyph, keyed by its upstream name. */
 export const icons: Record<string, string> = {
+  'arrow-up-right':
+    '<line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline>',
   activity: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>',
   archive:
     '<polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line>',

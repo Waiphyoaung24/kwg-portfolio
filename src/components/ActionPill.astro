@@ -1,0 +1,142 @@
+---
+// The site's action pill: the shared `.pill-btn` shape, plus a badge that
+// swaps its icon on hover. Mechanism ported from stylized.cortiz.dev (spec
+// §4, §7.4); every colour, face and weight is ours.
+//
+// The icon is rendered twice on purpose. Both copies sit in the same grid
+// cell inside an overflow-hidden badge: one leaves to the right while the
+// clone arrives from the left, so the badge never shows an empty frame.
+import Icon from '@components/Icon.astro';
+
+interface Props {
+  /** Renders an <a> when present, a <button> when not. */
+  href?: string;
+  label: string;
+  /** Key from src/data/icons.ts */
+  icon: string;
+  variant?: 'outline' | 'filled';
+  /** Opens in a new tab and appends the offsite affordance. */
+  external?: boolean;
+}
+
+const { href, label, icon, variant = 'outline', external = false } = Astro.props;
+
+const Tag = href ? 'a' : 'button';
+const classes = ['action-pill', 'pill-btn', variant === 'filled' && 'pill-btn--filled']
+  .filter(Boolean)
+  .join(' ');
+---
+
+<Tag
+  class={classes}
+  href={href}
+  type={href ? undefined : 'button'}
+  target={external ? '_blank' : undefined}
+  rel={external ? 'noopener noreferrer' : undefined}
+>
+  <span class="action-pill__label label">{label}</span>
+  <span class="action-pill__badge" aria-hidden="true">
+    <span class="action-pill__icon"><Icon name={icon} /></span>
+    <span class="action-pill__icon action-pill__icon--clone"><Icon name={icon} /></span>
+  </span>
+  {external && <span class="visually-hidden">(opens in a new tab)</span>}
+</Tag>
+
+<style lang="scss">
+  .action-pill {
+    // Asymmetric padding: the label needs breathing room on the left, the
+    // badge sits almost flush right. Measured 0 5px 0 22px; ours rounds to
+    // the 4px scale.
+    padding: var(--sp-xs) var(--sp-xs) var(--sp-xs) var(--sp-xl);
+    gap: var(--sp-md);
+    transition:
+      background-color 0.5s var(--ease-pill),
+      border-color 0.5s var(--ease-pill),
+      color 0.5s var(--ease-pill),
+      transform 0.5s var(--ease-pill);
+
+    @include has-hover {
+      // The reference lifts to 1.1. At our pill sizes that reads as a jump,
+      // and DESIGN.md has no shadow to anchor it — so the scale is halved.
+      &:hover {
+        transform: scale(1.04);
+      }
+    }
+  }
+
+  .action-pill__label {
+    color: inherit;
+  }
+
+  .action-pill__badge {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: to-rem(36);
+    height: to-rem(36);
+    border-radius: var(--r-pill);
+    background-color: rgba(255, 255, 255, 0.14);
+    // The swap only reads because the badge clips it.
+    overflow: hidden;
+    transition: background-color 0.5s var(--ease-pill);
+  }
+
+  .pill-btn--filled .action-pill__badge {
+    background-color: rgba(10, 10, 10, 0.12);
+  }
+
+  .action-pill__icon {
+    // Both icons occupy one cell, so neither reserves layout for the other.
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.5s var(--ease-pill-icon);
+  }
+
+  .action-pill__icon--clone {
+    transform: translateX(-250%);
+  }
+
+  @include has-hover {
+    .action-pill:hover {
+      .action-pill__badge {
+        background-color: rgba(255, 255, 255, 0.22);
+      }
+
+      .action-pill__icon {
+        transform: translateX(250%);
+      }
+
+      .action-pill__icon--clone {
+        transform: translateX(0);
+      }
+    }
+
+    .pill-btn--filled:hover .action-pill__badge {
+      background-color: rgba(10, 10, 10, 0.2);
+    }
+  }
+
+  // The clone stays parked and nothing travels, matching the reference's own
+  // reduced-motion block. The pill still reports hover through its border.
+  @media (prefers-reduced-motion: reduce) {
+    .action-pill,
+    .action-pill__badge,
+    .action-pill__icon {
+      transition: none;
+    }
+
+    .action-pill:hover {
+      transform: none;
+
+      .action-pill__icon {
+        transform: none;
+      }
+
+      .action-pill__icon--clone {
+        transform: translateX(-250%);
+      }
+    }
+  }
+</style>

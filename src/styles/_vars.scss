@@ -144,6 +144,11 @@
     1.003 76.9%,
     1
   );
+  // Pill motion, measured off stylized.cortiz.dev (spec §4). The overshoot
+  // variant is what makes the icon swap read as mechanical rather than soft;
+  // the two are a pair and are not interchangeable.
+  --ease-pill: cubic-bezier(0.22, 0.68, 0, 1);
+  --ease-pill-icon: cubic-bezier(0.22, 0.68, 0, 1.5);
 
   // z-index
   --zi-cursor: 20000;
