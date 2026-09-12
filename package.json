@@ -17,6 +17,7 @@
     "test:presets": "node src/scripts/workout-presets.test.mjs",
     "test:auth": "node src/server/auth.test.mjs",
     "test:pipeline": "node src/server/pipeline.test.mjs",
+    "test:services": "node src/data/services.test.mjs",
     "astro": "astro"
   },
   "devDependencies": {
