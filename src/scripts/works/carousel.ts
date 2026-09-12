@@ -84,8 +84,10 @@ export class WorkCarouselController {
       }
     });
 
-    // Focus landing on an off-screen slide advances to it, rather than
-    // leaving the user tabbing through content they cannot see.
+    // Backstop, not the primary guard: `inert` on non-active slides already
+    // keeps their descendants out of the tab order and blocks programmatic
+    // focus, so this normally never fires for an off-screen slide. It exists
+    // for the case `inert` is unsupported or render() fails to apply it.
     this.root.addEventListener('focusin', (e) => {
       const slide = (e.target as HTMLElement).closest<HTMLElement>('[data-carousel-slide]');
       if (!slide) return;
@@ -98,6 +100,9 @@ export class WorkCarouselController {
 
     stage.addEventListener('pointerdown', (e) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
+      // Without capture, a release outside the stage (a fast flick past its
+      // edge) never delivers pointerup here, and the gesture is lost.
+      stage.setPointerCapture(e.pointerId);
       this.dragging = true;
       this.startX = e.clientX;
       this.hint?.setAttribute('hidden', '');

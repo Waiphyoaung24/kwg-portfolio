@@ -388,6 +388,15 @@ const { index, category, heading, intro } = chapter;
     .carousel__stage:active {
       cursor: grabbing;
     }
+
+    // Suppresses the browser's native image drag-ghost so it can't compete
+    // with the carousel's own pointer-drag gesture. Left to CSS rather than
+    // preventDefault() on pointerdown, which would also suppress the focus
+    // behaviour the controller relies on.
+    .slide__plane img {
+      user-select: none;
+      -webkit-user-drag: none;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
