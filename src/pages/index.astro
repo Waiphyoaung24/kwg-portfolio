@@ -326,9 +326,15 @@ const testimonials = [
 
       </div>
 
-      <p class="hero__cue label" data-inview-manual>
-        Scroll <span aria-hidden="true">&darr;</span>
-      </p>
+      {/* Wrapped so the scroll fade below has an element of its own: the
+          cue itself carries the inview entrance, which starts it at opacity
+          0, and a tween on it would record that as its start and never let
+          it appear. */}
+      <div class="hero__cue-wrap">
+        <p class="hero__cue label" data-inview-manual>
+          Scroll <span aria-hidden="true">&darr;</span>
+        </p>
+      </div>
     </section>
 
     {/* Two independent panels, not one merged widget: the cube owns its own
@@ -763,7 +769,7 @@ const testimonials = [
           <span class="micro" aria-hidden="true">Esc</span>
         </button>
         {
-          gallery.map(({ id, title, featured, summary, homeOnly, url }, i) => {
+          gallery.map(({ id, title, featured, summary, homeOnly, url, screens }, i) => {
             // Home-only work has no /works panel to deep-link into, so its CTA
             // points at the live site instead. Work with neither — an internal
             // tool with nothing public — gets no CTA rather than a dead one.
@@ -775,6 +781,42 @@ const testimonials = [
                 </p>
                 <h3 class="work-detail__title h2">{title}</h3>
                 <p class="work-detail__body">{summary}</p>
+                {/* Store listing frames, when a work has them. Plain <img>:
+                    Astro's <Image> leaves public/ paths unprocessed, so the
+                    half-size WebP is the one size served. */}
+                {screens && (
+                  <>
+                    <p class="micro work-detail__screens-label">
+                      App Store listing &middot; {screens.length} frames
+                    </p>
+                    <ul
+                      class="work-detail__screens"
+                      role="list"
+                      aria-label={`${title} App Store listing`}
+                      tabindex="0"
+                    >
+                      {screens.map((s, j) => (
+                        <li class="work-detail__screen" style={`--i: ${j}`}>
+                          <img
+                            src={s.src}
+                            width={s.width}
+                            height={s.height}
+                            alt={s.alt}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    {/* Where the strip scrolls sideways (phones), a hairline
+                        with one head that follows the scroll position — the
+                        route vocabulary, driven by the strip instead of a
+                        clock. Decorative: the strip itself is the control. */}
+                    <div class="work-detail__scrollbar" aria-hidden="true">
+                      <span class="work-detail__scrollbar-dot"></span>
+                    </div>
+                  </>
+                )}
                 {href && (
                   <a
                     class="pill-btn"
@@ -881,6 +923,27 @@ const testimonials = [
       overlay,
     });
   }
+
+  // The screens strip's scroll indicator: one head on a hairline, placed by
+  // how far the strip has scrolled. Set directly on the head, not through a
+  // custom property on the track, so nothing but the head restyles.
+  document
+    .querySelectorAll<HTMLElement>('.work-detail__screens')
+    .forEach((strip) => {
+      const track = strip.nextElementSibling as HTMLElement | null;
+      const dot = track?.querySelector<HTMLElement>(
+        '.work-detail__scrollbar-dot',
+      );
+      if (!track || !dot) return;
+      const place = () => {
+        const range = strip.scrollWidth - strip.clientWidth;
+        const span = track.clientWidth - dot.offsetWidth;
+        const p = range > 0 ? strip.scrollLeft / range : 0;
+        dot.style.transform = `translateX(${p * span}px)`;
+      };
+      strip.addEventListener('scroll', place, { passive: true });
+      window.addEventListener('resize', place);
+    });
 </script>
 
 <script>
@@ -1031,6 +1094,24 @@ const testimonials = [
         )
         // Blur only the type; blurring the WebGL canvas every frame is costly.
         .to('.hero__center', { filter: 'blur(16px)', ease: 'power1.in' }, 0);
+
+      // The cue keeps until section 02 actually starts to arrive: the hero
+      // is one viewport tall, so anything hung on the timeline above begins
+      // at the first pixel of scroll. Anchored to the intro's top edge
+      // instead, it fades across the first quarter-screen of the section
+      // entering. autoAlpha hides it outright at zero so the scale, which
+      // pushes the hero's bottom edge down into section 02, cannot ghost it
+      // through the cube.
+      gsap.to('.hero__cue-wrap', {
+        autoAlpha: 0,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '#intro',
+          start: 'top bottom',
+          end: 'top 75%',
+          scrub: true,
+        },
+      });
 
       // Scales up to 1 from a left origin, so it never reaches past the edge.
       gsap.from('.work__header', {
@@ -1535,9 +1616,12 @@ const testimonials = [
   // Centred at every width. Hard right parked it in the cube's bottom corner
   // with nothing to balance it; centred, it reads as what it is — the
   // instruction for the whole column, not a corner note.
-  .hero__cue {
+  .hero__cue-wrap {
     justify-self: center;
     align-self: end;
+  }
+
+  .hero__cue {
     color: var(--c-body);
     display: inline-flex;
     align-items: center;
@@ -1856,6 +1940,17 @@ const testimonials = [
 
     @media (max-width: 768px) {
       padding: calc(50vh + var(--sp-xl)) var(--grid-margin) var(--sp-xl);
+      // A sheet over the fixed preview: canvas from the top padding down,
+      // transparent above it, so the image shows through on open and the
+      // copy slides up over it as the column scrolls instead of landing on
+      // the picture. A hard-stop gradient rather than a content-box clip,
+      // which would leave the side padding clear and let a sliver of the
+      // image through beside the copy.
+      background-image: linear-gradient(
+        to bottom,
+        transparent calc(50vh + var(--sp-xl)),
+        var(--c-canvas) 0
+      );
     }
   }
 
@@ -1871,6 +1966,10 @@ const testimonials = [
     gap: var(--sp-lg);
     margin-block: auto;
     padding-block: var(--sp-2xl);
+    // The column's width, not the content's: shrink-wrapped, the group grows
+    // to fit the screens strip and nothing is left for the strip to scroll.
+    align-self: stretch;
+    min-width: 0;
 
     &.is-active {
       display: flex;
@@ -1897,6 +1996,128 @@ const testimonials = [
 
   .work-detail__group .pill-btn {
     margin-top: var(--sp-sm);
+  }
+
+  .work-detail__screens-label {
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  // A row that scrolls sideways under the copy: native scroll, snap per
+  // frame, no buttons. It bleeds through the column's right margin to the
+  // viewport edge so the next frame is cut off there, which is the only cue
+  // that there is more. Focusable, so arrow keys scroll it too.
+  .work-detail__screens {
+    align-self: stretch;
+    display: flex;
+    gap: var(--sp-md);
+    // One step under the label, the same step the frames keep between
+    // themselves, so label, frames and the indicator below read as one
+    // block with one rhythm.
+    margin: calc(-1 * var(--sp-xs)) calc(-1 * var(--grid-margin)) 0 0;
+    padding: 0 var(--grid-margin) 0 0;
+    list-style: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    // A sideways strip needs a trackpad or shift+wheel; with a plain mouse
+    // the frames past the edge are stuck. Above the overlay's own phone
+    // threshold the row wraps instead, every frame on the page, and the
+    // column's vertical scroll does the rest. Phones keep the strip: swipe
+    // is the natural gesture there and the half-height preview leaves
+    // little room to stack ten frames under the copy.
+    @media (min-width: 769px) {
+      flex-wrap: wrap;
+      margin-right: 0;
+      padding-right: 0;
+      overflow-x: visible;
+      scroll-snap-type: none;
+    }
+  }
+
+  // Exhibited frames: the site draws the hairline and the radius, and
+  // nothing else touches them. Set by height, not width: the phone and
+  // tablet cards have different shapes, and one height keeps them on a
+  // baseline while each takes the width its shape needs. The height is a
+  // share of the viewport so a short window shows a shorter row, and the
+  // cap keeps the cards readable rather than poster-sized.
+  .work-detail__screen {
+    flex: 0 0 auto;
+    height: clamp(#{to-rem(200)}, 32vh, #{to-rem(320)});
+    scroll-snap-align: start;
+
+    // Wrapped, the cards are a contact sheet, not a strip: shorter, so a
+    // 1440 screen gets the five phone cards on one line and three tablets a
+    // line after, rather than three tall lines to scroll past.
+    @media (min-width: 769px) {
+      height: #{to-rem(240)};
+    }
+
+    img {
+      display: block;
+      height: 100%;
+      width: auto;
+      border: 1px solid var(--c-hairline);
+      border-radius: var(--r-sm);
+    }
+  }
+
+  // The indicator track: a hairline the width of the column with the head
+  // on it, in the route's proportions. Phones only — above the threshold
+  // the frames wrap and there is nothing to indicate.
+  .work-detail__scrollbar {
+    align-self: stretch;
+    position: relative;
+    height: to-rem(8);
+    margin-top: calc(-1 * var(--sp-xs));
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 50% 0 auto;
+      border-top: 1px solid var(--c-hairline-bright);
+    }
+
+    @media (min-width: 769px) {
+      display: none;
+    }
+  }
+
+  .work-detail__scrollbar-dot {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: to-rem(4);
+    height: to-rem(4);
+    margin-top: to-rem(-2);
+    border-radius: var(--r-pill);
+    background-color: var(--c-ink);
+  }
+
+  // The frames rise in left to right once the copy has landed — the script
+  // starts the copy at 0.8s and lines finish near 1.1s, so the strip begins
+  // there rather than sitting fully drawn while the words are still
+  // arriving. CSS animation, so the Flip script stays untouched; `both` holds
+  // the hidden start through the delay. Under reduced motion the script fades
+  // the whole group at once and this rule does not apply.
+  @media (prefers-reduced-motion: no-preference) {
+    .work-detail__group.is-active .work-detail__screen {
+      animation: work-detail-screen-in 0.6s var(--ease-out-expo) both;
+      animation-delay: calc(1.1s + var(--i) * 50ms);
+    }
+  }
+
+  @keyframes work-detail-screen-in {
+    from {
+      opacity: 0;
+      transform: translateY(#{to-rem(16)});
+    }
   }
 
   // CAPABILITIES — 2 "stand" sections whose cards are fanned in 3D

@@ -31,6 +31,15 @@ export interface WorkImage extends WorkMediaBase {
 
 export type WorkMedia = WorkVideo | WorkImage;
 
+/** One frame of a store listing, shown in the home overlay's strip. */
+export interface WorkScreen {
+  src: string;
+  width: number;
+  height: number;
+  /** The frame's own headline, so the strip reads as sentences. */
+  alt: string;
+}
+
 export interface Work {
   /** unique, kebab-case */
   id: string;
@@ -45,6 +54,11 @@ export interface Work {
   media: WorkMedia | null;
   /** live link, or null to hide the CTA */
   url: string | null;
+  /**
+   * Store listing frames for the home overlay, in listing order. Exhibited
+   * work: they keep their own styling (CLAUDE.md), the site only frames them.
+   */
+  screens?: WorkScreen[];
   /** short homepage caption; presence includes the work in Selected Work */
   featured?: string;
   /**
@@ -303,6 +317,28 @@ export const works: Work[] = [
       alt: 'The GaiGai tablet storefront with the phone home screen alongside it',
     },
     url: null,
+    // The App Store listing as shipped: five phone frames, then the same
+    // five for tablet. Each is the listing card cropped out of a phone
+    // screenshot of the store page (status bar and close button gone) and
+    // exported at one shared height, so the strip sets them by height and
+    // the two card shapes sit on one baseline.
+    screens: [
+      'Welcome to GaiGai eSupermarket. Everything you need for your daily life at your fingertips.',
+      'Over 7000 products to choose from: snacks, drinks, groceries.',
+      'Save more with free delivery, no minimum purchase.',
+      'Shop your snacks, drinks and groceries easily, by category and by country.',
+      'Get rewarded for shopping: a $5 voucher with any purchase of $25 or more.',
+      'Tablet layout: welcome to GaiGai eSupermarket.',
+      'Tablet layout: over 7000 products to choose from.',
+      'Tablet layout: free delivery with no minimum purchase.',
+      'Tablet layout: shop by category and by country.',
+      'Tablet layout: a $5 voucher with any purchase of $25 or more.',
+    ].map((alt, i) => ({
+      src: `/works/gaigai/frame-${String(i + 1).padStart(2, '0')}.webp`,
+      width: i < 5 ? 373 : 600,
+      height: 800,
+      alt,
+    })),
     featured: 'iOS & Android · Grocery commerce',
     homeOnly: true,
   },

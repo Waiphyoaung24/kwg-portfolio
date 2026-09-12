@@ -78,7 +78,7 @@ Things this must never look like, in order of priority:
 - Home page capability imagery is real shipped work: live site heroes in Websites & Landing Pages, and real product screens in device mocks in Product & UI (`public/works/product/`).
 - Any remaining placeholder imagery must be replaced with real work before launch and must not be described as real work.
 - No client logos or press exist. Do not fabricate any.
-- The two figures in section 02 (8 years building, 20+ projects delivered) are the owner's own count, not derived from `src/data/works.ts` — which holds 7 entries, being a portfolio selection rather than a career total. They stand on his word, the way Swift does in the stack list. Do not add a figure that has no source.
+- The two figures in section 02 (8 years building, 20+ projects delivered) are the owner's own count, not derived from `src/data/works.ts` — which holds 7 entries, being a portfolio selection rather than a career total. They stand on his word, the way the stack list does: of its six entries only React is traceable to `src/data/works.ts`; Kotlin, Swift, Java, AI/ML and automation are his statement. Do not add a figure that has no source.
 
 ## Product Principles
 

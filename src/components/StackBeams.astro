@@ -1,29 +1,31 @@
 ---
-// STACK BEAMS — six tools wired into the mark, beside the cube in section 02.
+// STACK BEAMS — six tools wired into the wordmark, beside the cube in section 02.
 //
 // This is where the working stack lives now. It used to be nine chips on the
 // cube's Craft face; a chip list and a wiring diagram of the same nine words,
 // three feet apart in one section, said the thing twice. The face kept its
 // lede and its drawing, and the stack moved here.
 //
-// The stack is given by Wai Phyo Aung rather than read off this repo. Astro,
-// React, GSAP and Node are traceable to src/data/works.ts (Astro and React on
-// Red Horse, GSAP on Kage); Postgres backs the vault tools per PRODUCT.md;
-// Swift is not recorded anywhere here and stands on his word. Nothing
-// aspirational goes in this list.
+// The stack is given by Wai Phyo Aung rather than read off this repo, and it
+// is the whole practice, not the web slice of it: the languages he ships
+// native work in on the left, what they are put to on the right. Only React
+// is traceable to src/data/works.ts; Kotlin, Swift, Java, AI/ML and
+// automation stand on his word, the way the section's two figures do.
+// Nothing aspirational goes in this list. Astro, GSAP, Node and Postgres are
+// the four this cut loses from the earlier web-only list; each still appears
+// per project on Works.
 //
 // Six, not the nine the chips carried: three a side is what the layout reads
 // at, and a fourth row each way turns a diagram into a logo wall — which is
-// PRODUCT.md anti-reference 3. Three.js, FastAPI and Kotlin are the three the
-// cut loses.
+// PRODUCT.md anti-reference 3.
 //
 // Monochrome by decision. PRODUCT.md anti-reference 1 names "dark + neon" as
 // the explicit enemy and anti-reference 3 rules out "powered by" badges, so
 // these are hairline pills with mono labels — the vocabulary the chips they
 // replace already used — and the beams speak DeployPipeline's language: a
 // dotted hairline path with one white head travelling it.
-const left = ['Astro', 'React', 'GSAP'];
-const right = ['Node', 'Postgres', 'Swift'];
+const left = ['Kotlin', 'Swift', 'Java'];
+const right = ['React', 'AI / ML', 'Automation'];
 ---
 
 <div class="stackbeams" data-stackbeams>
@@ -44,16 +46,10 @@ const right = ['Node', 'Postgres', 'Swift'];
     }
   </ul>
 
-  {/* The same three-stroke W the cube's Craft face wears, and the favicon. */}
+  {/* The wordmark, not the W: the letters the footer sets, in the display
+      face. The W stays the header mark and the favicon per PRODUCT.md. */}
   <div class="sb__hub" data-sb-hub>
-    <span class="sb__mark" aria-hidden="true">
-      <svg viewBox="0 0 36 24" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M0 0h6.4l3.3 15.2L13.4 0h5.2l3.7 15.2L25.6 0H32l-6 24h-6.2L16 9.6 12.2 24H6z"
-        />
-      </svg>
-    </span>
-    <span class="visually-hidden">KWG</span>
+    <span class="sb__mark">KWG</span>
   </div>
 
   <ul class="sb__col sb__col--right" role="list">
@@ -128,24 +124,25 @@ const right = ['Node', 'Postgres', 'Swift'];
     z-index: 1;
     display: grid;
     place-items: center;
-    width: clamp-fluid(56, 76);
-    aspect-ratio: 1;
+    // A pill, not a circle: three letters are wider than they are tall. The
+    // height is the old circle's, so the beams still meet it where they did.
+    // The script reads the hub's box at layout time, so width is free to
+    // follow the letters.
+    height: clamp-fluid(56, 76);
+    padding-inline: clamp-fluid(20, 28);
     border: 1px solid var(--c-ink);
     border-radius: var(--r-pill);
     background-color: var(--c-canvas);
   }
 
+  // Display face at weight 400 with the display ladder's negative tracking:
+  // the footer wordmark's setting, at a size the hub's height can hold.
   .sb__mark {
     display: block;
-    width: 44%;
+    font-size: clamp-fluid(22, 30);
+    line-height: 1;
+    letter-spacing: var(--ls-3);
     color: var(--c-ink);
-
-    svg {
-      display: block;
-      width: 100%;
-      height: auto;
-      fill: currentColor;
-    }
   }
 
   // The <svg> ships empty; the script fills it once the grid has placed the

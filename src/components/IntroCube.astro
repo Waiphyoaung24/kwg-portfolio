@@ -184,14 +184,14 @@ const cubeFaces = [
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-sm);
+    // Centred over a scene whose copy is itself centred.
+    justify-content: center;
 
     // Under the cube on narrow screens, not above it. The nav stays first in
     // the DOM so the tab order still reaches the controls before the face
-    // they turn to; `order` moves it visually without touching that. Centred
-    // to sit under a scene that is itself centred in the column.
+    // they turn to; `order` moves it visually without touching that.
     @media (max-width: 1023px) {
       order: 1;
-      justify-content: center;
     }
 
     // Four labels come to 158px of ink between them; the pill primitive's own
@@ -431,7 +431,10 @@ const cubeFaces = [
     padding: var(--sp-md);
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    // Centred under a centred drawing at every width; a left-set block under
+    // it reads as slipped.
+    align-items: center;
+    text-align: center;
     // Centred, not floored: the drawing is exactly as tall as it draws now
     // (below), so drawing and copy are one group with nothing to push it
     // to the floor.
@@ -510,12 +513,9 @@ const cubeFaces = [
       display: none;
     }
 
-    // A phone's face holds one drawing and one short lede, and a left-set
-    // block under a centred drawing reads as slipped. Centre both and close
-    // the gap so the copy sits right under the strokes.
+    // A phone's face holds one drawing and one short lede: close the gap so
+    // the copy sits right under the strokes.
     .cube__body {
-      align-items: center;
-      text-align: center;
       gap: var(--sp-sm);
     }
   }
