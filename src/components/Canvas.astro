@@ -24,6 +24,11 @@
         curtains.restoreContext();
       });
 
+    // Published so the carousel plane layer can attach to the same context
+    // rather than standing up a second WebGL canvas. Stays null if the
+    // context never came up, which is the same signal as .no-curtains.
+    window.__curtains = curtains;
+
     const planeElements = document.querySelectorAll('[data-canvas]');
 
     const params: PlaneParams = {
