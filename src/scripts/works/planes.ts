@@ -8,25 +8,14 @@
 // more than the effect returns; the plane carries the poster and the film
 // plays in a DOM <video> above the canvas.
 import { Plane } from 'curtainsjs';
-import type { Curtains, PlaneParams } from 'curtainsjs';
+import type { PlaneParams } from 'curtainsjs';
 import { gsap } from 'gsap';
 import { lenis } from '../scroll';
 import type { WorkCarouselController } from './carousel';
 import vertexShader from '../../shader/carousel.vert.glsl';
 import fragmentShader from '../../shader/carousel.frag.glsl';
 
-// Declared here rather than in src/env.d.ts: that file's ambient `.glsl` and
-// `.sql?raw` module declarations are shorthand (bodyless/global) and only
-// resolve project-wide while the file has no top-level import of its own.
-// Adding `import type { Curtains }` there to type this global turns the
-// whole file into a module, which silently un-resolves those declarations
-// everywhere else. This file is already a module, so the augmentation is
-// safe here.
-declare global {
-  interface Window {
-    __curtains: Curtains | null;
-  }
-}
+// window.__curtains is declared in src/types/curtains.d.ts.
 
 const params: PlaneParams = {
   vertexShader,
@@ -58,13 +47,20 @@ export const disposeChapter = (root: HTMLElement) => {
     .forEach((el) => el.classList.remove('is-planed'));
 };
 
-const createChapter = (root: HTMLElement) => {
+const createChapter = (controller: WorkCarouselController) => {
   const curtains = window.__curtains;
+  const root = controller.root;
   if (!curtains || chapters.has(root)) return;
 
   const planes = Array.from(root.querySelectorAll<HTMLElement>('[data-carousel-plane]')).map(
     (el) => {
       const plane = new Plane(curtains, el, params);
+      // Slides share one grid cell (WorkCarousel.astro's .is-live block) and
+      // are hidden from a visitor by opacity/visibility, which WebGL does
+      // not read — every plane in the chapter would otherwise draw into the
+      // same rectangle at once. Visibility has to be driven explicitly from
+      // the active slide.
+      plane.visible = el.closest('[data-carousel-slide]') === controller.slides[controller.index];
       plane.onRender(() => {
         plane.uniforms.time.value = (plane.uniforms.time.value as number) + 1;
         plane.uniforms.velocity.value = velocity;
@@ -84,9 +80,12 @@ export const mountPlanes = (controllers: WorkCarouselController[]) => {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   // Scroll velocity, normalised and decayed. Lenis reports px/frame; 60 is
-  // about the fastest a real scroll goes, so it maps to roughly -1..1.
+  // about the fastest a real scroll goes, so it maps to roughly -1..1. Lenis
+  // can report a non-finite value between frames (e.g. right after a resize);
+  // an unguarded NaN would multiply through the 0.92 decay below forever and
+  // permanently collapse the geometry.
   lenis.on('scroll', ({ velocity: v }: { velocity: number }) => {
-    velocity = gsap.utils.clamp(-1, 1, v / 60);
+    velocity = gsap.utils.clamp(-1, 1, Number.isFinite(v) ? v / 60 : 0);
   });
 
   gsap.ticker.add(() => {
@@ -98,12 +97,30 @@ export const mountPlanes = (controllers: WorkCarouselController[]) => {
     // Budget (D7): only the first chapter is planed at mount. The curtain's
     // boundary triggers create and dispose the rest as they come into view,
     // so the resident set never exceeds two chapters.
-    if (i === 0) createChapter(controller.root);
+    if (i === 0) createChapter(controller);
 
-    controller.onChange(() => {
-      // A slide change re-measures: curtains positions a plane from its
-      // element's box, and the outgoing slide's box is about to change.
-      chapters.get(controller.root)?.forEach((plane) => plane.updatePosition());
+    controller.onChange((index) => {
+      const active = controller.slides[index];
+      chapters.get(controller.root)?.forEach((plane) => {
+        // Re-derive visibility from the plane's own element rather than
+        // trusting array position: not every slide has a plane (a slide with
+        // no media has none), so a plane's index in this array does not line
+        // up with the slide index.
+        plane.visible = plane.htmlElement.closest('[data-carousel-slide]') === active;
+        // A slide change re-measures: curtains positions a plane from its
+        // element's box, and the outgoing slide's box is about to change.
+        plane.updatePosition();
+      });
+    });
+
+    // Drag speed, read directly off the pointer rather than through
+    // carousel.ts: that controller owns which slide a drag commits to, not
+    // how fast the pointer is moving right now, and duplicating its drag
+    // state machine here just to get a speed number would be needless.
+    controller.root.addEventListener('pointermove', (e) => {
+      if (e.buttons !== 1) return;
+      const v = Number.isFinite(e.movementX) ? e.movementX / 60 : 0;
+      velocity = gsap.utils.clamp(-1, 1, v);
     });
   });
 };

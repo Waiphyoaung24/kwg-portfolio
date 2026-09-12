@@ -19,8 +19,21 @@
     curtains
       .onError(() => {
         document.body.classList.add('no-curtains');
+        // onError fires asynchronously, after window.__curtains below has
+        // already published a live-looking instance. Null it back out so
+        // every consumer's `if (!window.__curtains) return` guard is real
+        // rather than dead code against an object whose gl context is null.
+        window.__curtains = null;
       })
       .onContextLost(() => {
+        // Between loss and a successful restore — permanently, if restore
+        // fails — nothing is drawing. Drop the published context and hand
+        // every planed slide back its <img>, the same fallback a visitor
+        // gets from onError or reduced motion.
+        window.__curtains = null;
+        document
+          .querySelectorAll<HTMLElement>('[data-carousel-plane]')
+          .forEach((el) => el.classList.remove('is-planed'));
         curtains.restoreContext();
       });
 

@@ -397,6 +397,15 @@ const { index, category, heading, intro } = chapter;
       user-select: none;
       -webkit-user-drag: none;
     }
+
+    // The fill exists to hold the card's shape before a plane draws. Once
+    // one does, it must get out of the way: the shared curtains canvas sits
+    // behind in-flow content (Canvas.astro's z-index: -1), so a left-over
+    // opaque fill here would occlude the plane it was only ever a stand-in
+    // for.
+    .slide__plane.is-planed {
+      background-color: transparent;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
