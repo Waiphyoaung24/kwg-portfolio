@@ -1,0 +1,347 @@
+---
+import type { Chapter, Work } from '../data/works';
+import ActionPill from '@components/ActionPill.astro';
+
+interface Props {
+  chapter: Chapter;
+  items: Work[];
+}
+
+const { chapter, items } = Astro.props;
+const { index, category, heading, intro } = chapter;
+---
+
+<section
+  class="carousel"
+  data-carousel
+  aria-labelledby={`ch-${category}`}
+  aria-roledescription="carousel"
+  role="group"
+>
+  <header class="carousel__head">
+    <p class="label carousel__index">{index} &mdash; {heading}</p>
+    <h2 id={`ch-${category}`} class="carousel__heading" data-line-reveal>{heading}</h2>
+    <p class="carousel__intro">{intro}</p>
+  </header>
+
+  <div class="carousel__stage">
+    {
+      items.map((w, i) => (
+        <article class="slide" data-carousel-slide data-index={i} id={`slide-${w.id}`}>
+          {/*
+            Deliberately NOT data-canvas. `_base.scss:213` hides the children
+            of any [data-canvas] element and relies on `.no-curtains` to put
+            them back — so the image starts invisible and WebGL is required to
+            reveal it. That inverts the failure mode: reduced motion, a
+            skipped plane, a context loss all land on a blank box. Here the
+            image is visible by default and planes.ts hides it only once a
+            plane is actually drawing. Every failure lands on a visible image.
+          */}
+          {w.media ? (
+            <div class="slide__plane" data-carousel-plane>
+              <img
+                src={w.media.poster}
+                width={w.media.posterWidth}
+                height={w.media.posterHeight}
+                alt={w.media.alt}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+              />
+            </div>
+          ) : (
+            <div class="slide__plane slide__plane--empty">
+              <span class="micro">No media yet</span>
+            </div>
+          )}
+
+          <div class="slide__copy">
+            <h3 class="slide__title">{w.title}</h3>
+            <p class="slide__summary">{w.summary}</p>
+            <p class="slide__meta micro">
+              {w.client} &middot; {w.year} &middot; {w.stack.join(', ')}
+            </p>
+            <div class="slide__actions">
+              {w.url && (
+                <ActionPill
+                  href={w.url}
+                  label="View live"
+                  icon="arrow-up-right"
+                  variant="filled"
+                  external={!w.url.startsWith('/')}
+                />
+              )}
+            </div>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+
+  <!-- Arrows are hidden from the no-JS document: with the script absent every
+       slide is already on screen, so there is nothing to page through. -->
+  <div class="carousel__arrows" hidden data-carousel-arrows>
+    <button class="carousel__arrow pill-btn" type="button" data-carousel-prev>
+      <span aria-hidden="true">&larr;</span>
+      <span class="visually-hidden">Previous project</span>
+    </button>
+    <button class="carousel__arrow pill-btn" type="button" data-carousel-next>
+      <span aria-hidden="true">&rarr;</span>
+      <span class="visually-hidden">Next project</span>
+    </button>
+  </div>
+
+  <div class="carousel__thumbs" hidden data-carousel-thumbs>
+    {
+      items.map((w, i) => (
+        <button
+          class="thumb"
+          type="button"
+          data-carousel-thumb
+          data-index={i}
+          aria-current={i === 0 ? 'true' : 'false'}
+        >
+          {w.media ? (
+            <img class="thumb__img" src={w.media.poster} alt="" width="112" height="64" loading="lazy" />
+          ) : (
+            <span class="thumb__img thumb__img--empty" />
+          )}
+          <span class="thumb__label micro">{w.title}</span>
+        </button>
+      ))
+    }
+  </div>
+
+  <p class="carousel__hint micro" hidden data-carousel-hint>Drag to explore</p>
+  <p class="visually-hidden" aria-live="polite" data-carousel-status></p>
+</section>
+
+<style lang="scss">
+  .carousel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: clamp-fluid(24, 40);
+    max-width: var(--container-max-width);
+    margin-inline: auto;
+    padding: clamp-fluid(72, 96) var(--grid-margin) clamp-fluid(48, 64);
+  }
+
+  .carousel__head {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(12);
+  }
+
+  .carousel__index {
+    color: var(--c-mute);
+  }
+
+  .carousel__heading {
+    margin: 0;
+    color: var(--c-ink);
+    font-size: var(--fs-3);
+    line-height: 1.02;
+    letter-spacing: var(--ls-3);
+  }
+
+  .carousel__intro {
+    max-width: 58ch;
+    margin: 0;
+    color: var(--c-body);
+    line-height: 1.55;
+  }
+
+  // No-JS: every slide stacked and readable. The script turns this into a
+  // single-slide viewport in Task 5.
+  .carousel__stage {
+    display: flex;
+    flex-direction: column;
+    gap: clamp-fluid(48, 72);
+  }
+
+  .slide {
+    display: grid;
+    gap: clamp-fluid(20, 32);
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: center;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .slide__plane {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--r-sm);
+    background-color: var(--c-canvas-card);
+
+    > img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  // Set by planes.ts only once a plane is confirmed drawing this element.
+  // Until then — and forever, if WebGL never comes up — the image is what
+  // the visitor sees.
+  .slide__plane.is-planed > img {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .slide__plane--empty {
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--c-hairline);
+    color: var(--c-mute);
+  }
+
+  .slide__copy {
+    display: flex;
+    flex-direction: column;
+    gap: to-rem(12);
+  }
+
+  .slide__title {
+    margin: 0;
+    color: var(--c-ink);
+    font-size: var(--fs-4);
+    line-height: 1.1;
+    letter-spacing: var(--ls-4);
+  }
+
+  .slide__summary {
+    max-width: 52ch;
+    margin: 0;
+    color: var(--c-body);
+    line-height: 1.55;
+  }
+
+  .slide__meta {
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  .slide__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: to-rem(8);
+    margin-top: to-rem(4);
+  }
+
+  .carousel__arrows {
+    display: flex;
+    gap: to-rem(8);
+  }
+
+  .carousel__arrow {
+    min-width: to-rem(44);
+    padding-inline: var(--sp-lg);
+
+    &[disabled] {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+  }
+
+  .carousel__thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: to-rem(10);
+  }
+
+  .thumb {
+    position: relative;
+    overflow: hidden;
+    width: to-rem(112);
+    height: to-rem(64);
+    padding: 0;
+    cursor: pointer;
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-sm);
+    background-color: var(--c-canvas-card);
+    // Rest state is dim; the active thumb is full strength AND carries the
+    // progress fill AND aria-current — never opacity alone (PRODUCT.md).
+    opacity: 0.42;
+    transition:
+      opacity 0.22s var(--ease-smooth),
+      border-color 0.22s var(--ease-smooth);
+
+    &[aria-current='true'] {
+      opacity: 1;
+      border-color: var(--c-hairline-bright);
+    }
+
+    @include has-hover {
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+  }
+
+  // The reference fills this bar as an autoplay timer elapses. This carousel
+  // has no autoplay — it advances only when someone asks it to — so a
+  // creeping fill would be animating a number that means nothing. It becomes
+  // a plain active rule instead: the second, non-colour carrier of selected
+  // state that PRODUCT.md requires alongside opacity.
+  .thumb[aria-current='true']::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 1;
+    height: to-rem(2);
+    background-color: var(--c-ink);
+  }
+
+  .thumb__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .thumb__img--empty {
+    background-color: var(--c-canvas-soft);
+  }
+
+  // The reference sets these at 8px. That fails AA at any contrast, so ours
+  // uses --fs-micro and the rail is sized to fit it.
+  .thumb__label {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: to-rem(12) to-rem(6) to-rem(4);
+    color: var(--c-ink);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: linear-gradient(rgba(10, 10, 10, 0), rgba(10, 10, 10, 0.8));
+  }
+
+  // The drag hint sways until first interaction, then carousel.ts hides it
+  // for good. ±35px over 1.7s, measured off the reference (spec §4).
+  .carousel__hint {
+    width: fit-content;
+    margin: 0;
+    color: var(--c-mute);
+  }
+
+  @include has-motion {
+    .carousel__hint {
+      animation: carousel-sway 1.7s var(--ease-smooth) infinite;
+    }
+  }
+
+  @keyframes carousel-sway {
+    0%,
+    100% {
+      transform: translateX(#{to-rem(-35)});
+    }
+    50% {
+      transform: translateX(#{to-rem(35)});
+    }
+  }
+</style>

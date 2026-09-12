@@ -1,10 +1,11 @@
 ---
 import Layout from '@layouts/Layout.astro';
-import WorkChapter from '@components/WorkChapter.astro';
+import WorkCarousel from '@components/WorkCarousel.astro';
 
 import { chapters, worksFor } from '../data/works';
 
-// Content lives entirely in src/data/works.ts. See docs/works-page-design.md.
+// Content lives entirely in src/data/works.ts.
+// See docs/superpowers/specs/2026-09-13-works-restructure-design.md.
 const sections = chapters.map((chapter) => ({
   chapter,
   items: worksFor(chapter.category),
@@ -22,6 +23,12 @@ const sections = chapters.map((chapter) => ({
           Creative websites, ERP systems,<br />
           and custom builds. Evidence, not claims.
         </p>
+        <p class="hero__body" data-inview-manual>
+          Three kinds of work sit here. Sites where the interface carries the
+          argument, internal systems built for people who live in them all day,
+          and commissioned builds shaped to one operation rather than a
+          template.
+        </p>
       </div>
 
       <p class="hero__cue label" data-inview-manual>
@@ -29,21 +36,9 @@ const sections = chapters.map((chapter) => ({
       </p>
     </section>
 
-    <section class="container intro" aria-label="Introduction">
-      <p class="intro__body" data-inview>
-        Three kinds of work sit here. Sites where the interface carries the
-        argument, internal systems built for people who live in them all day,
-        and commissioned builds shaped to one operation rather than a template.
-      </p>
-      <p class="intro__body" data-inview>
-        Each chapter lists its projects along the top. Select one to read what
-        it was, what it was built with, and where it runs.
-      </p>
-    </section>
-
     {
       sections.map(({ chapter, items }) => (
-        <WorkChapter chapter={chapter} items={items} />
+        <WorkCarousel chapter={chapter} items={items} />
       ))
     }
 
@@ -52,86 +47,20 @@ const sections = chapters.map((chapter) => ({
       <p class="closing__body" data-inview>
         More detail on any of these is available on request.
       </p>
-      <a
-        class="closing__link label"
-        href="mailto:waiphyoag.cs34@gmail.com"
-        data-inview
-      >
+      <a class="closing__link label" href="mailto:waiphyoag.cs34@gmail.com" data-inview>
         Get in touch <span aria-hidden="true">&#8599;&#65038;</span>
       </a>
     </section>
   </main>
 </Layout>
 
-<script>
-  // Tab switcher for every chapter on the page. One delegated handler covers
-  // all tablists. Full ARIA tablist pattern with a roving tabindex.
-  //
-  // Panels ship VISIBLE in the markup so the page reads as a linear document
-  // with JavaScript disabled; this script performs the initial hide.
-  const lists = document.querySelectorAll<HTMLElement>('[role="tablist"]');
-
-  lists.forEach((list) => {
-    const tabs = Array.from(
-      list.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
-    );
-    if (tabs.length === 0) return;
-
-    const panelFor = (tab: HTMLButtonElement) =>
-      document.getElementById(tab.getAttribute('aria-controls') ?? '');
-
-    const select = (next: HTMLButtonElement, moveFocus: boolean) => {
-      tabs.forEach((tab) => {
-        const on = tab === next;
-        tab.setAttribute('aria-selected', String(on));
-        tab.tabIndex = on ? 0 : -1;
-        const panel = panelFor(tab);
-        if (panel) panel.hidden = !on;
-      });
-      if (moveFocus) next.focus();
-    };
-
-    list.addEventListener('click', (event) => {
-      const tab = (event.target as HTMLElement).closest<HTMLButtonElement>(
-        '[role="tab"]',
-      );
-      if (tab && tabs.includes(tab)) select(tab, false);
-    });
-
-    list.addEventListener('keydown', (event) => {
-      const current = tabs.findIndex((t) => t === document.activeElement);
-      if (current === -1) return;
-
-      // Wrap with modulo so Left on the first tab lands on the last.
-      const target = {
-        ArrowRight: (current + 1) % tabs.length,
-        ArrowLeft: (current - 1 + tabs.length) % tabs.length,
-        Home: 0,
-        End: tabs.length - 1,
-      }[event.key];
-
-      if (target === undefined) return;
-      event.preventDefault();
-      select(tabs[target], true);
-    });
-
-    // Initial state: honour whichever tab the markup marked selected.
-    const initial =
-      tabs.find((t) => t.getAttribute('aria-selected') === 'true') ?? tabs[0];
-    select(initial, false);
-  });
-</script>
-
 <style lang="scss">
-  // HERO — typographic void, matching index.astro. The reference puts a
-  // full-bleed video here; that slot is reserved until a real asset exists
-  // (docs/works-page-design.md D6). 4rem subtracts the Header's footprint.
+  // 4rem subtracts the Header's footprint.
   .hero {
     position: relative;
     display: grid;
     grid-template-rows: auto 1fr auto;
     min-height: calc(100svh - 4rem);
-    // Matches .container so the hero lines up with the header above it.
     max-width: var(--container-max-width);
     margin-inline: auto;
     padding: to-rem(24) var(--grid-margin) to-rem(40);
@@ -145,7 +74,7 @@ const sections = chapters.map((chapter) => ({
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: clamp-fluid(20, 40);
+    gap: clamp-fluid(20, 32);
   }
 
   .hero__mark {
@@ -156,33 +85,27 @@ const sections = chapters.map((chapter) => ({
 
   .hero__tagline {
     max-width: 32ch;
+    margin: 0;
     color: var(--c-ink);
     font-size: clamp-fluid(16, 18);
     line-height: 1.56;
     letter-spacing: 0;
   }
 
+  .hero__body {
+    max-width: 58ch;
+    margin: 0;
+    color: var(--c-body);
+    line-height: 1.55;
+  }
+
   .hero__cue {
     justify-self: end;
     align-self: end;
-    color: var(--c-body);
     display: inline-flex;
     align-items: center;
     gap: to-rem(8);
-  }
-
-  // INTRO — the measured prose column from the reference: ~65ch at 1.55.
-  .intro {
-    margin-block: clamp-fluid(80, 140);
-    display: flex;
-    flex-direction: column;
-    gap: to-rem(24);
-  }
-
-  .intro__body {
-    max-width: 65ch;
-    line-height: 1.55;
-    margin: 0;
+    color: var(--c-body);
   }
 
   .closing {
@@ -195,9 +118,9 @@ const sections = chapters.map((chapter) => ({
 
   .closing__body {
     max-width: 65ch;
-    line-height: 1.55;
     margin: 0;
     color: var(--c-mute);
+    line-height: 1.55;
   }
 
   .closing__link {

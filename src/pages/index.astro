@@ -772,7 +772,7 @@ const testimonials = [
           gallery.map(({ id, title, featured, summary, screens }, i) => {
             // Every featured work now has a chapter slide to deep-link into, so
             // every CTA points to its panel.
-            const href = `/works#panel-${id}`;
+            const href = `/works#slide-${id}`;
             return (
               <div class="work-detail__group" data-index={i}>
                 <p class="work-detail__eyebrow label">
