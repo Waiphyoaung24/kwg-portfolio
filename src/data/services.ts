@@ -234,7 +234,7 @@ export const sectors: Sector[] = [
         category: 'erp',
       },
     ],
-    proof: [],
+    proof: ['parallel-hrm'],
   },
   {
     slug: 'hospitality',

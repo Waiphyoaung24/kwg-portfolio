@@ -173,16 +173,36 @@ export const works: Work[] = [
     url: 'https://pos.castranova.cloud/',
     featured: 'ERP system · Case study',
   },
+  // Every field here is read off the source repo, not recalled: the year is
+  // the span of its git history (2026-05-03 to 2026-09-04), the stack comes
+  // from the apps/api and apps/app manifests, and the modules are the 28
+  // tables under db/schema/hrm plus the 13 under db/schema/recruitment.
+  //
+  // That repo is still named HR-NexApex and its docs still call the product
+  // that; Parallel HRM is the rebrand, which is why the two names disagree.
   {
-    id: 'placeholder-erp-02',
+    id: 'parallel-hrm',
     category: 'erp',
-    title: 'TODO — System name',
-    client: 'TODO — Client',
-    year: 2024,
-    stack: ['TODO', 'TODO'],
+    title: 'Parallel HRM',
+    client: 'Parallel',
+    year: 2026,
+    stack: [
+      'React',
+      'tRPC',
+      'Hono',
+      'Drizzle',
+      'Postgres',
+      'Cloudflare Workers',
+    ],
     summary:
-      'TODO — which modules, how many users, what the data model had to absorb. Name the hard part.',
-    media: null,
+      'A multi-tenant ATS and HRMS for SME teams: recruitment, employee records, leave and attendance, payroll runs and payslips, performance reviews, and attrition scoring in one product. Tenant isolation is enforced in application queries and procedure guards rather than Postgres RLS, which makes the tenant filter and its tests a single security boundary. CV matching runs on pgvector embeddings.',
+    media: {
+      kind: 'image',
+      poster: '/works/product/parallel-hrm.webp',
+      posterWidth: 1280,
+      posterHeight: 800,
+      alt: 'The Parallel HRM people dashboard',
+    },
     url: null,
   },
   {
