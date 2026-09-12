@@ -391,7 +391,13 @@ const { index, category, heading, intro } = chapter;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .carousel.is-live .slide {
+    // A media query adds no specificity of its own, so the bare .slide
+    // selector here still loses to .carousel.is-live .slide.is-active above
+    // (0,3,0) vs (0,4,0) and the incoming slide keeps its fade. Both states
+    // have to be named at matching specificity, or someone "simplifying"
+    // this back to one selector silently brings the fade back.
+    .carousel.is-live .slide,
+    .carousel.is-live .slide.is-active {
       transition: none;
     }
   }
