@@ -181,6 +181,10 @@ does not today. See D9, which must be settled before implementation starts.
 
 ### D9 — The exhibit is majority placeholder
 
+**Decided 2026-09-13: option (a).** Drop `homeOnly` from all four real
+projects and delete the five `TODO —` stubs. The exhibit ships with zero
+placeholders.
+
 **Finding, from auditing `src/data/works.ts`:** of the 9 entries `worksFor`
 exhibits, only **4 are real** — `miracle-cutting-machine`, `kage`,
 `castranova-pos`, `parallel-hrm`. The other 5 are `TODO —` stubs.
@@ -196,11 +200,11 @@ every stub an entire screen, and one chapter in three becomes three screens of
 by `homeOnly: true` — `parallel` and `redhorse-group` (creative-web),
 `mrspinel-staff` and `gaigai` (custom-build).
 
-**Options, for the owner to decide:**
+**Options considered:**
 
 | | Move | Result |
 |---|---|---|
-| **a** | Drop `homeOnly` from all four and delete the 5 stubs | 02: 4 real · 03: 2 real · 04: 2 real. **Zero placeholders.** Recommended. |
+| **a** | Drop `homeOnly` from all four and delete the 5 stubs | 02: 4 real · 03: 2 real · 04: 2 real. **Zero placeholders.** ← chosen |
 | **b** | Drop `homeOnly` from the two `custom-build` entries only | Rescues chapter 04; chapters 02 and 03 keep stubs. |
 | **c** | Hide any chapter whose entries are all stubs | Exhibit shrinks to two chapters; the three-kinds-of-work argument breaks. |
 | **d** | Ship the stubs | Three screens of "TODO". Not viable. |
@@ -209,6 +213,22 @@ Option (a) is what the mockup was built against and what §6 below assumes.
 It reverses `works-page-design.md` D5's home-only split, which was a decision
 made when `/works` and the home page showed the same work in the same way —
 no longer true once `/works` is an exhibit and the home page is an index.
+
+**Resulting roster:**
+
+| Chapter | Projects |
+|---|---|
+| 02 Creative Websites | `miracle-cutting-machine`, `kage`, `parallel`, `redhorse-group` |
+| 03 ERP Software | `castranova-pos`, `parallel-hrm` |
+| 04 Custom Web & Mobile | `mrspinel-staff`, `gaigai` |
+
+**Edits this implies in `src/data/works.ts`:** delete
+`placeholder-creative-03`, `placeholder-erp-03`, `placeholder-custom-01`,
+`placeholder-custom-02`, `placeholder-custom-03`; remove `homeOnly: true` from
+`parallel`, `redhorse-group`, `mrspinel-staff`, `gaigai`. The `homeOnly` field
+then has no remaining user and is removed from the `Work` interface along with
+its filter in `worksFor`, per CLAUDE.md §3 — the change orphans it, so the
+change cleans it up.
 
 **Effect on the home page: none.** Selected Work is driven by `featured`, not
 by `homeOnly` — `worksFor` is the only consumer of `homeOnly`. Dropping the
@@ -319,7 +339,7 @@ src/scripts/works/lineReveal.ts      new — SplitText line/char mask reveal
 src/styles/_vars.scss                modified — add the two reference easings
 src/pages/works.astro                rewritten — hero, three carousels, closing
 src/components/WorkChapter.astro     deleted — superseded by WorkCarousel
-src/data/works.ts                    unchanged
+src/data/works.ts                    modified — D9(a): 5 stubs deleted, homeOnly retired
 src/data/works.test.mjs              extended — assert every exhibited work has a thumb source
 docs/works-page-design.md            marked superseded, pointing here
 ```
@@ -333,7 +353,7 @@ Nothing outside this list is touched.
 3. **Chapter 03 — ERP Software** — carousel, 2 projects.
 4. **Chapter 04 — Custom Web & Mobile** — carousel, 2 projects.
 
-Counts assume **D9 option (a)**. Any other option changes only these numbers.
+Counts are final, per **D9 option (a)**. No chapter carries a placeholder.
 5. **Closing** — one line and the mail link. Unchanged.
 
 The standalone intro section is folded into the hero: with chapters now one
@@ -460,19 +480,16 @@ a JS runtime is a hover state that breaks.
 2. **`100dvh` on mobile.** The URL bar resize changes `dvh` mid-scroll and will
    shift every boundary. Mitigation: `invalidateOnRefresh` on every trigger, and
    `ScrollTrigger.refresh()` debounced on `resize` — not on `scroll`.
-3. **D9 is unresolved and blocks the layout.** Until the owner picks an option,
-   the per-chapter counts in §6 are provisional. Highest-priority open item;
-   nothing in §7 depends on it, so implementation of the motion system can
-   start in parallel.
-4. **Carousels of two read thin** next to a carousel of four. Under D9 option
-   (a), chapters 03 and 04 both hold two. Accepted: the alternative is padding
-   the exhibit, and `PRODUCT.md` chose a portfolio selection over a career
-   total on purpose.
-5. **Most posters are 16:9 web captures**, not purpose-shot hero frames. They
+3. **Carousels of two read thin** next to a carousel of four. Under D9(a),
+   chapters 03 and 04 both hold two. Accepted: the alternative is padding the
+   exhibit, and `PRODUCT.md` chose a portfolio selection over a career total on
+   purpose. The carousel chrome must therefore degrade honestly at n=2 — no
+   arrows that wrap forever, no rail that implies more slides than exist.
+4. **Most posters are 16:9 web captures**, not purpose-shot hero frames. They
    will read as screenshots on a full-viewport plane, where the previous design
    showed them at a bounded 1024px column. Mitigation is content, not code:
    D8's intake.
-6. **`docs/works-page-design.md` is stale** and describes a system that no
+5. **`docs/works-page-design.md` is stale** and describes a system that no
    longer exists. Marked superseded rather than deleted, so its decision log
    stays readable.
 
