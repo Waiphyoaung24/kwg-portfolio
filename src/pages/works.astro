@@ -9,8 +9,9 @@ import { chapters, works } from '../data/works';
 import type { RingItem } from '../scripts/works/ring';
 
 // /works ports stylized.cortiz.dev section by section: a ring of curved cards
-// (src/scripts/works/ring.ts), then an intro, a strip of screens and a contact
-// section, over one backdrop that hands the dark hero over to paper.
+// (src/scripts/works/ring.ts), then an intro, a strip of brands and a contact
+// section, over one backdrop that hands the hero's wash over to black. The
+// site footer follows, as on every page.
 // Plans: docs/superpowers/plans/2026-09-15-works-card-grid.md (D6) and
 // docs/superpowers/plans/2026-09-15-works-live-sections.md.
 //
@@ -18,8 +19,6 @@ import type { RingItem } from '../scripts/works/ring';
 // keeps the reference's type (Anton, IBM Plex Mono), palette, pills and
 // shadows. The raw hex and px values below are the reference's, read off its
 // stylesheet.
-
-const email = 'waiphyoag.cs34@gmail.com';
 
 // Grouped by category, in the order src/data/works.ts declares chapters.
 const cards = chapters.flatMap((c) =>
@@ -41,7 +40,7 @@ const items: RingItem[] = cards.map((w) => ({
 }));
 ---
 
-<Layout footer={false}>
+<Layout>
   {
     /* The reference's fonts, for this page only. Layout has no head slot;
       a stylesheet link is valid in body. */
@@ -158,27 +157,6 @@ const items: RingItem[] = cards.map((w) => ({
     <WorksScreens />
     <WorksContact />
   </main>
-
-  {/* Pinned for the whole page, as on the reference. */}
-  <div class="strip">
-    <span class="strip__credit">Created by KWG</span>
-    <a class="strip__social" href={`mailto:${email}`} aria-label="Email">
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-        ><path
-          d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
-        ></path><polyline points="22,6 12,13 2,6"></polyline></svg
-      >
-    </a>
-  </div>
 </Layout>
 
 <script>
@@ -377,6 +355,9 @@ const items: RingItem[] = cards.map((w) => ({
   .live {
     --font-anton: 'Anton', Impact, sans-serif;
     --font-mono: 'IBM Plex Mono', monospace;
+    // The room the reference keeps under the hero's controls for its footer
+    // strip. The strip is gone; the spacing stays so the controls sit where
+    // the reference puts them.
     --footer-h: 58px;
 
     position: relative;
@@ -458,69 +439,11 @@ const items: RingItem[] = cards.map((w) => ({
     }
   }
 
-  // The fixed strip, cream on the dark page throughout.
-  .strip {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 60;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 14px 24px;
-    pointer-events: none;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-
-  .strip__credit,
-  .strip__social {
-    color: #f0ece6;
-    opacity: 0.4;
-    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
-  }
-
-  .strip__social {
-    display: flex;
-    padding: 4px;
-    border-radius: 999px;
-    pointer-events: auto;
-    transition:
-      opacity 0.2s,
-      transform 0.2s;
-
-    &:hover,
-    &:focus-visible {
-      opacity: 1;
-      transform: scale(1.12);
-    }
-
-    &:focus-visible {
-      outline: 2px solid currentColor;
-      outline-offset: 2px;
-    }
-  }
-
-  @media (max-width: 720px) {
-    .strip {
-      gap: 12px;
-      padding: 12px 16px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .strip__social {
-      transition: none;
-
-      &:hover {
-        transform: none;
-      }
-    }
+  // The site footer is not positioned, so the fixed backdrop would paint over
+  // it. On this page it stacks with the sections instead.
+  body:has(.live) .site-footer {
+    position: relative;
+    z-index: 1;
   }
 </style>
 
