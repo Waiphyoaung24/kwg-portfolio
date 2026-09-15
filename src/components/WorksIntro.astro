@@ -1,0 +1,186 @@
+---
+// 01 on /works, after stylized.cortiz.dev's HomeIntro: a centred chip, title
+// and three specs over a stream of cards (src/scripts/works/stream.ts). Part
+// of the /works DESIGN.md exception; the raw values are the reference's.
+import { chapters, works, type Category } from '../data/works';
+
+// One line per kind of work, cut from the retired chapter intros.
+const lines: Record<Category, string> = {
+  'creative-web': 'Sites where the interface is the argument.',
+  erp: 'Internal systems for people who live in them all day.',
+  'custom-build': 'Builds shaped to one operation, not a template.',
+};
+
+const specs = chapters.map((c) => ({
+  term: c.heading,
+  text: lines[c.category],
+}));
+// The hero's background-and-logo cards (src/scripts/build-work-cards.mjs).
+const posters = works.map((w) => `/works/cards/${w.id}.webp`);
+---
+
+<section class="intro" id="about" data-live-section>
+  <div
+    class="intro__canvas"
+    data-stream
+    data-posters={JSON.stringify(posters)}
+    aria-hidden="true"
+  >
+  </div>
+  <div class="intro__scrim" aria-hidden="true"></div>
+
+  <div class="intro__copy">
+    <p class="live-eyebrow intro__eyebrow" data-reveal>01 &mdash; The Work</p>
+    <h2 class="live-title intro__title" data-split>
+      Three kinds of work. <br />All of it shipped.
+    </h2>
+    <dl class="intro__specs">
+      {
+        specs.map((s) => (
+          <div class="spec">
+            <span class="spec__rule" data-rule aria-hidden="true" />
+            <dt class="spec__term" data-reveal>
+              {s.term}
+            </dt>
+            <dd class="spec__text live-body" data-reveal>
+              {s.text}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+</section>
+
+<style lang="scss">
+  .intro {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100dvh;
+  }
+
+  // The canvas bleeds 30% into its neighbours and fades out there.
+  .intro__canvas {
+    position: absolute;
+    top: -30%;
+    right: 0;
+    bottom: -30%;
+    left: 0;
+    pointer-events: none;
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 12.19%,
+      #000 87.81%,
+      transparent 100%
+    );
+
+    :global(canvas) {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .intro__scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(
+      60% 46% at 50% 50%,
+      #0a0a0ae0 0%,
+      #0a0a0ab3 42%,
+      #0a0a0a2e 76%,
+      #0a0a0a00 100%
+    );
+  }
+
+  .intro__copy {
+    position: absolute;
+    z-index: 2;
+    width: min(880px, 100vw - 48px);
+    padding-bottom: 40px;
+    text-align: center;
+  }
+
+  .intro__eyebrow {
+    margin: 0 0 22px;
+  }
+
+  .intro__title {
+    margin-bottom: 26px;
+  }
+
+  .intro__specs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(20px, 3vw, 44px);
+    width: 100%;
+    margin: 8px auto 0;
+    text-align: left;
+  }
+
+  .spec {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  // A hairline with a ticked head.
+  .spec__rule {
+    display: block;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, #f0ece6 0 26px, #f0ece629 26px);
+    transform-origin: 0;
+  }
+
+  .spec__term {
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #f0ece6;
+  }
+
+  .spec__text {
+    margin: 0;
+  }
+
+  @media (max-width: 900px) {
+    .intro__copy {
+      width: calc(100vw - 40px);
+      padding-bottom: 24px;
+    }
+
+    .intro__eyebrow {
+      margin-bottom: 16px;
+    }
+
+    .intro__title {
+      margin-bottom: 20px;
+    }
+
+    .intro__specs {
+      grid-template-columns: 1fr;
+      gap: 26px;
+    }
+
+    .intro__scrim {
+      background: radial-gradient(
+        78% 38% at 50% 50%,
+        #0a0a0aeb 0%,
+        #0a0a0ac2 46%,
+        #0a0a0a29 82%,
+        #0a0a0a00 100%
+      );
+    }
+  }
+</style>

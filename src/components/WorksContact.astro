@@ -1,0 +1,176 @@
+---
+// 03 on /works, after stylized.cortiz.dev's HomePatreon: a film on a bowed
+// pane (src/scripts/works/panel.ts) beside the site's one door, email. Part of
+// the /works DESIGN.md exception; the raw values are the reference's.
+import WorksPill from './WorksPill.astro';
+
+const email = 'waiphyoag.cs34@gmail.com';
+const film = '/works/miracle-cutting-machine-16x9.mp4';
+const poster = '/works/miracle-cutting-machine-poster.webp';
+
+// Drafts. The owner confirms each line is true before launch
+// (docs/superpowers/plans/2026-09-15-works-live-sections.md, section 3).
+const perks = [
+  'Design, build and deployment by one person, not a relay',
+  'The data model settled before the interface is drawn',
+  'One codebase for web and mobile where the product allows it',
+  'Source and deployment handed over at the end',
+];
+---
+
+<section class="contact" id="contact" data-live-section>
+  <div class="contact__media" data-panel-media>
+    <img
+      class="contact__poster"
+      src={poster}
+      alt=""
+      loading="lazy"
+      decoding="async"
+    />
+    <div
+      class="contact__canvas"
+      data-panel
+      data-src={film}
+      data-poster={poster}
+      aria-hidden="true"
+    >
+    </div>
+  </div>
+
+  <div class="contact__copy">
+    <p class="live-eyebrow contact__eyebrow" data-reveal>
+      03 &mdash; Work with me
+    </p>
+    <h2 class="live-title live-title--small contact__title" data-split>
+      One email, <br />then the work.
+    </h2>
+    <p class="live-body contact__body" data-reveal>
+      There is no form and no call to book. Write with what you run and what is
+      broken in it.<br />The reply comes from the person who builds it, usually
+      within a day.
+    </p>
+    <ul class="contact__perks" data-reveal>
+      {perks.map((perk) => <li class="perk">{perk}</li>)}
+    </ul>
+    <div data-reveal>
+      <WorksPill
+        href={`mailto:${email}?subject=New%20project`}
+        label="Start a project"
+      />
+    </div>
+  </div>
+</section>
+
+<style lang="scss">
+  .contact {
+    --gutter: clamp(22px, 5vw, 72px);
+
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    align-items: center;
+    gap: clamp(32px, 5vw, 88px);
+    width: 100%;
+    min-height: 100dvh;
+    padding: clamp(90px, 14vh, 170px) var(--gutter) clamp(80px, 12vh, 140px);
+    box-sizing: border-box;
+  }
+
+  .contact__media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+  }
+
+  // Stands in until the pane is drawing, and stays if WebGL never comes up.
+  .contact__poster {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 22px;
+  }
+
+  .contact__media:global(.is-live) .contact__poster {
+    visibility: hidden;
+  }
+
+  // The canvas bleeds 10% above and below so the bowed corners have room.
+  .contact__canvas {
+    position: absolute;
+    inset: -10% 0;
+
+    :global(canvas) {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .contact__copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .contact__eyebrow,
+  .contact__body {
+    margin: 0;
+  }
+
+  .contact__title {
+    max-width: 700px;
+  }
+
+  .contact__perks {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .perk {
+    position: relative;
+    padding: 0 0 10px 22px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.55;
+    letter-spacing: 0.01em;
+    color: #f0ece6c7;
+
+    &:last-child {
+      padding-bottom: 0;
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0.55em;
+      left: 2px;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #f0ece6;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .contact {
+      grid-template-columns: 1fr;
+      align-items: start;
+      gap: 30px;
+      padding: clamp(70px, 12vh, 120px) var(--gutter) clamp(64px, 10vh, 110px);
+    }
+
+    .contact__copy {
+      gap: 16px;
+    }
+  }
+</style>

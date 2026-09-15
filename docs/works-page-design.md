@@ -1,5 +1,8 @@
 # Works Page — Design
 
+> Superseded 2026-09-15 by `docs/superpowers/plans/2026-09-15-works-card-grid.md`.
+> The tab switcher described below no longer exists.
+
 Status: approved 2026-09-04. Produced through the `brainstorming` skill.
 Reference studied: `https://openai.com/index/gpt-6-astra/` (layout only).
 

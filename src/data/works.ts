@@ -3,10 +3,8 @@
 // Adding or editing a project is a change to THIS FILE ONLY. The page and the
 // chapter component read from `works` and render whatever is here.
 //
-// `media: null` renders a labelled empty panel rather than a stock photo
+// `media: null` renders a labelled empty card rather than a stock photo
 // (PRODUCT.md anti-reference 4). `url: null` hides the live link.
-//
-// See docs/works-page-design.md §7.
 
 export type Category = 'creative-web' | 'erp' | 'custom-build';
 
@@ -62,45 +60,23 @@ export interface Work {
   /** short homepage caption; presence includes the work in Selected Work */
   featured?: string;
   /**
-   * Show in Selected Work on the home page but keep out of the /works
-   * exhibit. `worksFor` skips these, so they never reach a chapter panel —
-   * which also means their category is inert, and that nothing deep-links to
-   * `/works#panel-<id>` for them.
+   * In the home overlay, link the live site instead of the /works card. The
+   * work still appears on /works like any other.
    */
   homeOnly?: true;
 }
 
+/** A category as the /works filter names it. */
 export interface Chapter {
-  /** two-digit chapter number shown in the label */
-  index: string;
   category: Category;
   heading: string;
-  intro: string;
 }
 
-/** Chapter order on the page. */
+/** Filter order on the page; cards are grouped in the same order. */
 export const chapters: Chapter[] = [
-  {
-    index: '02',
-    category: 'creative-web',
-    heading: 'Creative Websites',
-    intro:
-      'Sites where the interface is the argument. Scroll-driven narrative, WebGL, and typography carrying weight that copy cannot. Every effect here has to earn its frame budget.',
-  },
-  {
-    index: '03',
-    category: 'erp',
-    heading: 'ERP Software',
-    intro:
-      'Internal systems that people use for eight hours a day. Density over decoration, keyboard paths over clicks, and schemas that survive the second year of requirements.',
-  },
-  {
-    index: '04',
-    category: 'custom-build',
-    heading: 'Custom Web & Mobile',
-    intro:
-      'Commissioned builds shaped to one operation rather than a template. Web and mobile, delivered end to end from data model to deployment.',
-  },
+  { category: 'creative-web', heading: 'Creative Websites' },
+  { category: 'erp', heading: 'ERP Software' },
+  { category: 'custom-build', heading: 'Custom Web & Mobile' },
 ];
 
 export const works: Work[] = [
@@ -125,30 +101,6 @@ export const works: Work[] = [
     },
     url: 'https://miraclecuttingmachine.com/',
     featured: 'Product film · Web',
-  },
-  {
-    id: 'kage',
-    category: 'creative-web',
-    title: 'Kage',
-    client: 'Personal',
-    year: 2026,
-    stack: ['Three.js', 'GSAP', 'Lenis', 'Vanilla JS'],
-    summary:
-      'A standalone landing page built around a single idea: stillness reveals the unseen. The type sets the pace and the scene reacts to it, rather than the reverse. Runs as a self-contained document with no framework runtime.',
-    media: null,
-    url: '/catalog/kage/live',
-  },
-  {
-    id: 'placeholder-creative-03',
-    category: 'creative-web',
-    title: 'TODO — Project name',
-    client: 'TODO — Client',
-    year: 2025,
-    stack: ['TODO', 'TODO'],
-    summary:
-      'TODO — two or three technical sentences. What the constraint was, what you built, what it cost. No adjectives.',
-    media: null,
-    url: null,
   },
 
   // ---- ERP software ------------------------------------------------------
@@ -203,63 +155,13 @@ export const works: Work[] = [
       posterHeight: 800,
       alt: 'The Parallel HRM people dashboard',
     },
-    url: null,
-  },
-  {
-    id: 'placeholder-erp-03',
-    category: 'erp',
-    title: 'TODO — System name',
-    client: 'TODO — Client',
-    year: 2024,
-    stack: ['TODO', 'TODO'],
-    summary:
-      'TODO — which modules, how many users, what the data model had to absorb. Name the hard part.',
-    media: null,
-    url: null,
+    // The product has no public site of its own; the owner points it at
+    // Parallel's (2026-09-16).
+    url: 'https://parallelsolution.co/',
   },
 
-  // ---- Custom web & mobile ----------------------------------------------
-  {
-    id: 'placeholder-custom-01',
-    category: 'custom-build',
-    title: 'TODO — Build name',
-    client: 'TODO — Client',
-    year: 2025,
-    stack: ['TODO', 'TODO'],
-    summary:
-      'TODO — platform, scope, and what shipping it required. State the delivery boundary.',
-    media: null,
-    url: null,
-  },
-  {
-    id: 'placeholder-custom-02',
-    category: 'custom-build',
-    title: 'TODO — Build name',
-    client: 'TODO — Client',
-    year: 2025,
-    stack: ['TODO', 'TODO'],
-    summary:
-      'TODO — platform, scope, and what shipping it required. State the delivery boundary.',
-    media: null,
-    url: null,
-  },
-  {
-    id: 'placeholder-custom-03',
-    category: 'custom-build',
-    title: 'TODO — Build name',
-    client: 'TODO — Client',
-    year: 2024,
-    stack: ['TODO', 'TODO'],
-    summary:
-      'TODO — platform, scope, and what shipping it required. State the delivery boundary.',
-    media: null,
-    url: null,
-  },
-
-  // ---- Home page only ----------------------------------------------------
-  // Selected Work on the home page, deliberately absent from the /works
-  // exhibit (`homeOnly`). Category is still required by the type but never
-  // reaches a chapter, so it is chosen for accuracy rather than routing.
+  // ---- Home overlay links the live site ----------------------------------
+  // Shown on /works like the rest; `homeOnly` only changes the home CTA.
   {
     id: 'parallel',
     category: 'creative-web',
@@ -363,7 +265,3 @@ export const works: Work[] = [
     homeOnly: true,
   },
 ];
-
-/** Projects for one chapter, in file order. Home-only work is excluded. */
-export const worksFor = (category: Category): Work[] =>
-  works.filter((w) => w.category === category && !w.homeOnly);

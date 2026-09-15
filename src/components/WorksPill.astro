@@ -1,0 +1,153 @@
+---
+// The /works action pill: a label and a round badge whose arrow swaps on
+// hover. Measured off stylized.cortiz.dev's ActionButton; part of the /works
+// DESIGN.md exception, so the raw values below are the reference's.
+//
+// Two copies of the arrow share one grid cell inside a clipped badge. One
+// leaves to the right as the other arrives from the left.
+
+interface Props {
+  href: string;
+  label: string;
+}
+
+const { href, label } = Astro.props;
+const external = /^https?:/.test(href);
+
+const arrow =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+---
+
+<a
+  class="pill"
+  href={href}
+  target={external ? '_blank' : undefined}
+  rel={external ? 'noopener noreferrer' : undefined}
+>
+  <span>{label}</span>
+  <span class="pill__badge" aria-hidden="true">
+    <span class="pill__icon" set:html={arrow} />
+    <span class="pill__icon pill__icon--clone" set:html={arrow} />
+  </span>
+  {external && <span class="pill__sr">(opens in a new tab)</span>}
+</a>
+
+<style lang="scss">
+  .pill {
+    --btn-ease: cubic-bezier(0.22, 0.68, 0, 1);
+    --btn-icon-ease: cubic-bezier(0.22, 0.68, 0, 1.5);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    height: 46px;
+    padding: 0 5px 0 22px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-decoration: none;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    pointer-events: auto;
+    transition:
+      background 0.5s var(--btn-ease),
+      border-color 0.5s var(--btn-ease),
+      box-shadow 0.5s var(--btn-ease),
+      transform 0.5s var(--btn-ease);
+
+    &:hover,
+    &:focus-visible {
+      transform: scale(1.1);
+    }
+
+    &:focus-visible {
+      outline: 2px solid;
+      outline-offset: 3px;
+    }
+  }
+
+  .pill__badge {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    overflow: hidden;
+    border-radius: 999px;
+    transition: background 0.5s var(--btn-ease);
+  }
+
+  .pill__icon {
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.5s var(--btn-icon-ease);
+  }
+
+  .pill__icon--clone {
+    transform: translateX(-250%);
+  }
+
+  .pill:hover .pill__icon,
+  .pill:focus-visible .pill__icon {
+    transform: translateX(250%);
+  }
+
+  .pill:hover .pill__icon--clone,
+  .pill:focus-visible .pill__icon--clone {
+    transform: translateX(0);
+  }
+
+  // Cream on the dark page: the reference's light variant.
+  .pill {
+    background: #f0ece6;
+    color: #14120f;
+
+    .pill__badge {
+      color: #14120f;
+      background: #fcfbf9;
+      box-shadow: inset 0 0 0 1px #14120f14;
+    }
+
+    &:hover {
+      background: #fcfbf9;
+      box-shadow: 0 10px 26px #0006;
+    }
+  }
+
+  .pill__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pill,
+    .pill__badge,
+    .pill__icon {
+      transition: none;
+    }
+
+    .pill:hover,
+    .pill:focus-visible,
+    .pill:hover .pill__icon,
+    .pill:focus-visible .pill__icon {
+      transform: none;
+    }
+
+    .pill:hover .pill__icon--clone,
+    .pill:focus-visible .pill__icon--clone {
+      transform: translateX(-250%);
+    }
+  }
+</style>

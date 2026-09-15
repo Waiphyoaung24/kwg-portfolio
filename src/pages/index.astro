@@ -770,10 +770,10 @@ const testimonials = [
         </button>
         {
           gallery.map(({ id, title, featured, summary, homeOnly, url, screens }, i) => {
-            // Home-only work has no /works panel to deep-link into, so its CTA
-            // points at the live site instead. Work with neither — an internal
-            // tool with nothing public — gets no CTA rather than a dead one.
-            const href = homeOnly ? url : `/works#panel-${id}`;
+            // Home-only work points at the live site; the rest deep-link to
+            // their /works card. Home-only work with no public site — an
+            // internal tool — gets no CTA rather than a dead one.
+            const href = homeOnly ? url : `/works#work-${id}`;
             return (
               <div class="work-detail__group" data-index={i}>
                 <p class="work-detail__eyebrow label">

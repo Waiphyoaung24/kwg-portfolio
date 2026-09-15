@@ -1,0 +1,146 @@
+---
+// 02 on /works, after stylized.cortiz.dev's HomeBreakdowns: a head grid of
+// title and argument over a draggable strip of brand cards
+// (src/scripts/works/rail.ts). Part of the /works DESIGN.md exception; the
+// raw values are the reference's.
+import WorksPill from './WorksPill.astro';
+import { chapters, works } from '../data/works';
+import type { RailItem } from '../scripts/works/rail';
+
+// One card per work, a logo on its brand gradient, in chapter order.
+// Built by src/scripts/build-work-cards.mjs.
+const brands = chapters.flatMap((c) =>
+  works.filter((w) => w.category === c.category),
+);
+const items: RailItem[] = brands.map((w) => ({
+  src: `/works/strip/${w.id}.webp`,
+}));
+---
+
+<section class="screens" id="screens" data-live-section>
+  <div class="screens__head">
+    <div class="screens__headline">
+      <p class="live-eyebrow screens__eyebrow" data-reveal>
+        02 &mdash; The Brands
+      </p>
+      <h2 class="live-title screens__title" data-split>
+        Evidence, <br />not claims.
+      </h2>
+    </div>
+    <div class="screens__aside">
+      <p class="live-body screens__body" data-reveal>
+        Seven brands the work was built for: a machine maker, a point of sale,
+        an HR platform, a studio, a trading group, a gem dealer and a grocer.
+      </p>
+      <p class="live-body screens__body" data-reveal>
+        Each one belongs to a sector on the services page, with what was built
+        there and why.
+      </p>
+      <div data-reveal>
+        <WorksPill href="/services" label="Browse services" />
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="screens__rail"
+    data-rail
+    data-items={JSON.stringify(items)}
+    aria-hidden="true"
+  >
+  </div>
+  <ul class="visually-hidden" aria-label="Brands in the strip">
+    {brands.map((w) => <li>{w.title}</li>)}
+  </ul>
+</section>
+
+<style lang="scss">
+  .screens {
+    --gutter: clamp(22px, 5vw, 72px);
+
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: clamp(48px, 8vh, 120px);
+    width: 100%;
+    min-height: 100dvh;
+    padding: clamp(90px, 14vh, 180px) 0 clamp(80px, 12vh, 140px);
+    box-sizing: border-box;
+  }
+
+  .screens__head {
+    display: grid;
+    grid-template-columns: 1.25fr 0.75fr;
+    align-items: start;
+    gap: clamp(32px, 6vw, 96px);
+    padding: 0 var(--gutter);
+  }
+
+  .screens__headline {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+
+  .screens__eyebrow,
+  .screens__body {
+    margin: 0;
+  }
+
+  .screens__title {
+    max-width: 500px;
+  }
+
+  .screens__aside {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    padding-top: clamp(6px, 1.2vw, 18px);
+  }
+
+  .screens__body {
+    max-width: 46ch;
+  }
+
+  .screens__rail {
+    width: 100%;
+    height: clamp(210px, 25vw, 360px);
+    cursor: grab;
+    touch-action: pan-y;
+
+    &:active {
+      cursor: grabbing;
+    }
+
+    :global(canvas) {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .screens {
+      min-height: 0;
+      padding: clamp(70px, 12vh, 120px) 0 clamp(64px, 10vh, 110px);
+    }
+
+    .screens__head {
+      grid-template-columns: 1fr;
+      gap: 26px;
+    }
+
+    .screens__aside {
+      gap: 14px;
+      padding-top: 0;
+    }
+
+    .screens__body {
+      max-width: none;
+    }
+  }
+</style>

@@ -1,215 +1,836 @@
 ---
 import Layout from '@layouts/Layout.astro';
-import WorkChapter from '@components/WorkChapter.astro';
+import WorksPill from '@components/WorksPill.astro';
+import WorksIntro from '@components/WorksIntro.astro';
+import WorksScreens from '@components/WorksScreens.astro';
+import WorksContact from '@components/WorksContact.astro';
 
-import { chapters, worksFor } from '../data/works';
+import { chapters, works } from '../data/works';
+import type { RingItem } from '../scripts/works/ring';
 
-// Content lives entirely in src/data/works.ts. See docs/works-page-design.md.
-const sections = chapters.map((chapter) => ({
-  chapter,
-  items: worksFor(chapter.category),
+// /works ports stylized.cortiz.dev section by section: a ring of curved cards
+// (src/scripts/works/ring.ts), then an intro, a strip of screens and a contact
+// section, over one backdrop that hands the dark hero over to paper.
+// Plans: docs/superpowers/plans/2026-09-15-works-card-grid.md (D6) and
+// docs/superpowers/plans/2026-09-15-works-live-sections.md.
+//
+// Deliberate DESIGN.md exception, approved by the owner 2026-09-15: this page
+// keeps the reference's type (Anton, IBM Plex Mono), palette, pills and
+// shadows. The raw hex and px values below are the reference's, read off its
+// stylesheet.
+
+const email = 'waiphyoag.cs34@gmail.com';
+
+// Grouped by category, in the order src/data/works.ts declares chapters.
+const cards = chapters.flatMap((c) =>
+  works.filter((w) => w.category === c.category),
+);
+
+// A card carries one sentence; the rest of a long summary would not fit it.
+const lede = (summary: string) =>
+  summary.match(/^.+?[.!?](?=\s|$)/)?.[0] ?? summary;
+
+// Hero cards are a background and a logo, built by
+// src/scripts/build-work-cards.mjs. Home keeps the posters in works.ts.
+const cardImage = (id: string) => `/works/cards/${id}.webp`;
+
+const items: RingItem[] = cards.map((w) => ({
+  title: w.title,
+  description: lede(w.summary),
+  poster: cardImage(w.id),
 }));
 ---
 
-<Layout>
-  <main>
-    <section class="hero" aria-labelledby="works-mark">
-      <p class="hero__index label" data-inview-manual>01 &mdash; Works</p>
+<Layout footer={false}>
+  {
+    /* The reference's fonts, for this page only. Layout has no head slot;
+      a stylesheet link is valid in body. */
+  }
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  />
 
-      <div class="hero__center">
-        <h1 id="works-mark" class="hero__mark" data-inview-manual>Works</h1>
-        <p class="hero__tagline" data-inview-manual>
-          Creative websites, ERP systems,<br />
-          and custom builds. Evidence, not claims.
-        </p>
+  <div class="backdrop" data-backdrop aria-hidden="true"></div>
+
+  <main class="live" data-live>
+    {
+      /* Ships in fallback mode: a poster and the first project's copy, which
+        is also what a visitor without WebGL keeps. The script swaps in the
+        ring once it is drawing. */
+    }
+    <section
+      class="hero is-fallback"
+      data-hero
+      data-items={JSON.stringify(items)}
+      aria-roledescription="carousel"
+      aria-label="Selected works"
+    >
+      <div class="hero__canvas" data-ring-host></div>
+      <img class="hero__fallback" data-fallback src={items[0].poster} alt="" />
+
+      <div class="hero__mast">
+        <h1 class="hero__wordmark">Works</h1>
       </div>
 
-      <p class="hero__cue label" data-inview-manual>
-        Scroll <span aria-hidden="true">&darr;</span> 2026
-      </p>
+      <div class="hero__info">
+        {
+          cards.map((w, i) => (
+            <div class="hero__slide" data-slide hidden={i !== 0}>
+              <h2 class="hero__title">{w.title}</h2>
+              <p class="hero__desc">{lede(w.summary)}</p>
+              <div class="hero__actions">
+                {w.url && <WorksPill href={w.url} label="View live" />}
+              </div>
+            </div>
+          ))
+        }
+      </div>
+
+      <div class="hero__arrows">
+        <button
+          class="hero__arrow"
+          type="button"
+          data-prev
+          aria-label="Previous project"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg
+          >
+        </button>
+        <button
+          class="hero__arrow"
+          type="button"
+          data-next
+          aria-label="Next project"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg
+          >
+        </button>
+      </div>
+
+      <div class="hero__thumbs">
+        {
+          cards.map((w, i) => (
+            <button
+              class="hero__thumb"
+              type="button"
+              data-thumb
+              aria-label={`Show ${w.title}`}
+              aria-current={i === 0 ? 'true' : 'false'}
+            >
+              <img
+                class="hero__thumbImg"
+                src={cardImage(w.id)}
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
+              <span class="hero__thumbLabel" aria-hidden="true">
+                {w.title}
+              </span>
+            </button>
+          ))
+        }
+      </div>
+
+      <p class="visually-hidden" aria-live="polite" data-status></p>
     </section>
 
-    <section class="container intro" aria-label="Introduction">
-      <p class="intro__body" data-inview>
-        Three kinds of work sit here. Sites where the interface carries the
-        argument, internal systems built for people who live in them all day,
-        and commissioned builds shaped to one operation rather than a template.
-      </p>
-      <p class="intro__body" data-inview>
-        Each chapter lists its projects along the top. Select one to read what
-        it was, what it was built with, and where it runs.
-      </p>
-    </section>
-
-    {
-      sections.map(({ chapter, items }) => (
-        <WorkChapter chapter={chapter} items={items} />
-      ))
-    }
-
-    <section class="container closing" aria-labelledby="closing-heading">
-      <h2 id="closing-heading" class="visually-hidden">Contact</h2>
-      <p class="closing__body" data-inview>
-        More detail on any of these is available on request.
-      </p>
-      <a
-        class="closing__link label"
-        href="mailto:waiphyoag.cs34@gmail.com"
-        data-inview
-      >
-        Get in touch <span aria-hidden="true">&#8599;&#65038;</span>
-      </a>
-    </section>
+    <WorksIntro />
+    <WorksScreens />
+    <WorksContact />
   </main>
+
+  {/* Pinned for the whole page, as on the reference. */}
+  <div class="strip">
+    <span class="strip__credit">Created by KWG</span>
+    <a class="strip__social" href={`mailto:${email}`} aria-label="Email">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        ><path
+          d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+        ></path><polyline points="22,6 12,13 2,6"></polyline></svg
+      >
+    </a>
+  </div>
 </Layout>
 
 <script>
-  // Tab switcher for every chapter on the page. One delegated handler covers
-  // all tablists. Full ARIA tablist pattern with a roving tabindex.
-  //
-  // Panels ship VISIBLE in the markup so the page reads as a linear document
-  // with JavaScript disabled; this script performs the initial hide.
-  const lists = document.querySelectorAll<HTMLElement>('[role="tablist"]');
+  import { mountRing, type Ring, type RingItem } from '../scripts/works/ring';
+  import { mountBackdrop } from '../scripts/works/backdrop';
+  import { mountStream } from '../scripts/works/stream';
+  import { mountRail, type RailItem } from '../scripts/works/rail';
+  import { mountPanel } from '../scripts/works/panel';
+  import { mountReveals } from '../scripts/works/reveals';
 
-  lists.forEach((list) => {
-    const tabs = Array.from(
-      list.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const hero = document.querySelector<HTMLElement>('[data-hero]');
+  const backdropHost = document.querySelector<HTMLElement>('[data-backdrop]');
+
+  // The site header sits above the hero in flow; the hero fills the rest.
+  hero?.style.setProperty(
+    '--header-h',
+    `${document.querySelector('header')?.offsetHeight ?? 0}px`,
+  );
+
+  const backdrop =
+    backdropHost && hero ? mountBackdrop(backdropHost, hero, reduced) : null;
+
+  // Type is drawn onto canvases, so they wait for the faces. A slow font
+  // network gets three seconds, then the fallback faces are used.
+  const fontsReady = Promise.race([
+    Promise.all([
+      document.fonts.load('58px Anton'),
+      document.fonts.load('500 16px "IBM Plex Mono"'),
+      document.fonts.load('600 16px "IBM Plex Mono"'),
+    ]),
+    new Promise((resolve) => setTimeout(resolve, 3000)),
+  ]);
+
+  /** Run once the element is within a screen of the viewport. */
+  const whenNear = (el: Element, run: () => void) => {
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        io.disconnect();
+        run();
+      },
+      { rootMargin: '100% 0px' },
     );
-    if (tabs.length === 0) return;
+    io.observe(el);
+  };
 
-    const panelFor = (tab: HTMLButtonElement) =>
-      document.getElementById(tab.getAttribute('aria-controls') ?? '');
+  // ── Hero ──────────────────────────────────────────────────────────────────
+  const host = hero?.querySelector<HTMLElement>('[data-ring-host]');
 
-    const select = (next: HTMLButtonElement, moveFocus: boolean) => {
-      tabs.forEach((tab) => {
-        const on = tab === next;
-        tab.setAttribute('aria-selected', String(on));
-        tab.tabIndex = on ? 0 : -1;
-        const panel = panelFor(tab);
-        if (panel) panel.hidden = !on;
+  if (hero && host) {
+    const items = JSON.parse(hero.dataset.items ?? '[]') as RingItem[];
+    const slides = Array.from(
+      hero.querySelectorAll<HTMLElement>('[data-slide]'),
+    );
+    const thumbs = Array.from(
+      hero.querySelectorAll<HTMLElement>('[data-thumb]'),
+    );
+    const fallback = hero.querySelector<HTMLImageElement>('[data-fallback]');
+    const status = hero.querySelector<HTMLElement>('[data-status]');
+    const AUTOPLAY_MS = 7000;
+
+    let index = 0;
+    let elapsed = 0;
+    let ring: Ring | null = null;
+
+    const show = (next: number) => {
+      index = ((next % items.length) + items.length) % items.length;
+      slides.forEach((slide, i) => (slide.hidden = i !== index));
+      thumbs.forEach((thumb, i) => {
+        thumb.setAttribute('aria-current', String(i === index));
+        thumb.style.removeProperty('--slide-progress');
       });
-      if (moveFocus) next.focus();
+      if (fallback) fallback.src = items[index].poster;
+      if (status) {
+        status.textContent = `${items[index].title}, ${index + 1} of ${items.length}`;
+      }
+      elapsed = 0;
     };
 
-    list.addEventListener('click', (event) => {
-      const tab = (event.target as HTMLElement).closest<HTMLButtonElement>(
-        '[role="tab"]',
-      );
-      if (tab && tabs.includes(tab)) select(tab, false);
+    const go = (next: number) => {
+      show(next);
+      ring?.goTo(index);
+    };
+
+    hero
+      .querySelector('[data-prev]')
+      ?.addEventListener('click', () => go(index - 1));
+    hero
+      .querySelector('[data-next]')
+      ?.addEventListener('click', () => go(index + 1));
+    thumbs.forEach((thumb, i) => thumb.addEventListener('click', () => go(i)));
+    hero.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        go(index - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        go(index + 1);
+      }
     });
 
-    list.addEventListener('keydown', (event) => {
-      const current = tabs.findIndex((t) => t === document.activeElement);
-      if (current === -1) return;
-
-      // Wrap with modulo so Left on the first tab lands on the last.
-      const target = {
-        ArrowRight: (current + 1) % tabs.length,
-        ArrowLeft: (current - 1 + tabs.length) % tabs.length,
-        Home: 0,
-        End: tabs.length - 1,
-      }[event.key];
-
-      if (target === undefined) return;
-      event.preventDefault();
-      select(tabs[target], true);
+    void fontsReady.then(() => {
+      ring = mountRing(host, items, {
+        reduced,
+        onChange: (i) => {
+          if (i !== index) show(i);
+        },
+        onInteract: () => {
+          elapsed = 0;
+        },
+        onPreset: (inPanel) => hero.classList.toggle('has-panel-text', inPanel),
+        onLost: () => {
+          ring = null;
+          hero.classList.remove('has-panel-text');
+          hero.classList.add('is-fallback');
+        },
+        onTone: (tone) => backdrop?.setTone(tone),
+      });
+      if (ring) hero.classList.remove('is-fallback');
     });
 
-    // Initial state: honour whichever tab the markup marked selected.
-    const initial =
-      tabs.find((t) => t.getAttribute('aria-selected') === 'true') ?? tabs[0];
-    select(initial, false);
+    // Autoplay, as the reference runs it: the active thumb fills as the
+    // clock runs. It holds while a control has the pointer or focus, while
+    // the hero is off screen, and never runs under reduced motion.
+    if (!reduced) {
+      let held = false;
+      let onScreen = true;
+      hero
+        .querySelectorAll('.hero__thumbs, .hero__arrows, .hero__actions')
+        .forEach((el) => {
+          el.addEventListener('pointerenter', () => (held = true));
+          el.addEventListener('pointerleave', () => (held = false));
+        });
+      hero.addEventListener('focusin', () => (held = true));
+      hero.addEventListener('focusout', () => (held = false));
+      new IntersectionObserver(([entry]) => {
+        onScreen = entry.isIntersecting;
+      }).observe(hero);
+
+      let last = performance.now();
+      const tick = (now: number) => {
+        requestAnimationFrame(tick);
+        const dt = now - last;
+        last = now;
+        if (held || !onScreen || document.hidden) return;
+        elapsed += dt;
+        thumbs[index]?.style.setProperty(
+          '--slide-progress',
+          String(Math.min(elapsed / AUTOPLAY_MS, 1)),
+        );
+        if (elapsed >= AUTOPLAY_MS) go(index + 1);
+      };
+      requestAnimationFrame(tick);
+    }
+  }
+
+  // ── Sections ──────────────────────────────────────────────────────────────
+  void fontsReady.then(() => {
+    mountReveals(
+      Array.from(document.querySelectorAll<HTMLElement>('[data-live-section]')),
+    );
+
+    const stream = document.querySelector<HTMLElement>('[data-stream]');
+    if (stream) {
+      whenNear(stream, () => {
+        const posters = JSON.parse(stream.dataset.posters ?? '[]') as string[];
+        mountStream(stream, posters, reduced);
+      });
+    }
+
+    const rail = document.querySelector<HTMLElement>('[data-rail]');
+    if (rail) {
+      whenNear(rail, () => {
+        const railItems = JSON.parse(rail.dataset.items ?? '[]') as RailItem[];
+        mountRail(rail, railItems, reduced);
+      });
+    }
+
+    const panel = document.querySelector<HTMLElement>('[data-panel]');
+    if (panel) {
+      whenNear(panel, () => {
+        const { src = '', poster = '' } = panel.dataset;
+        if (mountPanel(panel, src, poster, reduced)) {
+          panel.closest('[data-panel-media]')?.classList.add('is-live');
+        }
+      });
+    }
   });
 </script>
 
-<style lang="scss">
-  // HERO — typographic void, matching index.astro. The reference puts a
-  // full-bleed video here; that slot is reserved until a real asset exists
-  // (docs/works-page-design.md D6). 4rem subtracts the Header's footprint.
-  .hero {
+<style lang="scss" is:global>
+  // Shared by every section on /works. Global because the section components
+  // and the runtime-split title lines both need them.
+
+  .live {
+    --font-anton: 'Anton', Impact, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --footer-h: 58px;
+
     position: relative;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    min-height: calc(100svh - 4rem);
-    // Matches .container so the hero lines up with the header above it.
-    max-width: var(--container-max-width);
-    margin-inline: auto;
-    padding: to-rem(24) var(--grid-margin) to-rem(40);
+    z-index: 1;
   }
 
-  .hero__index {
-    color: var(--c-mute);
+  @media (max-width: 720px) {
+    .live {
+      --footer-h: 54px;
+    }
   }
 
-  .hero__center {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: clamp-fluid(20, 40);
+  // Without WebGL this plain black is the whole backdrop.
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: #0a0a0a;
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
   }
 
-  .hero__mark {
+  .live-eyebrow {
+    display: inline-block;
+    padding: 7px 14px 6px;
+    background: #f0ece6;
+    color: #14120f;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .live-title {
     margin: 0;
-    color: var(--c-ink);
-    letter-spacing: -0.02em;
+    color: #f0ece6;
+    font-family: 'Anton', Impact, sans-serif;
+    font-size: clamp(38px, 6.4vw, 88px);
+    font-weight: 400;
+    line-height: 0.94;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+
+    // SplitText's line mask; the padding keeps descenders out of the clip.
+    .live-line {
+      padding-bottom: 0.09em;
+      overflow: hidden;
+    }
   }
 
-  .hero__tagline {
-    max-width: 32ch;
-    color: var(--c-ink);
-    font-size: clamp-fluid(16, 18);
-    line-height: 1.56;
-    letter-spacing: 0;
+  .live-title--small {
+    font-size: clamp(30px, 5vw, 68px);
   }
 
-  .hero__cue {
-    justify-self: end;
-    align-self: end;
-    color: var(--c-body);
-    display: inline-flex;
+  .live-body {
+    margin: 0;
+    color: #f0ece6a8;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.8;
+    letter-spacing: 0.015em;
+  }
+
+  @media (max-width: 900px) {
+    .live-title br {
+      display: none;
+    }
+
+    .live-body {
+      font-size: 12px;
+      line-height: 1.7;
+    }
+  }
+
+  // The fixed strip, cream on the dark page throughout.
+  .strip {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    display: flex;
     align-items: center;
-    gap: to-rem(8);
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 24px;
+    pointer-events: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
   }
 
-  // INTRO — the measured prose column from the reference: ~65ch at 1.55.
-  .intro {
-    margin-block: clamp-fluid(80, 140);
+  .strip__credit,
+  .strip__social {
+    color: #f0ece6;
+    opacity: 0.4;
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+  }
+
+  .strip__social {
     display: flex;
-    flex-direction: column;
-    gap: to-rem(24);
+    padding: 4px;
+    border-radius: 999px;
+    pointer-events: auto;
+    transition:
+      opacity 0.2s,
+      transform 0.2s;
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+
+    &:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
   }
 
-  .intro__body {
-    max-width: 65ch;
-    line-height: 1.55;
-    margin: 0;
+  @media (max-width: 720px) {
+    .strip {
+      gap: 12px;
+      padding: 12px 16px;
+    }
   }
 
-  .closing {
-    margin-block: clamp-fluid(80, 160);
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: to-rem(20);
-  }
+  @media (prefers-reduced-motion: reduce) {
+    .strip__social {
+      transition: none;
 
-  .closing__body {
-    max-width: 65ch;
-    line-height: 1.55;
-    margin: 0;
-    color: var(--c-mute);
-  }
-
-  .closing__link {
-    color: var(--c-ink);
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
-    transition: border-color 0.2s var(--ease-smooth);
-
-    @include has-hover {
       &:hover {
-        border-bottom-color: var(--c-ink);
+        transform: none;
       }
+    }
+  }
+</style>
+
+<style lang="scss">
+  .hero {
+    --cream: #f0ece6;
+    --ink: #14120f;
+
+    position: relative;
+    width: 100%;
+    height: calc(100dvh - var(--header-h, 0px));
+    min-height: 560px;
+    overflow: hidden;
+    color: var(--cream);
+  }
+
+  .hero__canvas {
+    position: absolute;
+    inset: 0;
+    cursor: grab;
+    // Vertical swipes still scroll the page; horizontal ones spin the ring.
+    touch-action: pan-y;
+
+    &:active {
+      cursor: grabbing;
+    }
+
+    // Inserted by ring.ts, so it never carries this component's scope.
+    :global(canvas) {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .hero__fallback {
+    position: absolute;
+    inset: 0;
+    display: none;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.5;
+  }
+
+  .hero.is-fallback {
+    background: #0b0c10;
+
+    .hero__canvas {
+      display: none;
+    }
+
+    .hero__fallback {
+      display: block;
+    }
+  }
+
+  // Wordmark
+
+  .hero__mast {
+    position: absolute;
+    top: 34px;
+    left: 40px;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .hero__wordmark {
+    margin: 0;
+    font-family: var(--font-anton);
+    font-size: clamp(24px, 2.6vw, 38px);
+    font-weight: 400;
+    line-height: 0.94;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--cream);
+  }
+
+  // Slide copy and actions
+
+  .hero__info {
+    position: absolute;
+    left: 40px;
+    bottom: calc(var(--footer-h) + 40px);
+    z-index: 2;
+    width: min(680px, 100vw - 48px);
+    pointer-events: none;
+  }
+
+  .hero__title {
+    margin: 0 0 12px;
+    font-family: var(--font-anton);
+    font-size: clamp(30px, 4.4vw, 58px);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.005em;
+    text-transform: uppercase;
+    color: var(--cream);
+  }
+
+  .hero__desc {
+    max-width: 58ch;
+    margin: 0 0 22px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.65;
+    letter-spacing: 0.02em;
+    color: #f0ece6b3;
+    text-shadow: 0 1px 12px #0009;
+  }
+
+  // With WebGL on a wide screen the card carries the title and description.
+  // The DOM copies stay for assistive tech only.
+  .hero.has-panel-text {
+    .hero__title,
+    .hero__desc {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+
+  .hero__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  // Arrows
+
+  .hero__arrows {
+    position: absolute;
+    top: 50%;
+    right: 40px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    opacity: 0.8;
+    transform: translateY(-50%);
+  }
+
+  .hero__arrow {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: 50%;
+    background: #e9e6e1;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    transition: transform 0.22s;
+
+    &:focus-visible {
+      outline: 2px solid #fcfbf9;
+      outline-offset: 3px;
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .hero__arrow:hover {
+      transform: scale(1.08);
+    }
+  }
+
+  // Thumbnails
+
+  .hero__thumbs {
+    position: absolute;
+    right: 40px;
+    bottom: calc(var(--footer-h) + 40px);
+    z-index: 2;
+    display: flex;
+    gap: 10px;
+  }
+
+  .hero__thumb {
+    position: relative;
+    display: block;
+    // The reference's 112px holds four thumbs; eight need to give way sooner.
+    width: clamp(64px, 5.4vw, 88px);
+    aspect-ratio: 112 / 64;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #fcfbf92e;
+    border-radius: 10px;
+    background: #0c0c0e80;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid #fcfbf9;
+      outline-offset: 3px;
+    }
+
+    // The progress fill, driven by the autoplay clock.
+    &[aria-current='true']::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      z-index: 1;
+      width: calc(var(--slide-progress, 0) * 100%);
+      height: 100%;
+      background: #fcfbf9;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+  }
+
+  // The reference dims the whole thumb to .42. Only the picture dims here, so
+  // the label keeps its contrast.
+  .hero__thumbImg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.42;
+    transition: opacity 0.22s;
+  }
+
+  .hero__thumb[aria-current='true'] .hero__thumbImg {
+    opacity: 1;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .hero__thumb:hover .hero__thumbImg {
+      opacity: 0.8;
+    }
+  }
+
+  .hero__thumbLabel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    padding: 12px 8px 5px;
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-align: left;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: #fcfbf9;
+    background: linear-gradient(#0000, #000000bf);
+  }
+
+  @media (max-width: 900px) {
+    .hero__mast {
+      top: 22px;
+      left: 22px;
+    }
+
+    .hero__info {
+      left: 50%;
+      bottom: calc(var(--footer-h) + 108px);
+      text-align: center;
+      transform: translateX(-50%);
+    }
+
+    .hero__desc {
+      margin-inline: auto;
+    }
+
+    .hero__actions {
+      justify-content: center;
+    }
+
+    // Drag and the thumbs carry navigation; arrows would sit on the card.
+    .hero__arrows {
+      display: none;
+    }
+
+    .hero__thumbs {
+      right: 50%;
+      bottom: calc(var(--footer-h) + 24px);
+      gap: 8px;
+      transform: translateX(50%);
+    }
+
+    // Eight across has to fit a phone.
+    .hero__thumb {
+      width: min(78px, calc((100vw - 96px) / 8));
+    }
+
+    .hero__thumbLabel {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__arrow,
+    .hero__thumbImg {
+      transition: none;
+    }
+
+    .hero__arrow:hover {
+      transform: none;
+      box-shadow: none;
     }
   }
 </style>
