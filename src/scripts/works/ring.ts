@@ -478,6 +478,9 @@ export const mountRing = (
     camera.updateProjectionMatrix();
     const wanted = window.innerWidth <= MOBILE_MAX ? MOBILE : DESKTOP;
     if (wanted !== preset || slots.length === 0) build(wanted);
+    // Resizing wipes the canvas; draw now so Safari never paints it blank
+    // while its toolbar resizes the dvh hero mid-scroll.
+    renderer.render(scene, camera);
   };
   new ResizeObserver(resize).observe(host);
   resize();

@@ -109,6 +109,8 @@ export const mountBackdrop = (
       window.innerWidth * dpr,
       window.innerHeight * dpr,
     );
+    // Resizing wipes the canvas; draw now so it never paints blank.
+    renderer.render(scene, camera);
   };
   window.addEventListener('resize', resize);
   resize();

@@ -100,6 +100,8 @@ export const mountPanel = (
   const resize = () => {
     if (!host.clientWidth || !host.clientHeight) return;
     renderer.setSize(host.clientWidth, host.clientHeight, false);
+    // Resizing wipes the canvas; draw now so it never paints blank.
+    renderer.render(scene, camera);
   };
   new ResizeObserver(resize).observe(host);
   resize();

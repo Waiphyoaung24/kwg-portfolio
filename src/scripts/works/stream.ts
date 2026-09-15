@@ -153,6 +153,8 @@ export const mountStream = (
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    // Resizing wipes the canvas; draw now so it never paints blank.
+    renderer.render(scene, camera);
   };
   new ResizeObserver(resize).observe(host);
   resize();

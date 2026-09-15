@@ -122,6 +122,8 @@ export const mountRail = (
     camera.updateProjectionMatrix();
     shared.uCenterY.value = height / 2;
     shared.uHalfH.value = (height * R.cardHeight) / 2;
+    // Resizing wipes the canvas; draw now so it never paints blank.
+    renderer.render(scene, camera);
   };
   new ResizeObserver(resize).observe(host);
   resize();
