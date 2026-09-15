@@ -2506,7 +2506,9 @@ const testimonials = [
 
   .process__step {
     display: grid;
-    grid-template-columns: to-rem(64) 1fr;
+    // The index takes its own width on phones; a fixed 64px column left the
+    // copy ~200px at 320 and hyphenating mid-word.
+    grid-template-columns: auto 1fr;
     grid-template-areas:
       'index title'
       'index body';
