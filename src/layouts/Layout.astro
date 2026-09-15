@@ -25,7 +25,8 @@ const title = pageTitle ? `${pageTitle} — KWG` : 'Wai Phyo Aung — KWG';
 const description =
   pageDescription ??
   'Wai Phyo Aung, an AI and software engineer in Bangkok. Creative websites, internal systems, and custom builds, each shown with its decisions, its stack, and where it runs.';
-const shareImage = new URL('og-image.jpg', Astro.site);
+// Facebook caches og:image by URL; bump the query when the picture changes.
+const shareImage = new URL('og-image.jpg?v=2', Astro.site);
 ---
 
 <!doctype html>
