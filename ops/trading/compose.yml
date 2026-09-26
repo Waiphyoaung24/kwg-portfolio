@@ -1,0 +1,28 @@
+services:
+  desktop:
+    build: .
+    image: kwg-mt5-desktop:qualification
+    container_name: kwg-mt5-desktop
+    restart: unless-stopped
+    init: true
+    tty: true
+    # Display sockets and locks must not survive container restarts.
+    tmpfs:
+      - /tmp:mode=1777,size=256m
+    cpus: 1.0
+    mem_limit: 2g
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      - "127.0.0.1:6081:6080"
+    volumes:
+      - mt5-home:/home/mt5
+    logging:
+      options:
+        max-size: 2m
+        max-file: "2"
+volumes:
+  mt5-home:

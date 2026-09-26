@@ -1,0 +1,10 @@
+# Local credentials and terminal state never belong in source control.
+.env
+.env.*
+mt5.json
+*.pem
+*.key
+.wine/
+mt5-home/
+*.log
+__pycache__/
