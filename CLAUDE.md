@@ -103,3 +103,99 @@ design system.
 Content on display is not site chrome and keeps its own styling:
 `src/catalog/kage/` and any future catalog demo. The frame around an exhibit
 follows the design system; the exhibit itself does not.
+
+## Trading setup handoff — 2026-09-27
+
+### Scope and saved work
+
+- Continue `/vault/trading` with **gold only: `XAUUSD-VIP`**, demo account only.
+- Setup source, checks, and operating instructions are in `ops/trading/README.md`.
+- Local commit `0cc7581` saves `ops/trading/`; it has **not been pushed**.
+- The VPS was deployed directly. A Git commit/push does not update its running
+  Compose project. Preserve unrelated repository changes and existing VPS apps.
+- No autonomous strategy, order execution, dashboard integration, or Worker
+  deployment has been completed. Algo Trading remains off. Do not enable live
+  trading or claim that the bot is running.
+
+### Current VPS setup
+
+- Host: `187.52.117.116`, Ubuntu 24.04.4, 4 CPUs, approximately 15 GiB RAM.
+- Dokploy: `https://dokploy.castranova.cloud/dashboard/settings/server`.
+  Its authenticated server terminal works after the owner authorized Dokploy's
+  existing public SSH key. Do not extract private keys or broker credentials.
+- Remote project: `/opt/kwg-mt5-qualification`; container
+  `kwg-mt5-desktop`; image `kwg-mt5-desktop:qualification`.
+- MT5 runs under Wine 9 with Windows Python 3.12.10, MetaTrader5 5.0.6180,
+  NumPy 1.26.4. This is a qualification environment; a maintained runtime still
+  needs qualification. NumPy 2.5.3 failed under this Wine version.
+- Dedicated Compose network and persistent `mt5-home` volume; UID 10001,
+  1 CPU/2 GiB memory cap, capabilities dropped. `/tmp` is tmpfs to prevent stale
+  X display locks after restart. Preserve the volume containing terminal state.
+- Desktop port is **VPS loopback only** (`127.0.0.1:6081`). Never expose noVNC
+  publicly. Closing the local SSH tunnel disconnects viewing, not the VPS app.
+
+To reconnect tomorrow, run locally in PowerShell and keep the window open:
+
+```powershell
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:6081:127.0.0.1:6081 root@187.52.117.116
+```
+
+Enter the SSH passphrase locally, then open
+`http://127.0.0.1:6081/vnc.html?autoconnect=1&resize=scale`.
+The owner's SSH client prompts for the existing local key
+`C:\Users\wai19\.ssh\id_ed25519`. This prompt requests the key's passphrase,
+not the VPS root password or MT5 password. Enter it only in PowerShell; input
+is not echoed. After successful authentication, a blank waiting window is
+normal because `ssh -N` runs only the tunnel. The passphrase prompt alone does
+not confirm a successful connection. Never copy the private key or passphrase
+into the repository or chat.
+Broker credentials stay in MT5's volume, never in chat, Git, shell commands,
+images, or logs. Local Vibe-Trading credentials remain outside the repo in
+the owner's `.vibe-trading/mt5.json`; do not display its contents.
+
+### Verified results and unresolved issues
+
+- SDK attached to the expected **VTMarkets-Demo** account, verified demo mode
+  and Algo Trading off, and returned quotes plus 250 completed M15 candles for
+  `XAUUSD-VIP` and `BTCUSD`. Repeated successfully after a container restart.
+- Bitcoin was part of earlier diagnostics only; exclude it from the first
+  strategy. The current diagnostic script still checks both symbols.
+- Newly selected symbols initially returned empty quotes; checks succeeded
+  after subscription synchronization. Do not confuse this with account failure.
+- **Freshness is unresolved:** gold's last quote was about 22 hours old;
+  Bitcoin timestamps were about 3 hours ahead of the VPS clock. Investigate
+  broker timestamp semantics and clock synchronization. Do not silently subtract
+  a guessed offset or accept negative quote ages as fresh.
+- Run `verify-demo.py` as documented in the README using the owner's expected
+  demo account number; it takes no password and calls no order functions.
+- Account-guard test, shell syntax, Compose validation, and whitespace checks
+  passed. Restart recovery and saved demo login were verified on the VPS.
+- Local Vibe-Trading 0.1.15 `mt5-paper-sdk` checks previously passed. Its managed
+  live runner does not support the MT5 broker SDK profile; its MT5 order method
+  lacks SL/TP arguments. Do not assume switching profiles produces a safe bot.
+
+### Resume sequence and strategy baseline
+
+1. Qualify fresh **gold** quotes when the market is available, including clock
+   handling and subscription readiness. Keep order execution disabled.
+2. Implement and test the agreed strategy in **signal-only mode** first:
+   completed M15 candles, EMA20/EMA50 crossovers, at least 250 history bars,
+   SMA-seeded EMA and Wilder ATR14. Long on upward cross, short on downward cross.
+3. Planned demo execution limits: stop 2 ATR and take-profit 3 ATR, broker-held
+   protection accepted with entry; risk 0.1% current equity using broker profit
+   calculation, floor volume step, skip if minimum volume exceeds risk budget.
+   One strategy-owned gold position, no pyramiding or martingale; opposite cross
+   closes by ticket with no same-candle reversal. Never modify unrelated trades.
+4. Persist UTC day-start equity; pause new entries at 1% daily equity loss
+   (realized plus floating). This is not a guaranteed loss cap. Require valid
+   bid/ask, spread at most 10% ATR, qualified quote age at most 30 seconds, market
+   availability, and pinned demo identity. Persist candle decisions/order intents
+   and reconcile uncertain submissions before retry; never replay old entries.
+5. Review signal-only results and implemented risk checks before enabling demo
+   orders. Then integrate authenticated status into `/vault/trading` and decide
+   the Worker/API deployment. Wrangler deploys Cloudflare Workers; the Windows
+   MT5 terminal stays on the VPS, not inside a Worker.
+
+The user previously requested brainstorming, Ponytail, and Context7. Continue
+with minimal changes and current documentation. No overnight monitoring or
+scheduled work has been configured.
