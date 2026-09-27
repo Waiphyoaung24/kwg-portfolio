@@ -29,27 +29,33 @@ export const prerender = true;
           <h2 id="status-title">Gold observer</h2>
           <span class="status__state label" id="state" aria-live="polite">Checking</span>
         </div>
+        <p class="status__symbol micro">XAUUSD-VIP · VT Markets demo · Orders off</p>
         <dl class="status__rows">
-          <div><dt class="label">Symbol</dt><dd>XAUUSD-VIP</dd></div>
-          <div><dt class="label">Status delivery</dt><dd id="delivery">Checking</dd></div>
-          <div><dt class="label">Observer heartbeat</dt><dd id="heartbeat">Checking</dd></div>
-          <div><dt class="label">MT5 demo connection</dt><dd id="connection">Checking</dd></div>
-          <div><dt class="label">Quote freshness</dt><dd id="freshness">Checking</dd></div>
-          <div><dt class="label">Last quote timestamp</dt><dd id="tick">—</dd></div>
-          <div><dt class="label">Quote age at check</dt><dd id="age">—</dd></div>
-          <div><dt class="label">M15 history</dt><dd id="history">Checking</dd></div>
-          <div><dt class="label">Latest fetched M15 bar · opened</dt><dd id="candle">—</dd></div>
-          <div><dt class="label">Strategy readiness</dt><dd id="strategy">Checking</dd></div>
-          <div><dt class="label">Latest signal</dt><dd id="signal">—</dd></div>
-          <div><dt class="label">Last checked</dt><dd id="checked">—</dd></div>
+          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M8 12h8M9 5H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3m6-14h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-3" /></svg>MT5 connection</dt><dd id="connection">Checking</dd></div>
+          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Gold price</dt><dd id="freshness">Checking</dd></div>
+          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 3 8-9m-6 0h6v6" /></svg>Strategy signal</dt><dd id="signal">Checking</dd></div>
         </dl>
-        <p class="status__reason" id="reason" role="status">Connecting to the private status API.</p>
+        <p class="status__guidance" id="guidance" role="status">Connecting to the private status API.</p>
+        <details class="status__details">
+          <summary class="pill-btn">Technical details <span aria-hidden="true">⌄</span></summary>
+          <dl class="status__rows">
+            <div><dt class="label">Status delivery</dt><dd id="delivery">Checking</dd></div>
+            <div><dt class="label">Observer heartbeat</dt><dd id="heartbeat">Checking</dd></div>
+            <div><dt class="label">Last quote</dt><dd id="tick">—</dd></div>
+            <div><dt class="label">Quote age at check</dt><dd id="age">—</dd></div>
+            <div><dt class="label">15-minute history</dt><dd id="history">Checking</dd></div>
+            <div><dt class="label">Latest fetched candle · opened</dt><dd id="candle">—</dd></div>
+            <div><dt class="label">Strategy readiness</dt><dd id="strategy">Checking</dd></div>
+            <div><dt class="label">Last checked</dt><dd id="checked">—</dd></div>
+          </dl>
+          <p class="status__reason" id="reason">Checking</p>
+        </details>
         <div class="status__actions">
           <button class="pill-btn pill-btn--filled" id="refresh" type="button">Refresh status</button>
           <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
         </div>
       </section>
-      <p class="page__note">Refreshes every 10 seconds while visible. Checks expire after 30 seconds. This view reports observations only; a signal does not place a trade.</p>
+      <p class="page__note">Updates automatically every 10 seconds. Observation only — no trades are placed.</p>
     </main>
 
     <script>
@@ -93,6 +99,7 @@ export const prerender = true;
           field('signal').textContent = '—';
           field('checked').textContent = '—';
           field('reason').textContent = needsAccess ? 'Sign in through Cloudflare Access to view this status.' : 'The private status API is unavailable. Try again shortly.';
+          field('guidance').textContent = field('reason').textContent;
           signIn.hidden = !needsAccess;
         } finally {
           refresh.disabled = false;
@@ -112,13 +119,20 @@ export const prerender = true;
       .page__intro h1 { margin: 0 0 var(--sp-lg); font-size: var(--fs-2); line-height: 1; letter-spacing: var(--ls-2); }
       .page__intro p { margin: 0; color: var(--c-body); line-height: 1.5; }
       .page__note { margin: 0; color: var(--c-body); font-size: var(--fs-body-sm); }
-      .status { width: min(100%, var(--container-max-width)); }
+      .status { width: min(100%, var(--container-max-width)); box-shadow: none; }
       .status__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-md); }
       .status__head h2 { margin: 0; font-size: var(--fs-4); font-weight: var(--fw-regular); letter-spacing: var(--ls-4); }
       .status__state { color: var(--c-body); }
       .status__rows { margin: var(--sp-xl) 0; }
       .status__rows div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-md); padding: var(--sp-md) 0; border-top: 1px solid var(--c-hairline); }
-      .status__rows dt { color: var(--c-body); }
+      .status__rows dt { display: flex; align-items: center; gap: var(--sp-sm); color: var(--c-body); }
+      .status__rows svg { width: var(--sp-xl); height: var(--sp-xl); flex-shrink: 0; }
+      .status__symbol { margin: var(--sp-md) 0 0; color: var(--c-body); }
+      .status__guidance { max-width: 65ch; line-height: 1.6; color: var(--c-body); margin: 0 0 var(--sp-xl); }
+      .status__details { margin-bottom: var(--sp-xl); }
+      .status__details summary { width: fit-content; list-style: none; }
+      .status__details summary::-webkit-details-marker { display: none; }
+      .status__details[open] summary span { transform: rotate(180deg); }
       .status__rows dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
       .status__reason { min-height: 1.5em; margin: 0 0 var(--sp-xl); color: var(--c-body); }
       .status__actions { display: flex; flex-wrap: wrap; gap: var(--sp-md); }

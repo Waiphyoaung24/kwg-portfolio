@@ -12,19 +12,25 @@ export function statusFields(data, now = Date.now() / 1000) {
     invalid: 'Invalid quote', unknown: 'Not checked' };
   const terminalLabels = { connected: 'Demo connected; account checks passed',
     disconnected: 'Disconnected', guard_failed: 'Demo safety checks failed', unknown: 'Not checked' };
+  const ready = current && health.terminal === 'connected' && health.quote === 'fresh' && data.status !== 'blocked';
+  const waiting = current && health.terminal === 'connected' && health.quote === 'stale';
   return {
-    state: alive ? 'System reporting' : 'Observer offline',
+    state: !alive ? 'Observer offline' : waiting ? 'Waiting for price' : ready ? 'Observing' : 'Needs attention',
+    guidance: !alive ? 'The observer has stopped reporting. Check the VPS observer before using any signals.'
+      : waiting ? 'MT5 is connected, but the last gold price is too old to evaluate. Leave the observer running; it will check again automatically. If prices stay old during an open trading session, check the MT5 feed.'
+      : ready ? 'The observer is checking completed 15-minute candles. Use these observations to validate the data and test the strategy; a signal does not place an order.'
+      : 'Signal checks are paused. Open technical details for the reason before continuing.',
     delivery: 'Worker → Tunnel → status service responded',
     heartbeat: alive ? `Reporting · ${Math.floor(now - data.checked_at)}s ago` : 'Missing or expired',
-    connection: current ? terminalLabels[health.terminal] ?? 'Unknown' : 'Unknown — no current check',
-    freshness: current ? quoteLabels[health.quote] ?? 'Unknown' : 'Unknown — no current check',
+    connection: current ? health.terminal === 'connected' ? 'Connected to demo' : terminalLabels[health.terminal] ?? 'Unknown' : 'Unknown — no current check',
+    freshness: current ? health.quote === 'stale' ? 'Waiting for a fresh price' : quoteLabels[health.quote] ?? 'Unknown' : 'Unknown — no current check',
     tick: date(health?.tick_time_msc ? health.tick_time_msc / 1000 : health?.tick_time),
     age: typeof health?.quote_age_seconds === 'number' && Number.isFinite(health.quote_age_seconds)
       ? `${health.quote_age_seconds.toFixed(3)}s at ${date(health.sampled_at)}${current ? '' : ' (expired check)'}` : '—',
     history: current && Number.isInteger(health.history_count) ? `${health.history_count} bars fetched` : 'Unknown — no current check',
     candle: date(health?.history_bar_time),
     strategy: !alive ? 'Paused — no current observer report' : data.status === 'blocked' ? 'Blocked — see reason below' : 'Observing · orders off',
-    signal: alive && data.status !== 'blocked' ? ({ long: 'Long', short: 'Short', none: 'None' }[data.signal] ?? '—') : 'None',
+    signal: ready ? ({ long: 'Long setup', short: 'Short setup', none: 'No setup yet' }[data.signal] ?? '—') : 'Paused',
     checked: date(data.checked_at),
     reason: alive ? data.reason || 'Waiting for the next completed candle.' : 'Observer report expired. Waiting for a current report.',
   };
