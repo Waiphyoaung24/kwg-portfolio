@@ -193,3 +193,17 @@ approximately 153829 seconds. Unit checks, build and signed-in live UI passed;
 unauthenticated edge/origin checks remain denied. Fresh-data and M15-transition
 qualification are still pending. See `CLAUDE.md` for deployment/rollback details.
 
+## Milestone 2 data capture — 2026-09-28
+
+Completed read-only exporter and froze 10,000 broker M15 bars on the VPS in
+`/opt/kwg-gold-research/datasets/gold-history-20260928.json`. The complete
+requested sample spans raw timestamps April 27 through September 25, 2026;
+109 gaps are recorded. SHA-256 and current contract observations are recorded
+in `CLAUDE.md`. Sixteen Python tests pass. The file is kept private outside Git.
+
+This completes initial data capture, not baseline evaluation. The next work is
+the deterministic evaluator, chronological split and explicit execution-cost
+assumptions. Unqualified raw times, historical costs and gap handling must not
+be silently converted into qualified profitability results. Live freshness and
+two advancing M15 transitions remain an independent outstanding gate.
+

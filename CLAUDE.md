@@ -247,3 +247,29 @@ scheduled work has been configured.
 - 14 Python tests, 5 Worker tests, frontend state checks, Astro check/build,
   desktop/mobile preview and signed-in live page checks passed. Fresh gold
   ticks across two M15 transitions remain pending. Order execution stays off.
+
+### Frozen research dataset — 2026-09-28 Bangkok
+
+- Exporter commit `461422b` is on main. `export-gold.py` captured 10,000 M15
+  bars for XAUUSD-VIP on the VPS, starting at bar position 1. All 16 Python
+  tests passed, including no-overwrite, checksum, redaction and bad-data checks.
+- Dataset on VPS: `/opt/kwg-gold-research/datasets/gold-history-20260928.json`.
+  Directory mode 700, file mode 440; copied from the exact exported file in
+  MT5 home. No broker credentials/volume are exposed to research services.
+- SHA-256: `ba4f246746d861c9f61d82c7a09d17931cd74e9dea604ea2897853369dcf8614`.
+  Original also persists at `C:\users\mt5\gold-history-20260928.json` in MT5.
+- Raw bar timestamps span 2026-04-27 17:45 to 2026-09-25 23:30 rendered in UTC.
+  109 gaps, zero zero-spread bars, zero bars forming/future against capture
+  clock; request was complete. Gap causes and broker timestamp semantics still
+  need evaluation. Do not fill gaps automatically or treat raw times as qualified.
+- Current specification: profit currency USD, contract size 100, point/tick
+  size 0.01, tick value 1, minimum/step 0.01 lots. These are current observations,
+  not historical execution guarantees. Commission/slippage/historical swap
+  costs remain unknown; dataset is explicitly unqualified.
+- Export script is installed in the running container via `docker cp`, with
+  source at `/opt/kwg-mt5-qualification/export-gold.py`; no restart was needed.
+  The committed Dockerfile includes it for future builds. Until an image is
+  rebuilt, container recreation requires copying this standalone helper again.
+- Next independent work: baseline replay/evaluator with explicit cost and fill
+  assumptions plus chronological validation. No evaluator, AI research run,
+  trading order, or automatic qualification has been enabled by this export.
