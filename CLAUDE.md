@@ -273,3 +273,18 @@ scheduled work has been configured.
 - Next independent work: baseline replay/evaluator with explicit cost and fill
   assumptions plus chronological validation. No evaluator, AI research run,
   trading order, or automatic qualification has been enabled by this export.
+
+### Simplified observation view — 2026-09-28 Bangkok
+
+- Deployed UI commit `93b753b` to the status sidecar; MT5 was not restarted.
+  Main view now shows three icon-labelled readings: MT5 connection, gold price,
+  and strategy signal. Raw evidence remains under native Technical details.
+- Plain-language guidance distinguishes stale prices, missing reports and
+  active observation. Signals display Paused unless current health confirms
+  connected MT5, fresh quotes and an unblocked observer.
+- Standalone HTML builder now inlines Astro's extracted module script, with
+  guards against external imports. Astro check/build, status state assertions,
+  five Worker tests, mobile layout and keyboard disclosure checks passed.
+- Signed-in live page verified: Connected to demo / Waiting for a fresh price /
+  Paused. Fresh-data qualification and strategy evaluation remain pending.
+- VPS rollback HTML: `trading.html.before-simple-93b753b` in the compose folder.
