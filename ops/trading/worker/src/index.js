@@ -24,7 +24,9 @@ export function normalizeStatus(value, now = Date.now() / 1000) {
 
 export default {
   async fetch(request, env, ctx) {
-    if (request.method !== 'GET' || new URL(request.url).pathname !== '/api/trading/status') {
+    const pathname = new URL(request.url).pathname;
+    const isPage = pathname === '/vault/trading' || pathname === '/vault/trading/';
+    if (request.method !== 'GET' || (!isPage && pathname !== '/api/trading/status')) {
       return new Response('Not found', { status: 404 });
     }
     if (!ctx.access || !env.ALLOWED_VIEWER_EMAIL) return new Response('Access required', { status: 403 });
@@ -36,14 +38,24 @@ export default {
       return unavailable();
     }
     try {
-      const response = await fetch(env.STATUS_ORIGIN_URL, {
+      const origin = new URL(env.STATUS_ORIGIN_URL);
+      if (isPage) origin.pathname = '/vault/trading';
+      const response = await fetch(origin, {
         headers: {
           'CF-Access-Client-ID': env.STATUS_ACCESS_CLIENT_ID,
           'CF-Access-Client-Secret': env.STATUS_ACCESS_CLIENT_SECRET,
         },
         redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(5000),
       });
-      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return unavailable();
+      if (!response.ok) return unavailable();
+      if (isPage) {
+        if (!response.headers.get('content-type')?.includes('text/html')) return unavailable();
+        return new Response(response.body, { headers: {
+          'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
+          'X-Robots-Tag': 'noindex', 'X-Content-Type-Options': 'nosniff',
+        } });
+      }
+      if (!response.headers.get('content-type')?.includes('application/json')) return unavailable();
       return Response.json(normalizeStatus(await response.json()), { headers: noStore });
     } catch {
       return unavailable();

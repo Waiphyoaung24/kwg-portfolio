@@ -40,6 +40,7 @@ services:
       - ALL
     volumes:
       - ./status_server.py:/app/status_server.py:ro
+      - ./trading.html:/app/trading.html:ro
       - status-snapshot:/status:ro
     networks:
       - dokploy-network

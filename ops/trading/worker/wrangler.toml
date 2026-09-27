@@ -1,5 +1,9 @@
 name = "kwg-trading-status"
+account_id = "1547080b330a37af6e2048dfb82c48f3"
 main = "src/index.js"
 compatibility_date = "2026-09-27"
 workers_dev = false
-routes = [{ pattern = "waiphyoaung.com/api/trading/*", zone_name = "waiphyoaung.com" }]
+routes = [
+  { pattern = "waiphyoaung.com/api/trading/*", zone_name = "waiphyoaung.com" },
+  { pattern = "waiphyoaung.com/vault/trading*", zone_name = "waiphyoaung.com" },
+]

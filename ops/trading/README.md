@@ -21,9 +21,10 @@ Keep Algo Trading off.
 ## Read-only Vault status
 
 The observer now publishes a small JSON snapshot to a **separate** Docker
-volume. `kwg-trading-status` serves that snapshot on `dokploy-network` with no
-host port; it cannot read MT5's home volume. `/vault/trading` requests a
-same-origin Cloudflare Worker route at `/api/trading/status`. The Worker requires
+volume. `kwg-trading-status` serves that snapshot and the prebuilt trading page
+on `dokploy-network` with no host port; it cannot read MT5's home volume.
+Cloudflare routes `/vault/trading` and `/api/trading/status` to the same Worker,
+without moving the rest of the portfolio from its current origin. The Worker requires
 Cloudflare Access identity, checks the exact approved viewer email, and fetches
 the status origin through the existing Cloudflare Tunnel. It exposes no broker
 login, balance, password, or order operation. A missing heartbeat becomes
@@ -48,10 +49,25 @@ as secrets too. Protect the Worker itself with Access for that email across all
 routes, leave `workers.dev` disabled, then deploy from `ops/trading/worker` with
 Wrangler. No secret values belong in source, commands, logs, or chat.
 
-The VPS side was deployed on 2026-09-27. The sidecar returned HTTP 200 from
+After changing `src/pages/vault/trading.astro`, build Astro and regenerate the
+self-contained page served by the private status service:
+
+```sh
+npm run build
+node ops/trading/build-status-page.mjs
+```
+
+Commit `ops/trading/trading.html` with the source change, copy it and
+`status_server.py` to the VPS Compose directory, then restart only the status
+sidecar. Deploy the Worker routes with Wrangler afterward. The page and API
+both require the one-email Worker Access policy; the origin accepts only its
+dedicated service token.
+
+The VPS status sidecar and Cloudflare Tunnel, Access policies, and API Worker
+were deployed on 2026-09-27. The sidecar returned HTTP 200 from
 `dokploy-network`, exposed no host port, and reported the gold quote as blocked
-while the market was closed. Cloudflare Tunnel, Access, and Worker deployment
-remain to be completed. The status service runs as UID 10001, so a manually
+while the market was closed. The trading page route still needs its deployment
+and a signed-in end-to-end check. The status service runs as UID 10001, so a manually
 copied `status_server.py` must be readable by that user (`chmod 644`).
 
 The existing Vault password only hides links in the browser. Cloudflare Access

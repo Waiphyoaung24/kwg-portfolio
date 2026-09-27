@@ -115,12 +115,13 @@ follows the design system; the exhibit itself does not.
   `docs/superpowers/plans/2026-09-27-gold-signal-only.md`. Local data guard,
   EMA/ATR calculation and SQLite observer are implemented and tested. Gold
   market freshness and supervised VPS observation remain pending while closed.
-  Demo execution and dashboard integration remain separate follow-ons.
+  Demo execution remains a separate follow-on.
 - The VPS was deployed directly. A Git commit/push does not update its running
   Compose project. Preserve unrelated repository changes and existing VPS apps.
-- No autonomous strategy, order execution, dashboard integration, or Worker
-  deployment has been completed. Algo Trading remains off. Do not enable live
-  trading or claim that the bot is running.
+- The signal-only observer, private status sidecar, Cloudflare Tunnel, Access
+  policies, and read-only API Worker are deployed. The `/vault/trading` page
+  route and signed-in end-to-end check are still pending. Algo Trading remains
+  off; no order execution is deployed.
 
 ### Current VPS setup
 
@@ -175,7 +176,7 @@ the owner's `.vibe-trading/mt5.json`; do not display its contents.
   demo account number; it takes no password and calls no order functions.
 - The 2026-09-27 gold-only signal image is deployed. Its account/Algo guard
   passed; both the diagnostic and one-shot observer blocked on the stale
-  weekend gold tick. The observer was not left running. Live freshness,
+  weekend gold tick. The signal-only observer now runs continuously. Live freshness,
   M15 transitions, and restart persistence still require an open session.
 - Account-guard test, shell syntax, Compose validation, and whitespace checks
   passed. Restart recovery and saved demo login were verified on the VPS.
@@ -200,10 +201,10 @@ the owner's `.vibe-trading/mt5.json`; do not display its contents.
    bid/ask, spread at most 10% ATR, qualified quote age at most 30 seconds, market
    availability, and pinned demo identity. Persist candle decisions/order intents
    and reconcile uncertain submissions before retry; never replay old entries.
-5. Review signal-only results and implemented risk checks before enabling demo
-   orders. Then integrate authenticated status into `/vault/trading` and decide
-   the Worker/API deployment. Wrangler deploys Cloudflare Workers; the Windows
-   MT5 terminal stays on the VPS, not inside a Worker.
+5. Finish the `/vault/trading` Worker page route and verify it after Cloudflare
+   Access sign-in. The public site currently routes through the separate
+   NexApex tunnel, so serve only this page through the CastraNova status origin.
+   Review signal-only results and risk checks before any demo-order work.
 
 The user previously requested brainstorming, Ponytail, and Context7. Continue
 with minimal changes and current documentation. No overnight monitoring or

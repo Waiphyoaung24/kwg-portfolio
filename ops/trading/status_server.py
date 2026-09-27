@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 SNAPSHOT = Path("/status/latest.json")
+TRADING_PAGE = Path("/app/trading.html")
 
 
 def read_status(path: Path, now: float) -> tuple[int, dict]:
@@ -34,6 +35,21 @@ def read_status(path: Path, now: float) -> tuple[int, dict]:
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == "/vault/trading":
+            try:
+                body = TRADING_PAGE.read_bytes()
+            except OSError:
+                self.send_error(503)
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Robots-Tag", "noindex")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path != "/status":
             self.send_error(404)
             return

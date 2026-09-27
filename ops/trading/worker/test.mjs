@@ -28,3 +28,22 @@ test('returns only validated read-only status', async (t) => {
   assert.equal(status.login, undefined);
   assert.equal(normalizeStatus({ ...status, checked_at: 1 }).status, 'offline');
 });
+
+test('serves the trading page only to the approved Access viewer', async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  let calls = 0;
+  globalThis.fetch = async (origin) => {
+    calls++;
+    assert.equal(new URL(origin).pathname, '/vault/trading');
+    return new Response('<h1>Trading</h1>', { headers: { 'Content-Type': 'text/html' } });
+  };
+  const page = new Request('https://waiphyoaung.com/vault/trading');
+  assert.equal((await worker.fetch(page, env, {})).status, 403);
+  assert.equal(calls, 0);
+  const response = await worker.fetch(page, env, { access });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.equal(await response.text(), '<h1>Trading</h1>');
+  assert.equal(calls, 1);
+});
