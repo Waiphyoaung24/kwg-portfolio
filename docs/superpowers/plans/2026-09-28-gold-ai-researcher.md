@@ -1,5 +1,88 @@
 # Gold AI researcher and MT5 runner — selected 2026-09-28
 
+## Resume here — four delivery batches
+
+Owner approved this batch sequence on 2026-09-28 for continuation from a
+MacBook. This is the current delivery checklist; earlier milestone status
+below records historical progress. No batch enables orders or auto-promotion.
+
+### Batch 1 — qualify data and costs (next)
+
+- Verify pinned demo identity, Algo Trading off, synchronized host clock, and
+  fresh gold bid/ask quotes with ages between 0 and 30 seconds.
+- Record at least three valid observations spanning two consecutive advancing
+  M15 boundaries. Confirm completed bars, raw tick timestamps and host receive
+  times; do not guess timezone corrections. Retain restart/recovery checks.
+- Confirm the account-specific commission and swap rules, including rollover
+  timing and triple-charge day, from broker evidence. Record units and dates.
+- Measure observed spread during the sample; retain explicit hypothetical
+  slippage until execution evidence exists. Do not assume unknown costs are zero.
+- Completion: save evidence and unresolved items. Stale prices or unknown
+  material costs keep qualification blocked; weekend closure is not a pass.
+
+### Batch 2 — freeze evaluation criteria
+
+- Define sample-size requirements, drawdown limits, cost stress scenarios,
+  improvement thresholds and uncertainty handling before candidate results.
+- Preserve chronological splits and record every attempted candidate. The
+  newest 2,000 bars have not been trade-simulated, but earlier signal replay
+  included that period; describe this limitation honestly.
+- Rerun the fixed baseline with documented cost assumptions. Do not change
+  risk limits or choose favorable costs after seeing results.
+- Completion: versioned criteria and a reproducible baseline report. Preparing
+  criteria can proceed while Batch 1 waits for the market; unresolved evidence
+  must remain explicit.
+
+### Batch 3 — one Vibe-Trading experiment
+
+- Depends on Batches 1 and 2. Verify the pinned Vibe-Trading version, broker
+  data import, artifact output and the owner's existing Claude/Worker model
+  invocation path. An MCP token alone is not proof of an inference API.
+- Run one manually triggered, bounded proposal with call/time limits and
+  isolated evaluation. No broker credentials, order tools, strategy write
+  access or risk-limit changes are granted to the researcher.
+- Compare against the fixed baseline under the frozen criteria; record failed
+  proposals too. Keep holdout use controlled and avoid repeated tuning on it.
+- Completion: reproducible acceptance/rejection report for observation only.
+
+### Batch 4 — parallel observation
+
+- Only a candidate passing Batch 3 proceeds. Observe baseline and candidate
+  on the same fresh feed, without orders; record decisions and clearly labeled
+  simulated outcomes using the same cost/fill model.
+- Show version, evidence period and review state in the authenticated dashboard.
+- Completion: enough new evidence under the frozen criteria for owner review.
+  Promotion and demo execution remain separate decisions and implementation.
+
+Each batch ends with saved evidence, outstanding blockers and a committed
+handoff. No recurring monitoring or future scheduled run has been created.
+
+### MacBook continuation
+
+1. Pull `main` in the MacBook checkout (preserve any local work first). Read
+   `CLAUDE.md`, this checklist, and `2026-09-28-gold-baseline-results.md`.
+2. Begin with Batch 1; inspect current state rather than assuming the market
+   has reopened or the previous status is still current.
+3. Dashboard: https://waiphyoaung.com/vault/trading. Sign in through existing
+   Cloudflare Access. VPS management: https://dokploy.castranova.cloud.
+4. MT5/Wine and the observer run on VPS `187.52.117.116`, not on either laptop.
+   Use existing authorized SSH access or Dokploy. Do not install local MT5 or
+   recreate containers merely because the laptop changed.
+5. For the private desktop, in a Mac terminal with an already-authorized SSH key:
+   `ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:6081:127.0.0.1:6081 root@187.52.117.116`
+   Then open `http://127.0.0.1:6081/vnc.html?autoconnect=1&resize=scale`.
+   Keep that terminal open while viewing the desktop. Do not expose port 6081.
+6. From an SSH shell **on the VPS**, the read-only check is:
+   `docker exec kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/verify-demo.py --login 1344907`
+   Account login is the existing pinned demo identifier, not a credential to
+   publish in the dashboard. Passwords, private keys and tokens stay out of Git.
+
+Current foundation: private status path and continuous observer deployed;
+signal replay and hypothetical trade simulator implemented and tested. All
+three simulated validation cost scenarios lost money. Vibe-Trading research
+integration, live qualification and actual costs remain pending. Detailed
+private datasets and ledgers remain on the VPS; Git contains code and summaries.
+
 This section is the current direction for trading. Earlier discovery notes above
 are historical; they do not expand the gold-only scope or enable orders.
 

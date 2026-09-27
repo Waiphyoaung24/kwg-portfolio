@@ -329,3 +329,20 @@ scheduled work has been configured.
 - Next: live data qualification, broker costs/contract verification, then freeze
   evidence/comparison gates before a bounded researcher proposal. No unattended
   researcher or automatic promotion has been installed.
+
+### MacBook handoff — resume the four batches
+
+- Owner requested saving the batch plan and continuing from MacBook. Start at
+  **Resume here — four delivery batches** near the top of
+  `docs/superpowers/plans/2026-09-28-gold-ai-researcher.md`.
+- Sequence: (1) live data + actual costs, (2) frozen evaluation criteria,
+  (3) one verified Vibe-Trading experiment, (4) parallel no-order observation.
+  Batch 2 preparation can overlap waiting for fresh data. Batch 3 depends on
+  the first two; Batch 4 needs a passing candidate. None enables orders.
+- Pull main on MacBook. MT5 and the observer remain on the VPS; changing
+  laptops does not require reinstalling or restarting them. Mac SSH tunnel
+  instructions, dashboard links and the VPS-only verifier command are in the
+  plan. MacBook SSH authorization has not been verified; use an authorized key
+  or existing Dokploy access, never commit credentials to transfer access.
+- No scheduled follow-up was created. On resume, inspect current live status
+  and do not infer successful market reopening from the date alone.
