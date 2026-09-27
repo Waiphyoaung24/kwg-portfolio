@@ -10,6 +10,11 @@ The M15 EMA20/EMA50 strategy is implemented in signal-only mode. It uses
 250 completed candles, SMA-seeded EMAs, Wilder ATR14, and a 10%-of-ATR
 spread limit. It records one observation per new candle in SQLite; the first
 candle after startup or a missed interval is a baseline. No order API is called.
+The updated image was deployed on 2026-09-27. The pinned demo and Algo-off
+guard passed, but the gold quote was stale during market closure, so both the
+diagnostic and one-shot observer blocked as intended. Live candle transitions,
+restart persistence, and advancing tick freshness still need qualification
+during an open gold session. No observer is running unattended.
 Review live signals and risk checks before a separate demo-order implementation,
 then connect status to `/vault/trading`. Keep Algo Trading off.
 

@@ -173,6 +173,10 @@ the owner's `.vibe-trading/mt5.json`; do not display its contents.
   a guessed offset or accept negative quote ages as fresh.
 - Run `verify-demo.py` as documented in the README using the owner's expected
   demo account number; it takes no password and calls no order functions.
+- The 2026-09-27 gold-only signal image is deployed. Its account/Algo guard
+  passed; both the diagnostic and one-shot observer blocked on the stale
+  weekend gold tick. The observer was not left running. Live freshness,
+  M15 transitions, and restart persistence still require an open session.
 - Account-guard test, shell syntax, Compose validation, and whitespace checks
   passed. Restart recovery and saved demo login were verified on the VPS.
 - Local Vibe-Trading 0.1.15 `mt5-paper-sdk` checks previously passed. Its managed
@@ -183,9 +187,9 @@ the owner's `.vibe-trading/mt5.json`; do not display its contents.
 
 1. Qualify fresh **gold** quotes when the market is available, including clock
    handling and subscription readiness. Keep order execution disabled.
-2. Implement and test the agreed strategy in **signal-only mode** first:
-   completed M15 candles, EMA20/EMA50 crossovers, at least 250 history bars,
-   SMA-seeded EMA and Wilder ATR14. Long on upward cross, short on downward cross.
+2. Review the implemented **signal-only** EMA20/EMA50 crossover observations
+   across live completed M15 candles. The 250-bar SMA-seeded EMA and Wilder
+   ATR14 logic passed offline tests; live transitions remain unqualified.
 3. Planned demo execution limits: stop 2 ATR and take-profit 3 ATR, broker-held
    protection accepted with entry; risk 0.1% current equity using broker profit
    calculation, floor volume step, skip if minimum volume exceeds risk budget.

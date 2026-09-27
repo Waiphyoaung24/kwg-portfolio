@@ -139,3 +139,8 @@ Write the dashboard/Worker plan separately after the observation contract is pro
   that claimed the current diagnostic checked Bitcoin too.
 - Ruling: future or stale gold timestamps block observations. Market-closed
   runtime qualification remains pending; the cost is delayed live observation.
+- The gold-only image was deployed and the expected demo/Algo-off guard reached
+  MT5. The diagnostic exited on a stale gold tick; the one-shot observer emitted
+  `status=blocked, signal=none`. It was not left running. An embedded Python
+  `._pth` import-path fix was found in the first runtime check and applied to
+  the Dockerfile; rebuild the image with that fix before live qualification.

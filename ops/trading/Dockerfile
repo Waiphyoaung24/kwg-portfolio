@@ -9,6 +9,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     && curl -fL --retry 2 https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip -o /tmp/python.zip \
     && unzip -q /tmp/python.zip -d /opt/python \
     && sed -i 's/^#import site/import site/' /opt/python/python312._pth \
+    && echo '../trading' >> /opt/python/python312._pth \
     && curl -fL --retry 2 https://bootstrap.pypa.io/get-pip.py -o /opt/python/get-pip.py \
     && curl -fL --retry 2 https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe -o /opt/trading/mt5setup.exe \
     && chown -R mt5:mt5 /opt/python
