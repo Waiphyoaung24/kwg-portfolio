@@ -8,3 +8,5 @@ mt5.json
 mt5-home/
 *.log
 __pycache__/
+*.sqlite3
+*.sqlite3-*

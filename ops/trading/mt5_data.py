@@ -9,13 +9,17 @@ class DataUnavailable(ValueError):
     """Market subscription or history has not populated yet."""
 
 
+class AccountGuardError(ValueError):
+    """The terminal is no longer the pinned, non-trading demo session."""
+
+
 def validate_account(account, terminal, login, server=SERVER):
     if account is None or terminal is None or not terminal.connected:
-        raise ValueError("MT5 is not connected; sign in through the private desktop.")
+        raise AccountGuardError("MT5 is not connected; sign in through the private desktop.")
     if account.trade_mode != 0 or account.login != login or account.server != server:
-        raise ValueError("Expected pinned demo account and server; refusing to continue.")
+        raise AccountGuardError("Expected pinned demo account and server; refusing to continue.")
     if terminal.trade_allowed:
-        raise ValueError("Turn Algo Trading off for this read-only check.")
+        raise AccountGuardError("Turn Algo Trading off for this read-only check.")
 
 
 def validate_tick(tick, now: float) -> float:
