@@ -184,6 +184,12 @@ Acceptance evidence:
 Next operational diagnostic: run the existing `verify-demo.py` in the VPS
 container (not local Docker), capture its readiness output and host clock status.
 If blocked, retain blocked status; collecting full failed-tick evidence requires
-the planned diagnostic change. Implementation and deployment of these changes
-have not yet occurred.
+the diagnostic change described above.
+
+Implementation update: commit `f0e00d3` implements and deploys the health fields,
+failed-tick evidence, automatic refresh and browser expiry. Verified on the VPS
+at 2026-09-27 18:40 UTC: connected demo, 250 fetched bars and a stale quote aged
+approximately 153829 seconds. Unit checks, build and signed-in live UI passed;
+unauthenticated edge/origin checks remain denied. Fresh-data and M15-transition
+qualification are still pending. See `CLAUDE.md` for deployment/rollback details.
 

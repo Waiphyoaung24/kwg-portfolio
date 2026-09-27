@@ -225,3 +225,25 @@ scheduled work has been configured.
   paid provider is requested. Never request or commit the token.
 - AI proposes bounded candidates; it cannot modify risk rules, the evaluator,
   broker credentials, or promote itself. Initial promotion requires owner review.
+
+### Explicit health deployment — 2026-09-28 Bangkok
+
+- Commit `f0e00d3` is pushed to main and deployed to the VPS and Worker.
+  Worker version: `1b87a3d8-9ea8-4795-9a2f-032b8cb1cb22`; existing variables,
+  secrets and protected routes preserved. API unauthenticated check returned
+  302; direct status origin returned 403.
+- Updated diagnostic keeps raw tick epochs and signed quote age on failure.
+  Dashboard separates delivery, heartbeat, MT5 checks, quote/history and
+  strategy readiness; it auto-refreshes and expires old observations.
+- VPS diagnostic at 2026-09-27 18:40:48 UTC: demo connected, 250 bars fetched,
+  gold tick epoch `1790380619`, milliseconds `1790380619894`, measured age
+  `153828.805` seconds. This failure is stale, not future-dated. Raw epoch
+  renders as 2026-09-25 23:56:59 UTC; broker timestamp semantics during an
+  open session still require qualification. No guessed timezone adjustment.
+- Both containers were recreated successfully preserving MT5 home/state.
+  Runtime update is a small image layer over the existing qualification image;
+  tag `kwg-mt5-desktop:before-health-f0e00d3` and files under remote
+  `/opt/kwg-mt5-qualification/before-health-f0e00d3` preserve rollback state.
+- 14 Python tests, 5 Worker tests, frontend state checks, Astro check/build,
+  desktop/mobile preview and signed-in live page checks passed. Fresh gold
+  ticks across two M15 transitions remain pending. Order execution stays off.
