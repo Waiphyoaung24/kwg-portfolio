@@ -313,3 +313,19 @@ scheduled work has been configured.
 - Context7 consulted mt5linux API documentation; MetaQuotes primary reference
   confirms index 0 is current, so existing history request starts at index 1:
   https://www.mql5.com/en/docs/python_metatrader5/mt5copyratesfrompos_py
+
+### Weekend offline trade simulation — 2026-09-28 Bangkok
+
+- Implemented simulator in `1874bff`, using hypothetical costs fixed before run.
+  No changes to MT5, observer, Worker or live orders. Twenty-two Python tests pass.
+- Two byte-identical runs on private frozen dataset; reports at
+  `/opt/kwg-gold-research/simulation-1874bff/run-1.json` and `run-2.json`.
+- Validation loses under all three scenarios: lower -305.19 USD (30 trades),
+  middle -445.94 USD (31), stress -186.87 USD (30), each on hypothetical 100k USD.
+  No evidence to promote baseline. Costs remain unverified, results unqualified.
+- Chronological 60/20/20 split. Newest 2,000 bars excluded from trade simulation;
+  previous signal-only replay did inspect aggregate signals for that period.
+- Full summary/limitations: `docs/superpowers/plans/2026-09-28-gold-baseline-results.md`.
+- Next: live data qualification, broker costs/contract verification, then freeze
+  evidence/comparison gates before a bounded researcher proposal. No unattended
+  researcher or automatic promotion has been installed.
