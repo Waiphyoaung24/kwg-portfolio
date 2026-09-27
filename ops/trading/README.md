@@ -241,3 +241,19 @@ date, not past contract terms. Commission, slippage and historical overnight
 costs remain explicitly unknown; a recorded bar spread is not a bid/ask tick
 path. Do not label any backtest qualified until those assumptions, timestamp
 semantics, history gaps and chronological evaluation windows are resolved.
+
+### Offline baseline signal replay
+
+`replay-gold.py` consumes an exported dataset and required SHA-256. It reuses
+`gold_signal.evaluate` on each completed 250-bar window, suppressing startup
+and recovery signals. It substitutes bar close plus recorded spread for the
+unavailable historical live quote; reports remain unqualified. It computes no
+fills, trading returns or performance claims. No MT5 SDK or credentials needed.
+
+```sh
+python3 replay-gold.py --dataset gold-history-20260928.json --sha256 <verified-dataset-sha256> --output replay.json
+```
+
+Output is created exclusively (never overwritten). Keep datasets and reports
+private outside Git. Run twice with different output filenames and compare
+bytes to check determinism. Cost/fill evaluation remains a separate next step.

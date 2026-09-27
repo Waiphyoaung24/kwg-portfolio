@@ -207,3 +207,12 @@ assumptions. Unqualified raw times, historical costs and gap handling must not
 be silently converted into qualified profitability results. Live freshness and
 two advancing M15 transitions remain an independent outstanding gate.
 
+
+## Signal replay refinement — 2026-09-28
+
+Proceed with a live verifier spot check and a deterministic historical signal
+replay before building a trade simulator. Reuse the existing rolling 250-bar
+signal evaluator, suppress startup/recovery signals, record code/data hashes
+and blocked reasons. Bar close and spread are only quote proxies; replay does
+not qualify live data or estimate profits. No holdout optimization occurs in
+this diagnostic. Profit/loss evaluation still requires explicit cost/fill rules.
