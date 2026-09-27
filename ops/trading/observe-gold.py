@@ -9,6 +9,7 @@ from gold_signal import evaluate
 from mt5_data import AccountGuardError, DataUnavailable, SERVER, SYMBOL, read_gold
 
 VERSION = "gold-ema-v1"
+SNAPSHOT = Path(r"Z:\opt\status\latest.json")
 
 
 def open_state(path: Path, login: int) -> sqlite3.Connection:
@@ -68,6 +69,18 @@ def poll_once(mt5, db: sqlite3.Connection, login: int, now: float, bootstrap: bo
     return result
 
 
+def write_snapshot(path: Path, db: sqlite3.Connection, result: dict, now: float) -> None:
+    """Publish only display fields to the volume shared with the status origin."""
+    last_bar = db.execute("SELECT max(bar_time) FROM observations").fetchone()[0]
+    payload = {"mode": "signal-only", "symbol": SYMBOL,
+               "status": result["status"], "signal": result["signal"],
+               "reason": result.get("reason", ""), "checked_at": int(now),
+               "bar_time": result.get("bar_time", last_bar)}
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(payload, allow_nan=False), encoding="utf-8")
+    temporary.replace(path)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--login", required=True, type=int)
@@ -88,6 +101,7 @@ def main():
         while True:
             started = time.monotonic()
             result = poll_once(mt5, db, args.login, time.time(), bootstrap)
+            write_snapshot(SNAPSHOT, db, result, time.time())
             print(json.dumps(result, allow_nan=False), flush=True)
             bootstrap = result["status"] == "blocked"
             if args.once:

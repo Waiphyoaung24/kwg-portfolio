@@ -15,8 +15,44 @@ guard passed, but the gold quote was stale during market closure, so both the
 diagnostic and one-shot observer blocked as intended. Live candle transitions,
 restart persistence, and advancing tick freshness still need qualification
 during an open gold session. No observer is running unattended.
-Review live signals and risk checks before a separate demo-order implementation,
-then connect status to `/vault/trading`. Keep Algo Trading off.
+Review live signals and risk checks before a separate demo-order implementation.
+Keep Algo Trading off.
+
+## Read-only Vault status
+
+The observer now publishes a small JSON snapshot to a **separate** Docker
+volume. `kwg-trading-status` serves that snapshot on `dokploy-network` with no
+host port; it cannot read MT5's home volume. `/vault/trading` requests a
+same-origin Cloudflare Worker route at `/api/trading/status`. The Worker requires
+Cloudflare Access identity, checks the exact approved viewer email, and fetches
+the status origin through the existing Cloudflare Tunnel. It exposes no broker
+login, balance, password, or order operation. A missing heartbeat becomes
+`offline`; a stale gold quote remains `blocked`.
+
+On the VPS only, set `MT5_DEMO_LOGIN` in this Compose project's private `.env`,
+then deploy the observer and private status service:
+
+```sh
+docker compose --profile status up -d --build
+```
+
+Keep `.env` outside Git. The desktop process starts the signal-only observer
+when the login is set; it never calls an order API. Confirm the private service
+is reachable from `dokploy-network` and has **no host port** before adding its
+Cloudflare Tunnel public hostname. In Cloudflare Zero Trust, protect that
+hostname with an Access **Service Auth** policy for a dedicated service token.
+The Worker receives the token as `STATUS_ACCESS_CLIENT_ID` and
+`STATUS_ACCESS_CLIENT_SECRET` secrets; set `STATUS_ORIGIN_URL` to the protected
+`https://.../status` origin and `ALLOWED_VIEWER_EMAIL` to the exact owner email
+as secrets too. Protect the Worker itself with Access for that email across all
+routes, leave `workers.dev` disabled, then deploy from `ops/trading/worker` with
+Wrangler. No secret values belong in source, commands, logs, or chat.
+
+The existing Vault password only hides links in the browser. Cloudflare Access
+is the authorization boundary for this status API. Do not expose the MT5 desktop
+or mount its home volume into the status service or portfolio app. Live M15
+transitions are still unqualified; the dashboard must not label the observer
+as trading autonomously.
 
 Commit this directory's source and documentation only. Broker passwords,
 `mt5.json`, SSH keys, and the terminal's persistent volume stay outside Git.

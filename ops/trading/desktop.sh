@@ -20,5 +20,16 @@ else
   # Interactive installer: the owner reviews terms and enters the demo login.
   wine /opt/trading/mt5setup.exe &
 fi
+if [ -n "${MT5_DEMO_LOGIN:-}" ]; then
+  [[ "$MT5_DEMO_LOGIN" =~ ^[0-9]+$ ]] || { echo "Invalid MT5_DEMO_LOGIN" >&2; exit 1; }
+  (
+    while true; do
+      if [ -f "$terminal" ]; then
+        script -q -e -c "wine /opt/python/python.exe /opt/trading/observe-gold.py --login $MT5_DEMO_LOGIN --state 'C:\users\mt5\gold-observer.sqlite3'" /dev/null || true
+      fi
+      sleep 10
+    done
+  ) &
+fi
 # The installer may exit normally after launching MT5; keep the desktop available.
 wait

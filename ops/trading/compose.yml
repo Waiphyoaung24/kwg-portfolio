@@ -16,13 +16,36 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    environment:
+      MT5_DEMO_LOGIN: ${MT5_DEMO_LOGIN:-}
     ports:
       - "127.0.0.1:6081:6080"
     volumes:
       - mt5-home:/home/mt5
+      - status-snapshot:/opt/status
     logging:
       options:
         max-size: 2m
         max-file: "2"
+  status:
+    image: python:3.12-alpine
+    container_name: kwg-trading-status
+    profiles: [status]
+    command: ["python", "/app/status_server.py"]
+    user: "10001:10001"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - ./status_server.py:/app/status_server.py:ro
+      - status-snapshot:/status:ro
+    networks:
+      - dokploy-network
 volumes:
   mt5-home:
+  status-snapshot:
+networks:
+  dokploy-network:
+    external: true

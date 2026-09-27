@@ -5,14 +5,14 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     wine wine64 xvfb xauth x11-utils openbox x11vnc novnc websockify \
     curl unzip ca-certificates fonts-liberation xterm \
     && useradd --create-home --uid 10001 mt5 \
-    && mkdir -p /opt/python /opt/trading \
+    && mkdir -p /opt/python /opt/trading /opt/status \
     && curl -fL --retry 2 https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip -o /tmp/python.zip \
     && unzip -q /tmp/python.zip -d /opt/python \
     && sed -i 's/^#import site/import site/' /opt/python/python312._pth \
     && echo '../trading' >> /opt/python/python312._pth \
     && curl -fL --retry 2 https://bootstrap.pypa.io/get-pip.py -o /opt/python/get-pip.py \
     && curl -fL --retry 2 https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe -o /opt/trading/mt5setup.exe \
-    && chown -R mt5:mt5 /opt/python
+    && chown -R mt5:mt5 /opt/python /opt/status
 COPY desktop.sh verify-demo.py mt5_data.py gold_signal.py observe-gold.py /opt/trading/
 USER mt5
 WORKDIR /home/mt5

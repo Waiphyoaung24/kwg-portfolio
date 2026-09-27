@@ -78,6 +78,19 @@ class ObserverTest(unittest.TestCase):
             with self.assertRaises(sqlite3.DatabaseError):
                 observer.open_state(path, 123)
 
+    def test_snapshot_excludes_account_and_keeps_last_candle(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = observer.open_state(Path(root) / "state.sqlite3", 123)
+            sdk = fake_sdk()
+            observer.poll_once(sdk, db, 123, 251 * 900, True)
+            snapshot = Path(root) / "latest.json"
+            observer.write_snapshot(snapshot, db, {"status": "blocked", "signal": "none",
+                                                   "reason": "Gold quote is stale", "login": 123}, 251 * 900 + 5)
+            payload = json.loads(snapshot.read_text())
+            self.assertEqual((payload["status"], payload["bar_time"]), ("blocked", 250 * 900))
+            self.assertNotIn("login", payload)
+            db.close()
+
 
 if __name__ == "__main__":
     unittest.main()
