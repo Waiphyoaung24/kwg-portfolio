@@ -119,9 +119,9 @@ follows the design system; the exhibit itself does not.
 - The VPS was deployed directly. A Git commit/push does not update its running
   Compose project. Preserve unrelated repository changes and existing VPS apps.
 - The signal-only observer, private status sidecar, Cloudflare Tunnel, Access
-  policies, and read-only API Worker are deployed. The `/vault/trading` page
-  route and signed-in end-to-end check are still pending. Algo Trading remains
-  off; no order execution is deployed.
+  policies, read-only API Worker, and `/vault/trading` page route are deployed.
+  The signed-in page showed gold blocked with no signal on a stale quote.
+  Algo Trading remains off; no order execution is deployed.
 
 ### Current VPS setup
 
@@ -201,10 +201,11 @@ the owner's `.vibe-trading/mt5.json`; do not display its contents.
    bid/ask, spread at most 10% ATR, qualified quote age at most 30 seconds, market
    availability, and pinned demo identity. Persist candle decisions/order intents
    and reconcile uncertain submissions before retry; never replay old entries.
-5. Finish the `/vault/trading` Worker page route and verify it after Cloudflare
-   Access sign-in. The public site currently routes through the separate
-   NexApex tunnel, so serve only this page through the CastraNova status origin.
-   Review signal-only results and risk checks before any demo-order work.
+5. Review the protected `/vault/trading` status while qualifying fresh gold
+   quotes and completed M15 transitions. The public site continues through
+   the NexApex tunnel; only `/vault/trading` and `/api/trading/status` route to
+   the Worker and CastraNova status origin. Review signal-only results and risk
+   checks before any demo-order work.
 
 The user previously requested brainstorming, Ponytail, and Context7. Continue
 with minimal changes and current documentation. No overnight monitoring or

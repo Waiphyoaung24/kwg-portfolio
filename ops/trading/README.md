@@ -63,12 +63,14 @@ sidecar. Deploy the Worker routes with Wrangler afterward. The page and API
 both require the one-email Worker Access policy; the origin accepts only its
 dedicated service token.
 
-The VPS status sidecar and Cloudflare Tunnel, Access policies, and API Worker
-were deployed on 2026-09-27. The sidecar returned HTTP 200 from
-`dokploy-network`, exposed no host port, and reported the gold quote as blocked
-while the market was closed. The trading page route still needs its deployment
-and a signed-in end-to-end check. The status service runs as UID 10001, so a manually
-copied `status_server.py` must be readable by that user (`chmod 644`).
+The VPS status sidecar and Cloudflare Tunnel, Access policies, API Worker,
+and trading page route were deployed by 2026-09-28. The sidecar returned HTTP
+200 from `dokploy-network` and exposes no host port. The authenticated page at
+`https://waiphyoaung.com/vault/trading` showed `XAUUSD-VIP` blocked with no
+signal because the gold quote was stale. An unauthenticated page request
+redirected to Access; direct access to `status.waiphyoaung.com` returned 403.
+The status service runs as UID 10001, so a manually copied `status_server.py`
+must be readable by that user (`chmod 644`).
 
 The existing Vault password only hides links in the browser. Cloudflare Access
 is the authorization boundary for this status API. Do not expose the MT5 desktop
