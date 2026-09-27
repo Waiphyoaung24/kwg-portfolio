@@ -4,12 +4,14 @@
 
 The first strategy is gold only (`XAUUSD-VIP`) on the demo account. Bitcoin
 results below document earlier compatibility checks; Bitcoin is excluded from
-the first strategy. The existing diagnostic script still checks both symbols.
+the first strategy. The current diagnostic script checks gold only.
 
-Next: qualify fresh gold quotes and timestamp handling when the market is
-available, then implement the M15 EMA20/EMA50 strategy in signal-only mode.
-Review signals and risk checks before enabling demo orders, then connect status
-to `/vault/trading`. Keep Algo Trading off during qualification.
+The M15 EMA20/EMA50 strategy is implemented in signal-only mode. It uses
+250 completed candles, SMA-seeded EMAs, Wilder ATR14, and a 10%-of-ATR
+spread limit. It records one observation per new candle in SQLite; the first
+candle after startup or a missed interval is a baseline. No order API is called.
+Review live signals and risk checks before a separate demo-order implementation,
+then connect status to `/vault/trading`. Keep Algo Trading off.
 
 Commit this directory's source and documentation only. Broker passwords,
 `mt5.json`, SSH keys, and the terminal's persistent volume stay outside Git.
@@ -87,10 +89,23 @@ number. It attaches to the terminal's saved session without taking a password:
 docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/verify-demo.py --login YOUR_DEMO_ACCOUNT_NUMBER
 ```
 
-This verifies account identity, demo mode, Algo Trading off, both exact symbols,
-bid/ask quotes, and 250 completed M15 bars. Quote age is reported; a returned
-quote may be old while a market is closed. Repeat the check after a container
-restart to qualify persistence and reconnection. No order functions are used.
+This verifies account identity, demo mode, Algo Trading off, the exact gold
+symbol, fresh bid/ask quotes, and 250 completed M15 bars. It exits nonzero if
+the gold quote is old or its timestamp is in the future. A closed-market quote
+cannot pass. No order functions are used.
+
+Once the market is open and freshness passes, run one bounded observation:
+
+```sh
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/observe-gold.py --login YOUR_DEMO_ACCOUNT_NUMBER --state 'C:\users\mt5\gold-observer.sqlite3' --once
+```
+
+The state path is the verified Windows home inside the persistent `mt5-home`
+volume. Omit `--once` only while supervised; stop with Ctrl+C. On restart, run
+`--once` again to confirm duplicate/baseline handling. Output is signal-only
+JSON and contains no login or password. The SQLite file is the durable journal
+and is ignored by Git. A fresh 30-second quote and a current, completed M15 bar
+are both required; weekends, feed gaps, and future timestamps block signals.
 
 VPS qualification passed on 2026-09-27: the pinned VTMarkets-Demo account,
 Algo Trading off, BTCUSD and XAUUSD-VIP prices, and 250 completed M15 bars
@@ -100,7 +115,9 @@ subscription synchronization. `/tmp` uses tmpfs so stale display locks do not
 prevent restarts.
 
 Freshness is not qualified: BTCUSD timestamps were approximately three hours
-ahead of the VPS clock and the gold quote was approximately 22 hours old.
+ahead of the VPS clock and the gold quote was approximately 22 hours old in the
+earlier check. On 2026-09-27, `timedatectl` reported a synchronized UTC clock,
+while the gold tick was approximately 34.5 hours old during market closure.
 Investigate timestamp semantics and clock synchronization before enabling
 entries; do not treat a negative quote age as fresh or silently subtract an
 assumed timezone offset. Autonomous orders remain disabled.
@@ -109,6 +126,7 @@ Local verification:
 
 ```sh
 python -B ops/trading/test_verify_demo.py
+python -B -m unittest discover -s ops/trading -p 'test_*.py'
 bash -n ops/trading/desktop.sh
 docker compose -f ops/trading/compose.yml config --quiet
 ```

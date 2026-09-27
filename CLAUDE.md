@@ -110,7 +110,12 @@ follows the design system; the exhibit itself does not.
 
 - Continue `/vault/trading` with **gold only: `XAUUSD-VIP`**, demo account only.
 - Setup source, checks, and operating instructions are in `ops/trading/README.md`.
-- Local commit `0cc7581` saves `ops/trading/`; it has **not been pushed**.
+- Commits `0cc7581` (setup) and `12f7ea3` (handoff) were pushed to `main`.
+- Gold signal-only implementation plan:
+  `docs/superpowers/plans/2026-09-27-gold-signal-only.md`. Local data guard,
+  EMA/ATR calculation and SQLite observer are implemented and tested. Gold
+  market freshness and supervised VPS observation remain pending while closed.
+  Demo execution and dashboard integration remain separate follow-ons.
 - The VPS was deployed directly. A Git commit/push does not update its running
   Compose project. Preserve unrelated repository changes and existing VPS apps.
 - No autonomous strategy, order execution, dashboard integration, or Worker
@@ -159,7 +164,7 @@ the owner's `.vibe-trading/mt5.json`; do not display its contents.
   and Algo Trading off, and returned quotes plus 250 completed M15 candles for
   `XAUUSD-VIP` and `BTCUSD`. Repeated successfully after a container restart.
 - Bitcoin was part of earlier diagnostics only; exclude it from the first
-  strategy. The current diagnostic script still checks both symbols.
+  strategy. The current diagnostic script checks gold only.
 - Newly selected symbols initially returned empty quotes; checks succeeded
   after subscription synchronization. Do not confuse this with account failure.
 - **Freshness is unresolved:** gold's last quote was about 22 hours old;

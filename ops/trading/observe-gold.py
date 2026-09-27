@@ -37,6 +37,8 @@ def record_observation(db: sqlite3.Connection, result: dict, observed_at: float,
     bar_time = result["bar_time"]
     if latest is not None and bar_time <= latest:
         result["status"] = "duplicate"
+        result["signal"] = "none"
+        result["reason"] = "Candle already recorded"
         return False
     status = "baseline" if bootstrap or latest is None or bar_time - latest != 900 else "observed"
     result["status"] = status

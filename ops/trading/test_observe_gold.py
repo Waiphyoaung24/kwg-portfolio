@@ -36,10 +36,12 @@ class ObserverTest(unittest.TestCase):
             db = observer.open_state(path, 123)
             self.addCleanup(db.close)
             sdk = fake_sdk()
+            sdk.copy_rates_from_pos.return_value[-1]["close"] = 101
             first = observer.poll_once(sdk, db, 123, 251 * 900, bootstrap=True)
             self.assertEqual((first["status"], first["mode"]), ("baseline", "signal-only"))
             self.assertNotIn("login", json.dumps(first))
-            self.assertEqual(observer.poll_once(sdk, db, 123, 251 * 900, bootstrap=False)["status"], "duplicate")
+            repeated = observer.poll_once(sdk, db, 123, 251 * 900, bootstrap=False)
+            self.assertEqual((repeated["status"], repeated["signal"]), ("duplicate", "none"))
             sdk = fake_sdk(251)
             self.assertEqual(observer.poll_once(sdk, db, 123, 252 * 900, bootstrap=False)["status"], "observed")
             db.close()

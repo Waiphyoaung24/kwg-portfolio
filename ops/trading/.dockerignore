@@ -2,3 +2,6 @@
 !Dockerfile
 !desktop.sh
 !verify-demo.py
+!mt5_data.py
+!gold_signal.py
+!observe-gold.py
