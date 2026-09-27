@@ -215,3 +215,29 @@ Python 3.12.10 and Wine 9 remain a qualification environment, not a completed
 autonomous trading deployment. Keep the desktop private and qualify a maintained
 runtime before production use. The MT5 installer is downloaded from MetaQuotes;
 its version can change independently of this image.
+
+## Frozen gold history for baseline research
+
+`export-gold.py` attaches to the same pinned demo with Algo Trading off. It
+exports only gold OHLC, volume/spread fields, current contract specifications
+and data provenance. It neither reads trade history nor sends orders. Bar
+position 0 is excluded as the current bar, following the
+[MetaQuotes API documentation](https://www.mql5.com/en/docs/python_metatrader5/mt5copyratesfrompos_py).
+Available history is limited by the terminal's chart history settings; partial
+exports are labeled. Closed-market history can be captured without passing live
+quote freshness, but the export always remains unqualified for strategy promotion.
+
+Run on the VPS after the exporter is installed in the desktop image:
+
+```sh
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/export-gold.py --login YOUR_DEMO_ACCOUNT_NUMBER --bars 10000 --output 'C:\users\mt5\gold-history-YYYYMMDD.json'
+```
+
+Use a new filename for each dataset; existing files are never overwritten.
+The output stays in the persistent MT5 home and is not published by the Worker.
+The JSON summary gives the exact byte-level SHA-256 and coverage. Preserve the
+file and hash together for later evaluation. Contract fields describe the capture
+date, not past contract terms. Commission, slippage and historical overnight
+costs remain explicitly unknown; a recorded bar spread is not a bid/ask tick
+path. Do not label any backtest qualified until those assumptions, timestamp
+semantics, history gaps and chronological evaluation windows are resolved.
