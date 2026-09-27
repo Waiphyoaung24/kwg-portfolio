@@ -6,6 +6,29 @@ const url = 'https://waiphyoaung.com/api/trading/status';
 const env = { ALLOWED_VIEWER_EMAIL: 'owner@example.com', STATUS_ORIGIN_URL: 'https://origin.example/status', STATUS_ACCESS_CLIENT_ID: 'id', STATUS_ACCESS_CLIENT_SECRET: 'secret' };
 const access = { getIdentity: async () => ({ email: 'owner@example.com' }) };
 
+test('health evidence is sanitized and expires at 30 seconds', () => {
+  const report = { mode: 'signal-only', symbol: 'XAUUSD-VIP', status: 'blocked', signal: 'none',
+    checked_at: 100, bar_time: null, health: { terminal: 'connected', quote: 'future',
+      sampled_at: 100, tick_time: 110, quote_age_seconds: -10, login: 123, password: 'secret' } };
+  const result = normalizeStatus(report, 105);
+  assert.equal(result.health.quote_age_seconds, -10);
+  assert.equal(result.health.login, undefined);
+  assert.equal(result.health.password, undefined);
+  assert.equal(normalizeStatus(report, 131).status, 'offline');
+  for (const quote_age_seconds of [NaN, Infinity, '10', true]) {
+    assert.throws(() => normalizeStatus({ ...report, health: { ...report.health, quote_age_seconds } }, 105));
+  }
+});
+
+test('origin failure remains unavailable rather than a healthy connection', async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  globalThis.fetch = async () => new Response('unavailable', { status: 503 });
+  const response = await worker.fetch(new Request(url), env, { access });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).status, 'offline');
+});
+
 test('requires Access and the exact viewer before calling origin', async (t) => {
   const original = globalThis.fetch;
   t.after(() => { globalThis.fetch = original; });

@@ -1,5 +1,6 @@
 """Serve the observer's sanitized snapshot on the private Docker network."""
 import json
+import math
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -8,11 +9,35 @@ SNAPSHOT = Path("/status/latest.json")
 TRADING_PAGE = Path("/app/trading.html")
 
 
+def sanitize_health(value):
+    if value is None:
+        return None  # Older observers have no explicit health evidence.
+    if not isinstance(value, dict):
+        raise ValueError("invalid health")
+    if (value.get("terminal") not in ("unknown", "connected", "disconnected", "guard_failed")
+            or value.get("quote") not in ("unknown", "fresh", "stale", "future", "missing", "invalid")):
+        raise ValueError("invalid health state")
+    result = {key: value[key] for key in ("terminal", "quote")}
+    for key in ("sampled_at", "tick_time", "tick_time_msc", "quote_age_seconds",
+                "history_bar_time", "history_count"):
+        number = value.get(key)
+        if number is not None and (type(number) not in (int, float) or not math.isfinite(number)
+                                   or abs(number) > 1e15):
+            raise ValueError("invalid health number")
+        if key in ("history_bar_time", "history_count") and number is not None and (type(number) is not int or number < 0):
+            raise ValueError("invalid history number")
+        result[key] = number
+    return result
+
+
 def read_status(path: Path, now: float) -> tuple[int, dict]:
     try:
         if path.stat().st_size > 4096:
             raise ValueError("oversized snapshot")
         data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("invalid snapshot")
+        data["health"] = sanitize_health(data.get("health"))
         if (data["mode"] != "signal-only" or data["symbol"] != "XAUUSD-VIP"
                 or data["status"] not in ("baseline", "observed", "duplicate", "blocked")
                 or data["signal"] not in ("long", "short", "none")
@@ -30,7 +55,7 @@ def read_status(path: Path, now: float) -> tuple[int, dict]:
     if data["status"] in ("offline", "blocked"):
         data["signal"] = "none"
     return 200, {key: data.get(key) for key in
-                 ("mode", "symbol", "status", "signal", "reason", "checked_at", "bar_time")}
+                 ("mode", "symbol", "status", "signal", "reason", "checked_at", "bar_time", "health")}
 
 
 class Handler(BaseHTTPRequestHandler):

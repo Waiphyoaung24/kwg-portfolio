@@ -58,7 +58,12 @@ class ObserverTest(unittest.TestCase):
             db = observer.open_state(Path(root) / "state.sqlite3", 123)
             sdk = fake_sdk()
             sdk.symbol_info_tick.return_value.time -= 100
-            self.assertEqual(observer.poll_once(sdk, db, 123, 251 * 900, True)["status"], "blocked")
+            blocked = observer.poll_once(sdk, db, 123, 251 * 900, True)
+            self.assertEqual(blocked["status"], "blocked")
+            self.assertEqual(blocked["health"]["quote"], "stale")
+            self.assertEqual(blocked["health"]["terminal"], "connected")
+            self.assertEqual(blocked["health"]["quote_age_seconds"], 100)
+            self.assertEqual(blocked["health"]["history_bar_time"], 250 * 900)
             self.assertEqual(db.execute("SELECT count(*) FROM observations").fetchone()[0], 0)
             sdk = fake_sdk()
             sdk.copy_rates_from_pos.return_value[-1]["high"] = 98
@@ -66,6 +71,16 @@ class ObserverTest(unittest.TestCase):
             sdk.account_info.return_value.trade_mode = 2
             with self.assertRaises(ValueError):
                 observer.poll_once(sdk, db, 123, 251 * 900, True)
+            db.close()
+
+    def test_fresh_quote_with_spread_block_stays_publishable(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = observer.open_state(Path(root) / "state.sqlite3", 123)
+            sdk = fake_sdk()
+            sdk.symbol_info_tick.return_value.ask = 105
+            result = observer.poll_once(sdk, db, 123, 251 * 900, True)
+            self.assertEqual((result["status"], result["signal"], result["health"]["quote"]),
+                             ("blocked", "none", "fresh"))
             db.close()
 
     def test_state_mismatch_and_corruption_fail_closed(self):

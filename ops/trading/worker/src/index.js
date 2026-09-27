@@ -12,13 +12,26 @@ export function normalizeStatus(value, now = Date.now() / 1000) {
   if (!['baseline', 'observed', 'duplicate', 'blocked', 'offline'].includes(value.status)) throw new Error('Invalid status');
   if (!['long', 'short', 'none'].includes(value.signal)) throw new Error('Invalid signal');
   if (!Number.isInteger(value.checked_at) || (value.bar_time !== null && !Number.isInteger(value.bar_time))) throw new Error('Invalid time');
-  const stale = value.checked_at > now || now - value.checked_at > 45;
+  const stale = value.checked_at > now || now - value.checked_at > 30;
+  let health = null;
+  if (value.health != null) {
+    const input = value.health;
+    if (!['unknown', 'connected', 'disconnected', 'guard_failed'].includes(input.terminal) ||
+        !['unknown', 'fresh', 'stale', 'future', 'missing', 'invalid'].includes(input.quote)) throw new Error('Invalid health');
+    health = { terminal: input.terminal, quote: input.quote };
+    for (const key of ['sampled_at', 'tick_time', 'tick_time_msc', 'quote_age_seconds', 'history_bar_time', 'history_count']) {
+      const number = input[key] ?? null;
+      if (number !== null && (typeof number !== 'number' || !Number.isFinite(number) || Math.abs(number) > 1e15)) throw new Error('Invalid health number');
+      if (['history_bar_time', 'history_count'].includes(key) && number !== null && (!Number.isInteger(number) || number < 0)) throw new Error('Invalid history');
+      health[key] = number;
+    }
+  }
   const status = stale ? 'offline' : value.status;
   return {
     mode: 'signal-only', symbol: 'XAUUSD-VIP', status,
     signal: status === 'offline' || status === 'blocked' ? 'none' : value.signal,
     reason: stale ? 'Observer heartbeat missing' : String(value.reason || '').slice(0, 200),
-    checked_at: value.checked_at, bar_time: value.bar_time,
+    checked_at: value.checked_at, bar_time: value.bar_time, health,
   };
 }
 

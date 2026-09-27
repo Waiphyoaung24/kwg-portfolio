@@ -210,3 +210,18 @@ the owner's `.vibe-trading/mt5.json`; do not display its contents.
 The user previously requested brainstorming, Ponytail, and Context7. Continue
 with minimal changes and current documentation. No overnight monitoring or
 scheduled work has been configured.
+
+### Selected AI research direction — 2026-09-28
+
+- Owner selected **existing MT5 runner + separate Vibe-Trading researcher**.
+- The current design and ordered acceptance gates are in
+  `docs/superpowers/plans/2026-09-28-gold-ai-researcher.md` (also recorded in the
+  Git-ignored `task_plan.md`). It supersedes earlier trading discovery notes;
+  gold-only demo scope continues.
+- Next: explicit health evidence and open-session data qualification, then a
+  reproducible baseline evaluator. Research and demo-order execution are not
+  implemented. Owner intends to use their existing Claude/Worker MCP connection;
+  verify its supported invocation path before research integration. No separate
+  paid provider is requested. Never request or commit the token.
+- AI proposes bounded candidates; it cannot modify risk rules, the evaluator,
+  broker credentials, or promote itself. Initial promotion requires owner review.

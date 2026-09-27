@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timezone
 
 from mt5_data import DataUnavailable, SYMBOL, read_gold, validate_tick
+from gold_signal import evaluate
 
 
 def main():
@@ -16,24 +17,32 @@ def main():
     if not mt5.initialize(r"C:\Program Files\MetaTrader 5\terminal64.exe", timeout=10000):
         raise SystemExit(f"MT5 attach failed: {mt5.last_error()}")
     try:
+        evidence = {}
         deadline = time.monotonic() + 15
         while True:
             now = time.time()
             try:
-                tick, bars = read_gold(mt5, args.login, now)
+                tick, bars = read_gold(mt5, args.login, None, evidence)
                 break
             except DataUnavailable:
                 if time.monotonic() >= deadline:
                     raise
                 time.sleep(1)
+        now = evidence["sampled_at"]
+        evaluation = evaluate(bars, float(tick.bid), float(tick.ask), now)
+        if evaluation["signal"] == "blocked":
+            raise ValueError(evaluation["reason"])
         print(json.dumps({"symbol": SYMBOL,
                           "host_utc": datetime.fromtimestamp(now, timezone.utc).isoformat(),
                           "tick_time": int(tick.time),
                           "quote_age_seconds": round(validate_tick(tick, now), 3),
                           "completed_m15_bars": len(bars),
                           "latest_bar_time": bars[-1]["time"],
-                          "reason": "ready"}))
+                          "reason": "ready", "health": evidence}, allow_nan=False))
     except ValueError as exc:
+        print(json.dumps({"symbol": SYMBOL, "status": "blocked", "reason": str(exc),
+                          "host_utc": datetime.now(timezone.utc).isoformat(),
+                          "health": evidence}, allow_nan=False), flush=True)
         raise SystemExit(f"Gold readiness blocked: {exc}") from exc
     finally:
         mt5.shutdown()

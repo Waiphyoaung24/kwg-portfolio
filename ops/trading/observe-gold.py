@@ -52,18 +52,22 @@ def record_observation(db: sqlite3.Connection, result: dict, observed_at: float,
     return True
 
 
-def poll_once(mt5, db: sqlite3.Connection, login: int, now: float, bootstrap: bool) -> dict:
+def poll_once(mt5, db: sqlite3.Connection, login: int, now: float | None, bootstrap: bool) -> dict:
+    health = {}
     try:
-        tick, bars = read_gold(mt5, login, now)
+        tick, bars = read_gold(mt5, login, now, health)
+        now = health["sampled_at"]
         result = evaluate(bars, float(tick.bid), float(tick.ask), now)
-    except AccountGuardError:
+    except AccountGuardError as exc:
+        exc.health = health
         raise
     except (DataUnavailable, ValueError) as exc:
         return {"mode": "signal-only", "symbol": SYMBOL, "status": "blocked",
-                "signal": "none", "reason": str(exc)}
-    result.update(mode="signal-only", symbol=SYMBOL)
+                "signal": "none", "reason": str(exc), "health": health}
+    result.update(mode="signal-only", symbol=SYMBOL, health=health)
     if result["signal"] == "blocked":
         result["status"] = "blocked"
+        result["signal"] = "none"
         return result
     record_observation(db, result, now, bootstrap)
     return result
@@ -75,7 +79,8 @@ def write_snapshot(path: Path, db: sqlite3.Connection, result: dict, now: float)
     payload = {"mode": "signal-only", "symbol": SYMBOL,
                "status": result["status"], "signal": result["signal"],
                "reason": result.get("reason", ""), "checked_at": int(now),
-               "bar_time": result.get("bar_time", last_bar)}
+               "bar_time": result.get("bar_time", last_bar),
+               "health": result.get("health")}
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, allow_nan=False), encoding="utf-8")
     temporary.replace(path)
@@ -100,7 +105,7 @@ def main():
         bootstrap = True
         while True:
             started = time.monotonic()
-            result = poll_once(mt5, db, args.login, time.time(), bootstrap)
+            result = poll_once(mt5, db, args.login, None, bootstrap)
             write_snapshot(SNAPSHOT, db, result, time.time())
             print(json.dumps(result, allow_nan=False), flush=True)
             bootstrap = result["status"] == "blocked"
@@ -110,6 +115,9 @@ def main():
     except KeyboardInterrupt:
         pass
     except (AccountGuardError, ValueError, sqlite3.Error) as exc:
+        if isinstance(exc, AccountGuardError) and db is not None:
+            write_snapshot(SNAPSHOT, db, {"status": "blocked", "signal": "none",
+                           "reason": str(exc), "health": exc.health}, time.time())
         raise SystemExit(f"Observer stopped: {exc}") from exc
     finally:
         if db is not None:

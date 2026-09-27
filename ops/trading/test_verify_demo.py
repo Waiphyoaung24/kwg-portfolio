@@ -43,6 +43,7 @@ class GoldDataTest(unittest.TestCase):
         sdk.account_info.return_value.trade_mode = 2
         with self.assertRaises(ValueError):
             read_gold(sdk, 123, 1000)
+
         sdk.account_info.return_value.trade_mode = 0
         sdk.terminal_info.return_value.connected = False
         with self.assertRaises(ValueError):
@@ -55,6 +56,20 @@ class GoldDataTest(unittest.TestCase):
         sdk.copy_rates_from_pos.return_value = [{}] * 249
         with self.assertRaises(ValueError):
             read_gold(sdk, 123, 1000)
+
+
+    def test_quote_failures_keep_timestamp_evidence(self):
+        for now, state, age in ((1031, "stale", 30.5), (999, "future", -1.5), (1001, "fresh", .5)):
+            with self.subTest(state=state):
+                evidence = {}
+                tick = SimpleNamespace(bid=100, ask=101, time=1000, time_msc=1000500)
+                if state == "fresh":
+                    validate_tick(tick, now, evidence)
+                else:
+                    with self.assertRaises(ValueError):
+                        validate_tick(tick, now, evidence)
+                self.assertEqual(evidence, dict(quote=state, sampled_at=now,
+                    tick_time=1000, tick_time_msc=1000500, quote_age_seconds=age))
 
 
 if __name__ == "__main__":

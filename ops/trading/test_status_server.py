@@ -3,10 +3,21 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from status_server import read_status
+from status_server import read_status, sanitize_health
 
 
 class StatusServerTest(unittest.TestCase):
+    def test_health_boundary_rejects_invalid_numbers_and_drops_secrets(self):
+        health = dict(terminal="connected", quote="stale", sampled_at=100,
+                      quote_age_seconds=99, login=123, password="must not leave origin")
+        cleaned = sanitize_health(health)
+        self.assertNotIn("login", cleaned)
+        self.assertNotIn("password", cleaned)
+        self.assertEqual(cleaned["quote"], "stale")
+        for value in (float("nan"), float("inf"), "99", True):
+            with self.assertRaises(ValueError):
+                sanitize_health(health | {"quote_age_seconds": value})
+
     def test_fresh_stale_and_missing_snapshot(self):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / "latest.json"

@@ -159,6 +159,21 @@ symbol, fresh bid/ask quotes, and 250 completed M15 bars. It exits nonzero if
 the gold quote is old or its timestamp is in the future. A closed-market quote
 cannot pass. No order functions are used.
 
+The diagnostic also emits sanitized JSON when blocked: raw `tick_time` and
+`tick_time_msc`, the UTC sampling epoch, exact `quote_age_seconds`, terminal
+check state and fetched history count/time. Positive ages over 30 seconds mean
+stale; negative ages mean a future timestamp. Do not correct these by guessing
+a broker timezone. The readiness check also evaluates completed-bar timing and
+spread guards; receiving 250 bars alone is not a readiness pass.
+
+The health-enabled dashboard separates API delivery, observer heartbeat, MT5
+demo checks, quote freshness, fetched M15 history and strategy readiness.
+It refreshes every 10 seconds while visible, bounds fetches to 8 seconds and
+expires observer checks after 30 seconds. Old snapshots without explicit health
+fields show unknown MT5/quote health until the observer and Worker are upgraded.
+"Bars fetched" is a data count, not a claim that history passed strategy checks.
+Quote failures retain history diagnostics; no orders are enabled by this view.
+
 Once the market is open and freshness passes, run one bounded observation:
 
 ```sh

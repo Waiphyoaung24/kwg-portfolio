@@ -31,9 +31,15 @@ export const prerender = true;
         </div>
         <dl class="status__rows">
           <div><dt class="label">Symbol</dt><dd>XAUUSD-VIP</dd></div>
-          <div><dt class="label">Connection</dt><dd id="connection">Checking</dd></div>
+          <div><dt class="label">Status delivery</dt><dd id="delivery">Checking</dd></div>
+          <div><dt class="label">Observer heartbeat</dt><dd id="heartbeat">Checking</dd></div>
+          <div><dt class="label">MT5 demo connection</dt><dd id="connection">Checking</dd></div>
           <div><dt class="label">Quote freshness</dt><dd id="freshness">Checking</dd></div>
-          <div><dt class="label">Last completed M15 candle</dt><dd id="candle">—</dd></div>
+          <div><dt class="label">Last quote timestamp</dt><dd id="tick">—</dd></div>
+          <div><dt class="label">Quote age at check</dt><dd id="age">—</dd></div>
+          <div><dt class="label">M15 history</dt><dd id="history">Checking</dd></div>
+          <div><dt class="label">Latest fetched M15 bar · opened</dt><dd id="candle">—</dd></div>
+          <div><dt class="label">Strategy readiness</dt><dd id="strategy">Checking</dd></div>
           <div><dt class="label">Latest signal</dt><dd id="signal">—</dd></div>
           <div><dt class="label">Last checked</dt><dd id="checked">—</dd></div>
         </dl>
@@ -43,37 +49,46 @@ export const prerender = true;
           <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
         </div>
       </section>
-      <p class="page__note">This view reports observations only. A signal does not place a trade.</p>
+      <p class="page__note">Refreshes every 10 seconds while visible. Checks expire after 30 seconds. This view reports observations only; a signal does not place a trade.</p>
     </main>
 
     <script>
+      import { statusFields } from '../../scripts/trading-status.mjs';
       const field = (id: string) => document.getElementById(id)!;
       const refresh = field('refresh') as HTMLButtonElement;
       const signIn = field('sign-in') as HTMLAnchorElement;
-      const formatTime = (seconds: number | null) =>
-        seconds == null ? '—' : `${new Date(seconds * 1000).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
+      let latest: Parameters<typeof statusFields>[0] | null = null;
+      let receivedAt = 0;
+      function render() {
+        if (!latest) return;
+        const fields = statusFields(latest);
+        if (Date.now() - receivedAt > 30000) fields.delivery = 'No recent API response';
+        for (const [id, value] of Object.entries(fields)) field(id).textContent = value;
+      }
 
       async function load() {
+        if (refresh.disabled) return;
         refresh.disabled = true;
         try {
-          const response = await fetch('/api/trading/status', { cache: 'no-store', credentials: 'same-origin', redirect: 'manual' });
-          if (response.type === 'opaqueredirect' || response.status === 403) throw new Error('access');
+          const response = await fetch('/api/trading/status', { cache: 'no-store', credentials: 'same-origin', redirect: 'manual', signal: AbortSignal.timeout(8000) });
+          if (response.type === 'opaqueredirect' || [401, 403].includes(response.status)) throw new Error('access');
+          if (!response.ok) throw new Error('unavailable');
           if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('unavailable');
           const data = await response.json();
           if (data.mode !== 'signal-only' || data.symbol !== 'XAUUSD-VIP') throw new Error('unavailable');
           signIn.hidden = true;
-          field('state').textContent = data.status === 'blocked' ? 'Blocked' : data.status === 'offline' ? 'Offline' : 'Observing';
-          field('connection').textContent = data.status === 'offline' ? 'Observer unavailable' : 'Demo observer reporting';
-          field('freshness').textContent = data.status === 'blocked' ? 'Not qualified' : data.status === 'offline' ? 'Unknown' : 'Fresh at last check';
-          field('candle').textContent = formatTime(data.bar_time);
-          field('signal').textContent = data.signal === 'none' ? 'None' : data.signal === 'long' ? 'Long' : data.signal === 'short' ? 'Short' : '—';
-          field('checked').textContent = formatTime(data.checked_at);
-          field('reason').textContent = data.reason || 'Waiting for the next completed candle.';
+          latest = data;
+          receivedAt = Date.now();
+          render();
         } catch (error) {
+          latest = null;
           const needsAccess = error instanceof Error && error.message === 'access';
           field('state').textContent = needsAccess ? 'Sign-in required' : 'Unavailable';
-          field('connection').textContent = 'Not connected';
+          field('delivery').textContent = needsAccess ? 'Sign-in required' : 'Status path unavailable';
+          field('heartbeat').textContent = 'Unknown';
+          field('connection').textContent = 'Unknown — status unavailable';
           field('freshness').textContent = 'Unknown';
+          for (const id of ['tick', 'age', 'history', 'strategy']) field(id).textContent = '—';
           field('candle').textContent = '—';
           field('signal').textContent = '—';
           field('checked').textContent = '—';
@@ -85,6 +100,9 @@ export const prerender = true;
       }
 
       refresh.addEventListener('click', load);
+      window.setInterval(() => { if (!document.hidden) load(); }, 10000);
+      window.setInterval(() => { if (!document.hidden) render(); }, 1000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) { render(); load(); } });
       load();
     </script>
 
