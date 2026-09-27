@@ -223,3 +223,36 @@ on the frozen dataset were byte-identical: 90 long, 88 short, 9,360 none,
 not a cost-aware backtest or qualification. Live recheck at 19:05 UTC still
 found a 155301-second-old quote and no new candle. Two live M15 transitions,
 restart/recovery evidence and cost-aware evaluation remain outstanding.
+
+## Hypothetical trade simulation — frozen before first run
+
+User approved continuing offline work during the weekend. Use the fixed
+baseline without parameter search: risk 0.1%, stop 2 ATR, target 3 ATR, one
+position, opposite-signal close without same-bar reversal, daily 1% entry pause
+sampled at bar open/close. Initial equity is a hypothetical USD 100,000 per
+window, unrelated to the demo account balance.
+
+Freeze chronological index splits at 60% development / 20% validation / 20%
+reserved holdout. First 249 bars are indicator warmup. Reuse trailing history
+for validation indicators, but reset capital/positions and suppress first-bar
+entry intent. Close open positions at window ends. Do not evaluate holdout.
+This diagnostic is not a promotion gate; no candidate search is authorized.
+
+Cost scenarios are deliberately hypothetical, not broker fee estimates:
+
+| Scenario | Commission USD/lot round trip | Slippage USD price/side | Overnight USD/lot/calendar day | Spread multiplier |
+| --- | --- | --- | --- | --- |
+| Lower | 3.5 | 0.05 | 5 | 1 |
+| Middle | 7 | 0.10 | 15 | 1.5 |
+| Stress | 14 | 0.30 | 30 | 2 |
+
+Assume bid OHLC and constant bar spread; short exits use synthetic ask.
+Evaluate a completed bar, enter only at the next adjacent bar opening, reject
+wide entry spreads, and cancel entry intents across gaps. Round price and lots
+to current symbol increments, including modeled exit costs in entry sizing.
+Use stop-first for ambiguous intrabar touches, adverse opening-gap stop fills,
+no favorable target gap improvement, and adverse slippage on exits.
+Daily pause and drawdown use discrete observations; they cannot guarantee an
+intrabar loss cap. Overnight debit per raw calendar day is a stress model, not
+historical swaps. Margin availability/rejections and timestamp semantics remain
+unqualified. No profitability or automatic promotion claim follows from a run.

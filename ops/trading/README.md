@@ -257,3 +257,18 @@ python3 replay-gold.py --dataset gold-history-20260928.json --sha256 <verified-d
 Output is created exclusively (never overwritten). Keep datasets and reports
 private outside Git. Run twice with different output filenames and compare
 bytes to check determinism. Cost/fill evaluation remains a separate next step.
+
+### Hypothetical trade simulation
+
+`simulate-gold.py` uses the fixed baseline and three explicit cost scenarios;
+see the researcher plan for frozen assumptions. It evaluates chronological
+60% development / 20% validation windows, leaving newest 20% untouched.
+Reports contain synthetic trade ledgers, costs, equity curves, source hashes
+and limitations. Capital is hypothetical USD 100,000 per window. No MT5 calls.
+
+```sh
+python3 -B simulate-gold.py --dataset gold-history-20260928.json --sha256 <verified-dataset-sha256> --output simulation.json
+```
+
+All runs remain unqualified. Historical bid/ask paths, contract changes, actual
+broker costs and live data qualification are unresolved. No result enables orders.

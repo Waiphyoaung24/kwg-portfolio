@@ -45,7 +45,8 @@ def replay(data):
                 counts[signal] += 1
             last_recorded = bar['time']
             bootstrap = False
-        decisions.append({'bar_time': bar['time'], 'signal': signal, 'reason': result['reason']})
+        decisions.append({'bar_time': bar['time'], 'signal': signal, 'reason': result['reason'],
+                          'atr14': result['atr14']})
     return {
         'mode': 'historical-signal-replay', 'qualification': 'unqualified',
         'baseline': 'gold-ema-v1', 'bars': len(bars), 'warmup_bars': 249,
