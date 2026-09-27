@@ -142,5 +142,7 @@ Write the dashboard/Worker plan separately after the observation contract is pro
 - The gold-only image was deployed and the expected demo/Algo-off guard reached
   MT5. The diagnostic exited on a stale gold tick; the one-shot observer emitted
   `status=blocked, signal=none`. It was not left running. An embedded Python
-  `._pth` import-path fix was found in the first runtime check and applied to
-  the Dockerfile; rebuild the image with that fix before live qualification.
+  `._pth` import-path fix was found in the first runtime check. The corrected
+  image was rebuilt and restarted; the pinned guard and blocked observer worked
+  again. SQLite passed `quick_check` with zero observations, as expected while
+  gold was closed.
