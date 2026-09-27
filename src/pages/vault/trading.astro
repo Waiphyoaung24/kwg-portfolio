@@ -8,56 +8,104 @@ export const prerender = false;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Browser theme-color metadata cannot resolve a CSS variable. -->
     <meta name="theme-color" content="#0a0a0a" />
     <meta name="robots" content="noindex" />
     <title>Trading — Vault — KWG</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap"
-    />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400&family=JetBrains+Mono:wght@400&display=swap" />
   </head>
   <body>
     <main class="page">
-      <a class="page__back" href="/vault">← Vault</a>
-      <h1 class="page__title">Trading</h1>
+      <a class="pill-btn" href="/vault">← Vault</a>
+      <header class="page__intro">
+        <h1>Trading</h1>
+        <p>Gold observation on the VT Markets demo. Read-only signals; order execution is off.</p>
+      </header>
+      <section class="card status" aria-labelledby="status-title">
+        <div class="status__head">
+          <h2 id="status-title">Gold observer</h2>
+          <span class="status__state label" id="state" aria-live="polite">Checking</span>
+        </div>
+        <dl class="status__rows">
+          <div><dt class="label">Symbol</dt><dd>XAUUSD-VIP</dd></div>
+          <div><dt class="label">Connection</dt><dd id="connection">Checking</dd></div>
+          <div><dt class="label">Quote freshness</dt><dd id="freshness">Checking</dd></div>
+          <div><dt class="label">Last completed M15 candle</dt><dd id="candle">—</dd></div>
+          <div><dt class="label">Latest signal</dt><dd id="signal">—</dd></div>
+          <div><dt class="label">Last checked</dt><dd id="checked">—</dd></div>
+        </dl>
+        <p class="status__reason" id="reason" role="status">Connecting to the private status API.</p>
+        <div class="status__actions">
+          <button class="pill-btn pill-btn--filled" id="refresh" type="button">Refresh status</button>
+          <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
+        </div>
+      </section>
+      <p class="page__note">This view reports observations only. A signal does not place a trade.</p>
     </main>
-    <style lang="scss">
-      // Placeholder page; shell copied from vault/projects.astro.
-      .page {
-        display: grid;
-        align-content: start;
-        gap: to-rem(16);
-        min-height: 100svh;
-        max-width: var(--grid-max-width);
-        margin-inline: auto;
-        padding: clamp-fluid(24, 56) var(--grid-margin);
-      }
-      .page__back {
-        justify-self: start;
-        font-size: var(--fs-label);
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--c-mute);
-        text-decoration: none;
-        transition: color 0.2s var(--ease-smooth);
 
-        &:hover {
-          color: var(--c-ink);
-        }
-        &:focus-visible {
-          outline: 2px solid var(--c-ink);
-          outline-offset: 2px;
+    <script>
+      const field = (id: string) => document.getElementById(id)!;
+      const refresh = field('refresh') as HTMLButtonElement;
+      const signIn = field('sign-in') as HTMLAnchorElement;
+      const formatTime = (seconds: number | null) =>
+        seconds == null ? '—' : `${new Date(seconds * 1000).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
+
+      async function load() {
+        refresh.disabled = true;
+        try {
+          const response = await fetch('/api/trading/status', { cache: 'no-store', credentials: 'same-origin' });
+          if (response.redirected || response.status === 403) throw new Error('access');
+          if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('unavailable');
+          const data = await response.json();
+          if (data.mode !== 'signal-only' || data.symbol !== 'XAUUSD-VIP') throw new Error('unavailable');
+          signIn.hidden = true;
+          field('state').textContent = data.status === 'blocked' ? 'Blocked' : data.status === 'offline' ? 'Offline' : 'Observing';
+          field('connection').textContent = data.status === 'offline' ? 'Observer unavailable' : 'Demo observer reporting';
+          field('freshness').textContent = data.status === 'blocked' ? 'Not qualified' : data.status === 'offline' ? 'Unknown' : 'Fresh at last check';
+          field('candle').textContent = formatTime(data.bar_time);
+          field('signal').textContent = data.signal === 'none' ? 'None' : data.signal === 'long' ? 'Long' : data.signal === 'short' ? 'Short' : '—';
+          field('checked').textContent = formatTime(data.checked_at);
+          field('reason').textContent = data.reason || 'Waiting for the next completed candle.';
+        } catch (error) {
+          const needsAccess = error instanceof Error && error.message === 'access';
+          field('state').textContent = needsAccess ? 'Sign-in required' : 'Unavailable';
+          field('connection').textContent = 'Not connected';
+          field('freshness').textContent = 'Unknown';
+          field('candle').textContent = '—';
+          field('signal').textContent = '—';
+          field('checked').textContent = '—';
+          field('reason').textContent = needsAccess ? 'Sign in through Cloudflare Access to view this status.' : 'The private status API is unavailable. Try again shortly.';
+          signIn.hidden = !needsAccess;
+        } finally {
+          refresh.disabled = false;
         }
       }
-      .page__title {
-        margin: to-rem(8) 0 0;
-        font-size: var(--fs-2);
-        line-height: 0.95;
-        text-transform: uppercase;
-      }
+
+      refresh.addEventListener('click', load);
+      load();
+    </script>
+
+    <style lang="scss">
+      .page { display: grid; align-content: start; justify-items: start; gap: var(--sp-2xl); min-height: 100svh; max-width: var(--grid-max-width); margin-inline: auto; padding: var(--sp-3xl) var(--grid-margin); }
+      .page__intro { max-width: 65ch; }
+      .page__intro h1 { margin: 0 0 var(--sp-lg); font-size: var(--fs-2); line-height: 1; letter-spacing: var(--ls-2); }
+      .page__intro p { margin: 0; color: var(--c-body); line-height: 1.5; }
+      .page__note { margin: 0; color: var(--c-body); font-size: var(--fs-body-sm); }
+      .status { width: min(100%, var(--container-max-width)); }
+      .status__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-md); }
+      .status__head h2 { margin: 0; font-size: var(--fs-4); font-weight: var(--fw-regular); letter-spacing: var(--ls-4); }
+      .status__state { color: var(--c-body); }
+      .status__rows { margin: var(--sp-xl) 0; }
+      .status__rows div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-md); padding: var(--sp-md) 0; border-top: 1px solid var(--c-hairline); }
+      .status__rows dt { color: var(--c-body); }
+      .status__rows dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+      .status__reason { min-height: 1.5em; margin: 0 0 var(--sp-xl); color: var(--c-body); }
+      .status__actions { display: flex; flex-wrap: wrap; gap: var(--sp-md); }
+      .status__actions [hidden] { display: none; }
+      @media (max-width: 40rem) { .status__rows div { grid-template-columns: 1fr; gap: var(--sp-xs); } }
     </style>
   </body>
 </html>

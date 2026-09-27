@@ -12,9 +12,9 @@ spread limit. It records one observation per new candle in SQLite; the first
 candle after startup or a missed interval is a baseline. No order API is called.
 The updated image was deployed on 2026-09-27. The pinned demo and Algo-off
 guard passed, but the gold quote was stale during market closure, so both the
-diagnostic and one-shot observer blocked as intended. Live candle transitions,
-restart persistence, and advancing tick freshness still need qualification
-during an open gold session. No observer is running unattended.
+diagnostic and one-shot observer blocked as intended. The VPS now runs the
+signal-only observer continuously. Live candle transitions, restart persistence,
+and advancing tick freshness still need qualification during an open gold session.
 Review live signals and risk checks before a separate demo-order implementation.
 Keep Algo Trading off.
 
@@ -47,6 +47,12 @@ The Worker receives the token as `STATUS_ACCESS_CLIENT_ID` and
 as secrets too. Protect the Worker itself with Access for that email across all
 routes, leave `workers.dev` disabled, then deploy from `ops/trading/worker` with
 Wrangler. No secret values belong in source, commands, logs, or chat.
+
+The VPS side was deployed on 2026-09-27. The sidecar returned HTTP 200 from
+`dokploy-network`, exposed no host port, and reported the gold quote as blocked
+while the market was closed. Cloudflare Tunnel, Access, and Worker deployment
+remain to be completed. The status service runs as UID 10001, so a manually
+copied `status_server.py` must be readable by that user (`chmod 644`).
 
 The existing Vault password only hides links in the browser. Cloudflare Access
 is the authorization boundary for this status API. Do not expose the MT5 desktop
