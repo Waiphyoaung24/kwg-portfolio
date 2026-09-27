@@ -288,3 +288,28 @@ scheduled work has been configured.
 - Signed-in live page verified: Connected to demo / Waiting for a fresh price /
   Paused. Fresh-data qualification and strategy evaluation remain pending.
 - VPS rollback HTML: `trading.html.before-simple-93b753b` in the compose folder.
+
+### Baseline signal replay and live recheck — 2026-09-28 Bangkok
+
+- Code commit `23966ec`: offline `replay-gold.py`, reusing the exact rolling
+  250-bar EMA20/EMA50/ATR14 evaluator. Seventeen Python tests passed.
+- Live verifier at 2026-09-27 19:05:20 UTC: NTP synchronized, UTC timezone,
+  pinned demo connected, 250 bars available. Tick remains `1790380619`
+  (`1790380619894` ms), age `155300.853` seconds; latest M15 opening time
+  `1790379000`. Fresh quote and two live M15 transitions remain BLOCKED.
+- Historical replay ran twice on the VPS against the checksum-pinned 10,000-bar
+  export. Reports were byte-identical. Results across 9,751 evaluated windows:
+  90 long, 88 short, 9,360 no signal, 106 blocked windows, 107 baseline resets.
+  Blocks were gap/stale-candle checks; resets suppress startup/recovery signals.
+- Private reports: `/opt/kwg-gold-research/replay-23966ec/run-1.json` and
+  `run-2.json`. Files created with umask 077. No dataset uploaded or published.
+- These are signal counts, NOT trades, win rates, returns or profitability.
+  Quote proxy uses completed-bar close and spread; costs/fills are not simulated.
+- Next: live qualification needs fresh prices and three valid samples spanning
+  two consecutive advancing M15 boundaries (plus restart/recovery evidence).
+  Do not shift timestamps or relax freshness thresholds to force a pass.
+  Then implement cost-aware execution replay with declared assumptions; owner
+  has been asked whether broker costs are available or scenarios should be used.
+- Context7 consulted mt5linux API documentation; MetaQuotes primary reference
+  confirms index 0 is current, so existing history request starts at index 1:
+  https://www.mql5.com/en/docs/python_metatrader5/mt5copyratesfrompos_py

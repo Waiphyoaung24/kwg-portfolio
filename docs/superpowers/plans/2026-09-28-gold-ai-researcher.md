@@ -216,3 +216,10 @@ signal evaluator, suppress startup/recovery signals, record code/data hashes
 and blocked reasons. Bar close and spread are only quote proxies; replay does
 not qualify live data or estimate profits. No holdout optimization occurs in
 this diagnostic. Profit/loss evaluation still requires explicit cost/fill rules.
+
+Replay result: commit `23966ec`, 17 Python checks passed. Two private VPS runs
+on the frozen dataset were byte-identical: 90 long, 88 short, 9,360 none,
+106 blocked, 107 startup/recovery resets. This is a signal-logic diagnostic,
+not a cost-aware backtest or qualification. Live recheck at 19:05 UTC still
+found a 155301-second-old quote and no new candle. Two live M15 transitions,
+restart/recovery evidence and cost-aware evaluation remain outstanding.
