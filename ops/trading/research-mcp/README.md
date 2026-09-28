@@ -56,6 +56,11 @@ token supplied locally:
 claude mcp add --transport http gold-research https://<worker-subdomain>/mcp --header "Authorization: Bearer <local-token>"
 ```
 
+Codex is also configured on the owner's Windows profile as `gold-research`,
+using the local `KWG_GOLD_MCP_TOKEN` user environment variable. Both tools
+completed in an ephemeral Codex read-only check. Restart an already-running
+Codex desktop session to load the new environment variable and MCP entry.
+
 Test that an anonymous request is denied, then use Claude's `/mcp` screen to
 connect and invoke each tool. The Worker has no mutation tools. Its baseline
 is exploratory: validation lost under all three hypothetical cost scenarios,
