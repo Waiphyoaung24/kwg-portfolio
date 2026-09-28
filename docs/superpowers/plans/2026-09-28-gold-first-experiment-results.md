@@ -2,11 +2,17 @@
 
 The offline experiment commands are implemented and locally tested. **No real
 experiment verdict exists yet.** The frozen broker dataset and detailed reports
-remain on the private VPS; this run could not authenticate to SSH without the
-owner entering the encrypted key's passphrase locally. The dataset SHA-256 to
-verify there is
+remain on the private VPS. The owner ran `sha256sum` there and verified the
+dataset SHA-256 as
 `ba4f246746d861c9f61d82c7a09d17931cd74e9dea604ea2897853369dcf8614`.
-No dataset was re-exported or copied into Git.
+The six Python files from commit `e7f313a` were downloaded to the private
+`gold-exp-001/src` directory and their hashes matched the reviewed Git blobs.
+Manifest preparation passed on the real 10,000-bar dataset; private
+`manifest-prepared.json` has SHA-256
+`fc1c68ddc38d33cb737f8de10e746ffd6d54928fe23afeb5f4611b81649775cf`.
+The two preliminary baseline runs and final freeze are pending. No dataset was
+re-exported or copied into Git. Automated SSH cannot unlock the encrypted key,
+so private VPS commands are run in the owner's authenticated shell.
 
 The tools now prepare and freeze an exact 10,000-bar manifest, pin 60/20/20
 indices and every evaluator source hash, replay an entry-only EMA20 slope
@@ -39,10 +45,9 @@ lookback value was chosen from validation results. The upstream
 describe the CLI/MCP interface and distinguish the optional model-powered
 features.
 
-After local SSH access is restored, the next checks are: verify the private
-dataset checksum, deploy this exact evaluator revision to an isolated
-research directory, prepare/finalize the manifest, rerun baseline twice and
-compare bytes. The development-only research input can then be generated.
+The next checks are: run the preliminary baseline twice and compare bytes,
+finalize the manifest, rerun baseline twice and compare bytes and metrics.
+The development-only research input can then be generated.
 Only a supported, bounded Vibe-Trading model route justifies one genuine
 proposal; otherwise leave the result as blocked. A valid proposal must be
 registered before its one candidate run. No finding from this experiment
