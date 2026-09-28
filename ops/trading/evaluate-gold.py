@@ -72,6 +72,8 @@ def evaluate_reports(baseline: dict, candidate: dict, policy: dict) -> dict:
             for item in (b, c):
                 for metric in ('return_pct', 'close_sampled_drawdown_pct', 'net_pnl_usd'):
                     _finite(item[metric])
+            if c['net_pnl_usd'] <= 0:
+                reasons.append(name + '_net_pnl_nonpositive')
             if name == 'lower':
                 pf = c.get('profit_factor')
                 if pf is None:

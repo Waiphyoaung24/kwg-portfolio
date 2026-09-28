@@ -8,7 +8,7 @@ approved prospective policy contain candidate gates and a deterministic paired
 bootstrap. The real baseline remains diagnostic and ineligible for shadow
 observation.
 
-Local checks: 54 Python tests passed on 2026-09-29. The original frozen
+Local checks: 56 Python tests passed on 2026-09-29. The original frozen
 dataset is private on the VPS, so a new baseline rerun was not completed from
 this workspace. Batch 1 continuity and container-restart recovery now passed
 for their observed session, while dated commission/swap coverage, a registered
@@ -57,6 +57,10 @@ rejects changed criteria. Nonfinite report/policy values, arithmetic overflow
 and a zero-length bootstrap block are inconclusive rather than an eligibility
 result or crash.
 These synthetic tests do not qualify a candidate.
+Boundary fixtures now cover trade/day minimums, profit factor, return
+improvement, drawdown and fold underperformance. A positive headline return
+with nonpositive candidate net P&L is rejected; undefined profit factor and
+zero paired daily improvement cannot pass.
 
 The authenticated read-only baseline summary still reports dataset SHA-256
 `ba4f246746d861c9f61d82c7a09d17931cd74e9dea604ea2897853369dcf8614`,

@@ -47,7 +47,9 @@ class GateTest(unittest.TestCase):
 
     def test_positive_candidate_and_scope(self):
         base, candidate, approved = reports()
-        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'eligible_for_shadow')
+        result = evaluate(base, candidate, approved)
+        self.assertEqual(result['decision'], 'eligible_for_shadow')
+        self.assertEqual(result, evaluate(base, candidate, approved))
         candidate['identity']['risk_sha256'] = 'changed'
         self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
 
@@ -84,6 +86,47 @@ class GateTest(unittest.TestCase):
         self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
         base['validation']['daily_returns'] = {f'{i:02}': 0 for i in range(60)}
         self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+
+    def test_negative_candidate_net_pnl_cannot_pass(self):
+        base, candidate, approved = reports()
+        candidate['validation']['scenarios']['lower']['net_pnl_usd'] = -1
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+        base, candidate, approved = reports()
+        candidate['validation']['scenarios']['lower']['profit_factor'] = None
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+        base, candidate, approved = reports()
+        candidate['validation']['daily_returns'] = base['validation']['daily_returns']
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+
+    def test_numeric_policy_boundaries(self):
+        for field, value, expected in (
+                ('profit_factor', 1.1, 'eligible_for_shadow'),
+                ('profit_factor', 1.0999, 'rejected'),
+                ('return_pct', 1.25, 'eligible_for_shadow'),
+                ('return_pct', 1.2499, 'rejected')):
+            with self.subTest(field=field, value=value):
+                base, candidate, approved = reports()
+                candidate['validation']['scenarios']['lower'][field] = value
+                self.assertEqual(evaluate(base, candidate, approved)['decision'], expected)
+        base, candidate, approved = reports()
+        candidate['validation']['trades'] = 99
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+        base, candidate, approved = reports()
+        candidate['validation']['observed_days'] = 59
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+        base, candidate, approved = reports()
+        for name in ('lower', 'middle', 'stress'):
+            base['validation']['scenarios'][name]['close_sampled_drawdown_pct'] = 4.75
+            candidate['validation']['scenarios'][name]['close_sampled_drawdown_pct'] = 5
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'eligible_for_shadow')
+        candidate['validation']['scenarios']['stress']['close_sampled_drawdown_pct'] = 5.0001
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+        base, candidate, approved = reports()
+        candidate['validation']['folds'][0]['return_pct'] = .75
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'eligible_for_shadow')
+        base, candidate, approved = reports()
+        candidate['validation']['folds'][0]['return_pct'] = .7499
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
 
 
 if __name__ == '__main__':
