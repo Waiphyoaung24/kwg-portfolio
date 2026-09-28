@@ -43,13 +43,14 @@ the protected origin. Never put credential values in `wrangler.toml`.
 
 On 2026-09-28, authenticated remote calls to both tools returned HTTP 200.
 `get_baseline_summary` reported `qualification=unqualified` and
-`promotion=blocked`. `get_gold_status` reached the origin and returned
-`status=blocked`, `signal=none`: the running observer still treated the broker's
-three-hour server timestamp as a future quote. MCP connectivity is working;
-observer clock normalization remains a separate qualification task.
+`promotion=blocked`. After deploying the observer clock offset,
+`get_gold_status` reported `status=baseline`, `signal=none`, a connected demo
+terminal, and a fresh quote. This confirms the live read-only path; continuous
+health across two M15 candle changes remains unverified.
 
-After deployment and secret setup, connect Claude Code using its remote HTTP
-MCP support, with the token supplied locally:
+Claude Code is connected locally in the owner's portfolio project. To connect
+another Claude Code installation, use its remote HTTP MCP support with the
+token supplied locally:
 
 ```sh
 claude mcp add --transport http gold-research https://<worker-subdomain>/mcp --header "Authorization: Bearer <local-token>"
