@@ -14,6 +14,26 @@ separate that machinery test from Batch 2/3 strategy qualification and later
 continuous demo execution. No order code has been deployed under this plan;
 the existing observer stays read-only with Algo Trading off.
 
+## Handover instruction
+
+The planning branch is `codex/gold-demo-one-shot-plan`, built on
+`codex/gold-batch2-review` (draft PR #1), not on `main`. In another
+checkout, fetch and switch to the planning branch before continuing.
+
+> Read `AGENTS.md`, `ops/trading/HANDOFF.md`,
+> `docs/superpowers/plans/2026-09-29-gold-agent-design.md` and
+> `docs/superpowers/plans/2026-09-29-gold-one-shot-demo-execution.md`.
+> Implement the one-shot demo runner with native execution, task by task:
+> preflight, durable reconciliation, then read-only dashboard status.
+> Keep the existing observer signal-only and the pinned demo/Algo-off guard
+> intact. Run the plan's fake-MT5, Python, Worker and site checks. Prepare
+> the private dry-run preview for owner review before any order is sent.
+> Do not place a trade, enable continuous entry, run Vibe-Trading, change
+> risk policy or expose account data during this handoff.
+
+Batch 2 remains `prepared_but_blocked`; the one-shot smoke test is an
+independent execution-machinery milestone, not strategy qualification.
+
 ## Verified now
 
 - **Batch 1 live-data continuity passed on 2026-09-28.** The private bounded
