@@ -35,3 +35,26 @@ export function statusFields(data, now = Date.now() / 1000) {
     reason: alive ? data.reason || 'Waiting for the next completed candle.' : 'Observer report expired. Waiting for a current report.',
   };
 }
+
+export function executionFields(execution, now = Date.now() / 1000) {
+  if (!execution || execution.mode !== 'one-shot-demo' ||
+      (!['closed', 'disarmed'].includes(execution.status) && !recent(execution.updated_at, now))) {
+    return { state: 'Unknown', side: '—', volume: '—', opened: '—', closed: '—',
+      result: '—', updated: '—', guidance: 'No current one-shot execution report.' };
+  }
+  const labels = { disarmed: 'Disarmed', armed: 'Armed', submitting: 'Submitting',
+    open: 'Open', closing: 'Closing', closed: 'Closed', needs_attention: 'Needs attention' };
+  const state = labels[execution.status] ?? 'Unknown';
+  const result = execution.status === 'closed' && typeof execution.realized_net_usd === 'number'
+    ? `${execution.realized_net_usd.toFixed(2)} USD net` : '—';
+  const guidance = execution.status === 'needs_attention'
+    ? 'Review the private journal and broker position. No new entry will be sent.'
+    : execution.status === 'closed' ? 'The broker close was reconciled. This is a historical result.'
+    : execution.status === 'open' ? 'Broker-held stop and target were confirmed. The runner will attempt a timed close.'
+    : execution.status === 'disarmed' ? 'No new demo attempt is armed.'
+    : 'A supervised demo attempt is in progress. Review the private journal for details.';
+  return { state, side: execution.side ? execution.side.toUpperCase() : '—',
+    volume: typeof execution.volume === 'number' ? `${execution.volume} lot` : '—',
+    opened: date(execution.opened_at), closed: date(execution.closed_at), result,
+    updated: date(execution.updated_at), guidance };
+}

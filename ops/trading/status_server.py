@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 SNAPSHOT = Path("/status/latest.json")
+EXECUTION = Path("/status/execution.json")
 TRADING_PAGE = Path("/app/trading.html")
 
 
@@ -30,7 +31,42 @@ def sanitize_health(value):
     return result
 
 
-def read_status(path: Path, now: float) -> tuple[int, dict]:
+def sanitize_execution(value, now: float):
+    if not isinstance(value, dict) or value.get("mode") != "one-shot-demo":
+        raise ValueError("invalid execution snapshot")
+    status = value.get("status")
+    if status not in ("disarmed", "armed", "submitting", "open", "closing",
+                      "closed", "needs_attention"):
+        raise ValueError("invalid execution state")
+    updated_at = value.get("updated_at")
+    if (type(updated_at) not in (int, float) or not math.isfinite(updated_at)
+            or updated_at <= 0 or updated_at > now):
+        raise ValueError("invalid execution heartbeat")
+    side = value.get("side")
+    if side is not None and side not in ("buy", "sell"):
+        raise ValueError("invalid execution side")
+    result = {"mode": "one-shot-demo", "status": status,
+              "updated_at": updated_at, "side": side}
+    for key in ("volume", "opened_at", "closed_at", "realized_net_usd"):
+        number = value.get(key)
+        if number is not None and (type(number) not in (int, float)
+                                   or not math.isfinite(number) or abs(number) > 1e12):
+            raise ValueError("invalid execution number")
+        if key in ("volume", "opened_at", "closed_at") and number is not None and number <= 0:
+            raise ValueError("invalid execution number")
+        result[key] = number
+    reason = value.get("close_reason")
+    if reason is not None and (not isinstance(reason, str) or len(reason) > 160):
+        raise ValueError("invalid execution reason")
+    result["close_reason"] = reason
+    if status == "closed" and (result["closed_at"] is None or result["realized_net_usd"] is None):
+        raise ValueError("closed result lacks broker evidence")
+    if status not in ("closed", "disarmed") and now - updated_at > 30:
+        return None
+    return result
+
+
+def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION) -> tuple[int, dict]:
     try:
         if path.stat().st_size > 4096:
             raise ValueError("oversized snapshot")
@@ -54,8 +90,17 @@ def read_status(path: Path, now: float) -> tuple[int, dict]:
         data.update(status="offline", signal="none", reason="Observer heartbeat missing")
     if data["status"] in ("offline", "blocked"):
         data["signal"] = "none"
-    return 200, {key: data.get(key) for key in
-                 ("mode", "symbol", "status", "signal", "reason", "checked_at", "bar_time", "health")}
+    payload = {key: data.get(key) for key in
+               ("mode", "symbol", "status", "signal", "reason", "checked_at", "bar_time", "health")}
+    if execution_path.exists():
+        try:
+            if execution_path.stat().st_size > 2048:
+                raise ValueError("oversized execution snapshot")
+            payload["execution"] = sanitize_execution(
+                json.loads(execution_path.read_text(encoding="utf-8")), now)
+        except (OSError, ValueError, TypeError, UnicodeError):
+            payload["execution"] = None
+    return 200, payload
 
 
 class Handler(BaseHTTPRequestHandler):

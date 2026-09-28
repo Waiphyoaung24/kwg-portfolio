@@ -152,7 +152,7 @@ def _update(db, **fields):
 
 
 def _status(db, now):
-    row = _attempt(db)
+    row = _attempt(db) if db is not None else None
     if row is None:
         return {"mode": "one-shot-demo", "status": "disarmed", "updated_at": now,
                 "side": None, "volume": None, "opened_at": None, "closed_at": None,
@@ -432,6 +432,7 @@ def main():
     if args.command == "arm" and not args.enable_demo_execution:
         parser.error("arm requires --enable-demo-execution")
     if args.command == "resume" and not path.exists():
+        write_snapshot(SNAPSHOT, _status(None, time.time()))
         return
     login_text = os.environ.get("MT5_DEMO_LOGIN", "")
     if not login_text.isdecimal() or not int(login_text):

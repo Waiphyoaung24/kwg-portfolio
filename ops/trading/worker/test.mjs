@@ -20,6 +20,27 @@ test('health evidence is sanitized and expires at 30 seconds', () => {
   }
 });
 
+test('execution state is allowlisted and stale open state expires', () => {
+  const report = { mode: 'signal-only', symbol: 'XAUUSD-VIP', status: 'blocked', signal: 'none',
+    reason: 'Algo Trading enabled', checked_at: 100, bar_time: null,
+    execution: { mode: 'one-shot-demo', status: 'open', updated_at: 100, side: 'buy',
+      volume: .01, opened_at: 99, closed_at: null, close_reason: null,
+      realized_net_usd: null, login: 123, ticket: 456, password: 'secret' } };
+  const current = normalizeStatus(report, 105).execution;
+  assert.equal(current.status, 'open');
+  for (const field of ['login', 'ticket', 'password']) assert.equal(current[field], undefined);
+  assert.equal(normalizeStatus(report, 131).execution, null);
+  const closed = normalizeStatus({ ...report, execution: { ...report.execution,
+    status: 'closed', closed_at: 101, realized_net_usd: .8 } }, 500).execution;
+  assert.equal(closed.closed_at, 101);
+  assert.equal(closed.realized_net_usd, .8);
+  assert.throws(() => normalizeStatus({ ...report, execution: { ...report.execution,
+    status: 'filled' } }, 105));
+  assert.throws(() => normalizeStatus({ ...report, execution: { ...report.execution,
+    volume: Infinity } }, 105));
+  assert.equal(normalizeStatus({ ...report, execution: undefined }, 105).execution, undefined);
+});
+
 test('origin failure remains unavailable rather than a healthy connection', async (t) => {
   const original = globalThis.fetch;
   t.after(() => { globalThis.fetch = original; });

@@ -7,6 +7,27 @@ function unavailable(reason = 'Trading status is unavailable') {
   );
 }
 
+function normalizeExecution(value, now) {
+  if (value === null) return null;
+  if (!value || value.mode !== 'one-shot-demo' ||
+      !['disarmed', 'armed', 'submitting', 'open', 'closing', 'closed', 'needs_attention'].includes(value.status) ||
+      !Number.isFinite(value.updated_at) || value.updated_at <= 0 || value.updated_at > now ||
+      (value.side !== null && !['buy', 'sell'].includes(value.side))) throw new Error('Invalid execution');
+  const execution = { mode: 'one-shot-demo', status: value.status,
+    updated_at: value.updated_at, side: value.side };
+  for (const key of ['volume', 'opened_at', 'closed_at', 'realized_net_usd']) {
+    const number = value[key] ?? null;
+    if (number !== null && (typeof number !== 'number' || !Number.isFinite(number) || Math.abs(number) > 1e12 ||
+        (key !== 'realized_net_usd' && number <= 0))) throw new Error('Invalid execution number');
+    execution[key] = number;
+  }
+  if (value.close_reason != null && (typeof value.close_reason !== 'string' || value.close_reason.length > 160)) throw new Error('Invalid execution reason');
+  execution.close_reason = value.close_reason ?? null;
+  if (value.status === 'closed' && (execution.closed_at === null || execution.realized_net_usd === null)) throw new Error('Invalid closed result');
+  if (!['disarmed', 'closed'].includes(value.status) && now - value.updated_at > 30) return null;
+  return execution;
+}
+
 export function normalizeStatus(value, now = Date.now() / 1000) {
   if (!value || value.mode !== 'signal-only' || value.symbol !== 'XAUUSD-VIP') throw new Error('Invalid status');
   if (!['baseline', 'observed', 'duplicate', 'blocked', 'offline'].includes(value.status)) throw new Error('Invalid status');
@@ -27,12 +48,14 @@ export function normalizeStatus(value, now = Date.now() / 1000) {
     }
   }
   const status = stale ? 'offline' : value.status;
-  return {
+  const result = {
     mode: 'signal-only', symbol: 'XAUUSD-VIP', status,
     signal: status === 'offline' || status === 'blocked' ? 'none' : value.signal,
     reason: stale ? 'Observer heartbeat missing' : String(value.reason || '').slice(0, 200),
     checked_at: value.checked_at, bar_time: value.bar_time, health,
   };
+  if (value.execution !== undefined) result.execution = normalizeExecution(value.execution, now);
+  return result;
 }
 
 export default {

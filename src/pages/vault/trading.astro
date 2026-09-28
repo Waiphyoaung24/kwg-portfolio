@@ -22,14 +22,14 @@ export const prerender = true;
       <a class="pill-btn" href="/vault">← Vault</a>
       <header class="page__intro">
         <h1>Trading</h1>
-        <p>Gold observation on the VT Markets demo. Read-only signals; order execution is off.</p>
+        <p>Gold observation and supervised demo execution status. This page is read-only.</p>
       </header>
       <section class="card status" aria-labelledby="status-title">
         <div class="status__head">
           <h2 id="status-title">Gold observer</h2>
           <span class="status__state label" id="state" aria-live="polite">Checking</span>
         </div>
-        <p class="status__symbol micro">XAUUSD-VIP · VT Markets demo · Orders off</p>
+        <p class="status__symbol micro">XAUUSD-VIP · VT Markets demo · Signal-only observer</p>
         <dl class="status__rows">
           <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M8 12h8M9 5H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3m6-14h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-3" /></svg>MT5 connection</dt><dd id="connection">Checking</dd></div>
           <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Gold price</dt><dd id="freshness">Checking</dd></div>
@@ -55,11 +55,27 @@ export const prerender = true;
           <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
         </div>
       </section>
-      <p class="page__note">Updates automatically every 10 seconds. Observation only — no trades are placed.</p>
+      <section class="card status" aria-labelledby="execution-title">
+        <div class="status__head">
+          <h2 id="execution-title">One-shot demo execution</h2>
+          <span class="status__state label" id="execution-state" aria-live="polite">Checking</span>
+        </div>
+        <p class="status__symbol micro">Supervised minimum-lot test · Read-only result</p>
+        <dl class="status__rows">
+          <div><dt class="label">Side</dt><dd id="execution-side">—</dd></div>
+          <div><dt class="label">Volume</dt><dd id="execution-volume">—</dd></div>
+          <div><dt class="label">Opened</dt><dd id="execution-opened">—</dd></div>
+          <div><dt class="label">Closed</dt><dd id="execution-closed">—</dd></div>
+          <div><dt class="label">Realized result</dt><dd id="execution-result">—</dd></div>
+          <div><dt class="label">Last report</dt><dd id="execution-updated">—</dd></div>
+        </dl>
+        <p class="status__guidance" id="execution-guidance">Connecting to the private status API.</p>
+      </section>
+      <p class="page__note">Updates automatically every 10 seconds. This page cannot place an order.</p>
     </main>
 
     <script>
-      import { statusFields } from '../../scripts/trading-status.mjs';
+      import { executionFields, statusFields } from '../../scripts/trading-status.mjs';
       const field = (id: string) => document.getElementById(id)!;
       const refresh = field('refresh') as HTMLButtonElement;
       const signIn = field('sign-in') as HTMLAnchorElement;
@@ -70,6 +86,8 @@ export const prerender = true;
         const fields = statusFields(latest);
         if (Date.now() - receivedAt > 30000) fields.delivery = 'No recent API response';
         for (const [id, value] of Object.entries(fields)) field(id).textContent = value;
+        const execution = executionFields(latest.execution);
+        for (const [id, value] of Object.entries(execution)) field(`execution-${id}`).textContent = value;
       }
 
       async function load() {
@@ -100,6 +118,8 @@ export const prerender = true;
           field('checked').textContent = '—';
           field('reason').textContent = needsAccess ? 'Sign in through Cloudflare Access to view this status.' : 'The private status API is unavailable. Try again shortly.';
           field('guidance').textContent = field('reason').textContent;
+          const execution = executionFields(null);
+          for (const [id, value] of Object.entries(execution)) field(`execution-${id}`).textContent = value;
           signIn.hidden = !needsAccess;
         } finally {
           refresh.disabled = false;

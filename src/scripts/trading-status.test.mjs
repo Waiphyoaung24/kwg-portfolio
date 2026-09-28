@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { statusFields } from './trading-status.mjs';
+import { executionFields, statusFields } from './trading-status.mjs';
 
 const report = { status: 'blocked', signal: 'none', checked_at: 100,
   reason: 'Gold quote is old', health: { terminal: 'connected', quote: 'stale',
@@ -28,3 +28,17 @@ assert.equal(statusFields({ ...ready, health: { ...ready.health, terminal: 'guar
 assert.match(statusFields(report, 105).guidance, /Leave the observer running/);
 assert.match(statusFields(report, 131).guidance, /stopped reporting/);
 assert.equal(statusFields({ ...report, health: null }, 105).state, 'Needs attention');
+
+const execution = { mode: 'one-shot-demo', status: 'open', updated_at: 100,
+  side: 'buy', volume: .01, opened_at: 99, closed_at: null, close_reason: null,
+  realized_net_usd: null };
+assert.equal(executionFields(null, 105).state, 'Unknown');
+assert.equal(executionFields({ ...execution, status: 'disarmed' }, 105).state, 'Disarmed');
+assert.equal(executionFields(execution, 105).state, 'Open');
+assert.equal(executionFields(execution, 131).state, 'Unknown');
+assert.equal(executionFields({ ...execution, status: 'needs_attention' }, 105).state, 'Needs attention');
+const closedExecution = executionFields({ ...execution, status: 'closed',
+  closed_at: 101, realized_net_usd: .8 }, 500);
+assert.equal(closedExecution.state, 'Closed');
+assert.match(closedExecution.closed, /1970/);
+assert.match(closedExecution.result, /0\.80/);

@@ -3,6 +3,7 @@ import unittest
 import tempfile
 import os
 import io
+import json
 import sys
 from pathlib import Path
 from types import SimpleNamespace as Record
@@ -286,10 +287,13 @@ class CliTest(unittest.TestCase):
     def test_resume_without_journal_is_inert(self):
         with tempfile.TemporaryDirectory() as root:
             state = Path(root) / "one-shot.sqlite3"
+            snapshot = Path(root) / "execution.json"
             with (patch("demo_one_shot.Path.home", return_value=Path(root)),
+                  patch("demo_one_shot.SNAPSHOT", snapshot),
                   patch.object(sys, "argv", ["demo_one_shot.py", "resume", "--state", str(state)])):
                 main()
             self.assertFalse(state.exists())
+            self.assertEqual(json.loads(snapshot.read_text())["status"], "disarmed")
 
 
 if __name__ == "__main__":
