@@ -84,6 +84,25 @@ class ObserverTest(unittest.TestCase):
                              ("blocked", "none", "fresh"))
             db.close()
 
+    def test_verified_server_offset_normalizes_quote_and_completed_bar(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = observer.open_state(Path(root) / "state.sqlite3", 123)
+            sdk = fake_sdk()
+            now = 251 * 900
+            sdk.symbol_info_tick.return_value.time = now + 10800
+            sdk.symbol_info_tick.return_value.time_msc = (now + 10800) * 1000
+            for bar in sdk.copy_rates_from_pos.return_value:
+                bar["time"] += 10800
+            self.assertEqual(observer.poll_once(sdk, db, 123, now, True)["health"]["quote"], "future")
+            result = observer.poll_once(sdk, db, 123, now, True, 10800)
+            self.assertEqual((result["status"], result["health"]["quote"]), ("baseline", "fresh"))
+            self.assertEqual(result["health"]["tick_time"], now)
+            self.assertEqual(result["health"]["tick_time_msc"], now * 1000)
+            self.assertEqual(result["health"]["history_bar_time"], 250 * 900)
+            self.assertEqual(result["bar_time"], 250 * 900)
+            sdk.order_send.assert_not_called()
+            db.close()
+
     def test_state_mismatch_and_corruption_fail_closed(self):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / "state.sqlite3"

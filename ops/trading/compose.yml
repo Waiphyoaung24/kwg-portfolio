@@ -18,6 +18,7 @@ services:
       - ALL
     environment:
       MT5_DEMO_LOGIN: ${MT5_DEMO_LOGIN:-}
+      MT5_SERVER_OFFSET_SECONDS: ${MT5_SERVER_OFFSET_SECONDS:-0}
     ports:
       - "127.0.0.1:6081:6080"
     volumes:

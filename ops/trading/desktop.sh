@@ -22,10 +22,12 @@ else
 fi
 if [ -n "${MT5_DEMO_LOGIN:-}" ]; then
   [[ "$MT5_DEMO_LOGIN" =~ ^[0-9]+$ ]] || { echo "Invalid MT5_DEMO_LOGIN" >&2; exit 1; }
+  server_offset="${MT5_SERVER_OFFSET_SECONDS:-0}"
+  case "$server_offset" in 0|7200|10800) ;; *) echo "Invalid MT5_SERVER_OFFSET_SECONDS" >&2; exit 1;; esac
   (
     while true; do
       if [ -f "$terminal" ]; then
-        script -q -e -c "wine /opt/python/python.exe /opt/trading/observe-gold.py --login $MT5_DEMO_LOGIN --state 'C:\users\mt5\gold-observer.sqlite3'" /dev/null || true
+        script -q -e -c "wine /opt/python/python.exe /opt/trading/observe-gold.py --login $MT5_DEMO_LOGIN --state 'C:\users\mt5\gold-observer.sqlite3' --server-offset-seconds $server_offset" /dev/null || true
       fi
       sleep 10
     done

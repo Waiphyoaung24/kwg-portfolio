@@ -30,8 +30,10 @@ the status origin through the existing Cloudflare Tunnel. It exposes no broker
 login, balance, password, or order operation. A missing heartbeat becomes
 `offline`; a stale gold quote remains `blocked`.
 
-On the VPS only, set `MT5_DEMO_LOGIN` in this Compose project's private `.env`,
-then deploy the observer and private status service:
+On the VPS only, set `MT5_DEMO_LOGIN` in this Compose project's private `.env`.
+For the verified three-hour lead on this demo, also set
+`MT5_SERVER_OFFSET_SECONDS=10800`; the default is zero and fails closed when
+the broker clock is ahead. Then deploy the observer and private status service:
 
 ```sh
 docker compose --profile status up -d --build
@@ -171,8 +173,9 @@ was about 12:26. The same three-hour lead appeared in raw tick and M15 bar
 epochs. For this pinned demo only, the verifier accepts an explicit diagnostic
 `--server-offset-seconds 10800`; it retains raw timestamps and checks adjusted
 quote age and completed bars independently. Its default is zero offset, and
-the running observer remains fail-closed. Confirm the Market Watch difference
-again after a server DST change before reusing this option. This is evidence
+the running observer uses the same offset only when explicitly configured in
+the private Compose `.env`. Confirm the Market Watch difference again after a
+server DST change before reusing this option. This is evidence
 collection, not proof that all MT5 Python timestamps use broker time.
 
 ### Bounded Batch 1 collection (read only)
@@ -215,7 +218,9 @@ reports private. `evaluation-policy.json` is **draft** and the offline
 `evaluate-gold.py` cannot produce shadow eligibility from it. No candidate
 or order path is installed.
 
-The health-enabled dashboard separates API delivery, observer heartbeat, MT5
+Once deployed with the offset, the observer normalizes the displayed quote
+timestamp; the one-shot verifier still retains raw broker timestamps. The
+health-enabled dashboard separates API delivery, observer heartbeat, MT5
 demo checks, quote freshness, fetched M15 history and strategy readiness.
 It refreshes every 10 seconds while visible, bounds fetches to 8 seconds and
 expires observer checks after 30 seconds. Old snapshots without explicit health
@@ -226,7 +231,7 @@ Quote failures retain history diagnostics; no orders are enabled by this view.
 Once the market is open and freshness passes, run one bounded observation:
 
 ```sh
-docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/observe-gold.py --login YOUR_DEMO_ACCOUNT_NUMBER --state 'C:\users\mt5\gold-observer.sqlite3' --once
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/observe-gold.py --login YOUR_DEMO_ACCOUNT_NUMBER --state 'C:\users\mt5\gold-observer.sqlite3' --server-offset-seconds 10800 --once
 ```
 
 The state path is the verified Windows home inside the persistent `mt5-home`

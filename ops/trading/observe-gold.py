@@ -52,10 +52,11 @@ def record_observation(db: sqlite3.Connection, result: dict, observed_at: float,
     return True
 
 
-def poll_once(mt5, db: sqlite3.Connection, login: int, now: float | None, bootstrap: bool) -> dict:
+def poll_once(mt5, db: sqlite3.Connection, login: int, now: float | None, bootstrap: bool,
+              server_offset_seconds: int = 0) -> dict:
     health = {}
     try:
-        tick, bars = read_gold(mt5, login, now, health)
+        tick, bars = read_gold(mt5, login, now, health, server_offset_seconds=server_offset_seconds)
         now = health["sampled_at"]
         result = evaluate(bars, float(tick.bid), float(tick.ask), now)
     except AccountGuardError as exc:
@@ -64,6 +65,11 @@ def poll_once(mt5, db: sqlite3.Connection, login: int, now: float | None, bootst
     except (DataUnavailable, ValueError) as exc:
         return {"mode": "signal-only", "symbol": SYMBOL, "status": "blocked",
                 "signal": "none", "reason": str(exc), "health": health}
+    finally:
+        if health.get("tick_time") is not None:
+            health["tick_time"] -= server_offset_seconds
+        if health.get("tick_time_msc") is not None:
+            health["tick_time_msc"] -= server_offset_seconds * 1000
     result.update(mode="signal-only", symbol=SYMBOL, health=health)
     if result["signal"] == "blocked":
         result["status"] = "blocked"
@@ -91,6 +97,7 @@ def main():
     parser.add_argument("--login", required=True, type=int)
     parser.add_argument("--state", required=True, type=Path)
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--server-offset-seconds", type=int, choices=(0, 7200, 10800), default=0)
     args = parser.parse_args()
     state = args.state.resolve()
     if not state.is_relative_to(Path.home().resolve()) or state.is_dir():
@@ -105,7 +112,7 @@ def main():
         bootstrap = True
         while True:
             started = time.monotonic()
-            result = poll_once(mt5, db, args.login, None, bootstrap)
+            result = poll_once(mt5, db, args.login, None, bootstrap, args.server_offset_seconds)
             write_snapshot(SNAPSHOT, db, result, time.time())
             print(json.dumps(result, allow_nan=False), flush=True)
             bootstrap = result["status"] == "blocked"
