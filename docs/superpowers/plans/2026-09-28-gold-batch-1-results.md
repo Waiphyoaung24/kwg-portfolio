@@ -69,3 +69,13 @@ raw tick and bar timestamps remain in its private report, and default
 observer behavior is unchanged. Local suite: 37 tests passed. Live one-shot
 and two-boundary qualification using this option are pending owner-assisted
 deployment. Data status remains **inconclusive**.
+
+The owner then deployed commit `ff70707`'s two changed verifier files into
+the existing desktop container after matching SHA-256 checksums, without a
+restart. At 12:34:40 UTC the one-shot verifier with the explicit 10800-second
+offset reported a 0.204-second gold quote age, 250 completed M15 bars, and
+latest adjusted bar time 1790597700 equal to the expected completed bar. Its
+raw bar time was 1790608500. This is a **single-time readiness pass**, not
+the required continuous two-boundary data qualification. The owner deferred
+the long collector; cost-source checks are also pending. The observer remains
+unchanged.
