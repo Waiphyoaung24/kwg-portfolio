@@ -4,4 +4,6 @@
 !verify-demo.py
 !mt5_data.py
 !gold_signal.py
+!gold_qualification.py
 !observe-gold.py
+!export-gold.py
