@@ -8,11 +8,12 @@ draft policy contain candidate gates and a deterministic paired bootstrap.
 All of this remains diagnostic; the draft policy cannot make a candidate
 eligible for shadow observation.
 
-Local checks: 36 Python tests passed on 2026-09-28. The original frozen
+Local checks: 53 Python tests passed on 2026-09-29. The original frozen
 dataset is private on the VPS, so a new baseline rerun was not completed from
-this workspace. Actual historical commission/swap coverage, fresh Batch 1
-data, an approved prospective policy, a registered candidate and sufficient
-validation observations are all missing. State: **prepared_but_blocked**.
+this workspace. Batch 1 continuity and container-restart recovery now passed
+for their observed session, while dated commission/swap coverage, an approved
+prospective policy, a registered candidate and sufficient validation
+observations remain missing. State: **prepared_but_blocked**.
 Prior baseline losses and 30–31 validation trades remain the only observed
 results; they do not satisfy the proposed 100-trade gate. No Vibe-Trading job,
 candidate selection, shadow promotion or orders were started.
@@ -48,3 +49,25 @@ The exact rollover time and historical rate changes are not established.
 [MetaQuotes swap-mode reference](https://www.mql5.com/en/docs/constants/environment_state/marketinfoconstants).
 No historical cost profile was approved or populated; status remains
 **prepared_but_blocked**.
+
+The 2026-09-29 offline gate review found that matching policy hash strings in
+two reports did not establish that either matched the policy actually being
+evaluated. The gate now checks the approved policy's canonical SHA-256 and
+rejects changed criteria. Nonfinite report/policy values, arithmetic overflow
+and a zero-length bootstrap block are inconclusive rather than an eligibility
+result or crash.
+The policy remains `draft`; these synthetic tests do not qualify a candidate.
+
+The authenticated read-only baseline summary still reports dataset SHA-256
+`ba4f246746d861c9f61d82c7a09d17931cd74e9dea604ea2897853369dcf8614`,
+hypothetical costs, 30/31/30 validation trades and net P&L of
+-$305.195/-$445.94/-$186.87 (lower/middle/stress). No candidate is registered
+or compared. Its older `live qualification incomplete` limitation does not
+reflect the subsequent bounded Batch 1 session; neither result establishes
+historical cost or timestamp coverage. The real simulator report still lacks
+the daily-return/fold adapter required by the prospective evaluator, so a
+synthetic gate pass cannot be treated as end-to-end Batch 2 readiness.
+
+The owner chose current public broker terms only. Those terms cannot fill the
+historical cost profile, so no dated-cost baseline rerun, candidate experiment
+or policy approval was attempted. The 2,000-bar holdout remains reserved.

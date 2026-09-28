@@ -55,6 +55,12 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
   money in all three hypothetical cost scenarios; 30–31 validation trades
   cannot meet the draft 100-trade gate. No Vibe-Trading proposal, candidate,
   research job, promotion, or order path has been enabled.
+- A 2026-09-29 Batch 2 gate review fixed approved-policy hash binding and
+  fail-closed nonfinite/overflow/zero-bootstrap handling; 53 Python tests
+  pass. The policy is still draft. The simulator has no daily-return/fold
+  adapter for real gate inputs, and public broker terms cannot supply dated
+  cost coverage.
+  See the [Batch 2 result](../../docs/superpowers/plans/2026-09-28-gold-batch-2-results.md).
 
 ## Next tasks, in order
 
@@ -66,10 +72,11 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
    disconnection separately if that gate is required; a container restart
    proves a narrower recovery path. After any future image-based recreation,
    recheck the fixed source hash and read-only demo guard.
-3. **Batch 2: review the draft pass/fail policy** and rerun the frozen baseline
-   only with verified dated costs. Preserve chronological windows and the
-   reserved 2,000-bar holdout. If evidence is incomplete, retain
-   `prepared_but_blocked` and the hypothetical result.
+3. **Batch 2: review the draft pass/fail policy** with the owner. Before any
+   candidate evaluation, add and verify the simulator-to-gate daily-return/fold
+   adapter. Rerun the frozen baseline only with verified dated costs. Preserve
+   chronological windows and the reserved 2,000-bar holdout. While evidence
+   is incomplete, retain `prepared_but_blocked` and the hypothetical result.
 4. **Batch 3 only after those gates:** verify a bounded model route and run one
    isolated Vibe-Trading research proposal. This read-only MCP is an
    observation tool, not a model API or research-job trigger. Batch 4 is

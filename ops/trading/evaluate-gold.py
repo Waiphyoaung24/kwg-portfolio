@@ -32,6 +32,27 @@ def evaluate_reports(baseline: dict, candidate: dict, policy: dict) -> dict:
         return {'decision': 'rejected', 'reasons': ['identity_or_risk_mismatch']}
     if candidate.get('declared_changes') != 1:
         return {'decision': 'rejected', 'reasons': ['candidate_scope_invalid']}
+    try:
+        for key in ('min_profit_factor', 'min_improvement_pp', 'max_drawdown_pct',
+                    'max_drawdown_increase_pp', 'max_fold_underperformance_pp'):
+            if _finite(policy[key]) < 0:
+                raise ValueError('Invalid policy threshold')
+        for key in ('min_trades', 'min_observed_days', 'min_fold_days',
+                    'required_improved_folds', 'bootstrap_replicates', 'bootstrap_block_days'):
+            if type(policy[key]) is not int or policy[key] <= 0:
+                raise ValueError('Invalid policy count')
+        if type(policy['bootstrap_seed']) is not int or policy['required_improved_folds'] > 3:
+            raise ValueError('Invalid policy seed or fold count')
+    except (KeyError, TypeError, ValueError):
+        return {'decision': decision, 'reasons': ['policy_invalid']}
+    if policy.get('status') == 'approved':
+        try:
+            policy_sha256 = hashlib.sha256(json.dumps(policy, sort_keys=True,
+                separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+        except (TypeError, ValueError):
+            return {'decision': decision, 'reasons': ['policy_invalid']}
+        if base_id['policy_sha256'] != policy_sha256:
+            return {'decision': 'rejected', 'reasons': ['policy_identity_mismatch']}
     if policy.get('status') != 'approved':
         reasons.append('policy_not_approved')
     if evidence.get('batch1_status') != 'passed' or evidence.get('cost_status') != 'verified_historical':
@@ -57,12 +78,12 @@ def evaluate_reports(baseline: dict, candidate: dict, policy: dict) -> dict:
                     reasons.append('profit_factor_undefined')
                 elif _finite(pf) < policy['min_profit_factor']:
                     reasons.append('profit_factor_low')
-                if c['return_pct'] <= 0 or c['return_pct'] - b['return_pct'] < policy['min_improvement_pp']:
+                if c['return_pct'] <= 0 or _finite(c['return_pct'] - b['return_pct']) < policy['min_improvement_pp']:
                     reasons.append('base_return_gate_failed')
             elif c['return_pct'] <= 0 or c['return_pct'] < b['return_pct']:
                 reasons.append(name + '_return_gate_failed')
             if (c['close_sampled_drawdown_pct'] > policy['max_drawdown_pct']
-                    or c['close_sampled_drawdown_pct'] - b['close_sampled_drawdown_pct'] > policy['max_drawdown_increase_pp']):
+                    or _finite(c['close_sampled_drawdown_pct'] - b['close_sampled_drawdown_pct']) > policy['max_drawdown_increase_pp']):
                 reasons.append(name + '_drawdown_gate_failed')
         folds_b, folds_c = base['folds'], cand['folds']
         if len(folds_b) != 3 or len(folds_c) != 3:
@@ -73,7 +94,7 @@ def evaluate_reports(baseline: dict, candidate: dict, policy: dict) -> dict:
                 if b['start'] != c['start'] or b['end'] != c['end'] or _finite(c['days']) < policy['min_fold_days']:
                     reasons.append('fold_mismatch_or_short')
                     continue
-                delta = _finite(c['return_pct']) - _finite(b['return_pct'])
+                delta = _finite(_finite(c['return_pct']) - _finite(b['return_pct']))
                 better += delta > 0
                 if delta < -policy['max_fold_underperformance_pp']:
                     reasons.append('fold_underperformed')
@@ -88,7 +109,7 @@ def evaluate_reports(baseline: dict, candidate: dict, policy: dict) -> dict:
                      'fold_mismatch_or_short', 'paired_days_mismatch')) else 'rejected',
                     'reasons': reasons}
         days = sorted(daily_b)
-        diffs = {d: _finite(daily_c[d]) - _finite(daily_b[d]) for d in days}
+        diffs = {d: _finite(_finite(daily_c[d]) - _finite(daily_b[d])) for d in days}
         block = policy['bootstrap_block_days']
         blocks = []
         assigned = set()
@@ -108,13 +129,13 @@ def evaluate_reports(baseline: dict, candidate: dict, policy: dict) -> dict:
             draw = []
             while len(draw) < len(days):
                 draw.extend(rng.choice(blocks))
-            means.append(sum(draw[:len(days)]) / len(days))
+            means.append(_finite(sum(draw[:len(days)]) / len(days)))
         interval = [_percentile(means, .025), _percentile(means, .975)]
         if interval[0] <= 0:
             reasons.append('bootstrap_lower_bound_nonpositive')
         return {'decision': 'rejected' if reasons else 'eligible_for_shadow',
                 'reasons': reasons, 'paired_daily_difference_ci95': interval}
-    except (KeyError, TypeError, IndexError):
+    except (KeyError, TypeError, ValueError, IndexError):
         return {'decision': 'inconclusive', 'reasons': ['report_incomplete']}
 
 

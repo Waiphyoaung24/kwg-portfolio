@@ -217,6 +217,9 @@ integer `start` and `end` bar timestamps. Keep profiles and detailed
 reports private. `evaluation-policy.json` is **draft** and the offline
 `evaluate-gold.py` cannot produce shadow eligibility from it. No candidate
 or order path is installed.
+For an approved policy, both evaluator input reports must carry the SHA-256
+of its canonical JSON (`sort_keys=True`, compact separators, finite numbers)
+in `identity.policy_sha256`; changing a threshold invalidates the comparison.
 
 Once deployed with the offset, the observer normalizes the displayed quote
 timestamp; the one-shot verifier still retains raw broker timestamps. The

@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 from pathlib import Path
 import runpy
@@ -30,6 +31,10 @@ def reports():
         fold['return_pct'] = 1.1
     candidate['validation']['daily_returns'] = {f'{i:02}': 0.002 for i in range(60)}
     approved = {**policy, 'status': 'approved', 'bootstrap_replicates': 100}
+    policy_hash = hashlib.sha256(json.dumps(approved, sort_keys=True,
+        separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+    base['identity']['policy_sha256'] = policy_hash
+    candidate['identity']['policy_sha256'] = policy_hash
     return base, candidate, approved
 
 
@@ -53,6 +58,32 @@ class GateTest(unittest.TestCase):
         candidate['evidence']['cost_status'] = 'verified_historical'
         candidate['validation']['scenarios']['stress']['return_pct'] = -1
         self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+
+    def test_nonfinite_report_or_policy_is_inconclusive(self):
+        base, candidate, approved = reports()
+        candidate['validation']['scenarios']['lower']['return_pct'] = float('nan')
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+        base, candidate, approved = reports()
+        approved['min_profit_factor'] = float('nan')
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+
+    def test_zero_bootstrap_block_is_inconclusive(self):
+        base, candidate, approved = reports()
+        approved['bootstrap_block_days'] = 0
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+
+    def test_changed_approved_policy_invalidates_comparison(self):
+        base, candidate, approved = reports()
+        approved['min_profit_factor'] = 1.0
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+
+    def test_overflowing_bootstrap_arithmetic_is_inconclusive(self):
+        base, candidate, approved = reports()
+        base['validation']['daily_returns'] = {f'{i:02}': -1e308 for i in range(60)}
+        candidate['validation']['daily_returns'] = {f'{i:02}': 1e308 for i in range(60)}
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+        base['validation']['daily_returns'] = {f'{i:02}': 0 for i in range(60)}
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
 
 
 if __name__ == '__main__':
