@@ -185,6 +185,7 @@ def run(data, *, windows=None, cost_profile=None, candidate=None):
     bars = data['bars']
     if len(bars) < 1000:
         raise ValueError('Need 1000 bars for chronological diagnostic windows')
+    fold_ranges = []
     if windows is None:
         dev_end, validation_end = int(len(bars) * .6), int(len(bars) * .8)
         development_start = 249
@@ -199,6 +200,21 @@ def run(data, *, windows=None, cost_profile=None, candidate=None):
             raise ValueError('Frozen window timestamp is missing') from None
         if development_start < 249 or validation_start != dev_end or validation_end > len(bars):
             raise ValueError('Windows must be ordered, adjacent and warmed up')
+        if 'folds' in windows:
+            if not isinstance(windows['folds'], list) or len(windows['folds']) != 3:
+                raise ValueError('Expected three fixed validation folds')
+            next_start = validation_start
+            for fold in windows['folds']:
+                try:
+                    start, end = stamps[fold['start']], stamps[fold['end']] + 1
+                except (KeyError, TypeError):
+                    raise ValueError('Fold timestamp is missing') from None
+                if start != next_start or end <= start or end > validation_end:
+                    raise ValueError('Folds must partition validation in order')
+                fold_ranges.append((start, end))
+                next_start = end
+            if next_start != validation_end:
+                raise ValueError('Folds must cover validation')
     # No evaluation or performance inspection on the reserved newest 20%.
     available = {**data, 'bars': bars[:validation_end]}
     signals = {d['bar_time']: d for d in replay(available, candidate=candidate)['decisions']}
@@ -211,6 +227,13 @@ def run(data, *, windows=None, cost_profile=None, candidate=None):
                               cost_profile=cost_profile)
             result['first_bar'], result['last_bar'] = bars[start]['time'], bars[end - 1]['time']
             runs[name]['windows'][window] = result
+        if fold_ranges:
+            runs[name]['folds'] = []
+            for start, end in fold_ranges:
+                result = simulate(bars[start:end], signals, data['current_contract_specification'], costs,
+                                  cost_profile=cost_profile)
+                result['first_bar'], result['last_bar'] = bars[start]['time'], bars[end - 1]['time']
+                runs[name]['folds'].append(result)
     report = {'mode': 'hypothetical-trade-simulation', 'qualification': 'unqualified', 'initial_usd_per_window': 100000,
             'cost_profile_status': 'historically-covered' if cost_profile is not None else 'hypothetical',
             'daily_return_time_basis': 'raw_broker_epoch_unqualified',

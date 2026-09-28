@@ -72,9 +72,11 @@ historical cost or timestamp coverage. The simulator now records per-trade
 entry risk/net R, notional turnover and close-sampled raw-epoch daily returns.
 A synthetic test reconciles trade risk and daily marks. These are diagnostics:
 the raw days are not verified UTC dates, and the provisional manifest rejects
-dated cost profiles and has no three prospective folds. No real report adapter
-can meet the approved evaluator's evidence contract yet; a synthetic gate pass
-is not end-to-end Batch 2 readiness.
+dated cost profiles and has no three prospective folds. The simulator now
+accepts three explicit folds that exactly partition validation, resets each
+fold flat and leaves the holdout untouched; a synthetic boundary test passes.
+No real report adapter can meet the approved evaluator's evidence contract yet;
+a synthetic gate pass is not end-to-end Batch 2 readiness.
 
 On 2026-09-29 (Asia/Bangkok), the owner explicitly approved the exact v1
 thresholds in `evaluation-policy.json` for future candidate tests. Its status

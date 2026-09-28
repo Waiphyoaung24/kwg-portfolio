@@ -116,6 +116,20 @@ class SimulationTest(unittest.TestCase):
                   'validation': {'start': 601*900, 'end': 800*900}}
         self.assertEqual(sim['run'](data, windows=frozen)['runs'],
                          sim['run'](changed, windows=frozen)['runs'])
+        folded = {**frozen, 'folds': [{'start': a*900, 'end': b*900}
+                                     for a, b in ((601, 660), (661, 720), (721, 800))]}
+        folded_result = sim['run'](data, windows=folded)
+        self.assertEqual([(fold['first_bar'], fold['last_bar'])
+                          for fold in folded_result['runs']['lower']['folds']],
+                         [(a*900, b*900) for a, b in ((601, 660), (661, 720), (721, 800))])
+        self.assertEqual(folded_result['runs'], sim['run'](changed, windows=folded)['runs'])
+        self.assertTrue(all(fold['equity_curve'][0]['equity'] == 100000
+                            for fold in folded_result['runs']['lower']['folds']))
+        self.assertFalse(folded_result['holdout']['evaluated'])
+        overlapping = copy.deepcopy(folded)
+        overlapping['folds'][1]['start'] = 660*900
+        with self.assertRaises(ValueError):
+            sim['run'](data, windows=overlapping)
 
     def test_daily_pause_after_cost_and_adverse_gap(self):
         sample = bars()

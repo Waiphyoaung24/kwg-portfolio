@@ -60,8 +60,9 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
   pass. The owner approved exact v1 thresholds on 2026-09-29; the policy is
   approved prospectively. The simulator now reports raw-epoch daily returns,
   trade risk/net R and notional turnover, but raw dates and three prospective
-  folds cannot yet be adapted into real gate inputs. Public broker terms
-  cannot supply dated cost coverage.
+  folds cannot yet be adapted into real gate inputs. The simulator can execute
+  three explicitly frozen, flat-reset folds once qualified windows exist.
+  Public broker terms cannot supply dated cost coverage.
   See the [Batch 2 result](../../docs/superpowers/plans/2026-09-28-gold-batch-2-results.md).
 
 ## Next tasks, in order

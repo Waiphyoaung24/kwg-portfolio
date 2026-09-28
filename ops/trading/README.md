@@ -228,6 +228,11 @@ be copied into the evaluator's `daily_returns`. The frozen provisional
 manifest rejects `--cost-profile` and cannot supply the required three
 prospective folds. A new covered dataset and manifest are needed before
 building real gate inputs.
+For prospective windows, `folds` may contain exactly three ordered
+`{start,end}` timestamp pairs partitioning validation. Each fold runs from
+flat initial capital and cannot include the reserved holdout. The current
+frozen manifest has no such folds; adding them to it would invalidate its
+identity and would not create missing observed days.
 
 Once deployed with the offset, the observer normalizes the displayed quote
 timestamp; the one-shot verifier still retains raw broker timestamps. The
