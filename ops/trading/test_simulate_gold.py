@@ -15,6 +15,33 @@ def bars():
 
 
 class SimulationTest(unittest.TestCase):
+    def test_midnight_gap_keeps_previous_equity_reference(self):
+        sample = [dict(time=83700+i*900, open=100, high=100.5, low=99.5,
+                       close=100, spread=0) for i in range(5)]
+        sample[3].update(open=50, high=50.5, low=49.5, close=50)
+        sample[4].update(open=50, high=50.5, low=49.5, close=50)
+        signals = {84600: dict(signal='long', bar_time=84600, atr14=1),
+                   86400: dict(signal='short', bar_time=86400, atr14=1)}
+        result = sim['simulate'](sample, signals, SPEC, FREE)
+        self.assertEqual(result['summary']['skips']['daily_pause_rejected'], 1)
+
+    def test_verified_costs_reconcile(self):
+        profile = {'symbol': 'XAUUSD-VIP',
+                   'commission': {'status': 'verified_historical', 'source_sha256': 'a'*64,
+                                  'effective_from': 1, 'effective_to': 100000,
+                                  'value': 7, 'currency': 'USD', 'basis': 'round_trip_per_lot'},
+                   'swap': {'status': 'verified_historical', 'source_sha256': 'b'*64,
+                            'effective_from': 1, 'effective_to': 100000,
+                            'mode': 'USD_PER_LOT', 'currency': 'USD',
+                            'rollover_timezone': 'UTC', 'rollover_local_time': '00:00',
+                            'rollover_events': [
+                                {'at': 3600, 'multiplier': 1, 'rate_long': -2, 'rate_short': 0}]}}
+        sample = bars()
+        signals = {1800: dict(signal='long', bar_time=1800, atr14=1)}
+        result = sim['simulate'](sample, signals, SPEC, FREE, cost_profile=profile)
+        self.assertEqual(len(result['trades']), 1)
+        self.assertAlmostEqual(result['summary']['net_pnl_usd'], sum(t['net_pnl'] for t in result['trades']))
+
     def test_stops_targets_short_ask_and_gaps(self):
         exit_at = sim['protective_exit']
         pos = dict(side=1, stop=98, target=103)
@@ -68,6 +95,10 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(result, sim['run'](changed))
         self.assertFalse(result['holdout']['evaluated'])
         self.assertEqual(result['runs']['middle']['windows']['validation']['first_bar'], 601 * 900)
+        frozen = {'development': {'start': 250*900, 'end': 600*900},
+                  'validation': {'start': 601*900, 'end': 800*900}}
+        self.assertEqual(sim['run'](data, windows=frozen)['runs'],
+                         sim['run'](changed, windows=frozen)['runs'])
 
     def test_daily_pause_after_cost_and_adverse_gap(self):
         sample = bars()

@@ -166,6 +166,41 @@ stale; negative ages mean a future timestamp. Do not correct these by guessing
 a broker timezone. The readiness check also evaluates completed-bar timing and
 spread guards; receiving 250 bars alone is not a readiness pass.
 
+### Bounded Batch 1 collection (read only)
+
+The verifier can sample the pinned gold demo for at most one hour. A pass
+requires 361 continuous five-second samples, fresh quotes, valid 250-bar
+history and two consecutive completed M15 transitions. A weekend, missed
+poll, stale quote or changed demo identity produces an inconclusive report.
+The report contains sampled spread and allowlisted current contract fields,
+but no account number, credentials or verified fee claim.
+
+After copying the tested `verify-demo.py`, `mt5_data.py`,
+`gold_qualification.py` and `gold_signal.py` into the existing desktop
+container, run this on the VPS during the symbol's open session:
+
+```sh
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/verify-demo.py --login YOUR_DEMO_ACCOUNT_NUMBER --collect-seconds 3600 --output 'C:\users\mt5\gold-qualification-YYYYMMDD.json'
+```
+
+Choose a new filename on rerun; output creation is exclusive. Keep the JSON
+private in MT5 home. Exit 0 means data continuity passed, not that strategy
+or costs passed. Exit 2 means inconclusive. Do not commit the report.
+Commission and swap rules require this exact demo account's dated broker
+schedule; an absent or zero charge in deal history is insufficient evidence.
+
+### Batch 2 offline comparison
+
+`gold_costs.py` accepts only sourced, dated USD commission and supported
+swap events. `simulate-gold.py --cost-profile PROFILE.json --windows
+WINDOWS.json` is optional; without them the old three scenarios remain
+hypothetical. A profile with unknown or uncovered costs is rejected. Window
+JSON specifies fixed `development` and `validation` objects, each with
+integer `start` and `end` bar timestamps. Keep profiles and detailed
+reports private. `evaluation-policy.json` is **draft** and the offline
+`evaluate-gold.py` cannot produce shadow eligibility from it. No candidate
+or order path is installed.
+
 The health-enabled dashboard separates API delivery, observer heartbeat, MT5
 demo checks, quote freshness, fetched M15 history and strategy readiness.
 It refreshes every 10 seconds while visible, bounds fetches to 8 seconds and

@@ -347,7 +347,7 @@ scheduled work has been configured.
 - No scheduled follow-up was created. On resume, inspect current live status
   and do not infer successful market reopening from the date alone.
 
-### Detailed Batch 1–2 implementation plans — planning only
+### Batch 1–2 implementation handoff
 
 - `docs/superpowers/plans/2026-09-28-gold-batch-1-implementation.md`: bounded
   verifier evidence, consecutive M15 transitions, contract/cost provenance,
@@ -355,10 +355,19 @@ scheduled work has been configured.
 - `docs/superpowers/plans/2026-09-28-gold-batch-2-implementation.md`: explicit
   dated cost profiles, simulator accounting/window checks, prospective gates,
   deterministic baseline rerun and evidence handoff.
-- Both are plans, not deployed features. New CLI flags/interfaces are future
-  implementation work. Proposed numeric research gates remain draft until
-  owner review; existing ~30 validation trades cannot satisfy the proposed
-  100-trade/60-day sample minimum. No candidate, orders or future job started.
+- Local code now includes a bounded read-only collector, an allowlisted
+  contract snapshot, strict offline cost adapter, frozen-window simulation,
+  daily-gap pause correction and a draft offline candidate gate. See
+  `docs/superpowers/plans/2026-09-28-gold-batch-1-results.md` and
+  `2026-09-28-gold-batch-2-results.md`. Local Python suite: 36 tests passed.
+- The collector has not been deployed or run on the VPS from this workspace:
+  non-interactive SSH authentication failed. Use an authorized interactive
+  SSH session to deploy exact committed files without restarting MT5.
+  Data continuity is inconclusive and actual account-specific costs remain
+  unknown. The private frozen dataset was not rerun here.
+- Proposed numeric research gates remain draft until owner review; existing
+  ~30 validation trades cannot satisfy the proposed 100-trade/60-day sample
+  minimum. No candidate, orders or future job started.
 - Context7 and primary MetaQuotes documentation consulted. Broker fee history
   still requires account-specific evidence; current rates are not backfilled
   as historical truth. Prior baseline outcomes are already inspected.

@@ -54,6 +54,17 @@ def validate_tick(tick, now: float, evidence: dict | None = None) -> float:
     return age
 
 
+def read_contract(mt5) -> dict:
+    """Allowlisted current symbol properties; commission is not exposed here."""
+    info = mt5.symbol_info(SYMBOL)
+    fields = ('name', 'chart_mode', 'digits', 'point', 'trade_tick_size',
+              'trade_tick_value', 'trade_contract_size', 'currency_profit',
+              'currency_margin', 'volume_min', 'volume_max', 'volume_step',
+              'trade_calc_mode', 'swap_mode', 'swap_long', 'swap_short',
+              'swap_rollover3days')
+    return {field: getattr(info, field, None) for field in fields} | {'commission': None}
+
+
 def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None) -> tuple[object, list[dict]]:
     evidence = evidence if evidence is not None else {}
     evidence.update(terminal="unknown", quote="unknown", sampled_at=now,

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "status": "draft",
+  "scope": "one registered gold candidate, one declared strategy change, demo shadow only",
+  "min_trades": 100,
+  "min_observed_days": 60,
+  "min_fold_days": 20,
+  "min_profit_factor": 1.1,
+  "min_improvement_pp": 0.25,
+  "max_drawdown_pct": 5,
+  "max_drawdown_increase_pp": 0.25,
+  "max_fold_underperformance_pp": 0.25,
+  "required_improved_folds": 2,
+  "bootstrap_seed": 20260928,
+  "bootstrap_replicates": 10000,
+  "bootstrap_block_days": 5,
+  "slippage_price_per_side": [0.05, 0.1, 0.3]
+}
