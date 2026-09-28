@@ -42,6 +42,10 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(len(result['trades']), 1)
         self.assertAlmostEqual(result['summary']['net_pnl_usd'], sum(t['net_pnl'] for t in result['trades']))
 
+    def test_unknown_historical_costs_cannot_use_verified_path(self):
+        with self.assertRaises(ValueError):
+            sim['simulate'](bars(), {}, SPEC, FREE, cost_profile={})
+
     def test_stops_targets_short_ask_and_gaps(self):
         exit_at = sim['protective_exit']
         pos = dict(side=1, stop=98, target=103)
@@ -70,6 +74,18 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(paid, sim['simulate'](sample, signals, SPEC, costs))
         tiny = sim['simulate'](sample, signals, SPEC, FREE, initial=1)
         self.assertEqual(tiny['summary']['trades'], 0)
+
+    def test_candidate_rejects_entry_but_does_not_suppress_opposite_close(self):
+        sample = bars()
+        signals = {1800: dict(signal='long', bar_time=1800, atr14=1, entry_allowed=True),
+                   2700: dict(signal='short', bar_time=2700, atr14=1, entry_allowed=False)}
+        result = sim['simulate'](sample, signals, SPEC, FREE)
+        self.assertEqual(result['trades'][0]['exit_reason'], 'opposite_signal')
+        self.assertEqual(result['summary']['trades'], 1)
+        rejected = sim['simulate'](sample, {1800: {**signals[1800], 'entry_allowed': False}},
+                                   SPEC, FREE)
+        self.assertEqual(rejected['summary']['trades'], 0)
+        self.assertEqual(rejected['summary']['skips']['candidate_entry_rejected'], 1)
 
     def test_overnight_gap_cancel_and_window_close(self):
         sample = bars()

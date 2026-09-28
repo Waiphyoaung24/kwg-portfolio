@@ -7,9 +7,12 @@ import math
 from pathlib import Path
 
 from gold_signal import evaluate
+from gold_experiment import entry_allowed, validate_candidate
 
 
-def replay(data):
+def replay(data, *, candidate=None):
+    if candidate is not None:
+        validate_candidate(candidate)
     if (data.get('schema_version') != 1 or data.get('symbol') != 'XAUUSD-VIP'
             or data.get('timeframe') != 'M15' or data.get('source', {}).get('start_pos') != 1):
         raise ValueError('Expected a completed-bar gold export')
@@ -19,9 +22,8 @@ def replay(data):
     if not math.isfinite(point) or point <= 0 or not math.isfinite(captured) or len(bars) < 251:
         raise ValueError('Invalid specification, capture time or history length')
     for bar in bars:
-        if (type(bar['spread']) is not int or bar['spread'] < 0
-                or bar['time'] + 900 > captured):
-            raise ValueError('Invalid spread or uncompleted historical bar')
+        if type(bar['spread']) is not int or bar['spread'] < 0:
+            raise ValueError('Invalid historical spread')
     counts, reasons = Counter(), Counter()
     decisions = []
     last_recorded = None
@@ -45,8 +47,12 @@ def replay(data):
                 counts[signal] += 1
             last_recorded = bar['time']
             bootstrap = False
-        decisions.append({'bar_time': bar['time'], 'signal': signal, 'reason': result['reason'],
-                          'atr14': result['atr14']})
+        decision = {'bar_time': bar['time'], 'signal': signal, 'reason': result['reason'],
+                    'atr14': result['atr14']}
+        if candidate is not None:
+            decision['entry_allowed'] = entry_allowed(bars[index - 249:index + 1], signal,
+                                                       candidate['lookback_bars'])
+        decisions.append(decision)
     return {
         'mode': 'historical-signal-replay', 'qualification': 'unqualified',
         'baseline': 'gold-ema-v1', 'bars': len(bars), 'warmup_bars': 249,

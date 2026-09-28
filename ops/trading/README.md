@@ -321,3 +321,52 @@ python3 -B simulate-gold.py --dataset gold-history-20260928.json --sha256 <verif
 
 All runs remain unqualified. Historical bid/ask paths, contract changes, actual
 broker costs and live data qualification are unresolved. No result enables orders.
+
+### One provisional offline comparison
+
+`compare-gold.py` locks the private 10,000-bar dataset, evaluation source
+hashes, windows, fixed hypothetical costs and risk rules before a proposal.
+Run it with Python 3.12 and the sibling trading scripts in one private source
+directory. Keep `/opt/kwg-gold-research/experiments/gold-exp-001/` owner-only,
+and never commit its manifests, reports, prompt or proposal. Replace `TOOLS`
+below with the directory containing the reviewed `ops/trading/*.py` files;
+the directory must not be changed after `finalize`.
+
+```sh
+DATA=/opt/kwg-gold-research/datasets/gold-history-20260928.json
+EXP=/opt/kwg-gold-research/experiments/gold-exp-001
+TOOLS=/opt/kwg-gold-research/src
+HASH=ba4f246746d861c9f61d82c7a09d17931cd74e9dea604ea2897853369dcf8614
+umask 077
+mkdir -p "$EXP"
+chmod 700 "$EXP"
+sha256sum "$DATA"
+python3 -B "$TOOLS/compare-gold.py" prepare --dataset "$DATA" --sha256 "$HASH" --output "$EXP/manifest-prepared.json"
+python3 -B "$TOOLS/simulate-gold.py" --dataset "$DATA" --sha256 "$HASH" --manifest "$EXP/manifest-prepared.json" --output "$EXP/baseline-preliminary-a.json"
+python3 -B "$TOOLS/simulate-gold.py" --dataset "$DATA" --sha256 "$HASH" --manifest "$EXP/manifest-prepared.json" --output "$EXP/baseline-preliminary-b.json"
+cmp "$EXP/baseline-preliminary-a.json" "$EXP/baseline-preliminary-b.json"
+python3 -B "$TOOLS/compare-gold.py" finalize --dataset "$DATA" --sha256 "$HASH" --prepared "$EXP/manifest-prepared.json" --output "$EXP/manifest.json"
+python3 -B "$TOOLS/simulate-gold.py" --dataset "$DATA" --sha256 "$HASH" --manifest "$EXP/manifest.json" --output "$EXP/baseline-a.json"
+python3 -B "$TOOLS/simulate-gold.py" --dataset "$DATA" --sha256 "$HASH" --manifest "$EXP/manifest.json" --output "$EXP/baseline-b.json"
+cmp "$EXP/baseline-a.json" "$EXP/baseline-b.json"
+python3 -B "$TOOLS/compare-gold.py" research-input --dataset "$DATA" --sha256 "$HASH" --manifest "$EXP/manifest.json" --baseline "$EXP/baseline-a.json" --output "$EXP/research-input.json"
+```
+
+The research input contains development-only summary statistics and baseline
+metrics; it excludes validation and reserved bars, volumes, account details
+and credentials. There is no automatic Vibe-Trading model call. If its
+provider and run limits are verified, save **one genuine proposal** as
+`$EXP/proposal.json` with only `kind="ema20_slope_filter"`, integer
+`lookback_bars` from 2 to 5 and a nonempty `hypothesis`. Then register it
+before candidate simulation:
+
+```sh
+python3 -B "$TOOLS/compare-gold.py" register --manifest "$EXP/manifest.json" --proposal "$EXP/proposal.json" --output "$EXP/registration.json"
+python3 -B "$TOOLS/simulate-gold.py" --dataset "$DATA" --sha256 "$HASH" --manifest "$EXP/manifest.json" --candidate "$EXP/proposal.json" --registration "$EXP/registration.json" --output "$EXP/candidate-a.json"
+python3 -B "$TOOLS/simulate-gold.py" --dataset "$DATA" --sha256 "$HASH" --manifest "$EXP/manifest.json" --candidate "$EXP/proposal.json" --registration "$EXP/registration.json" --output "$EXP/candidate-b.json"
+cmp "$EXP/candidate-a.json" "$EXP/candidate-b.json"
+python3 -B "$TOOLS/compare-gold.py" compare --baseline "$EXP/baseline-a.json" --candidate "$EXP/candidate-a.json" --manifest "$EXP/manifest.json" --proposal "$EXP/proposal.json" --registration "$EXP/registration.json" --output "$EXP/comparison.json"
+```
+
+See the [experiment status](../../docs/superpowers/plans/2026-09-28-gold-first-experiment-results.md)
+for the current blockers. An exploratory comparison never enables orders.

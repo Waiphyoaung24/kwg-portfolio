@@ -29,10 +29,29 @@ class ReplayTest(unittest.TestCase):
         self.assertEqual(module.replay(gapped)['counts']['baseline_reset'], 2)
         for mutate in ('future', 'spread', 'ohlc'):
             invalid = copy.deepcopy(data)
-            if mutate == 'future': invalid['captured_at'] = 252 * 900
+            if mutate == 'future': invalid['captured_at'] = float('nan')
             elif mutate == 'spread': invalid['bars'][0]['spread'] = -1
             else: invalid['bars'][0]['high'] = 98
             with self.assertRaises(ValueError): module.replay(invalid)
+
+    def test_candidate_keeps_baseline_signal_and_cannot_see_later_bars(self):
+        bars = [dict(time=(i + 1) * 900, open=100, high=101, low=99, close=100, spread=10)
+                for i in range(253)]
+        bars[250]['close'] = 101
+        bars[251]['close'] = 99
+        data = dict(schema_version=1, symbol='XAUUSD-VIP', timeframe='M15', source={'start_pos': 1},
+                    captured_at=300 * 900, current_contract_specification={'point': .01}, bars=bars)
+        proposal = {'kind': 'ema20_slope_filter', 'lookback_bars': 3, 'hypothesis': 'Test slope'}
+        baseline = module.replay(data)
+        candidate = module.replay(data, candidate=proposal)
+        self.assertEqual([d['signal'] for d in candidate['decisions']],
+                         [d['signal'] for d in baseline['decisions']])
+        self.assertIn('entry_allowed', candidate['decisions'][1])
+        self.assertNotIn('entry_allowed', baseline['decisions'][1])
+        later = copy.deepcopy(data)
+        later['bars'][-1]['close'] = 100.5
+        self.assertEqual(module.replay(later, candidate=proposal)['decisions'][:-1],
+                         candidate['decisions'][:-1])
 
 
 if __name__ == '__main__':

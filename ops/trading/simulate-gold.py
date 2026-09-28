@@ -7,16 +7,10 @@ import math
 from pathlib import Path
 import runpy
 from gold_costs import commission_usd, rollover_cashflow_usd, validate_profile
+from gold_experiment import (SCENARIOS, digest, experiment_identity, prepare_experiment,
+                             source_hashes, validate_candidate, validate_registration)
 
 replay = runpy.run_path(str(Path(__file__).with_name('replay-gold.py')))['replay']
-
-# Explicit scenario inputs, not estimates of VT Markets charges.
-SCENARIOS = {
-    'lower': dict(commission=3.5, slippage=.05, overnight=5, spread_multiplier=1),
-    'middle': dict(commission=7, slippage=.10, overnight=15, spread_multiplier=1.5),
-    'stress': dict(commission=14, slippage=.30, overnight=30, spread_multiplier=2),
-}
-
 
 def tick_round(price, tick, up):
     return (math.ceil(price / tick - 1e-9) if up else math.floor(price / tick + 1e-9)) * tick
@@ -114,7 +108,9 @@ def simulate(bars, signals, spec, costs, initial=100000, *, cost_profile=None):
                 close(bar['open'] + (spread if position['side'] == -1 else 0), 'opposite_signal', stamp)
                 closed = True
             paused |= cash <= day_start * .99 if position is None else False
-            if position is None and not closed and not paused:
+            if position is None and not closed and not paused and not pending.get('entry_allowed', True):
+                counts['candidate_entry_rejected'] += 1
+            elif position is None and not closed and not paused:
                 volatility = pending['atr14']
                 if spread > volatility * .1 + 1e-12:
                     counts['entry_spread_rejected'] += 1
@@ -164,7 +160,9 @@ def simulate(bars, signals, spec, costs, initial=100000, *, cost_profile=None):
             'trades': trades, 'equity_curve': curve}
 
 
-def run(data, *, windows=None, cost_profile=None):
+def run(data, *, windows=None, cost_profile=None, candidate=None):
+    if candidate is not None:
+        validate_candidate(candidate)
     bars = data['bars']
     if len(bars) < 1000:
         raise ValueError('Need 1000 bars for chronological diagnostic windows')
@@ -184,7 +182,7 @@ def run(data, *, windows=None, cost_profile=None):
             raise ValueError('Windows must be ordered, adjacent and warmed up')
     # No evaluation or performance inspection on the reserved newest 20%.
     available = {**data, 'bars': bars[:validation_end]}
-    signals = {d['bar_time']: d for d in replay(available)['decisions']}
+    signals = {d['bar_time']: d for d in replay(available, candidate=candidate)['decisions']}
     runs = {}
     for name, costs in SCENARIOS.items():
         # Signal gate uses recorded spread; entry gate applies the scenario stress.
@@ -194,7 +192,7 @@ def run(data, *, windows=None, cost_profile=None):
                               cost_profile=cost_profile)
             result['first_bar'], result['last_bar'] = bars[start]['time'], bars[end - 1]['time']
             runs[name]['windows'][window] = result
-    return {'mode': 'hypothetical-trade-simulation', 'qualification': 'unqualified', 'initial_usd_per_window': 100000,
+    report = {'mode': 'hypothetical-trade-simulation', 'qualification': 'unqualified', 'initial_usd_per_window': 100000,
             'cost_profile_status': 'historically-covered' if cost_profile is not None else 'hypothetical',
             'holdout': {'start_index': validation_end, 'bars': len(bars) - validation_end, 'evaluated': False},
             'rules': ['Completed EMA20/50 crossover; ATR14; next adjacent bar open entry',
@@ -214,6 +212,9 @@ def run(data, *, windows=None, cost_profile=None):
                             'Raw timestamp semantics and live freshness remain unqualified',
                             'Drawdown sampled at closes; no statistical evidence or promotion gate passed'],
             'runs': runs}
+    if candidate is not None:
+        report['candidate'] = candidate
+    return report
 
 
 def main():
@@ -223,18 +224,45 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--cost-profile', type=Path)
     parser.add_argument('--windows', type=Path)
+    parser.add_argument('--manifest', type=Path)
+    parser.add_argument('--candidate', type=Path)
+    parser.add_argument('--registration', type=Path)
     args = parser.parse_args()
     raw = args.dataset.read_bytes()
     if hashlib.sha256(raw).hexdigest() != args.sha256.lower():
         parser.error('Dataset checksum mismatch')
     profile = json.loads(args.cost_profile.read_bytes()) if args.cost_profile else None
     windows = json.loads(args.windows.read_bytes()) if args.windows else None
-    report = run(json.loads(raw), windows=windows, cost_profile=profile)
+    data = json.loads(raw)
+    manifest = json.loads(args.manifest.read_bytes()) if args.manifest else None
+    candidate = json.loads(args.candidate.read_bytes()) if args.candidate else None
+    if args.candidate and (not args.manifest or not args.registration):
+        parser.error('--candidate requires --manifest and --registration')
+    if args.registration and not args.candidate:
+        parser.error('--registration requires --candidate')
+    if manifest is not None:
+        expected = prepare_experiment(data, args.sha256, source_hashes())
+        if (args.cost_profile or args.windows or manifest.get('status') not in ('prepared', 'frozen')
+                or (candidate is not None and manifest.get('status') != 'frozen')
+                or {**manifest, 'status': 'prepared'} != expected):
+            parser.error('Manifest, dataset or evaluator mismatch')
+        windows = manifest['windows']
+    registration = json.loads(args.registration.read_bytes()) if args.registration else None
+    if candidate is not None:
+        validate_registration(registration, manifest, candidate)
+    report = run(data, windows=windows, cost_profile=profile, candidate=candidate)
     report['cost_profile_sha256'] = hashlib.sha256(args.cost_profile.read_bytes()).hexdigest() if args.cost_profile else None
     report['windows_sha256'] = hashlib.sha256(args.windows.read_bytes()).hexdigest() if args.windows else None
     report['dataset_sha256'] = args.sha256.lower()
     report['code_sha256'] = {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
                              for name in ('simulate-gold.py', 'replay-gold.py', 'gold_signal.py')}
+    if manifest is not None:
+        report['identity'] = experiment_identity(manifest)
+        report['windows_sha256'] = digest(windows)
+        report['code_sha256'] = source_hashes()
+    if candidate is not None:
+        report['proposal_sha256'] = digest(candidate)
+        report['registration_sha256'] = digest(registration)
     encoded = (json.dumps(report, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n').encode()
     with args.output.open('xb') as output:
         output.write(encoded)
