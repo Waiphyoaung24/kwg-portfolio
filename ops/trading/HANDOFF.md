@@ -14,7 +14,10 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
   `2c3f112e3c566be45a200883b33adcb2807ad2fb177b7767d7a096ce89c27119`.
   Sampled spread p50/p95/max was 0.28/0.32/0.32 price units. The report stays
   private in the persistent MT5 home volume. This passes that session's data
-  gate only; it does not certify later feed health or historical timestamps.
+  gate using the explicit 10,800-second offset corroborated by same-day 11:31
+  UTC host NTP and approximately 12:26 UTC Market Watch checks. Immediate
+  pre-run clock reconfirmation was unavailable, leaving a limited clock-basis
+  risk. It does not certify later feed health or historical timestamps.
 - **Costs incomplete; recovery untested.** Current public VT Markets terms
   suggest no separate gold commission for Standard/VIP STP and a Wednesday
   triple swap, but do not cover this account's dated historical rates,

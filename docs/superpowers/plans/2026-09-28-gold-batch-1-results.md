@@ -20,10 +20,19 @@ independently on all samples and exactly reproduced the report's data verdict,
 accepted count, transitions and spread fields. SHA-256 of the private report:
 `2c3f112e3c566be45a200883b33adcb2807ad2fb177b7767d7a096ce89c27119`.
 It remains mode 600 in the persistent MT5 home volume; it was not copied to Git.
+Host NTP was synchronized at 11:31 UTC, and Market Watch independently showed
+the +3-hour server display offset at approximately 12:26 UTC the same day.
+Immediate pre-run host NTP and Market Watch reconfirmation was unavailable
+through the container-only access path. Thus the collector's `data_status=passed`
+uses that earlier same-day clock evidence and the explicit session offset;
+raw-versus-adjusted timestamps alone do not prove the offset. This leaves a
+limited clock-provenance risk for this window and no basis for historical DST.
 
 An initial detached attempt failed before collection because Wine Python
 needed valid console handles. We initially checked the wrong Linux path and
-mistakenly reported the 16:33 run missing; the report was under Wine's C: home.
+mistakenly reported the run with the `1633` filename label missing; the report
+was under Wine's C: home. Its accepted samples began at 16:31:29.737 UTC;
+the filename is not an invocation timestamp.
 A redundant 17:05 run was then interrupted after the first pass was verified.
 Its separate private report is `inconclusive` with 231 accepted samples and a
 `Collection interrupted` blocker. The earlier 57-sample disconnection is also
