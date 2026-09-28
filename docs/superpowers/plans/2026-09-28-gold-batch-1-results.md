@@ -25,6 +25,14 @@ timestamps. No offset is applied or assumed by the running code.
 Sources: [VT Markets server time](https://get.vtmarkets.help/hc/en-us/articles/37317868198297-What-is-VT-Markets-GMT-offset-or-server-time);
 [MetaQuotes Python tick/bar UTC note](https://www.mql5.com/en/docs/python_metatrader5/mt5copyticksfrom_py).
 
+At 2026-09-28 12:06:19 UTC, the owner ran Windows Python under Wine in the
+same container. `time.time()`, aware UTC and local time all agreed at
+12:06:19+00:00. This rules out a mis-set Wine/Python wall clock as the
+three-hour lead. Host files at that time were still old:
+`verify-demo.py` SHA-256 `4555b34a...`, `mt5_data.py` `83a38b85...`,
+and `gold_qualification.py` was absent. Pinned diagnostic deployment and
+raw-time qualification remained unverified at that point.
+
 Next: deploy the exact committed verifier/helpers to the VPS without
 recreating MT5, confirm demo identity and Algo Trading off, run one finite
 collection in an open gold session, and privately retain its JSON and hashes.
