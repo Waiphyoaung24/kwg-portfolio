@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "draft",
+  "status": "approved",
   "scope": "one registered gold candidate, one declared strategy change, demo shadow only",
   "min_trades": 100,
   "min_observed_days": 60,

@@ -214,9 +214,10 @@ WINDOWS.json` is optional; without them the old three scenarios remain
 hypothetical. A profile with unknown or uncovered costs is rejected. Window
 JSON specifies fixed `development` and `validation` objects, each with
 integer `start` and `end` bar timestamps. Keep profiles and detailed
-reports private. `evaluation-policy.json` is **draft** and the offline
-`evaluate-gold.py` cannot produce shadow eligibility from it. No candidate
-or order path is installed.
+reports private. `evaluation-policy.json` is **approved for prospective
+evaluation** after owner review on 2026-09-29. Historical costs, sufficient
+validation observations and real evaluator inputs remain unavailable. No
+candidate or order path is installed.
 For an approved policy, both evaluator input reports must carry the SHA-256
 of its canonical JSON (`sort_keys=True`, compact separators, finite numbers)
 in `identity.policy_sha256`; changing a threshold invalidates the comparison.

@@ -41,7 +41,7 @@ def reports():
 class GateTest(unittest.TestCase):
     def test_draft_and_small_sample_never_eligible(self):
         base, candidate, approved = reports()
-        self.assertEqual(evaluate(base, candidate, policy)['decision'], 'inconclusive')
+        self.assertEqual(evaluate(base, candidate, {**approved, 'status': 'draft'})['decision'], 'inconclusive')
         candidate['validation']['trades'] = 30
         self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
 
