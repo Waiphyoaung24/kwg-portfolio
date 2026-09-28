@@ -57,8 +57,10 @@ The post-restart read-only verifier passed at 18:02:20 UTC: connected pinned
 demo, Algo Trading off, 0.222-second gold quote age, 250 valid completed M15
 bars, latest bar equal to expected, and no signal. This verifies this one
 container-restart recovery, not a network-disconnect recovery. The running
-container and VPS Compose source have the fix, but the Docker image has not
-been rebuilt; a future container recreation must rebuild from that source.
+container and VPS Compose source have the fix. The owner subsequently rebuilt
+the `kwg-mt5-desktop:qualification` image in 55.7 seconds and verified the
+same source hash inside the new image. The running container was not recreated
+from that image; a future recreation can use the rebuilt version.
 
 An earlier six-row backup in the same private volume had passed integrity
 with maximum bar 1790614800 and row digest
@@ -81,9 +83,9 @@ commission or swap rates across the frozen dataset. Exact historical rollover
 events and timestamp basis remain unqualified; `cost_status=incomplete`.
 
 **Batch 1 disposition:** live-data continuity and one container-restart
-recovery passed; historical costs and network-disconnect recovery remain
-incomplete. Batch 2 remains
-`prepared_but_blocked`. The verified current session clock correction is not
+recovery passed; historical costs remain incomplete and network-disconnect
+recovery is untested. Batch 2 remains `prepared_but_blocked`. The verified
+current session clock correction is not
 evidence for the historical April–September data or DST changes. No orders,
 candidate promotion or model proposal were run.
 

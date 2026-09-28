@@ -26,15 +26,17 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
   (1790617500) was `baseline`/`none`. A post-restart one-shot verifier passed
   at 18:02:20 UTC with the pinned demo, Algo Trading off, a 0.222-second fresh
   quote, and 250 valid completed bars. Network-disconnect recovery is untested.
-  Current public VT Markets terms
-  suggest no separate gold commission for Standard/VIP STP and a Wednesday
+  Current public VT Markets terms suggest no separate gold commission for
+  Standard/VIP STP and a Wednesday
   triple swap, but do not cover this account's dated historical rates,
   rollover events or the Standard STP versus `-VIP` mismatch. Batch 2 remains
   `prepared_but_blocked`.
 - The observer fix in `5dfb463` is deployed to the running container and VPS
   Compose source (SHA-256 `9523ebb74d3c701fc41428bfcf04548079d7a3c03d13f0e69ddec05766b4a422`).
-  The Docker image has **not** been rebuilt; rebuild it from the updated source
-  before any future container recreation so the fix is not lost.
+  The owner rebuilt `kwg-mt5-desktop:qualification` from that source and
+  independently verified the same hash inside the new image. The running
+  container was not recreated from the image; its verified overlay still has
+  the fix. A future recreation can use the rebuilt image.
 - VPS `187.52.117.116`: `/opt/kwg-mt5-qualification`, container
   `kwg-mt5-desktop`. The observer image was rebuilt with the verified
   `10800`-second MT5 server-clock offset. The running observer file matched
@@ -60,10 +62,10 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
    with the `-VIP` symbol; obtain dated, account-specific commission and swap
    rules, rollover time, and historical coverage. Keep measured spread and
    assumed slippage distinct. Unknown costs remain incomplete.
-2. **Operations: persist and extend recovery evidence.** Rebuild the desktop
-   image from the updated VPS Compose source before any recreation. Test an
-   actual network disconnection separately if that gate is required; a
-   container restart proves a narrower recovery path.
+2. **Operations: extend recovery evidence if needed.** Test an actual network
+   disconnection separately if that gate is required; a container restart
+   proves a narrower recovery path. After any future image-based recreation,
+   recheck the fixed source hash and read-only demo guard.
 3. **Batch 2: review the draft pass/fail policy** and rerun the frozen baseline
    only with verified dated costs. Preserve chronological windows and the
    reserved 2,000-bar holdout. If evidence is incomplete, retain
