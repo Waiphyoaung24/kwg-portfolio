@@ -15,6 +15,9 @@ from mt5_data import SERVER, SYMBOL, read_gold, validate_account, validate_tick
 
 MAGIC = 20260929
 SNAPSHOT = Path(r"Z:\opt\status\execution.json")
+# SYMBOL_FILLING_MODE flags are 1/2; the pinned Python SDK omits their names.
+FILLING_FOK_FLAG = 1
+FILLING_IOC_FLAG = 2
 
 
 def _positive(value, name):
@@ -62,9 +65,9 @@ def build_entry_request(mt5, login: int, side: str, now: float,
     filling = getattr(info, "filling_mode", None)
     if type(filling) is not int:
         raise ValueError("Unknown broker filling policy.")
-    if filling & mt5.SYMBOL_FILLING_FOK:
+    if filling & FILLING_FOK_FLAG:
         fill_type = mt5.ORDER_FILLING_FOK
-    elif filling & mt5.SYMBOL_FILLING_IOC:
+    elif filling & FILLING_IOC_FLAG:
         fill_type = mt5.ORDER_FILLING_IOC
     else:
         raise ValueError("Unsupported broker filling policy.")
@@ -423,8 +426,8 @@ def _final_entry_guard(mt5, login, request):
     positions, orders = mt5.positions_get(symbol=SYMBOL), mt5.orders_get(symbol=SYMBOL)
     if positions is None or orders is None or positions or orders:
         raise ValueError("Gold position/order state changed before entry.")
-    fill_flag = (mt5.SYMBOL_FILLING_FOK if request["type_filling"] == mt5.ORDER_FILLING_FOK
-                 else mt5.SYMBOL_FILLING_IOC)
+    fill_flag = (FILLING_FOK_FLAG if request["type_filling"] == mt5.ORDER_FILLING_FOK
+                 else FILLING_IOC_FLAG)
     filling = getattr(info, "filling_mode", None)
     order_mode = getattr(info, "order_mode", None)
     if (getattr(info, "name", None) != SYMBOL

@@ -143,6 +143,15 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(result["status"], "disarmed")
         self.mt5.order_send.assert_not_called()
 
+    def test_python_sdk_without_symbol_filling_constants_reaches_broker_check(self):
+        arm_once(self.db, "buy", NOW)
+        del self.mt5.SYMBOL_FILLING_FOK
+        del self.mt5.SYMBOL_FILLING_IOC
+        self.mt5.order_check.return_value = Record(retcode=10030)
+        self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "disarmed")
+        self.mt5.order_check.assert_called_once()
+        self.mt5.order_send.assert_not_called()
+
     def test_quote_goes_stale_during_order_check_and_blocks_send(self):
         arm_once(self.db, "buy", NOW)
 
