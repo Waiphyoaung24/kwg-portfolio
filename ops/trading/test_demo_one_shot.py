@@ -1,9 +1,14 @@
 """Fake MT5 boundary for a supervised, never-live gold smoke order."""
 import unittest
+import tempfile
+import os
+import io
+import sys
+from pathlib import Path
 from types import SimpleNamespace as Record
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from demo_one_shot import build_entry_request
+from demo_one_shot import arm_once, build_entry_request, main, open_journal, process_once
 
 
 NOW = 251 * 900
@@ -83,6 +88,208 @@ class EntryRequestTest(unittest.TestCase):
             with self.subTest(profit=profit), self.assertRaises(ValueError):
                 build_entry_request(mt5, 123, "buy", NOW, 0, execution=False)
             mt5.order_send.assert_not_called()
+
+
+class AttemptTest(unittest.TestCase):
+    def setUp(self):
+        env = patch.dict(os.environ, {"MT5_SERVER_OFFSET_SECONDS": "0"})
+        env.start()
+        self.addCleanup(env.stop)
+        clock = patch("demo_one_shot.time.time", return_value=NOW)
+        clock.start()
+        self.addCleanup(clock.stop)
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.path = Path(self.temp.name) / "one-shot.sqlite3"
+        self.db = open_journal(self.path, 123)
+        self.addCleanup(self.db.close)
+        self.mt5 = fake_mt5(enabled=True)
+        self.mt5.order_check.return_value = Record(retcode=0)
+        self.mt5.history_deals_get.return_value = ()
+
+    def test_arm_is_exclusive_and_survives_reopen(self):
+        arm_id = arm_once(self.db, "buy", NOW)
+        self.assertTrue(arm_id)
+        with self.assertRaises(ValueError):
+            arm_once(self.db, "sell", NOW)
+        with self.assertRaises(ValueError):
+            open_journal(self.path, 456)
+        reopened = open_journal(self.path, 123)
+        self.addCleanup(reopened.close)
+        self.assertEqual(reopened.execute("SELECT count(*) FROM attempts").fetchone()[0], 1)
+        self.assertEqual(reopened.execute("SELECT state FROM attempts").fetchone()[0], "armed")
+
+    def test_expired_arm_disarms_without_order(self):
+        arm_once(self.db, "buy", NOW)
+        result = process_once(self.mt5, self.db, NOW + 901)
+        self.assertEqual(result["status"], "disarmed")
+        self.mt5.order_send.assert_not_called()
+
+    def test_restart_of_unsubmitted_arm_disarms(self):
+        arm_once(self.db, "buy", NOW)
+        reopened = open_journal(self.path, 123)
+        self.addCleanup(reopened.close)
+        self.assertEqual(process_once(self.mt5, reopened, NOW + 1, allow_entry=False)["status"],
+                         "disarmed")
+        self.mt5.order_send.assert_not_called()
+
+    def test_order_check_rejection_does_not_send(self):
+        arm_once(self.db, "buy", NOW)
+        self.mt5.order_check.return_value = Record(retcode=10030)
+        result = process_once(self.mt5, self.db, NOW)
+        self.assertEqual(result["status"], "disarmed")
+        self.mt5.order_send.assert_not_called()
+
+    def test_quote_goes_stale_during_order_check_and_blocks_send(self):
+        arm_once(self.db, "buy", NOW)
+
+        def check(request):
+            self.mt5.symbol_info_tick.return_value.time = NOW - 31
+            self.mt5.symbol_info_tick.return_value.time_msc = (NOW - 31) * 1000
+            return Record(retcode=0)
+
+        self.mt5.order_check.side_effect = check
+        self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "disarmed")
+        self.mt5.order_send.assert_not_called()
+
+    def test_lost_entry_reply_freezes_and_restart_never_resends(self):
+        arm_once(self.db, "buy", NOW)
+        self.mt5.order_send.side_effect = TimeoutError("lost reply")
+        result = process_once(self.mt5, self.db, NOW)
+        self.assertEqual(result["status"], "needs_attention")
+        self.assertEqual(self.db.execute("SELECT state FROM attempts").fetchone()[0],
+                         "needs_attention")
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+        reopened = open_journal(self.path, 123)
+        self.addCleanup(reopened.close)
+        process_once(self.mt5, reopened, NOW + 1)
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+        self.assertTrue(self.mt5.positions_get.called)
+        self.assertTrue(self.mt5.orders_get.called)
+        self.assertTrue(self.mt5.history_deals_get.called)
+
+    def test_crash_after_durable_submitting_never_resends(self):
+        arm_once(self.db, "buy", NOW)
+        self.mt5.order_send.side_effect = SystemExit("process died")
+        with self.assertRaises(SystemExit):
+            process_once(self.mt5, self.db, NOW)
+        self.assertEqual(self.db.execute("SELECT state FROM attempts").fetchone()[0],
+                         "submitting")
+        reopened = open_journal(self.path, 123)
+        self.addCleanup(reopened.close)
+        self.assertEqual(process_once(self.mt5, reopened, NOW + 1,
+                                      allow_entry=False)["status"], "needs_attention")
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+
+    def test_definite_entry_rejection_disarms_when_broker_has_no_fill(self):
+        arm_once(self.db, "buy", NOW)
+        self.mt5.order_send.return_value = Record(retcode=10030, order=0, deal=0)
+        self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "disarmed")
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+
+    def test_success_requires_matching_protected_position_then_ticket_close(self):
+        arm_once(self.db, "sell", NOW)
+        position = None
+        deals = []
+
+        def positions_get(*, symbol):
+            return () if position is None else (position,)
+
+        def send(request):
+            nonlocal position
+            if "position" not in request:
+                position = Record(ticket=77, identifier=77, symbol="XAUUSD-VIP",
+                    magic=request["magic"], comment=request["comment"], volume=request["volume"],
+                    type=request["type"], price_open=request["price"], sl=request["sl"], tp=request["tp"])
+                deals.append(Record(position_id=77, entry=0, symbol="XAUUSD-VIP", magic=20260929,
+                                    profit=0, commission=-.2, swap=0, fee=0, time=NOW))
+                return Record(retcode=10009, order=77, deal=88)
+            self.assertEqual(request["position"], 77)
+            self.assertEqual(request["type"], self.mt5.ORDER_TYPE_BUY)
+            position = None
+            deals.append(Record(position_id=77, entry=1, symbol="XAUUSD-VIP", magic=20260929,
+                                profit=1, commission=0, swap=0, fee=0, time=NOW + 61))
+            return Record(retcode=10009, order=78, deal=89)
+
+        self.mt5.positions_get.side_effect = positions_get
+        self.mt5.order_send.side_effect = send
+        self.mt5.history_deals_get.side_effect = lambda *args, **kwargs: tuple(deals)
+        opened = process_once(self.mt5, self.db, NOW)
+        self.assertEqual(opened["status"], "open")
+        self.assertEqual(opened["volume"], .01)
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 59)["status"], "open")
+        self.mt5.symbol_info_tick.return_value.time = NOW + 61
+        self.mt5.symbol_info_tick.return_value.time_msc = (NOW + 61) * 1000
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 61)["status"], "closed")
+        self.assertEqual(self.mt5.order_send.call_count, 2)
+        self.assertEqual(self.db.execute("SELECT state FROM attempts").fetchone()[0], "closed")
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 62)["realized_net_usd"], .8)
+
+    def test_missing_protection_never_reports_open(self):
+        arm_once(self.db, "buy", NOW)
+
+        def send(request):
+            self.mt5.positions_get.return_value = (Record(ticket=77, identifier=77,
+                symbol="XAUUSD-VIP", magic=request["magic"], comment=request["comment"],
+                volume=request["volume"], type=request["type"], price_open=request["price"],
+                sl=0, tp=request["tp"]),)
+            return Record(retcode=10009, order=77, deal=88)
+
+        self.mt5.order_send.side_effect = send
+        self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "needs_attention")
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+
+    def test_lost_close_reply_keeps_position_and_never_retries(self):
+        arm_once(self.db, "buy", NOW)
+        position = None
+
+        def send(request):
+            nonlocal position
+            if "position" not in request:
+                position = Record(ticket=77, identifier=77, symbol="XAUUSD-VIP",
+                    magic=request["magic"], comment=request["comment"], volume=request["volume"],
+                    type=request["type"], price_open=request["price"], sl=request["sl"], tp=request["tp"])
+                return Record(retcode=10009, order=77, deal=88)
+            raise TimeoutError("close reply lost")
+
+        self.mt5.positions_get.side_effect = lambda *, symbol: (position,) if position else ()
+        self.mt5.order_send.side_effect = send
+        self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "open")
+        self.mt5.symbol_info_tick.return_value.time = NOW + 61
+        self.mt5.symbol_info_tick.return_value.time_msc = (NOW + 61) * 1000
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 61)["status"], "needs_attention")
+        process_once(self.mt5, self.db, NOW + 62, allow_entry=False)
+        self.assertEqual(self.mt5.order_send.call_count, 2)
+        self.assertIsNotNone(position.sl)
+
+
+class CliTest(unittest.TestCase):
+    def test_private_preview_creates_no_journal_and_never_sends(self):
+        with tempfile.TemporaryDirectory() as root:
+            state = Path(root) / "one-shot.sqlite3"
+            mt5 = fake_mt5()
+            output = io.StringIO()
+            with (patch("demo_one_shot.Path.home", return_value=Path(root)),
+                  patch("demo_one_shot.time.time", return_value=NOW),
+                  patch.dict(os.environ, {"MT5_DEMO_LOGIN": "123",
+                                       "MT5_SERVER_OFFSET_SECONDS": "0"}),
+                  patch.dict(sys.modules, {"MetaTrader5": mt5}),
+                  patch.object(sys, "argv", ["demo_one_shot.py", "preview", "--side", "buy",
+                                             "--state", str(state)]),
+                  patch("sys.stdout", output)):
+                main()
+            self.assertFalse(state.exists())
+            self.assertFalse(state.with_suffix(".lock").exists())
+            self.assertIn('"order_sent": false', output.getvalue())
+            mt5.order_send.assert_not_called()
+
+    def test_resume_without_journal_is_inert(self):
+        with tempfile.TemporaryDirectory() as root:
+            state = Path(root) / "one-shot.sqlite3"
+            with (patch("demo_one_shot.Path.home", return_value=Path(root)),
+                  patch.object(sys, "argv", ["demo_one_shot.py", "resume", "--state", str(state)])):
+                main()
+            self.assertFalse(state.exists())
 
 
 if __name__ == "__main__":
