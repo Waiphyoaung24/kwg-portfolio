@@ -228,6 +228,10 @@ be copied into the evaluator's `daily_returns`. The frozen provisional
 manifest rejects `--cost-profile` and cannot supply the required three
 prospective folds. A new covered dataset and manifest are needed before
 building real gate inputs.
+Until that adapter verifies raw simulator hashes, UTC dates, dated costs and
+folds, the `evaluate-gold.py` CLI caps any otherwise eligible result at
+`inconclusive` with `simulator_provenance_unverified`. Pure gate fixtures are
+software checks, not candidate qualification.
 For prospective windows, `folds` may contain exactly three ordered
 `{start,end}` timestamp pairs partitioning validation. Each fold runs from
 flat initial capital and cannot include the reserved holdout. The current

@@ -3,6 +3,9 @@ import hashlib
 import json
 from pathlib import Path
 import runpy
+import subprocess
+import sys
+import tempfile
 import unittest
 
 evaluate = runpy.run_path(str(Path(__file__).with_name('evaluate-gold.py')))['evaluate_reports']
@@ -127,6 +130,20 @@ class GateTest(unittest.TestCase):
         base, candidate, approved = reports()
         candidate['validation']['folds'][0]['return_pct'] = .7499
         self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+
+    def test_cli_cannot_qualify_unadapted_reports(self):
+        base, candidate, approved = reports()
+        with tempfile.TemporaryDirectory() as directory:
+            paths = {name: Path(directory, name + '.json')
+                     for name in ('baseline', 'candidate', 'policy', 'output')}
+            for name, value in (('baseline', base), ('candidate', candidate), ('policy', approved)):
+                paths[name].write_text(json.dumps(value))
+            subprocess.run([sys.executable, '-B', str(Path(__file__).with_name('evaluate-gold.py')),
+                            *[arg for name in paths for arg in ('--' + name, str(paths[name]))]],
+                           check=True, capture_output=True, text=True)
+            result = json.loads(paths['output'].read_text())
+            self.assertEqual(result['decision'], 'inconclusive')
+            self.assertIn('simulator_provenance_unverified', result['reasons'])
 
 
 if __name__ == '__main__':

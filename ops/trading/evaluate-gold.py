@@ -148,6 +148,10 @@ def main():
     args = parser.parse_args()
     inputs = {name: getattr(args, name).read_bytes() for name in ('baseline', 'candidate', 'policy')}
     result = evaluate_reports(*(json.loads(inputs[name]) for name in ('baseline', 'candidate', 'policy')))
+    # ponytail: lift this cap only after raw-report hash, time, cost and fold provenance is checked.
+    if result['decision'] == 'eligible_for_shadow':
+        result['decision'] = 'inconclusive'
+        result['reasons'] = ['simulator_provenance_unverified']
     result['input_sha256'] = {name: hashlib.sha256(raw).hexdigest() for name, raw in inputs.items()}
     with args.output.open('xb') as output:
         output.write((json.dumps(result, sort_keys=True, allow_nan=False) + '\n').encode())

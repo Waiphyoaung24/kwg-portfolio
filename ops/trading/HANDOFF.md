@@ -56,12 +56,14 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
   cannot meet the approved 100-trade gate. No Vibe-Trading proposal, candidate,
   research job, promotion, or order path has been enabled.
 - A 2026-09-29 Batch 2 gate review fixed approved-policy hash binding and
-  fail-closed nonfinite/overflow/zero-bootstrap handling; 56 Python tests
+  fail-closed nonfinite/overflow/zero-bootstrap handling; 57 Python tests
   pass. The owner approved exact v1 thresholds on 2026-09-29; the policy is
   approved prospectively. The simulator now reports raw-epoch daily returns,
   trade risk/net R and notional turnover, but raw dates and three prospective
   folds cannot yet be adapted into real gate inputs. The simulator can execute
   three explicitly frozen, flat-reset folds once qualified windows exist.
+  The evaluator CLI caps synthetic eligibility at `inconclusive` until raw
+  simulator provenance is verified.
   Public broker terms cannot supply dated cost coverage.
   See the [Batch 2 result](../../docs/superpowers/plans/2026-09-28-gold-batch-2-results.md).
 

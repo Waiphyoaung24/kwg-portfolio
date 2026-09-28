@@ -8,7 +8,7 @@ approved prospective policy contain candidate gates and a deterministic paired
 bootstrap. The real baseline remains diagnostic and ineligible for shadow
 observation.
 
-Local checks: 56 Python tests passed on 2026-09-29. The original frozen
+Local checks: 57 Python tests passed on 2026-09-29. The original frozen
 dataset is private on the VPS, so a new baseline rerun was not completed from
 this workspace. Batch 1 continuity and container-restart recovery now passed
 for their observed session, while dated commission/swap coverage, a registered
@@ -77,6 +77,9 @@ accepts three explicit folds that exactly partition validation, resets each
 fold flat and leaves the holdout untouched; a synthetic boundary test passes.
 No real report adapter can meet the approved evaluator's evidence contract yet;
 a synthetic gate pass is not end-to-end Batch 2 readiness.
+The evaluator CLI now returns `inconclusive` with
+`simulator_provenance_unverified` even if hand-shaped inputs pass the pure
+numeric gate; an approved policy alone cannot emit shadow eligibility.
 
 On 2026-09-29 (Asia/Bangkok), the owner explicitly approved the exact v1
 thresholds in `evaluation-policy.json` for future candidate tests. Its status
