@@ -1,0 +1,6 @@
+name = "kwg-gold-research-mcp"
+account_id = "1547080b330a37af6e2048dfb82c48f3"
+main = "src/index.js"
+compatibility_date = "2026-09-28"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
