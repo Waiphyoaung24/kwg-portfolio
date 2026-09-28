@@ -16,3 +16,10 @@ validation observations are all missing. State: **prepared_but_blocked**.
 Prior baseline losses and 30–31 validation trades remain the only observed
 results; they do not satisfy the proposed 100-trade gate. No Vibe-Trading job,
 candidate selection, shadow promotion or orders were started.
+
+The 2026-09-28 live verifier showed both tick and bar raw timestamps roughly
+three hours ahead of synchronized VPS UTC. The frozen historical dataset
+retains raw MT5 epochs and is explicitly unqualified; calendar-day funding,
+daily-pause and date labels must not be interpreted as broker-accurate until
+the timestamp basis is established. The old hypothetical outcomes remain
+diagnostics only.
