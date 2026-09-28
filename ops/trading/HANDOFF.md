@@ -27,6 +27,10 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
   this workspace's SSH key was rejected. The post-collection MCP showed a
   fresh quote and `duplicate`/`none`, which is not restart evidence. Batch 2
   remains `prepared_but_blocked`.
+- A local observer fix now preserves the startup baseline after a same-candle
+  `duplicate`; its regression test passes. This change is **not deployed** to
+  the VPS. Deploy and hash-check the updated `observe-gold.py` before using a
+  container restart to qualify recovery.
 - VPS `187.52.117.116`: `/opt/kwg-mt5-qualification`, container
   `kwg-mt5-desktop`. The observer image was rebuilt with the verified
   `10800`-second MT5 server-clock offset. The running observer file matched
@@ -48,8 +52,9 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
 
 ## Next tasks, in order
 
-1. **Batch 1: verify restart recovery.** From an authorized VPS host session,
-   supervise one `docker restart kwg-mt5-desktop` outside any collector run.
+1. **Batch 1: verify restart recovery.** First deploy and hash-check the local
+   observer startup fix. From an authorized VPS host session, supervise one
+   `docker restart kwg-mt5-desktop` outside any collector run.
    Compare the observer journal with the consistent private pre-restart backup;
    verify prior rows, startup baseline suppression, demo pinning, Algo off and
    a fresh read-only MCP heartbeat. A network-disconnect recovery check is

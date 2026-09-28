@@ -50,6 +50,10 @@ performed; journal preservation, startup suppression and network-disconnect
 recovery remain unverified live. After collection, the read-only MCP still
 reported a connected demo, a 0.150-second quote age, `status=duplicate` and
 `signal=none` at 17:27 UTC. That is a health spot check, not recovery evidence.
+Subsequent review found that a same-candle `duplicate` on observer startup
+consumed the startup baseline flag before the next new candle. A regression
+test reproduced it, and the local observer now retains that flag until the
+first newly recorded candle. The fix is not deployed; recovery remains untested.
 
 The owner selected current public broker terms only. VT Markets' current
 [commission guide](https://get.vtmarkets.help/hc/en-us/articles/37317570987545-What-fees-commissions-are-charged-for-trading)

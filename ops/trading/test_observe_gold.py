@@ -1,11 +1,12 @@
 import importlib.util
 import json
 import sqlite3
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from gold_signal import evaluate
 
@@ -31,6 +32,20 @@ def fake_sdk(end=250):
 
 
 class ObserverTest(unittest.TestCase):
+    def test_startup_duplicate_keeps_baseline_for_first_new_candle(self):
+        sdk = Mock()
+        sdk.initialize.return_value = True
+        db = Mock()
+        state = str(Path.home() / "observer-startup-test.sqlite3")
+        with patch.dict(sys.modules, {"MetaTrader5": sdk}), \
+             patch.object(sys, "argv", ["observe-gold.py", "--login", "123", "--state", state]), \
+             patch.object(observer, "open_state", return_value=db), \
+             patch.object(observer, "poll_once", side_effect=[
+                 {"status": "duplicate"}, {"status": "baseline"}, KeyboardInterrupt()]) as poll, \
+             patch.object(observer, "write_snapshot"), patch.object(observer.time, "sleep"):
+            observer.main()
+        self.assertEqual([call.args[4] for call in poll.call_args_list], [True, True, False])
+
     def test_baseline_duplicate_next_missed_and_restart(self):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / "state.sqlite3"
