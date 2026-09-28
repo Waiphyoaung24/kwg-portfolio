@@ -1,5 +1,68 @@
 # Batch 1 implementation state
 
+## Native completion attempt — 2026-09-28 UTC
+
+**Data: passed for the 2026-09-28 session.** The 16:30:24 UTC read-only
+one-shot verifier passed in the running `kwg-mt5-desktop` container:
+`XAUUSD-VIP`, connected pinned demo, Algo Trading off, 250 completed M15 bars,
+latest adjusted bar equal to the expected completed bar, and a 0.119-second
+quote age. The four deployed diagnostic source hashes matched local `ad58b58`.
+The bounded collector's private report
+`C:\users\mt5\gold-qualification-20260928-1633.json` passed with no blockers.
+Its ending contiguous segment contains 361 accepted five-second samples from
+16:31:29.737 to 17:01:30.347 UTC (1,800.609 seconds). The completed-bar labels
+advanced by 900 seconds twice, to 16:30 and 16:45 UTC. Sampled spread was
+p50 0.28, p95 0.32, maximum 0.32 price units across 361 observations; this
+does not measure slippage or every intervening tick. The report records the
+explicit 10,800-second session offset, raw timestamps, current contract
+snapshot, SDK version and source hashes. The pinned reducer was rerun
+independently on all samples and exactly reproduced the report's data verdict,
+accepted count, transitions and spread fields. SHA-256 of the private report:
+`2c3f112e3c566be45a200883b33adcb2807ad2fb177b7767d7a096ce89c27119`.
+It remains mode 600 in the persistent MT5 home volume; it was not copied to Git.
+
+An initial detached attempt failed before collection because Wine Python
+needed valid console handles. We initially checked the wrong Linux path and
+mistakenly reported the 16:33 run missing; the report was under Wine's C: home.
+A redundant 17:05 run was then interrupted after the first pass was verified.
+Its separate private report is `inconclusive` with 231 accepted samples and a
+`Collection interrupted` blocker. The earlier 57-sample disconnection is also
+a separate inconclusive run. No samples from these runs were combined.
+
+**Recovery: untested.** A consistent, mode-600 SQLite backup of the observer
+journal was made in the same private home volume with `Connection.backup`.
+Its integrity check passed; it held 6 observations, with maximum bar time
+1790614800. The backup rows' SHA-256 (Python representation) was
+`9fb44974cfc4aca877fd39387fa479758a63c08264a2169b3a517abb06db1f5f`.
+Dokploy's Docker view exposes a container terminal but no restart control, and
+the MT5 container is not a Dokploy project. Direct SSH access from this
+workspace failed public-key authentication. No supervised MT5 restart was
+performed; journal preservation, startup suppression and network-disconnect
+recovery remain unverified live. After collection, the read-only MCP still
+reported a connected demo, a 0.150-second quote age, `status=duplicate` and
+`signal=none` at 17:27 UTC. That is a health spot check, not recovery evidence.
+
+The owner selected current public broker terms only. VT Markets' current
+[commission guide](https://get.vtmarkets.help/hc/en-us/articles/37317570987545-What-fees-commissions-are-charged-for-trading)
+lists zero separate gold commission for both Standard STP and VIP STP. Its
+[suffix guide](https://get.vtmarkets.help/hc/en-us/articles/42847655982105-Why-am-I-unable-to-trade-certain-products-on-the-MT4-5-App)
+associates `-VIP` with the account tier, so the reported Standard STP category
+still needs reconciliation. Its
+[swap guide](https://get.vtmarkets.help/hc/en-us/articles/37317525823257-Why-do-I-get-charged-a-higher-swap-rate-on-certain-days)
+says gold carries a Wednesday triple swap, while the
+[server-time guide](https://get.vtmarkets.help/hc/en-us/articles/37317868198297-What-is-VT-Markets-GMT-offset-or-server-time)
+states GMT+2/GMT+3 display. These public pages do not date account-specific
+commission or swap rates across the frozen dataset. Exact historical rollover
+events and timestamp basis remain unqualified; `cost_status=incomplete`.
+
+**Batch 1 disposition:** live-data continuity passed for this window; costs
+are incomplete and restart recovery is untested. Batch 2 remains
+`prepared_but_blocked`. The verified current session clock correction is not
+evidence for the historical April–September data or DST changes. No orders,
+candidate promotion or model proposal were run.
+
+## Earlier attempts and implementation history
+
 The read-only verifier and bounded collector are implemented locally. The
 collector accepts only uninterrupted five-second samples with 0–30-second
 gold tick age, 250 valid completed M15 bars, and two consecutive 15-minute
