@@ -18,19 +18,23 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
   UTC host NTP and approximately 12:26 UTC Market Watch checks. Immediate
   pre-run clock reconfirmation was unavailable, leaving a limited clock-basis
   risk. It does not certify later feed health or historical timestamps.
-- **Costs incomplete; recovery untested.** Current public VT Markets terms
+- **Container-restart recovery passed; costs remain incomplete.** A regression
+  fix preserved the startup baseline after a same-candle `duplicate`. The owner
+  hash-checked the fixed observer at both VPS source and container paths,
+  backed up the live SQLite journal, and restarted only `kwg-mt5-desktop`.
+  Integrity passed; all 8 prior rows remained identical and the first new bar
+  (1790617500) was `baseline`/`none`. A post-restart one-shot verifier passed
+  at 18:02:20 UTC with the pinned demo, Algo Trading off, a 0.222-second fresh
+  quote, and 250 valid completed bars. Network-disconnect recovery is untested.
+  Current public VT Markets terms
   suggest no separate gold commission for Standard/VIP STP and a Wednesday
   triple swap, but do not cover this account's dated historical rates,
-  rollover events or the Standard STP versus `-VIP` mismatch. A consistent
-  backup of the six-row observer SQLite journal passed integrity checks.
-  No supervised restart was possible through the authenticated Dokploy UI;
-  this workspace's SSH key was rejected. The post-collection MCP showed a
-  fresh quote and `duplicate`/`none`, which is not restart evidence. Batch 2
-  remains `prepared_but_blocked`.
-- A local observer fix now preserves the startup baseline after a same-candle
-  `duplicate`; its regression test passes. This change is **not deployed** to
-  the VPS. Deploy and hash-check the updated `observe-gold.py` before using a
-  container restart to qualify recovery.
+  rollover events or the Standard STP versus `-VIP` mismatch. Batch 2 remains
+  `prepared_but_blocked`.
+- The observer fix in `5dfb463` is deployed to the running container and VPS
+  Compose source (SHA-256 `9523ebb74d3c701fc41428bfcf04548079d7a3c03d13f0e69ddec05766b4a422`).
+  The Docker image has **not** been rebuilt; rebuild it from the updated source
+  before any future container recreation so the fix is not lost.
 - VPS `187.52.117.116`: `/opt/kwg-mt5-qualification`, container
   `kwg-mt5-desktop`. The observer image was rebuilt with the verified
   `10800`-second MT5 server-clock offset. The running observer file matched
@@ -52,17 +56,14 @@ system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
 
 ## Next tasks, in order
 
-1. **Batch 1: verify restart recovery.** First deploy and hash-check the local
-   observer startup fix. From an authorized VPS host session, supervise one
-   `docker restart kwg-mt5-desktop` outside any collector run.
-   Compare the observer journal with the consistent private pre-restart backup;
-   verify prior rows, startup baseline suppression, demo pinning, Algo off and
-   a fresh read-only MCP heartbeat. A network-disconnect recovery check is
-   separate. Do not infer recovery from a fresh spot quote.
-2. **Batch 1: qualify dated costs.** Reconcile the reported Standard STP account
+1. **Batch 1: qualify dated costs.** Reconcile the reported Standard STP account
    with the `-VIP` symbol; obtain dated, account-specific commission and swap
    rules, rollover time, and historical coverage. Keep measured spread and
    assumed slippage distinct. Unknown costs remain incomplete.
+2. **Operations: persist and extend recovery evidence.** Rebuild the desktop
+   image from the updated VPS Compose source before any recreation. Test an
+   actual network disconnection separately if that gate is required; a
+   container restart proves a narrower recovery path.
 3. **Batch 2: review the draft pass/fail policy** and rerun the frozen baseline
    only with verified dated costs. Preserve chronological windows and the
    reserved 2,000-bar holdout. If evidence is incomplete, retain

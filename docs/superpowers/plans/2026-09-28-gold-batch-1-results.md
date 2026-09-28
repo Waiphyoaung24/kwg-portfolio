@@ -38,22 +38,34 @@ Its separate private report is `inconclusive` with 231 accepted samples and a
 `Collection interrupted` blocker. The earlier 57-sample disconnection is also
 a separate inconclusive run. No samples from these runs were combined.
 
-**Recovery: untested.** A consistent, mode-600 SQLite backup of the observer
-journal was made in the same private home volume with `Connection.backup`.
-Its integrity check passed; it held 6 observations, with maximum bar time
-1790614800. The backup rows' SHA-256 (Python representation) was
+**Recovery: targeted container restart passed on 2026-09-28.** Review found
+that a same-candle `duplicate` consumed the observer's startup baseline flag
+before the next new candle. A regression test reproduced the defect and passed
+after the one-line fix (`5dfb463`); the full local suite passed 49 tests. The
+owner copied the fixed `observe-gold.py` to the VPS Compose source and running
+container, verifying SHA-256
+`9523ebb74d3c701fc41428bfcf04548079d7a3c03d13f0e69ddec05766b4a422`
+at both paths before restarting only `kwg-mt5-desktop`.
+
+A fresh, consistent SQLite backup before restart passed integrity, held 8
+observations through bar 1790616600, and was kept mode 600 in the MT5 home;
+the owner also copied it to root-only VPS storage. After restart, live journal
+integrity was `ok`, all 8 prior rows were identical, and the first new row
+(bar 1790617500) was `baseline` with `signal=none`. The MCP briefly showed a
+stale quote during reconnection, then returned a fresh quote and 250 bars.
+The post-restart read-only verifier passed at 18:02:20 UTC: connected pinned
+demo, Algo Trading off, 0.222-second gold quote age, 250 valid completed M15
+bars, latest bar equal to expected, and no signal. This verifies this one
+container-restart recovery, not a network-disconnect recovery. The running
+container and VPS Compose source have the fix, but the Docker image has not
+been rebuilt; a future container recreation must rebuild from that source.
+
+An earlier six-row backup in the same private volume had passed integrity
+with maximum bar 1790614800 and row digest
 `9fb44974cfc4aca877fd39387fa479758a63c08264a2169b3a517abb06db1f5f`.
-Dokploy's Docker view exposes a container terminal but no restart control, and
-the MT5 container is not a Dokploy project. Direct SSH access from this
-workspace failed public-key authentication. No supervised MT5 restart was
-performed; journal preservation, startup suppression and network-disconnect
-recovery remain unverified live. After collection, the read-only MCP still
-reported a connected demo, a 0.150-second quote age, `status=duplicate` and
-`signal=none` at 17:27 UTC. That is a health spot check, not recovery evidence.
-Subsequent review found that a same-candle `duplicate` on observer startup
-consumed the startup baseline flag before the next new candle. A regression
-test reproduced it, and the local observer now retains that flag until the
-first newly recorded candle. The fix is not deployed; recovery remains untested.
+It preceded host access; Dokploy exposed no restart control and this
+workspace's SSH key failed public-key authentication. The owner then completed
+the supervised restart from an authorized VPS host shell.
 
 The owner selected current public broker terms only. VT Markets' current
 [commission guide](https://get.vtmarkets.help/hc/en-us/articles/37317570987545-What-fees-commissions-are-charged-for-trading)
@@ -68,8 +80,9 @@ states GMT+2/GMT+3 display. These public pages do not date account-specific
 commission or swap rates across the frozen dataset. Exact historical rollover
 events and timestamp basis remain unqualified; `cost_status=incomplete`.
 
-**Batch 1 disposition:** live-data continuity passed for this window; costs
-are incomplete and restart recovery is untested. Batch 2 remains
+**Batch 1 disposition:** live-data continuity and one container-restart
+recovery passed; historical costs and network-disconnect recovery remain
+incomplete. Batch 2 remains
 `prepared_but_blocked`. The verified current session clock correction is not
 evidence for the historical April–September data or DST changes. No orders,
 candidate promotion or model proposal were run.
