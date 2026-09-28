@@ -91,13 +91,16 @@ def evaluate_reports(baseline: dict, candidate: dict, policy: dict) -> dict:
         diffs = {d: _finite(daily_c[d]) - _finite(daily_b[d]) for d in days}
         block = policy['bootstrap_block_days']
         blocks = []
+        assigned = set()
         for fold in folds_b:
             fold_days = [d for d in days if fold['start'] <= d <= fold['end']]
-            if len(fold_days) != fold['days'] or len(fold_days) < block:
+            if (len(fold_days) != fold['days'] or len(fold_days) < block
+                    or assigned.intersection(fold_days)):
                 return {'decision': 'inconclusive', 'reasons': ['bootstrap_fold_days_missing']}
+            assigned.update(fold_days)
             blocks.extend([[diffs[d] for d in fold_days[i:i + block]]
                            for i in range(len(fold_days) - block + 1)])
-        if len(days) < block or sum(fold['days'] for fold in folds_b) != len(days):
+        if len(days) < block or assigned != set(days):
             return {'decision': 'inconclusive', 'reasons': ['bootstrap_sample_short']}
         rng = random.Random(policy['bootstrap_seed'])
         means = []
