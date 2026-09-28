@@ -4,6 +4,16 @@ Resume here from another terminal or machine. This page records the latest
 verified state; older plan and result files are historical evidence. Keep the
 system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
 
+## Updated owner direction — 2026-09-29
+
+The immediate engineering milestone is one supervised, operator-armed,
+minimum-lot demo smoke trade that opens with broker-held protection, closes,
+reconciles and disarms. The [selected design](../../docs/superpowers/plans/2026-09-29-gold-agent-design.md)
+and [implementation plan](../../docs/superpowers/plans/2026-09-29-gold-one-shot-demo-execution.md)
+separate that machinery test from Batch 2/3 strategy qualification and later
+continuous demo execution. No order code has been deployed under this plan;
+the existing observer stays read-only with Algo Trading off.
+
 ## Verified now
 
 - **Batch 1 live-data continuity passed on 2026-09-28.** The private bounded
