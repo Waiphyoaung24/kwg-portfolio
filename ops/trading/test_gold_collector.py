@@ -16,7 +16,7 @@ class CollectorTest(unittest.TestCase):
         sdk = SimpleNamespace(__version__='test', order_send=None,
                               symbol_info=lambda symbol: SimpleNamespace(name=symbol, secret='hidden'))
         calls = [0]
-        def sample(mt5, login, now, health):
+        def sample(mt5, login, now, health, *, server_offset_seconds=0):
             i = calls[0]
             calls[0] += 1
             stamp = 90900 + i * 5
@@ -27,11 +27,12 @@ class CollectorTest(unittest.TestCase):
         with patch.object(verifier, 'read_gold', side_effect=sample), \
              patch.object(verifier.time, 'sleep'), \
              patch.object(verifier.time, 'monotonic', side_effect=lambda: calls[0] * 5):
-            report = verifier.collect(sdk, 1234567, 3600)
+            report = verifier.collect(sdk, 1234567, 3600, 10800)
         self.assertEqual(report['data_status'], 'passed')
         self.assertEqual(report['accepted_sample_count'], 361)
         self.assertNotIn('1234567', json.dumps(report))
         self.assertEqual(report['cost_status'], 'incomplete')
+        self.assertEqual(report['server_offset_seconds'], 10800)
         self.assertEqual(report['contract']['name'], 'XAUUSD-VIP')
         self.assertNotIn('hidden', json.dumps(report))
 

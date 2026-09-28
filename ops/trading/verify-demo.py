@@ -11,7 +11,7 @@ from gold_signal import evaluate
 from gold_qualification import qualify_samples
 
 
-def collect(mt5, login: int, seconds: int) -> dict:
+def collect(mt5, login: int, seconds: int, server_offset_seconds: int = 0) -> dict:
     started = time.time()
     deadline = time.monotonic() + seconds
     samples = []
@@ -22,7 +22,7 @@ def collect(mt5, login: int, seconds: int) -> dict:
             began = time.monotonic()
             health = {}
             try:
-                read_gold(mt5, login, None, health)
+                read_gold(mt5, login, None, health, server_offset_seconds=server_offset_seconds)
                 if contract is None:
                     contract = read_contract(mt5)
             except AccountGuardError as exc:
@@ -40,6 +40,7 @@ def collect(mt5, login: int, seconds: int) -> dict:
     if failure:
         outcome.update(data_status='inconclusive', blockers=[failure])
     return {'schema_version': 1, 'mode': 'read-only-qualification', 'symbol': SYMBOL,
+            'server_offset_seconds': server_offset_seconds,
             'started_at': started, 'ended_at': time.time(), 'sdk_version': mt5.__version__,
             'code_sha256': {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
                             for name in ('verify-demo.py', 'mt5_data.py', 'gold_qualification.py', 'gold_signal.py')},
@@ -52,6 +53,8 @@ def main():
     parser.add_argument("--login", required=True, type=int)
     parser.add_argument("--collect-seconds", type=int)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--server-offset-seconds", type=int, choices=(0, 7200, 10800), default=0,
+                        help="Diagnostic clock offset confirmed against MT5 Market Watch; live observer is unchanged")
     args = parser.parse_args()
     if (args.collect_seconds is None) != (args.output is None):
         parser.error("--collect-seconds and --output must be supplied together")
@@ -69,7 +72,7 @@ def main():
         raise SystemExit(f"MT5 attach failed: {mt5.last_error()}")
     try:
         if args.collect_seconds is not None:
-            report = collect(mt5, args.login, args.collect_seconds)
+            report = collect(mt5, args.login, args.collect_seconds, args.server_offset_seconds)
             with target.open('xb') as output:
                 output.write((json.dumps(report, sort_keys=True, allow_nan=False) + '\n').encode())
             print(json.dumps({key: report[key] for key in ('data_status', 'blockers',
@@ -81,7 +84,8 @@ def main():
         while True:
             now = time.time()
             try:
-                tick, bars = read_gold(mt5, args.login, None, evidence)
+                tick, bars = read_gold(mt5, args.login, None, evidence,
+                                       server_offset_seconds=args.server_offset_seconds)
                 break
             except DataUnavailable:
                 if time.monotonic() >= deadline:
@@ -94,7 +98,9 @@ def main():
         print(json.dumps({"symbol": SYMBOL,
                           "host_utc": datetime.fromtimestamp(now, timezone.utc).isoformat(),
                           "tick_time": int(tick.time),
-                          "quote_age_seconds": round(validate_tick(tick, now), 3),
+                          "server_offset_seconds": args.server_offset_seconds,
+                          "quote_age_seconds": round(validate_tick(tick, now,
+                              server_offset_seconds=args.server_offset_seconds), 3),
                           "completed_m15_bars": len(bars),
                           "latest_bar_time": bars[-1]["time"],
                           "reason": "ready", "health": evidence}, allow_nan=False))

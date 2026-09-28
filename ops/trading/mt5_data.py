@@ -25,7 +25,9 @@ def validate_account(account, terminal, login, server=SERVER):
         raise AccountGuardError("Turn Algo Trading off for this read-only check.")
 
 
-def validate_tick(tick, now: float, evidence: dict | None = None) -> float:
+def validate_tick(tick, now: float, evidence: dict | None = None, *, server_offset_seconds: int = 0) -> float:
+    if server_offset_seconds not in (0, 7200, 10800):
+        raise ValueError("Unsupported server clock offset.")
     evidence = evidence if evidence is not None else {}
     evidence.update(quote="missing", sampled_at=now, tick_time=None,
                     tick_time_msc=None, quote_age_seconds=None)
@@ -39,11 +41,12 @@ def validate_tick(tick, now: float, evidence: dict | None = None) -> float:
         evidence["tick_time"] = float(tick.time)
     if math.isfinite(float(raw_msc)):
         evidence["tick_time_msc"] = float(raw_msc)
-    if math.isfinite(stamp) and math.isfinite(now):
-        evidence["quote_age_seconds"] = now - stamp
+    normalized_stamp = stamp - server_offset_seconds
+    if math.isfinite(normalized_stamp) and math.isfinite(now):
+        evidence["quote_age_seconds"] = now - normalized_stamp
     if not all(map(math.isfinite, (bid, ask, stamp, now))) or bid <= 0 or ask < bid or stamp <= 0:
         raise ValueError("Invalid gold bid/ask or timestamp.")
-    age = now - stamp
+    age = now - normalized_stamp
     if age < 0:
         evidence["quote"] = "future"
         raise ValueError("Gold quote timestamp is ahead of the checking clock.")
@@ -65,7 +68,10 @@ def read_contract(mt5) -> dict:
     return {field: getattr(info, field, None) for field in fields} | {'commission': None}
 
 
-def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None) -> tuple[object, list[dict]]:
+def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
+              *, server_offset_seconds: int = 0) -> tuple[object, list[dict]]:
+    if server_offset_seconds not in (0, 7200, 10800):
+        raise ValueError("Unsupported server clock offset.")
     evidence = evidence if evidence is not None else {}
     evidence.update(terminal="unknown", quote="unknown", sampled_at=now,
                     tick_time=None, tick_time_msc=None, quote_age_seconds=None,
@@ -101,7 +107,7 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None) 
             evidence["spread_points"] = evidence["spread_price"] / point
     quote_error = None
     try:
-        validate_tick(tick, sampled_at, evidence)
+        validate_tick(tick, sampled_at, evidence, server_offset_seconds=server_offset_seconds)
     except ValueError as exc:
         quote_error = exc
     rates = mt5.copy_rates_from_pos(SYMBOL, mt5.TIMEFRAME_M15, 1, 250)
@@ -109,7 +115,10 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None) 
         evidence["history_count"] = len(rates)
         if len(rates):
             try:
-                evidence["history_bar_time"] = int(rates[-1]["time"])
+                raw_bar_time = int(rates[-1]["time"])
+                evidence["history_bar_time"] = raw_bar_time - server_offset_seconds
+                if server_offset_seconds:
+                    evidence["raw_history_bar_time"] = raw_bar_time
             except (KeyError, TypeError, ValueError, OverflowError):
                 pass
     validate_account(mt5.account_info(), mt5.terminal_info(), login)
@@ -123,7 +132,7 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None) 
         raise DataUnavailable("Need 250 completed gold M15 bars; history has not populated yet.")
     bars = []
     for row in rates:
-        bars.append({key: int(row[key]) if key == "time" else float(row[key])
+        bars.append({key: int(row[key]) - server_offset_seconds if key == "time" else float(row[key])
                      for key in ("time", "open", "high", "low", "close")})
     try:
         assessment = evaluate(bars, float(tick.bid), float(tick.ask), sampled_at)

@@ -59,3 +59,13 @@ Next: independently compare MT5 Market Watch server time with synchronized
 UTC, establish a verified timestamp basis, then repeat a finite two-boundary
 collection. Record account-specific fee provenance separately. No order
 path is enabled.
+
+At approximately 12:26 UTC, the private MT5 desktop's Market Watch clock
+showed approximately 15:26. This independently corroborated a three-hour
+server display offset for this session, though it does not resolve the
+MetaQuotes documentation discrepancy or historical timestamp semantics.
+The read-only verifier now offers an explicit 10800-second diagnostic offset;
+raw tick and bar timestamps remain in its private report, and default
+observer behavior is unchanged. Local suite: 37 tests passed. Live one-shot
+and two-boundary qualification using this option are pending owner-assisted
+deployment. Data status remains **inconclusive**.

@@ -109,6 +109,31 @@ class GoldDataTest(unittest.TestCase):
             read_gold(sdk, 123, 251 * 900, health)
         self.assertIsNone(health['spread_points'])
 
+    def test_explicit_server_clock_offset_qualifies_matching_tick_and_bars_only(self):
+        now, offset = 251 * 900, 10800
+        sdk = Mock(TIMEFRAME_M15=15)
+        sdk.account_info.return_value = SimpleNamespace(trade_mode=0, login=123, server="VTMarkets-Demo")
+        sdk.terminal_info.return_value = SimpleNamespace(connected=True, trade_allowed=False)
+        sdk.symbol_select.return_value = True
+        sdk.symbol_info.return_value = SimpleNamespace(point=.01)
+        sdk.symbol_info_tick.return_value = SimpleNamespace(bid=100, ask=100.1,
+            time=now + offset, time_msc=(now + offset) * 1000)
+        sdk.copy_rates_from_pos.return_value = [dict(time=(i + 1) * 900 + offset,
+            open=100, high=101, low=99, close=100) for i in range(250)]
+        with self.assertRaisesRegex(ValueError, 'ahead'):
+            read_gold(sdk, 123, now)
+        with self.assertRaises(ValueError):
+            read_gold(sdk, 123, now, server_offset_seconds=7200)
+        evidence = {}
+        tick, bars = read_gold(sdk, 123, now, evidence, server_offset_seconds=offset)
+        self.assertEqual(bars[-1]['time'], now - 900)
+        self.assertEqual(evidence['raw_history_bar_time'], now - 900 + offset)
+        self.assertEqual(evidence['history_bar_time'], now - 900)
+        self.assertEqual(evidence['tick_time'], now + offset)
+        self.assertEqual(evidence['quote_age_seconds'], 0)
+        self.assertEqual(validate_tick(tick, now, server_offset_seconds=offset), 0)
+        sdk.order_send.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

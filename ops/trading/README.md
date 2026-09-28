@@ -166,6 +166,15 @@ stale; negative ages mean a future timestamp. Do not correct these by guessing
 a broker timezone. The readiness check also evaluates completed-bar timing and
 spread guards; receiving 250 bars alone is not a readiness pass.
 
+On 2026-09-28, Market Watch displayed about 15:26 while synchronized VPS UTC
+was about 12:26. The same three-hour lead appeared in raw tick and M15 bar
+epochs. For this pinned demo only, the verifier accepts an explicit diagnostic
+`--server-offset-seconds 10800`; it retains raw timestamps and checks adjusted
+quote age and completed bars independently. Its default is zero offset, and
+the running observer remains fail-closed. Confirm the Market Watch difference
+again after a server DST change before reusing this option. This is evidence
+collection, not proof that all MT5 Python timestamps use broker time.
+
 ### Bounded Batch 1 collection (read only)
 
 The verifier can sample the pinned gold demo for at most one hour. A pass
@@ -182,6 +191,11 @@ container, run this on the VPS during the symbol's open session:
 ```sh
 docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/verify-demo.py --login YOUR_DEMO_ACCOUNT_NUMBER --collect-seconds 3600 --output 'C:\users\mt5\gold-qualification-YYYYMMDD.json'
 ```
+
+For the observed three-hour server clock, add `--server-offset-seconds 10800`
+to that command after rechecking Market Watch against UTC. A one-shot verifier
+with the same option should pass first; the command without it should still
+block on the raw future timestamp. Neither command changes the observer.
 
 Choose a new filename on rerun; output creation is exclusive. Keep the JSON
 private in MT5 home. Exit 0 means data continuity passed, not that strategy
