@@ -2,6 +2,10 @@
 
 ## Resume here — four delivery batches
 
+Detailed execution plans (planning only; numeric policy awaits review):
+- [Batch 1 implementation](2026-09-28-gold-batch-1-implementation.md)
+- [Batch 2 implementation](2026-09-28-gold-batch-2-implementation.md)
+
 Owner approved this batch sequence on 2026-09-28 for continuation from a
 MacBook. This is the current delivery checklist; earlier milestone status
 below records historical progress. No batch enables orders or auto-promotion.

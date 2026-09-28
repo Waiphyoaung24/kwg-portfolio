@@ -346,3 +346,19 @@ scheduled work has been configured.
   or existing Dokploy access, never commit credentials to transfer access.
 - No scheduled follow-up was created. On resume, inspect current live status
   and do not infer successful market reopening from the date alone.
+
+### Detailed Batch 1–2 implementation plans — planning only
+
+- `docs/superpowers/plans/2026-09-28-gold-batch-1-implementation.md`: bounded
+  verifier evidence, consecutive M15 transitions, contract/cost provenance,
+  and supervised recovery verification. Default design extends existing tools.
+- `docs/superpowers/plans/2026-09-28-gold-batch-2-implementation.md`: explicit
+  dated cost profiles, simulator accounting/window checks, prospective gates,
+  deterministic baseline rerun and evidence handoff.
+- Both are plans, not deployed features. New CLI flags/interfaces are future
+  implementation work. Proposed numeric research gates remain draft until
+  owner review; existing ~30 validation trades cannot satisfy the proposed
+  100-trade/60-day sample minimum. No candidate, orders or future job started.
+- Context7 and primary MetaQuotes documentation consulted. Broker fee history
+  still requires account-specific evidence; current rates are not backfilled
+  as historical truth. Prior baseline outcomes are already inspected.
