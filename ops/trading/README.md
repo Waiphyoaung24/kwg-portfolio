@@ -221,6 +221,13 @@ candidate or order path is installed.
 For an approved policy, both evaluator input reports must carry the SHA-256
 of its canonical JSON (`sort_keys=True`, compact separators, finite numbers)
 in `identity.policy_sha256`; changing a threshold invalidates the comparison.
+Simulation reports now include `entry_risk_usd` and `net_r` per trade,
+`notional_turnover_usd`, and close-sampled `raw_epoch_daily_returns`. The
+last field uses raw broker epochs, **not verified UTC dates**, so it must not
+be copied into the evaluator's `daily_returns`. The frozen provisional
+manifest rejects `--cost-profile` and cannot supply the required three
+prospective folds. A new covered dataset and manifest are needed before
+building real gate inputs.
 
 Once deployed with the offset, the observer normalizes the displayed quote
 timestamp; the one-shot verifier still retains raw broker timestamps. The

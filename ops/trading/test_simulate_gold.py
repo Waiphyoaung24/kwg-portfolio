@@ -110,6 +110,7 @@ class SimulationTest(unittest.TestCase):
         changed['bars'][800:] = [{'unread_holdout': True}] * 200
         self.assertEqual(result, sim['run'](changed))
         self.assertFalse(result['holdout']['evaluated'])
+        self.assertEqual(result['daily_return_time_basis'], 'raw_broker_epoch_unqualified')
         self.assertEqual(result['runs']['middle']['windows']['validation']['first_bar'], 601 * 900)
         frozen = {'development': {'start': 250*900, 'end': 600*900},
                   'validation': {'start': 601*900, 'end': 800*900}}
@@ -126,6 +127,21 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(len(result['trades']), 1)
         self.assertEqual(result['trades'][0]['exit_reason'], 'gap_stop')
         self.assertEqual(result['summary']['skips']['daily_pause_rejected'], 1)
+
+    def test_daily_marks_and_trade_risk_reconcile(self):
+        sample = [dict(time=stamp, open=price, high=price+.5, low=price-.5,
+                       close=price, spread=0) for stamp, price in
+                  [(84600, 100), (85500, 100), (86400, 100),
+                   (87300, 101), (88200, 101)]]
+        signals = {85500: dict(signal='long', bar_time=85500, atr14=1)}
+        result = sim['simulate'](sample, signals, SPEC, FREE)
+        trade = result['trades'][0]
+        self.assertAlmostEqual(trade['net_r'] * trade['entry_risk_usd'], trade['net_pnl'])
+        self.assertAlmostEqual(result['summary']['notional_turnover_usd'],
+                               (trade['entry'] + trade['exit']) * 100 * trade['lots'])
+        self.assertEqual(result['raw_epoch_daily_returns']['0'], 0)
+        self.assertAlmostEqual(result['raw_epoch_daily_returns']['1'],
+                               result['summary']['net_pnl_usd'] / 100000)
 
 
 if __name__ == '__main__':

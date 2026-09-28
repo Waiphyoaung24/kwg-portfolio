@@ -8,7 +8,7 @@ approved prospective policy contain candidate gates and a deterministic paired
 bootstrap. The real baseline remains diagnostic and ineligible for shadow
 observation.
 
-Local checks: 53 Python tests passed on 2026-09-29. The original frozen
+Local checks: 54 Python tests passed on 2026-09-29. The original frozen
 dataset is private on the VPS, so a new baseline rerun was not completed from
 this workspace. Batch 1 continuity and container-restart recovery now passed
 for their observed session, while dated commission/swap coverage, a registered
@@ -64,9 +64,13 @@ hypothetical costs, 30/31/30 validation trades and net P&L of
 -$305.195/-$445.94/-$186.87 (lower/middle/stress). No candidate is registered
 or compared. Its older `live qualification incomplete` limitation does not
 reflect the subsequent bounded Batch 1 session; neither result establishes
-historical cost or timestamp coverage. The real simulator report still lacks
-the daily-return/fold adapter required by the prospective evaluator, so a
-synthetic gate pass cannot be treated as end-to-end Batch 2 readiness.
+historical cost or timestamp coverage. The simulator now records per-trade
+entry risk/net R, notional turnover and close-sampled raw-epoch daily returns.
+A synthetic test reconciles trade risk and daily marks. These are diagnostics:
+the raw days are not verified UTC dates, and the provisional manifest rejects
+dated cost profiles and has no three prospective folds. No real report adapter
+can meet the approved evaluator's evidence contract yet; a synthetic gate pass
+is not end-to-end Batch 2 readiness.
 
 On 2026-09-29 (Asia/Bangkok), the owner explicitly approved the exact v1
 thresholds in `evaluation-policy.json` for future candidate tests. Its status
