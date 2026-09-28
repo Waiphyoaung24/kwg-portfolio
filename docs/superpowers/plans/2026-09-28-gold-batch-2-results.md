@@ -29,3 +29,22 @@ advancing 59.78 seconds with a stable apparent UTC lead of about three hours.
 This confirms feed movement but does not validate UTC date labels or the
 historical dataset's calendar semantics. No prior backtest result was
 reclassified.
+
+The owner reported Standard STP pricing for the pinned demo. VT Markets'
+current commission guide lists no separate gold commission for Standard STP
+or VIP STP, but this is not dated historical coverage for the frozen dataset.
+Its symbol-suffix guide associates `-VIP` with an account tier, so the
+reported account type and exact suffix should be reconciled before treating
+the fee as account-specific history. Sources:
+[commission guide](https://get.vtmarkets.help/hc/en-us/articles/37317570987545-What-fees-commissions-are-charged-for-trading),
+[symbol suffixes](https://get.vtmarkets.help/hc/en-us/articles/42847655982105-Why-am-I-unable-to-trade-certain-products-on-the-MT4-5-App).
+
+A guarded, read-only MT5 query on 2026-09-28 returned current `XAUUSD-VIP`
+properties: swap mode 1 (points), long -79.48 points, short +34.41 points,
+three-day rollover field 3 (Wednesday), contract size 100, profit currency
+USD and point 0.01. This implies a current per-lot nominal overnight cash
+flow of -$79.48 long or +$34.41 short before any account-specific adjustments.
+The exact rollover time and historical rate changes are not established.
+[MetaQuotes swap-mode reference](https://www.mql5.com/en/docs/constants/environment_state/marketinfoconstants).
+No historical cost profile was approved or populated; status remains
+**prepared_but_blocked**.
