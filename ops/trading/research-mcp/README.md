@@ -29,18 +29,24 @@ request needs `Authorization: Bearer <token>`.
 
 The Worker was deployed on 2026-09-28 at
 `https://kwg-gold-research-mcp.nexuslab-dev-mm.workers.dev/mcp`. An anonymous
-remote `tools/list` request returned HTTP 503 with `Cache-Control: no-store`,
-as expected while the bearer secret is unset. A token has been generated in
-the owner's Windows user profile at `%LOCALAPPDATA%\kwg-gold-mcp\token` but has
-not been uploaded. It must not be pasted into chat. Authenticated remote tool
-calls remain unverified until the secret is configured.
+remote `tools/list` request returns HTTP 401; an authenticated request returns
+HTTP 200 and lists only the two tools. The bearer token is stored in the owner's
+Windows user profile at `%LOCALAPPDATA%\kwg-gold-mcp\token` and as the Worker
+secret `MCP_BEARER_TOKEN`. It must not be pasted into chat or Git.
 
-For live status, set three more Worker secrets from the existing private status
-connection: `STATUS_ORIGIN_URL`, `STATUS_ACCESS_CLIENT_ID`, and
-`STATUS_ACCESS_CLIENT_SECRET`. The origin URL must use HTTPS. Until these are
-configured, `get_gold_status` returns a generic unavailable result; the
-baseline tool remains usable. These three secrets have not been configured for
-the new Worker yet. Never put their values in `wrangler.toml`.
+Live status uses three encrypted Worker variables: `STATUS_ORIGIN_URL`,
+`STATUS_ACCESS_CLIENT_ID`, and `STATUS_ACCESS_CLIENT_SECRET`. The origin URL is
+`https://status.waiphyoaung.com`; the Client ID and Secret belong to the
+one-year `kwg-gold-research-mcp-status` Cloudflare Access service token. The
+`KWG gold research MCP status token` Service Auth policy permits that token on
+the protected origin. Never put credential values in `wrangler.toml`.
+
+On 2026-09-28, authenticated remote calls to both tools returned HTTP 200.
+`get_baseline_summary` reported `qualification=unqualified` and
+`promotion=blocked`. `get_gold_status` reached the origin and returned
+`status=blocked`, `signal=none`: the running observer still treated the broker's
+three-hour server timestamp as a future quote. MCP connectivity is working;
+observer clock normalization remains a separate qualification task.
 
 After deployment and secret setup, connect Claude Code using its remote HTTP
 MCP support, with the token supplied locally:
