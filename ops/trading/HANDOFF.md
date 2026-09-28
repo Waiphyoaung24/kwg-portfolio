@@ -14,6 +14,29 @@ separate that machinery test from Batch 2/3 strategy qualification and later
 continuous demo execution. No order code has been deployed under this plan;
 the existing observer stays read-only with Algo Trading off.
 
+## Implementation update — 2026-09-29
+
+The one-shot preflight, durable journal/reconciliation, resume-only boot hook,
+and sanitized read-only dashboard status are implemented on this branch in
+commits `3284c29`, `9ea0ba4`, `566e0af`, and the follow-up hardening commit.
+The 89-test Python suite, Worker/browser tests, shell syntax, Astro build,
+generated private page and Compose configuration pass locally. Independent
+code review found no remaining critical or important issue. `public/ref/`
+remains unrelated and untouched. The observer still defaults to its
+Algo-Trading-off guard.
+
+**Activation is pending.** No image was built or deployed to the VPS, no MT5
+preview was run against the current private account, Algo Trading was not
+enabled, and no order was sent. Read-only SSH to the documented VPS was tried
+with strict host-key checking and rejected with `Permission denied (publickey)`;
+the local Docker daemon did not respond to an info check. A real private
+preview needs the current terminal quote, symbol metadata and equity; fake-MT5
+fixtures cannot substitute for it. The runbook in [README.md](README.md)
+records the no-order preview command and review gate. Keep the plan's Task 4
+deployment, source-hash, observer-backup, terminal checks, preview and owner
+review pending before any supervised attempt. Batch 2 stays
+`prepared_but_blocked` and continuous execution stays disabled.
+
 ## Handover instruction
 
 The planning branch is `codex/gold-demo-one-shot-plan`, built on

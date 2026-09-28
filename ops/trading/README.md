@@ -15,8 +15,8 @@ guard passed, but the gold quote was stale during market closure, so both the
 diagnostic and one-shot observer blocked as intended. The VPS now runs the
 signal-only observer continuously. Live candle transitions, restart persistence,
 and advancing tick freshness still need qualification during an open gold session.
-Review live signals and risk checks before a separate demo-order implementation.
-Keep Algo Trading off.
+The separate one-shot demo runner is implemented in source but has not been
+deployed or armed. Keep Algo Trading off until the supervised activation review.
 
 ## Read-only Vault status
 
@@ -40,8 +40,9 @@ docker compose --profile status up -d --build
 ```
 
 Keep `.env` outside Git. The desktop process starts the signal-only observer
-when the login is set; it never calls an order API. Confirm the private service
-is reachable from `dokploy-network` and has **no host port** before adding its
+when the login is set; that observer never calls an order API. The separate
+resume-only hook may close an already submitted one-shot position. Confirm the
+private service is reachable from `dokploy-network` and has **no host port** before adding its
 Cloudflare Tunnel public hostname. In Cloudflare Zero Trust, protect that
 hostname with an Access **Service Auth** policy for a dedicated service token.
 The Worker receives the token as `STATUS_ACCESS_CLIENT_ID` and
@@ -84,6 +85,59 @@ Commit this directory's source and documentation only. Broker passwords,
 `mt5.json`, SSH keys, and the terminal's persistent volume stay outside Git.
 The VPS setup was deployed directly; committing or pushing this repository
 does not update that running Compose project automatically.
+
+## One-shot demo dry-run and recovery
+
+The one-shot runner is separate from `observe-gold.py`. Its only entry path is
+the private Wine CLI `arm` command with `--enable-demo-execution`; the browser,
+Worker and status origin have no arm or order endpoint. A persistent journal in
+the MT5 home allows one attempt and prevents entry after restart. Boot invokes
+`resume`, which can reconcile or close an existing submitted attempt but cannot
+send a new entry. `execution.json` on the status volume contains display fields
+only; tickets, account details, request bodies and deal history stay private.
+
+Before deploying the new image, verify the source hashes on the VPS and in the
+image, take a consistent SQLite backup of `gold-observer.sqlite3`, and retain
+the running container until the replacement is verified. Build without arming,
+confirm `resume` with no journal sends no orders, then recheck the pinned demo,
+Algo Trading off, MT5 SDK/build, synchronized UTC against Market Watch, fresh
+gold quote and 250 completed M15 bars. Reconfirm the server offset after a DST
+change. Inspect current symbol trading, minimum lot, stop/freeze and filling
+rules, and confirm there is no gold position or active gold order. Keep the
+desktop bound to SSH loopback and the page behind Cloudflare Access.
+
+Run a private **no-order preview** only after those checks, with Algo Trading
+off. Replace `buy` with `sell` only if that is the owner's chosen side:
+
+```sh
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/demo_one_shot.py preview --side buy --state 'C:\users\mt5\gold-one-shot.sqlite3'
+```
+
+The preview prints the current minimum lot, quote reference, proposed broker
+SL/TP, modeled stop exposure, 60-second hold rule and timestamp. It does not
+create a journal, call `order_check` or call `order_send`. Store its full JSON
+privately in the persistent MT5 home or another private VPS directory, record
+its SHA-256 hash, and review it promptly: its quote and contract checks are
+time-limited. `arm` rebuilds and rechecks the request; the preview never grants
+permission to submit it. Unknown fees, gaps and slippage are outside the
+modeled stop exposure.
+
+Only after the owner reviews that concrete preview should the operator enable
+Algo Trading on the private desktop and run a single `arm` with the explicit
+flag, using the reviewed side:
+
+```sh
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/demo_one_shot.py arm --side buy --state 'C:\users\mt5\gold-one-shot.sqlite3' --enable-demo-execution
+```
+
+The operator watches the journal, broker position and orders until the
+protected position closes or a `needs_attention` state is resolved. Do not
+repeat `arm`, create another journal, or treat a missing reply as a failed
+order. If reconciliation is uncertain, preserve the journal and broker-held
+protection for ticket-specific recovery. After confirmed closure, ensure no
+gold position/order remains, turn Algo Trading off, and verify the observer's
+read-only guard again. The smoke result does not qualify the strategy or
+enable continuous entry.
 
 ## SDK probe
 
