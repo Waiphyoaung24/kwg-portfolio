@@ -6,10 +6,11 @@ gold tick age, 250 valid completed M15 bars, and two consecutive 15-minute
 bar transitions. It records sampled spread and allowlisted current contract
 properties. It does not write observer state or place orders.
 
-Local checks: 36 Python tests passed on 2026-09-28. A live collection report
-has **not** been captured or verified in this implementation run. The current
-MT5 server cannot be reached by this workspace's non-interactive SSH key.
-The data result is therefore **inconclusive**, not passed. The account-specific
+Local checks: 36 Python tests passed on 2026-09-28. The pinned read-only
+diagnostic was deployed through the owner's SSH session. A 60-second private
+collection was captured, but it did not qualify UTC freshness. The workspace's
+non-interactive SSH key remains unavailable; owner-assisted VPS commands were
+used. The data result is **inconclusive**, not passed. The account-specific
 commission and swap schedule is still unknown; cost status is **incomplete**.
 
 The owner ran the existing one-shot verifier on the VPS at
@@ -33,7 +34,28 @@ three-hour lead. Host files at that time were still old:
 and `gold_qualification.py` was absent. Pinned diagnostic deployment and
 raw-time qualification remained unverified at that point.
 
-Next: deploy the exact committed verifier/helpers to the VPS without
-recreating MT5, confirm demo identity and Algo Trading off, run one finite
-collection in an open gold session, and privately retain its JSON and hashes.
-Record actual fee provenance separately. No order path is enabled.
+The owner then copied the pinned diagnostic files into the running
+`kwg-mt5-desktop` container without a restart. All five downloaded files
+passed SHA-256 checks; the container's `verify-demo.py`,
+`mt5_data.py` and `gold_qualification.py` hashes matched the pinned
+source. At 12:15:19 UTC, the new one-shot verifier still blocked: raw tick
+age -10799.796 seconds, raw latest completed bar exactly 10800 seconds
+ahead of the host's expected M15 bar, 250 bars fetched, bid 4164.30, ask
+4164.57. The raw bar advanced 45 minutes between the 11:31 and 12:15
+checks. Feed progression is observed, but absolute UTC timestamp semantics
+and continuous freshness are not qualified.
+
+A 60-second bounded private collection then ran from the deployed verifier
+as `gold-raw-qualification-20260928-1215.json` in the MT5 home volume.
+Its CLI summary reported `data_status=inconclusive`,
+`accepted_sample_count=0`, no qualifying M15 transitions or spread
+summary, and `cost_status=incomplete`. The private report was summarized
+without copying it or account data into Git: 13 samples, raw tick timestamp
+advance 59.78 seconds, apparent UTC age range -10799.896 to -10799.520
+seconds, and one raw bar label 1790607600. This proves feed progression
+over that minute, not UTC freshness or two bar boundaries.
+
+Next: independently compare MT5 Market Watch server time with synchronized
+UTC, establish a verified timestamp basis, then repeat a finite two-boundary
+collection. Record account-specific fee provenance separately. No order
+path is enabled.

@@ -23,3 +23,9 @@ retains raw MT5 epochs and is explicitly unqualified; calendar-day funding,
 daily-pause and date labels must not be interpreted as broker-accurate until
 the timestamp basis is established. The old hypothetical outcomes remain
 diagnostics only.
+
+Thirteen private live samples over one minute showed raw tick timestamps
+advancing 59.78 seconds with a stable apparent UTC lead of about three hours.
+This confirms feed movement but does not validate UTC date labels or the
+historical dataset's calendar semantics. No prior backtest result was
+reclassified.
