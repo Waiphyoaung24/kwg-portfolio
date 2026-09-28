@@ -2,6 +2,8 @@
 import math
 import time
 
+from gold_signal import evaluate
+
 SYMBOL = "XAUUSD-VIP"
 SERVER = "VTMarkets-Demo"
 
@@ -56,7 +58,10 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None) 
     evidence = evidence if evidence is not None else {}
     evidence.update(terminal="unknown", quote="unknown", sampled_at=now,
                     tick_time=None, tick_time_msc=None, quote_age_seconds=None,
-                    history_bar_time=None, history_count=0)
+                    history_bar_time=None, history_count=0, bid=None, ask=None,
+                    spread_price=None, point=None, spread_points=None,
+                    history_valid=False, expected_bar_time=None,
+                    strategy_signal="blocked", strategy_reason="Not evaluated")
     account, terminal = mt5.account_info(), mt5.terminal_info()
     try:
         validate_account(account, terminal, login)
@@ -69,6 +74,20 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None) 
         raise DataUnavailable("Gold symbol is unavailable on the demo account.")
     tick = mt5.symbol_info_tick(SYMBOL)
     sampled_at = time.time() if now is None else now
+    evidence["expected_bar_time"] = int(sampled_at // 900) * 900 - 900
+    info = mt5.symbol_info(SYMBOL)
+    point = getattr(info, "point", None)
+    if tick is not None:
+        try:
+            bid, ask = float(tick.bid), float(tick.ask)
+            if math.isfinite(bid) and math.isfinite(ask):
+                evidence.update(bid=bid, ask=ask, spread_price=ask - bid)
+        except (TypeError, ValueError, AttributeError):
+            pass
+    if isinstance(point, (int, float)) and math.isfinite(point) and point > 0:
+        evidence["point"] = float(point)
+        if evidence["spread_price"] is not None:
+            evidence["spread_points"] = evidence["spread_price"] / point
     quote_error = None
     try:
         validate_tick(tick, sampled_at, evidence)
@@ -82,12 +101,25 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None) 
                 evidence["history_bar_time"] = int(rates[-1]["time"])
             except (KeyError, TypeError, ValueError, OverflowError):
                 pass
+    validate_account(mt5.account_info(), mt5.terminal_info(), login)
     if quote_error is not None:
+        evidence["strategy_reason"] = str(quote_error)
         raise quote_error
+    if evidence["point"] is None:
+        evidence["strategy_reason"] = "Invalid or unavailable gold point size"
+        raise ValueError(evidence["strategy_reason"])
     if rates is None or len(rates) < 250:
         raise DataUnavailable("Need 250 completed gold M15 bars; history has not populated yet.")
     bars = []
     for row in rates:
         bars.append({key: int(row[key]) if key == "time" else float(row[key])
                      for key in ("time", "open", "high", "low", "close")})
+    try:
+        assessment = evaluate(bars, float(tick.bid), float(tick.ask), sampled_at)
+    except ValueError as exc:
+        evidence["strategy_reason"] = str(exc)
+        raise
+    evidence["history_valid"] = assessment["reason"] != "Latest completed candle is stale or future"
+    evidence["strategy_signal"] = assessment["signal"]
+    evidence["strategy_reason"] = assessment["reason"]
     return tick, bars

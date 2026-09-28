@@ -23,6 +23,7 @@ def fake_sdk(end=250):
     sdk.account_info.return_value = SimpleNamespace(trade_mode=0, login=123, server="VTMarkets-Demo")
     sdk.terminal_info.return_value = SimpleNamespace(connected=True, trade_allowed=False)
     sdk.symbol_select.return_value = True
+    sdk.symbol_info.return_value = SimpleNamespace(point=.01)
     sdk.symbol_info_tick.return_value = SimpleNamespace(bid=100, ask=100.1, time=(end + 1) * 900, time_msc=0)
     sdk.copy_rates_from_pos.return_value = history(end)
     sdk.order_send.side_effect = AssertionError("orders forbidden")

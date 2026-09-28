@@ -35,27 +35,28 @@ class GoldDataTest(unittest.TestCase):
         sdk.account_info.return_value = SimpleNamespace(trade_mode=0, login=123, server="VTMarkets-Demo")
         sdk.terminal_info.return_value = SimpleNamespace(connected=True, trade_allowed=False)
         sdk.symbol_select.return_value = True
-        sdk.symbol_info_tick.return_value = SimpleNamespace(bid=100, ask=101, time=1000, time_msc=0)
-        sdk.copy_rates_from_pos.return_value = [dict(time=i, open=100, high=101, low=99, close=100) for i in range(250)]
-        tick, bars = read_gold(sdk, 123, 1000)
+        sdk.symbol_info.return_value = SimpleNamespace(point=.01)
+        sdk.symbol_info_tick.return_value = SimpleNamespace(bid=100, ask=100.1, time=251 * 900, time_msc=0)
+        sdk.copy_rates_from_pos.return_value = [dict(time=(i + 1) * 900, open=100, high=101, low=99, close=100) for i in range(250)]
+        tick, bars = read_gold(sdk, 123, 251 * 900)
         self.assertEqual((tick.bid, len(bars)), (100, 250))
         sdk.copy_rates_from_pos.assert_called_once_with("XAUUSD-VIP", 15, 1, 250)
         sdk.account_info.return_value.trade_mode = 2
         with self.assertRaises(ValueError):
-            read_gold(sdk, 123, 1000)
+            read_gold(sdk, 123, 251 * 900)
 
         sdk.account_info.return_value.trade_mode = 0
         sdk.terminal_info.return_value.connected = False
         with self.assertRaises(ValueError):
-            read_gold(sdk, 123, 1000)
+            read_gold(sdk, 123, 251 * 900)
         sdk.terminal_info.return_value.connected = True
         sdk.symbol_info_tick.return_value = None
         with self.assertRaises(ValueError):
-            read_gold(sdk, 123, 1000)
+            read_gold(sdk, 123, 251 * 900)
         sdk.symbol_info_tick.return_value = tick
         sdk.copy_rates_from_pos.return_value = [{}] * 249
         with self.assertRaises(ValueError):
-            read_gold(sdk, 123, 1000)
+            read_gold(sdk, 123, 251 * 900)
 
 
     def test_quote_failures_keep_timestamp_evidence(self):
@@ -70,6 +71,43 @@ class GoldDataTest(unittest.TestCase):
                         validate_tick(tick, now, evidence)
                 self.assertEqual(evidence, dict(quote=state, sampled_at=now,
                     tick_time=1000, tick_time_msc=1000500, quote_age_seconds=age))
+
+    def test_read_gold_records_spread_and_rejects_bad_history(self):
+        sdk = Mock(TIMEFRAME_M15=15)
+        sdk.account_info.return_value = SimpleNamespace(trade_mode=0, login=123, server="VTMarkets-Demo")
+        sdk.terminal_info.return_value = SimpleNamespace(connected=True, trade_allowed=False)
+        sdk.symbol_select.return_value = True
+        sdk.symbol_info.return_value = SimpleNamespace(point=.01)
+        sdk.symbol_info_tick.return_value = SimpleNamespace(bid=100, ask=100.2, time=251 * 900, time_msc=0)
+        sdk.copy_rates_from_pos.return_value = [dict(time=(i + 1) * 900, open=100,
+            high=101, low=99, close=100) for i in range(250)]
+        health = {}
+        read_gold(sdk, 123, 251 * 900, health)
+        self.assertAlmostEqual(health['spread_price'], .2)
+        self.assertAlmostEqual(health['spread_points'], 20)
+        self.assertTrue(health['history_valid'])
+        self.assertEqual(health['strategy_signal'], 'none')
+        sdk.copy_rates_from_pos.return_value[-1]['time'] -= 900
+        with self.assertRaises(ValueError):
+            read_gold(sdk, 123, 251 * 900, health)
+        self.assertEqual(health['quote'], 'fresh')
+        self.assertFalse(health['history_valid'])
+        self.assertNotEqual(health['strategy_signal'], 'none')
+        sdk.order_send.assert_not_called()
+
+    def test_bad_point_cannot_fabricate_spread_points(self):
+        sdk = Mock(TIMEFRAME_M15=15)
+        sdk.account_info.return_value = SimpleNamespace(trade_mode=0, login=123, server="VTMarkets-Demo")
+        sdk.terminal_info.return_value = SimpleNamespace(connected=True, trade_allowed=False)
+        sdk.symbol_select.return_value = True
+        sdk.symbol_info.return_value = SimpleNamespace(point=0)
+        sdk.symbol_info_tick.return_value = SimpleNamespace(bid=100, ask=100.2, time=251 * 900, time_msc=0)
+        sdk.copy_rates_from_pos.return_value = [dict(time=(i + 1) * 900, open=100,
+            high=101, low=99, close=100) for i in range(250)]
+        health = {}
+        with self.assertRaises(ValueError):
+            read_gold(sdk, 123, 251 * 900, health)
+        self.assertIsNone(health['spread_points'])
 
 
 if __name__ == "__main__":
