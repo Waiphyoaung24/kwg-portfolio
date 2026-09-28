@@ -15,8 +15,11 @@ guard passed, but the gold quote was stale during market closure, so both the
 diagnostic and one-shot observer blocked as intended. The VPS now runs the
 signal-only observer continuously. Live candle transitions, restart persistence,
 and advancing tick freshness still need qualification during an open gold session.
-The separate one-shot demo runner is implemented in source but has not been
-deployed or armed. Keep Algo Trading off until the supervised activation review.
+The separate one-shot demo runner was deployed to the private desktop on
+2026-09-29 without arming. Its resume-only boot published `disarmed`; the
+current no-order buy preview is waiting for a fresh gold quote after the
+server-midnight feed pause. Keep Algo Trading off until the supervised
+activation review.
 
 ## Read-only Vault status
 

@@ -11,30 +11,46 @@ minimum-lot demo smoke trade that opens with broker-held protection, closes,
 reconciles and disarms. The [selected design](../../docs/superpowers/plans/2026-09-29-gold-agent-design.md)
 and [implementation plan](../../docs/superpowers/plans/2026-09-29-gold-one-shot-demo-execution.md)
 separate that machinery test from Batch 2/3 strategy qualification and later
-continuous demo execution. No order code has been deployed under this plan;
-the existing observer stays read-only with Algo Trading off.
+continuous demo execution. The runner is installed on the private VPS but is
+disarmed; the existing observer stays read-only with Algo Trading off.
 
 ## Implementation update — 2026-09-29
 
 The one-shot preflight, durable journal/reconciliation, resume-only boot hook,
 and sanitized read-only dashboard status are implemented on this branch in
-commits `3284c29`, `9ea0ba4`, `566e0af`, and the follow-up hardening commit.
-The 89-test Python suite, Worker/browser tests, shell syntax, Astro build,
+commits `3284c29`, `9ea0ba4`, `566e0af`, `35ff3d5`, and `e3dce03`.
+The 90-test Python suite, Worker/browser tests, shell syntax, Astro build,
 generated private page and Compose configuration pass locally. Independent
 code review found no remaining critical or important issue. `public/ref/`
 remains unrelated and untouched. The observer still defaults to its
 Algo-Trading-off guard.
 
-**Activation is pending.** No image was built or deployed to the VPS, no MT5
-preview was run against the current private account, Algo Trading was not
-enabled, and no order was sent. Read-only SSH to the documented VPS was tried
-with strict host-key checking and rejected with `Permission denied (publickey)`;
-the local Docker daemon did not respond to an info check. A real private
-preview needs the current terminal quote, symbol metadata and equity; fake-MT5
-fixtures cannot substitute for it. The runbook in [README.md](README.md)
-records the no-order preview command and review gate. Keep the plan's Task 4
-deployment, source-hash, observer-backup, terminal checks, preview and owner
-review pending before any supervised attempt. Batch 2 stays
+**Activation is pending.** The owner authorized this Mac's SSH public key. On
+2026-09-28 UTC the private VPS built image
+`sha256:13aaeeaa6481d0f59147f1e9aace18d3d0c370ce17f35f9430e4b813f1eb0064`,
+and only `kwg-mt5-desktop` was recreated from it. The runner's image and
+running-container SHA-256 matched local source
+`d250194a96df839f327458c7e0ea7666f968254214485772a7756b436a87a265`.
+The prior image remains tagged `kwg-mt5-desktop:before-one-shot-35ff3d5`.
+The observer journal was backed up consistently in the VPS private `backups/`
+directory as `gold-observer-before-one-shot-20260928-205050.sqlite3`; its
+integrity check passed. A private source rollback archive is also retained.
+
+Before restart, the pinned demo was connected, Algo Trading was off, and gold
+had zero positions and orders. The first no-order preview exposed a pinned
+Python SDK omission of `SYMBOL_FILLING_FOK`/`IOC`; `e3dce03` fixes this using
+the documented `1`/`2` symbol filling flags, and the repaired image was built
+and hash-verified. The resume-only boot published `disarmed` without creating
+a one-shot journal. The observer verifier then blocked because the gold quote
+stopped updating around server midnight; no valid current-price preview was
+collected. Wait for a fresh quote and valid completed-bar window, rerun the
+buy preview with Algo Trading off, preserve its private JSON and hash, and
+obtain owner review before any arm. The status sidecar and Worker still need
+the read-only execution-field update. This Mac's Wrangler OAuth token belongs
+to a different Cloudflare account than the existing Worker, so a read-only
+deployment lookup returned authentication error 10000; do not change the
+Worker's account ID to bypass that mismatch. No `order_check` or `order_send` was run,
+Algo Trading was not enabled, and no order was sent. Batch 2 stays
 `prepared_but_blocked` and continuous execution stays disabled.
 
 ## Handover instruction
