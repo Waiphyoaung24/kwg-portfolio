@@ -30,7 +30,7 @@ strategy qualification remains blocked.
 
 ## Supervised web control (deployed 2026-09-29)
 
-### Pending-entry update (prepared locally; deploy after review)
+### Pending-entry update (deployed 2026-09-29)
 
 The next version removes the 60-second forced close. The owner enters a buy or
 sell **Entry price**, **Stop loss**, and **Take profit** on `/vault/trading` and
@@ -67,9 +67,9 @@ instead of arming from a second shell.
 The new Vault page shows the latest attempt, the live price-feed state and a
 link to the SSH-protected MT5 desktop at
 `http://127.0.0.1:6081/vnc.html?autoconnect=1&resize=scale`.
-Its **Preview demo trade** button runs the existing no-order preflight with
+Its **Preview pending order** button runs the existing no-order preflight with
 Algo Trading off. A 10-minute, single-use confirmation token then permits
-one explicit **Start one demo BUY/SELL** click. The runner rebuilds the request,
+one explicit **Place one pending order** click. The runner rebuilds the request,
 checks the broker again and writes a new attempt row to the private journal;
 older rows, including the 2026-09-29 -$0.24 result, remain unchanged. An
 unresolved attempt, occupied gold symbol, stale feed or failed broker guard
@@ -121,10 +121,10 @@ control POST path additionally requires the private shared secret. A missing hea
 On the VPS only, set `MT5_DEMO_LOGIN` in this Compose project's private `.env`.
 For the verified three-hour lead on this demo, also set
 `MT5_SERVER_OFFSET_SECONDS=10800`; the default is zero and fails closed when
-the broker clock is ahead. Then deploy the observer and private status service:
+the broker clock is ahead. The desktop Compose project runs the observer:
 
 ```sh
-docker compose --profile status up -d --build
+docker compose -f ops/trading/compose.yml up -d --build
 ```
 
 Keep `.env` outside Git. The desktop process starts the signal-only observer
@@ -148,11 +148,48 @@ npm run build
 node ops/trading/build-status-page.mjs
 ```
 
-Commit `ops/trading/trading.html` with the source change, copy it and
-`status_server.py` to the VPS Compose directory, then restart only the status
-sidecar. Deploy the Worker routes with Wrangler afterward. The page and API
-both require the one-email Worker Access policy; the origin accepts only its
-dedicated service token.
+Commit `ops/trading/trading.html` with the source change. Once the dedicated
+status app below has been migrated, Dokploy builds that page and
+`status_server.py` from the committed source. The Worker routes remain in
+Cloudflare; only deploy Worker code when its API or routing changes. The page
+and API both require the one-email Worker Access policy; the origin accepts
+only its dedicated service token.
+
+### Dedicated Dokploy trading-page service (prepared; not yet migrated)
+
+The portfolio app does not serve `/vault/trading`: the Cloudflare Worker fetches
+it from `kwg-trading-status`. Create a separate Dokploy **Compose** application
+from this repository's `main` branch with compose file
+`ops/trading/compose.status.dokploy.yml` and build context `ops/trading`.
+It bakes the generated `trading.html` into the status image. Do not add a
+Dokploy domain, public port, or MT5 home mount. Keep the current Worker,
+Tunnel, Access rules, desktop Compose project, and private control secret.
+The owner's 2026-09-29 page capture showed a pending SELL order; confirm its
+current broker state before any cutover.
+
+Before cutover, inspect the VPS's exact Docker resource names:
+
+```sh
+docker inspect kwg-trading-status --format '{{range .Mounts}}{{if eq .Destination "/status"}}{{.Name}}{{end}}{{end}}'
+docker inspect kwg-mt5-desktop --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}'
+```
+
+Set `TRADING_STATUS_VOLUME` to the existing `/status` named volume and
+`TRADING_CONTROL_NETWORK` to the existing private network shared with the
+desktop. Both are required; the new app must reuse them rather than create
+empty replacements. Save the old status Compose source for rollback. Check
+the latest broker order/position in MT5 first. Do **not** cut over while an
+order or position is unresolved. Once it has closed or been explicitly
+canceled and reconciled, stop and remove only `kwg-trading-status` (never
+`docker compose down` on the desktop), then deploy this dedicated app. It
+keeps the same container name for the existing Tunnel and shares the snapshot
+volume and private control network. Confirm `docker ps`, authenticated
+`/vault/trading`, read-only `/api/trading/status`, and the Access redirect for
+unauthenticated requests. If validation fails, stop/remove only the new status
+container and recreate the old one from the saved Compose source. Future page
+changes then need an Astro build, `build-status-page.mjs`, commit to `main`,
+and **this** Dokploy app's Deploy action; redeploying `kwg-rebranding` does not
+update the trading page.
 
 The VPS status sidecar and Cloudflare Tunnel, Access policies, API Worker,
 and trading page route were deployed by 2026-09-28. The sidecar returned HTTP

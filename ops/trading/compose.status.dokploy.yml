@@ -1,0 +1,31 @@
+services:
+  status:
+    build:
+      context: .
+      dockerfile: Dockerfile.status
+    image: kwg-trading-status:dokploy
+    container_name: kwg-trading-status
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - status-snapshot:/status:ro
+    networks:
+      - dokploy-network
+      - trading-control
+
+volumes:
+  status-snapshot:
+    external: true
+    name: ${TRADING_STATUS_VOLUME:?Set the existing status-snapshot Docker volume name}
+
+networks:
+  dokploy-network:
+    external: true
+  trading-control:
+    external: true
+    name: ${TRADING_CONTROL_NETWORK:?Set the existing private trading-control Docker network name}

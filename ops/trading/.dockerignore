@@ -9,3 +9,6 @@
 !export-gold.py
 !demo_one_shot.py
 !control_server.py
+!Dockerfile.status
+!status_server.py
+!trading.html
