@@ -1,5 +1,31 @@
 # Gold trading handoff — 2026-09-28
 
+## Current checkpoint — Batch 2 evidence, 2026-09-30
+
+**Resume from the [session sign-off checkpoint](../../docs/superpowers/plans/2026-09-30-gold-batch2-session-checkpoint.md).**
+It supersedes the initial probe-preparation status below. Qualification remains
+`prepared_but_blocked`; detailed runtime evidence stays private outside Git.
+Next work is read-only session recovery, supported desktop-origin close
+reconciliation, and dated cost/clock coverage before prospective evaluation.
+No new attempt, desktop restart, journal reset or Batch 3 job is authorized by
+this handoff. Keep Algo Trading off for observation.
+
+### Initial probe preparation — historical
+
+The owner reports the editable pending-entry version deployed to the VPS and
+Worker and a gold pending order currently in MT5. The preparation notes below
+are historical. Do not restart the desktop, cancel that order, or resubmit it
+as part of qualification. The owner selected Batch 2 qualification next.
+The MCP baseline remains unqualified; its historical costs are hypothetical.
+The observer currently blocks because Algo Trading is on.
+
+Use the new read-only `batch2-evidence.py` probe to capture current broker counts,
+contract costs and clock samples without changing the observer's Algo-off guard.
+See the [Batch 2 checkpoint and VPS runbook](../../docs/superpowers/plans/2026-09-30-gold-batch2-evidence.md).
+Local validation: 104 Python tests passed. Live probe output, dated cost coverage
+and historical timestamp evidence are still pending. This is not a qualification
+pass or authorization for another demo order.
+
 ## Pending-entry update — prepared, not deployed
 
 The owner requested removing the 60-second timed close and editing Entry,

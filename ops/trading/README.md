@@ -1,5 +1,14 @@
 # MT5 compatibility probe
 
+## Batch 2 evidence checkpoint — 2026-09-30
+
+The owner reports the pending-entry update deployed and an existing gold pending
+order. The preparation notes below are historical. Batch 2 qualification is the
+next milestone; current public fees and terminal swaps do not qualify historical
+cost coverage. Use the [read-only evidence runbook](../../docs/superpowers/plans/2026-09-30-gold-batch2-evidence.md)
+for broker counts, current contract values and clock samples. The standalone
+probe requires no desktop restart and cannot send, modify or cancel orders.
+
 ## Current scope and next steps
 
 The first strategy is gold only (`XAUUSD-VIP`) on the demo account. Bitcoin
