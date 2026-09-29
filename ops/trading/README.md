@@ -17,9 +17,13 @@ signal-only observer continuously. Live candle transitions, restart persistence,
 and advancing tick freshness still need qualification during an open gold session.
 The separate one-shot demo runner was deployed to the private desktop on
 2026-09-29 without arming. Its resume-only boot published `disarmed`; the
-current no-order buy preview is waiting for a fresh gold quote after the
-server-midnight feed pause. Keep Algo Trading off until the supervised
-activation review.
+operator's 07:01 UTC verifier reported a fresh quote and valid M15 history,
+and the subsequent no-order buy preview produced a minimum-lot protected
+request below the modeled 0.1% stop exposure limit. Its full values are in a
+private review packet outside Git. The preview did not run `order_check` or
+send an order and must be rebuilt after owner review. Keep Algo Trading off
+until separately authorized supervised activation. The read-only execution
+status update still needs deployment; see [remaining tasks](HANDOFF.md#remaining-one-shot-to-do).
 
 ## Read-only Vault status
 

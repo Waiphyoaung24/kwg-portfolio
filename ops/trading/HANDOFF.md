@@ -42,16 +42,41 @@ Python SDK omission of `SYMBOL_FILLING_FOK`/`IOC`; `e3dce03` fixes this using
 the documented `1`/`2` symbol filling flags, and the repaired image was built
 and hash-verified. The resume-only boot published `disarmed` without creating
 a one-shot journal. The observer verifier then blocked because the gold quote
-stopped updating around server midnight; no valid current-price preview was
-collected. Wait for a fresh quote and valid completed-bar window, rerun the
-buy preview with Algo Trading off, preserve its private JSON and hash, and
-obtain owner review before any arm. The status sidecar and Worker still need
-the read-only execution-field update. This Mac's Wrangler OAuth token belongs
+stopped updating around server midnight. The operator reran it at 07:01 UTC
+on 2026-09-29: it reported `ready`, a fresh quote, and 250 completed M15 bars.
+The subsequent private no-order buy preview produced the minimum-lot request,
+proposed stop/target, and modeled stop exposure below the 0.1% equity limit.
+Its full JSON was transcribed from the operator's terminal into a private
+review packet outside Git; the local transcription hash is not a VPS-origin
+hash. The preview is time-limited and requires a new preflight before arm.
+The status sidecar and Worker still need the read-only execution-field update.
+This Mac's Wrangler OAuth token belongs
 to a different Cloudflare account than the existing Worker, so a read-only
 deployment lookup returned authentication error 10000; do not change the
 Worker's account ID to bypass that mismatch. No `order_check` or `order_send` was run,
 Algo Trading was not enabled, and no order was sent. Batch 2 stays
 `prepared_but_blocked` and continuous execution stays disabled.
+
+## Remaining one-shot to-do
+
+1. **Review the private preview.** Confirm the chosen side and time-specific
+   stop, target, volume, and modeled exposure with the owner. Preserve the
+   original VPS output privately if a VPS-origin report hash is required.
+   Preview success does not authorize an order.
+2. **Deploy the read-only status update.** Copy the generated page and status
+   sidecar to the VPS, restart only that service, then deploy the Worker using
+   credentials for its existing Cloudflare account. Verify Access, sanitized
+   execution fields, and that no arm/order route is exposed.
+3. **Only after separate owner authorization, supervise one demo attempt.**
+   Recheck demo identity, Algo Trading state, clock offset, fresh quote, valid
+   bars, symbol conditions, and empty gold positions/orders. Enable Algo
+   Trading only for the supervised `arm`; inspect `order_check`, the single
+   entry, broker-held SL/TP, ticket-specific close, and durable reconciliation.
+   Freeze and recover through the journal if the result is uncertain.
+4. **Return to read-only mode.** Confirm no remaining gold position/order,
+   disable Algo Trading, verify the observer guard and status page, and record
+   only sanitized evidence in Git. Keep Batch 2/3 qualification and continuous
+   execution blocked on their separate gates.
 
 ## Handover instruction
 
