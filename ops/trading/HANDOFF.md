@@ -2,9 +2,10 @@
 
 Resume here from another terminal or machine. This page records the latest
 verified state; older plan and result files are historical evidence. Keep the
-deployed system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
+signal observer read-only, all execution demo-only and gold-only
+(`XAUUSD-VIP`), and Algo Trading off between supervised attempts.
 
-## Prepared web control — pending deployment
+## Supervised web control — deployed 2026-09-29
 
 The owner approved a simpler `/vault/trading` flow: view the gold feed and
 latest attempt, open the MT5 desktop through the SSH tunnel, preview a
@@ -17,12 +18,24 @@ guard the entry path. The status sidecar still cannot read the MT5 home. It
 proxies control requests over an internal-only Compose network; the desktop
 retains its broker-connected default network and loopback-only noVNC port.
 
-This is source prepared on the `codex/gold-demo-one-shot-plan` branch, not a
-VPS or Worker deployment. No new trade has been placed. The owner approved
-the two-network connection; the Compose file fixes the external default
-gateway with `gw_priority: 1`, requiring Docker Compose 2.33.1 and Docker
-Engine 28 or later on the VPS. See [README.md](README.md#supervised-web-control-prepared-not-deployed)
-for the deployment and safety checks. Automatic strategy execution, Batch 2
+Source is on `codex/gold-demo-one-shot-plan` (`aa6caab`, including the
+`.dockerignore` build fix) and deployed to the VPS and existing Worker. The
+owner approved the two-network connection; the VPS has Docker Compose 5.5.0
+and Engine 28.5.0. The journal was backed up with SQLite's backup API, checked
+as intact with one closed row, and copied outside the Docker volume at
+`/root/kwg-trading-backups/gold-one-shot-pre-web-control-20260929.sqlite3`
+(SHA-256 `e197777ff21279addc07c8d2d911614dd750d6c49fbe0bdf98f55137b1c1abe0`).
+The rebuilt desktop image contains the reviewed runner and controller; after
+recreation, `resume` republished the same closed -$0.24 result and the verifier
+reported `ready` with a fresh quote and Algo Trading off. The sidecar reaches
+the controller only on the internal Compose network; the desktop retains the
+default broker network and loopback-only noVNC port. The private preview path
+returned HTTP 200, 0.01 lot, and `order_sent: false`. The Worker has the
+matching secret; the authenticated page showed CLOSED, the MT5 link and a
+successful no-order preview. Unauthenticated page GET and preview POST both
+redirected to Cloudflare Access. The unused preview was cleared from the page.
+No new demo trade was placed. See [README.md](README.md#supervised-web-control-deployed-2026-09-29)
+for operation and recovery. Automatic strategy execution, Batch 2
 qualification and AI promotion remain separate and inactive.
 
 ## Latest one-shot result — 2026-09-29
@@ -48,7 +61,8 @@ an execution-mechanics smoke test, not strategy qualification. Batch 2 remains
 `prepared_but_blocked`; no continuous trading or model order path is enabled.
 
 The older activation checklist below is historical. Preserve the private
-one-shot journal and backups; never re-arm that journal. The patched Docker
+one-shot journal and backups; use only a fresh reviewed web preview for any
+new attempt, and do not repeat Start after an uncertain response. The patched Docker
 image was built, verified against the same hash and used to recreate only the
 desktop after the trade closed. Post-restart checks passed: the boot snapshot
 remained `closed`, the verifier returned `ready` with Algo Trading off, and the
@@ -130,16 +144,18 @@ Algo Trading was not enabled, and no order was sent. Batch 2 stays
 
 ## Handover instruction
 
-The planning branch is `codex/gold-demo-one-shot-plan`, built on
-`codex/gold-batch2-review` (draft PR #1), not on `main`. In another
-checkout, fetch and switch to the planning branch before continuing.
+The deployment branch is `codex/gold-demo-one-shot-plan` (draft PR #2), built
+on `codex/gold-batch2-review` (draft PR #1), not on `main`. In another checkout,
+fetch and switch to the deployment branch before continuing.
 
 > Read `AGENTS.md`, `ops/trading/HANDOFF.md`,
 > `docs/superpowers/plans/2026-09-29-gold-agent-design.md` and
 > `docs/superpowers/plans/2026-09-29-gold-one-shot-demo-execution.md`.
-> The one-shot demo smoke trade is complete and its journal is single-use.
-> Confirm the patched runner `5225fce` and post-restart closed/Algo-off status;
-> do not re-arm or reset the journal. Continue the separate Batch 2 evidence
+> The one-shot demo smoke trade is closed and the supervised web control is
+> deployed. The historical journal row remains intact; no new trade was placed.
+> Keep Algo Trading off. For a new attempt, require a fresh no-order preview,
+> inspect its price and risk, then explicitly Start once and supervise closure.
+> Never repeat Start after an uncertain response. Continue the Batch 2 evidence
 > gates (dated broker costs and the remaining strategy validation) before
 > Batch 3 research or continuous demo execution. Keep the observer read-only,
 > the pinned demo account, and private broker data outside Git and the web API.

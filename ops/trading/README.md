@@ -22,14 +22,17 @@ The first close reconciliation missed broker deals because MT5 reports their
 timestamps three hours ahead of UTC. Commit `5225fce` fixes the history window
 and UTC close timestamp; the VPS source, running container and rebuilt image
 matched SHA-256 `ac4f67888ac4a3e327948719869c47ae01fd16e3286572179c17bb5fee58217b`.
-The patched desktop was recreated after closure. As deployed on 2026-09-29,
-the one-shot journal is single-use; do not arm it again by hand. Keep Algo Trading off. This smoke test proves
-execution mechanics only; Batch 2 strategy qualification remains blocked.
+The patched desktop was recreated after closure. The original journal row
+remains closed; the supervised web control below can append a new attempt only
+after fresh checks and an explicit Start click. Keep Algo Trading off between
+supervised attempts. This smoke test proves execution mechanics only; Batch 2
+strategy qualification remains blocked.
 
-## Supervised web control (prepared, not deployed)
+## Supervised web control (deployed 2026-09-29)
 
 The new Vault page shows the latest attempt, the live price-feed state and a
-link to the SSH-protected MT5 desktop at `http://127.0.0.1:6081/vnc.html`.
+link to the SSH-protected MT5 desktop at
+`http://127.0.0.1:6081/vnc.html?autoconnect=1&resize=scale`.
 Its **Preview demo trade** button runs the existing no-order preflight with
 Algo Trading off. A 10-minute, single-use confirmation token then permits
 one explicit **Start one demo BUY/SELL** click. The runner rebuilds the request,
@@ -40,8 +43,11 @@ blocks another entry. The runner supervises the attempt independently of the
 browser; its broker-held stop/target and resume-only recovery still apply.
 
 This code does not enable continuous strategy trading or AI promotion. The
-currently deployed Worker and VPS remain read-only until the new controller,
-network, shared secret, status sidecar, page and Worker are deployed together.
+controller, private network, shared secret, status sidecar, page and Worker
+were deployed on 2026-09-29. The original -$0.24 attempt remained closed
+after the desktop restart. An authenticated page preview succeeded with
+`order_sent: false`; a fresh unauthenticated GET and POST both redirected to
+Cloudflare Access. No new demo trade was placed, and Algo Trading remained off.
 The control endpoint must be reachable only on a private Compose network
 shared by `desktop` and `status`; retain `desktop` on its existing Compose
 default network for broker connectivity. Its `gw_priority: 1` keeps that
@@ -136,15 +142,14 @@ does not update that running Compose project automatically.
 
 ## Initial one-shot demo dry-run and recovery
 
-The one-shot runner is separate from `observe-gold.py`. In the initial deployed
-version, its only entry path is the private Wine CLI `arm` command with
-`--enable-demo-execution`; the browser, Worker and status origin have no arm or
-order endpoint. The prepared web control above changes this only after its
-private network and secret are deployed. A persistent journal in
-the MT5 home allows one attempt and prevents entry after restart. Boot invokes
-`resume`, which can reconcile or close an existing submitted attempt but cannot
-send a new entry. `execution.json` on the status volume contains display fields
-only; tickets, account details, request bodies and deal history stay private.
+The one-shot runner is separate from `observe-gold.py`. Initially, its only
+entry path was the private Wine CLI `arm` command. The deployed web control
+adds an owner-only preview and explicit Start path. Its persistent journal in
+the MT5 home allows a new attempt only after the previous one is resolved.
+Boot invokes `resume`, which can reconcile or close an existing submitted
+attempt but cannot send a new entry. `execution.json` on the status volume
+contains display fields only; tickets, account details, request bodies and
+deal history stay private.
 
 Before deploying the new image, verify the source hashes on the VPS and in the
 image, take a consistent SQLite backup of `gold-observer.sqlite3`, and retain
