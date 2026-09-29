@@ -1,11 +1,12 @@
 import importlib.util
 import json
 import sqlite3
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from gold_signal import evaluate
 
@@ -31,6 +32,20 @@ def fake_sdk(end=250):
 
 
 class ObserverTest(unittest.TestCase):
+    def test_startup_duplicate_keeps_baseline_for_first_new_candle(self):
+        sdk = Mock()
+        sdk.initialize.return_value = True
+        db = Mock()
+        state = str(Path.home() / "observer-startup-test.sqlite3")
+        with patch.dict(sys.modules, {"MetaTrader5": sdk}), \
+             patch.object(sys, "argv", ["observe-gold.py", "--login", "123", "--state", state]), \
+             patch.object(observer, "open_state", return_value=db), \
+             patch.object(observer, "poll_once", side_effect=[
+                 {"status": "duplicate"}, {"status": "baseline"}, KeyboardInterrupt()]) as poll, \
+             patch.object(observer, "write_snapshot"), patch.object(observer.time, "sleep"):
+            observer.main()
+        self.assertEqual([call.args[4] for call in poll.call_args_list], [True, True, False])
+
     def test_baseline_duplicate_next_missed_and_restart(self):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / "state.sqlite3"
@@ -72,6 +87,20 @@ class ObserverTest(unittest.TestCase):
             sdk.account_info.return_value.trade_mode = 2
             with self.assertRaises(ValueError):
                 observer.poll_once(sdk, db, 123, 251 * 900, True)
+            db.close()
+
+    def test_algo_on_pauses_without_restarting_or_recording(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = observer.open_state(Path(root) / "state.sqlite3", 123)
+            sdk = fake_sdk()
+            sdk.terminal_info.return_value.trade_allowed = True
+            blocked = observer.poll_once(sdk, db, 123, 251 * 900, True)
+            self.assertEqual((blocked["status"], blocked["signal"]), ("blocked", "none"))
+            self.assertEqual(blocked["health"]["terminal"], "guard_failed")
+            self.assertEqual(db.execute("SELECT count(*) FROM observations").fetchone()[0], 0)
+            sdk.terminal_info.return_value.trade_allowed = False
+            self.assertEqual(observer.poll_once(sdk, db, 123, 251 * 900, True)["status"], "baseline")
+            sdk.order_send.assert_not_called()
             db.close()
 
     def test_fresh_quote_with_spread_block_stays_publishable(self):

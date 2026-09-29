@@ -16,13 +16,22 @@ class AccountGuardError(ValueError):
     """The terminal is no longer the pinned, non-trading demo session."""
 
 
-def validate_account(account, terminal, login, server=SERVER):
+class AlgoTradingOn(AccountGuardError):
+    """The pinned demo is connected, but read-only observation is paused."""
+
+
+def validate_account(account, terminal, login, server=SERVER, *, execution=False):
     if account is None or terminal is None or not terminal.connected:
         raise AccountGuardError("MT5 is not connected; sign in through the private desktop.")
     if account.trade_mode != 0 or account.login != login or account.server != server:
         raise AccountGuardError("Expected pinned demo account and server; refusing to continue.")
-    if terminal.trade_allowed:
-        raise AccountGuardError("Turn Algo Trading off for this read-only check.")
+    if execution:
+        if (not terminal.trade_allowed or getattr(terminal, "tradeapi_disabled", True)
+                or not getattr(account, "trade_allowed", False)
+                or not getattr(account, "trade_expert", False)):
+            raise AccountGuardError("Demo execution is disabled in the account or terminal.")
+    elif terminal.trade_allowed:
+        raise AlgoTradingOn("Turn Algo Trading off for this read-only check.")
 
 
 def validate_tick(tick, now: float, evidence: dict | None = None, *, server_offset_seconds: int = 0) -> float:
@@ -69,7 +78,7 @@ def read_contract(mt5) -> dict:
 
 
 def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
-              *, server_offset_seconds: int = 0) -> tuple[object, list[dict]]:
+              *, server_offset_seconds: int = 0, execution: bool = False) -> tuple[object, list[dict]]:
     if server_offset_seconds not in (0, 7200, 10800):
         raise ValueError("Unsupported server clock offset.")
     evidence = evidence if evidence is not None else {}
@@ -81,7 +90,7 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
                     strategy_signal="blocked", strategy_reason="Not evaluated")
     account, terminal = mt5.account_info(), mt5.terminal_info()
     try:
-        validate_account(account, terminal, login)
+        validate_account(account, terminal, login, execution=execution)
     except AccountGuardError:
         evidence.update(terminal="disconnected" if terminal is None or not terminal.connected else "guard_failed",
                         sampled_at=time.time() if now is None else now)
@@ -121,7 +130,7 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
                     evidence["raw_history_bar_time"] = raw_bar_time
             except (KeyError, TypeError, ValueError, OverflowError):
                 pass
-    validate_account(mt5.account_info(), mt5.terminal_info(), login)
+    validate_account(mt5.account_info(), mt5.terminal_info(), login, execution=execution)
     if quote_error is not None:
         evidence["strategy_reason"] = str(quote_error)
         raise quote_error
@@ -142,4 +151,6 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
     evidence["history_valid"] = assessment["reason"] != "Latest completed candle is stale or future"
     evidence["strategy_signal"] = assessment["signal"]
     evidence["strategy_reason"] = assessment["reason"]
+    if execution and assessment["signal"] == "blocked":
+        raise ValueError(assessment["reason"])
     return tick, bars

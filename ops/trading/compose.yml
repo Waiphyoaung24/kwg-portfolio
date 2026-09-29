@@ -19,11 +19,16 @@ services:
     environment:
       MT5_DEMO_LOGIN: ${MT5_DEMO_LOGIN:-}
       MT5_SERVER_OFFSET_SECONDS: ${MT5_SERVER_OFFSET_SECONDS:-0}
+      TRADING_CONTROL_SECRET: ${TRADING_CONTROL_SECRET:-}
     ports:
       - "127.0.0.1:6081:6080"
     volumes:
       - mt5-home:/home/mt5
       - status-snapshot:/opt/status
+    networks:
+      default:
+        gw_priority: 1
+      trading-control:
     logging:
       options:
         max-size: 2m
@@ -45,9 +50,13 @@ services:
       - status-snapshot:/status:ro
     networks:
       - dokploy-network
+      - trading-control
 volumes:
   mt5-home:
   status-snapshot:
 networks:
+  default:
   dokploy-network:
     external: true
+  trading-control:
+    internal: true

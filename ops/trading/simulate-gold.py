@@ -72,8 +72,10 @@ def simulate(bars, signals, spec, costs, initial=100000, *, cost_profile=None):
         gross = position['side'] * (price - position['entry']) * contract * position['lots']
         fee = fee_for(position['lots'], 'exit')
         cash += gross - fee
+        net_pnl = gross - position['fees'] - fee
         trades.append({**position, 'exit': price, 'exit_bar': stamp, 'exit_reason': reason,
-                       'gross_pnl': gross, 'net_pnl': gross - position['fees'] - fee})
+                       'gross_pnl': gross, 'net_pnl': net_pnl,
+                       'net_r': net_pnl / position['entry_risk_usd']})
         position = None
 
     for index, bar in enumerate(bars):
@@ -128,7 +130,8 @@ def simulate(bars, signals, spec, costs, initial=100000, *, cost_profile=None):
                         fee = fee_for(lots, 'entry')
                         cash -= fee
                         position = dict(side=side, entry=entry, entry_bar=stamp, signal_bar=pending['bar_time'],
-                                        stop=stop, target=target, lots=lots, fees=fee)
+                                        stop=stop, target=target, lots=lots, fees=fee,
+                                        entry_risk_usd=lots * per_lot_risk)
             elif paused:
                 counts['daily_pause_rejected'] += 1
         elif pending is not None:
@@ -141,6 +144,8 @@ def simulate(bars, signals, spec, costs, initial=100000, *, cost_profile=None):
         if index == len(bars) - 1 and position is not None:
             close(bar['close'] + (spread if position['side'] == -1 else 0), 'window_end', stamp)
         marked = equity(bar['close'], spread)
+        if not math.isfinite(marked):
+            raise ValueError('Nonfinite sampled equity')
         peak = max(peak, marked)
         drawdown = max(drawdown, (peak - marked) / peak)
         paused |= marked <= day_start * .99
@@ -151,13 +156,27 @@ def simulate(bars, signals, spec, costs, initial=100000, *, cost_profile=None):
             pending = signal
     gains = sum(max(0, t['net_pnl']) for t in trades)
     losses = -sum(min(0, t['net_pnl']) for t in trades)
+    daily_closes = {}
+    for mark in curve:
+        daily_closes[str(mark['bar_time'] // 86400)] = mark['equity']
+    daily_returns = {}
+    previous_close = initial
+    for raw_day, marked in daily_closes.items():
+        daily_return = marked / previous_close - 1 if previous_close > 0 else None
+        if daily_return is not None and not math.isfinite(daily_return):
+            raise ValueError('Nonfinite sampled daily return')
+        daily_returns[raw_day] = daily_return
+        previous_close = marked
     return {'summary': {'trades': len(trades), 'net_pnl_usd': cash - initial,
                        'return_pct': (cash / initial - 1) * 100, 'close_sampled_drawdown_pct': drawdown * 100,
                        'win_rate_pct': sum(t['net_pnl'] > 0 for t in trades) / len(trades) * 100 if trades else None,
                        'expectancy_usd_per_trade': (cash - initial) / len(trades) if trades else None,
                        'profit_factor': gains / losses if losses else None,
-                       'round_trip_lots': sum(t['lots'] for t in trades), 'skips': dict(counts)},
-            'trades': trades, 'equity_curve': curve}
+                       'round_trip_lots': sum(t['lots'] for t in trades),
+                       'notional_turnover_usd': sum((t['entry'] + t['exit']) * contract * t['lots'] for t in trades),
+                       'skips': dict(counts)},
+            'trades': trades, 'equity_curve': curve,
+            'raw_epoch_daily_returns': daily_returns}
 
 
 def run(data, *, windows=None, cost_profile=None, candidate=None):
@@ -166,6 +185,7 @@ def run(data, *, windows=None, cost_profile=None, candidate=None):
     bars = data['bars']
     if len(bars) < 1000:
         raise ValueError('Need 1000 bars for chronological diagnostic windows')
+    fold_ranges = []
     if windows is None:
         dev_end, validation_end = int(len(bars) * .6), int(len(bars) * .8)
         development_start = 249
@@ -180,6 +200,21 @@ def run(data, *, windows=None, cost_profile=None, candidate=None):
             raise ValueError('Frozen window timestamp is missing') from None
         if development_start < 249 or validation_start != dev_end or validation_end > len(bars):
             raise ValueError('Windows must be ordered, adjacent and warmed up')
+        if 'folds' in windows:
+            if not isinstance(windows['folds'], list) or len(windows['folds']) != 3:
+                raise ValueError('Expected three fixed validation folds')
+            next_start = validation_start
+            for fold in windows['folds']:
+                try:
+                    start, end = stamps[fold['start']], stamps[fold['end']] + 1
+                except (KeyError, TypeError):
+                    raise ValueError('Fold timestamp is missing') from None
+                if start != next_start or end <= start or end > validation_end:
+                    raise ValueError('Folds must partition validation in order')
+                fold_ranges.append((start, end))
+                next_start = end
+            if next_start != validation_end:
+                raise ValueError('Folds must cover validation')
     # No evaluation or performance inspection on the reserved newest 20%.
     available = {**data, 'bars': bars[:validation_end]}
     signals = {d['bar_time']: d for d in replay(available, candidate=candidate)['decisions']}
@@ -192,8 +227,16 @@ def run(data, *, windows=None, cost_profile=None, candidate=None):
                               cost_profile=cost_profile)
             result['first_bar'], result['last_bar'] = bars[start]['time'], bars[end - 1]['time']
             runs[name]['windows'][window] = result
+        if fold_ranges:
+            runs[name]['folds'] = []
+            for start, end in fold_ranges:
+                result = simulate(bars[start:end], signals, data['current_contract_specification'], costs,
+                                  cost_profile=cost_profile)
+                result['first_bar'], result['last_bar'] = bars[start]['time'], bars[end - 1]['time']
+                runs[name]['folds'].append(result)
     report = {'mode': 'hypothetical-trade-simulation', 'qualification': 'unqualified', 'initial_usd_per_window': 100000,
             'cost_profile_status': 'historically-covered' if cost_profile is not None else 'hypothetical',
+            'daily_return_time_basis': 'raw_broker_epoch_unqualified',
             'holdout': {'start_index': validation_end, 'bars': len(bars) - validation_end, 'evaluated': False},
             'rules': ['Completed EMA20/50 crossover; ATR14; next adjacent bar open entry',
                       'Risk 0.1% equity including modeled stop exit costs; stop 2 ATR; target 3 ATR',
@@ -209,7 +252,7 @@ def run(data, *, windows=None, cost_profile=None, candidate=None):
                             'OHLC assumed bid; bar spread held constant intrabar; no historical ask path',
                             'No margin, broker rejection, latency or intrabar daily-pause modeling',
                             'Flat overnight debit is not historical broker swap or triple-roll schedule',
-                            'Raw timestamp semantics and live freshness remain unqualified',
+                            'Raw historical timestamp semantics remain unqualified; live freshness is session-specific',
                             'Drawdown sampled at closes; no statistical evidence or promotion gate passed'],
             'runs': runs}
     if candidate is not None:

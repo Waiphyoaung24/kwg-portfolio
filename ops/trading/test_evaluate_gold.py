@@ -1,7 +1,11 @@
 import copy
+import hashlib
 import json
 from pathlib import Path
 import runpy
+import subprocess
+import sys
+import tempfile
 import unittest
 
 evaluate = runpy.run_path(str(Path(__file__).with_name('evaluate-gold.py')))['evaluate_reports']
@@ -30,19 +34,25 @@ def reports():
         fold['return_pct'] = 1.1
     candidate['validation']['daily_returns'] = {f'{i:02}': 0.002 for i in range(60)}
     approved = {**policy, 'status': 'approved', 'bootstrap_replicates': 100}
+    policy_hash = hashlib.sha256(json.dumps(approved, sort_keys=True,
+        separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+    base['identity']['policy_sha256'] = policy_hash
+    candidate['identity']['policy_sha256'] = policy_hash
     return base, candidate, approved
 
 
 class GateTest(unittest.TestCase):
     def test_draft_and_small_sample_never_eligible(self):
         base, candidate, approved = reports()
-        self.assertEqual(evaluate(base, candidate, policy)['decision'], 'inconclusive')
+        self.assertEqual(evaluate(base, candidate, {**approved, 'status': 'draft'})['decision'], 'inconclusive')
         candidate['validation']['trades'] = 30
         self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
 
     def test_positive_candidate_and_scope(self):
         base, candidate, approved = reports()
-        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'eligible_for_shadow')
+        result = evaluate(base, candidate, approved)
+        self.assertEqual(result['decision'], 'eligible_for_shadow')
+        self.assertEqual(result, evaluate(base, candidate, approved))
         candidate['identity']['risk_sha256'] = 'changed'
         self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
 
@@ -53,6 +63,87 @@ class GateTest(unittest.TestCase):
         candidate['evidence']['cost_status'] = 'verified_historical'
         candidate['validation']['scenarios']['stress']['return_pct'] = -1
         self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+
+    def test_nonfinite_report_or_policy_is_inconclusive(self):
+        base, candidate, approved = reports()
+        candidate['validation']['scenarios']['lower']['return_pct'] = float('nan')
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+        base, candidate, approved = reports()
+        approved['min_profit_factor'] = float('nan')
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+
+    def test_zero_bootstrap_block_is_inconclusive(self):
+        base, candidate, approved = reports()
+        approved['bootstrap_block_days'] = 0
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+
+    def test_changed_approved_policy_invalidates_comparison(self):
+        base, candidate, approved = reports()
+        approved['min_profit_factor'] = 1.0
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+
+    def test_overflowing_bootstrap_arithmetic_is_inconclusive(self):
+        base, candidate, approved = reports()
+        base['validation']['daily_returns'] = {f'{i:02}': -1e308 for i in range(60)}
+        candidate['validation']['daily_returns'] = {f'{i:02}': 1e308 for i in range(60)}
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+        base['validation']['daily_returns'] = {f'{i:02}': 0 for i in range(60)}
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+
+    def test_negative_candidate_net_pnl_cannot_pass(self):
+        base, candidate, approved = reports()
+        candidate['validation']['scenarios']['lower']['net_pnl_usd'] = -1
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+        base, candidate, approved = reports()
+        candidate['validation']['scenarios']['lower']['profit_factor'] = None
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+        base, candidate, approved = reports()
+        candidate['validation']['daily_returns'] = base['validation']['daily_returns']
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+
+    def test_numeric_policy_boundaries(self):
+        for field, value, expected in (
+                ('profit_factor', 1.1, 'eligible_for_shadow'),
+                ('profit_factor', 1.0999, 'rejected'),
+                ('return_pct', 1.25, 'eligible_for_shadow'),
+                ('return_pct', 1.2499, 'rejected')):
+            with self.subTest(field=field, value=value):
+                base, candidate, approved = reports()
+                candidate['validation']['scenarios']['lower'][field] = value
+                self.assertEqual(evaluate(base, candidate, approved)['decision'], expected)
+        base, candidate, approved = reports()
+        candidate['validation']['trades'] = 99
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+        base, candidate, approved = reports()
+        candidate['validation']['observed_days'] = 59
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'inconclusive')
+        base, candidate, approved = reports()
+        for name in ('lower', 'middle', 'stress'):
+            base['validation']['scenarios'][name]['close_sampled_drawdown_pct'] = 4.75
+            candidate['validation']['scenarios'][name]['close_sampled_drawdown_pct'] = 5
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'eligible_for_shadow')
+        candidate['validation']['scenarios']['stress']['close_sampled_drawdown_pct'] = 5.0001
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+        base, candidate, approved = reports()
+        candidate['validation']['folds'][0]['return_pct'] = .75
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'eligible_for_shadow')
+        base, candidate, approved = reports()
+        candidate['validation']['folds'][0]['return_pct'] = .7499
+        self.assertEqual(evaluate(base, candidate, approved)['decision'], 'rejected')
+
+    def test_cli_cannot_qualify_unadapted_reports(self):
+        base, candidate, approved = reports()
+        with tempfile.TemporaryDirectory() as directory:
+            paths = {name: Path(directory, name + '.json')
+                     for name in ('baseline', 'candidate', 'policy', 'output')}
+            for name, value in (('baseline', base), ('candidate', candidate), ('policy', approved)):
+                paths[name].write_text(json.dumps(value))
+            subprocess.run([sys.executable, '-B', str(Path(__file__).with_name('evaluate-gold.py')),
+                            *[arg for name in paths for arg in ('--' + name, str(paths[name]))]],
+                           check=True, capture_output=True, text=True)
+            result = json.loads(paths['output'].read_text())
+            self.assertEqual(result['decision'], 'inconclusive')
+            self.assertIn('simulator_provenance_unverified', result['reasons'])
 
 
 if __name__ == '__main__':

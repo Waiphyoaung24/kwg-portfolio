@@ -21,15 +21,59 @@ export const prerender = true;
     <main class="page">
       <a class="pill-btn" href="/vault">← Vault</a>
       <header class="page__intro">
-        <h1>Trading</h1>
-        <p>Gold observation on the VT Markets demo. Read-only signals; order execution is off.</p>
+        <h1>Gold demo</h1>
+        <p>Check the feed, preview one protected trade, then watch its result.</p>
       </header>
+      <section class="card status" aria-labelledby="control-title">
+        <div class="status__head">
+          <h2 id="control-title">One supervised trade</h2>
+          <span class="status__state label" id="execution-state" aria-live="polite">Checking</span>
+        </div>
+        <p class="status__symbol">Set one pending entry for 0.01 lot of XAUUSD-VIP. Once filled, broker-held stop loss or take profit closes the position.</p>
+        <dl class="status__rows">
+          <div><dt class="label">Latest attempt</dt><dd id="execution-summary">Checking</dd></div>
+        </dl>
+        <p class="status__guidance" id="execution-guidance">Connecting to the private status API.</p>
+        <form id="trade-form" class="trade__form">
+          <div class="trade__fields">
+            <label class="trade__field"><span class="label">Direction</span><select id="trade-side" aria-label="Demo trade direction"><option value="buy">Buy</option><option value="sell">Sell</option></select></label>
+            <label class="trade__field"><span class="label">Entry price</span><input id="trade-entry" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
+            <label class="trade__field"><span class="label">Stop loss</span><input id="trade-sl" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
+            <label class="trade__field"><span class="label">Take profit</span><input id="trade-tp" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
+          </div>
+          <p class="page__note">Choose prices from MT5. Buy: stop below entry, target above. Sell: target below entry, stop above. The pending order stays until you cancel it in MT5.</p>
+          <div class="trade__actions">
+            <button class="pill-btn pill-btn--filled" id="prepare-trade" type="submit" disabled>Preview pending order</button>
+            <a class="pill-btn" href="http://127.0.0.1:6081/vnc.html?autoconnect=1&amp;resize=scale" target="_blank" rel="noopener noreferrer">Open MT5 desktop ↗</a>
+          </div>
+        </form>
+        <p class="page__note">The MT5 link needs your SSH tunnel to port 6081. Keep Algo Trading off for the preview.</p>
+        <div id="trade-preview" class="trade__preview" hidden>
+          <h3>Review before starting</h3>
+          <p id="preview-summary"></p>
+          <p id="preview-protection"></p>
+          <p>This preview expires after 10 minutes. Enable Algo Trading in MT5, then place this one pending order. Prices, account and broker conditions are checked again first.</p>
+          <button class="pill-btn pill-btn--filled" id="start-trade" type="button">Place one pending order</button>
+        </div>
+        <p id="control-message" role="status" aria-live="polite"></p>
+        <details class="status__details">
+          <summary class="pill-btn">Trade details <span aria-hidden="true">⌄</span></summary>
+          <dl class="status__rows">
+            <div><dt class="label">Entry price</dt><dd id="execution-entry">—</dd></div>
+            <div><dt class="label">Stop loss</dt><dd id="execution-sl">—</dd></div>
+            <div><dt class="label">Take profit</dt><dd id="execution-tp">—</dd></div>
+            <div><dt class="label">Opened</dt><dd id="execution-opened">—</dd></div>
+            <div><dt class="label">Closed</dt><dd id="execution-closed">—</dd></div>
+            <div><dt class="label">Last report</dt><dd id="execution-updated">—</dd></div>
+          </dl>
+        </details>
+      </section>
       <section class="card status" aria-labelledby="status-title">
         <div class="status__head">
-          <h2 id="status-title">Gold observer</h2>
+          <h2 id="status-title">Price feed</h2>
           <span class="status__state label" id="state" aria-live="polite">Checking</span>
         </div>
-        <p class="status__symbol micro">XAUUSD-VIP · VT Markets demo · Orders off</p>
+        <p class="status__symbol micro">XAUUSD-VIP · VT Markets demo</p>
         <dl class="status__rows">
           <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M8 12h8M9 5H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3m6-14h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-3" /></svg>MT5 connection</dt><dd id="connection">Checking</dd></div>
           <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Gold price</dt><dd id="freshness">Checking</dd></div>
@@ -51,26 +95,125 @@ export const prerender = true;
           <p class="status__reason" id="reason">Checking</p>
         </details>
         <div class="status__actions">
-          <button class="pill-btn pill-btn--filled" id="refresh" type="button">Refresh status</button>
+          <button class="pill-btn" id="refresh" type="button">Refresh status</button>
           <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
         </div>
       </section>
-      <p class="page__note">Updates automatically every 10 seconds. Observation only — no trades are placed.</p>
+      <p class="page__note">Status updates every 10 seconds. This control starts only a reviewed, single demo attempt; it does not run the strategy continuously.</p>
     </main>
 
     <script>
-      import { statusFields } from '../../scripts/trading-status.mjs';
+      import { executionFields, statusFields } from '../../scripts/trading-status.mjs';
       const field = (id: string) => document.getElementById(id)!;
       const refresh = field('refresh') as HTMLButtonElement;
       const signIn = field('sign-in') as HTMLAnchorElement;
+      const prepare = field('prepare-trade') as HTMLButtonElement;
+      const start = field('start-trade') as HTMLButtonElement;
+      const side = field('trade-side') as HTMLSelectElement;
+      const form = field('trade-form') as HTMLFormElement;
+      const entry = field('trade-entry') as HTMLInputElement;
+      const sl = field('trade-sl') as HTMLInputElement;
+      const tp = field('trade-tp') as HTMLInputElement;
+      const previewBox = field('trade-preview');
       let latest: Parameters<typeof statusFields>[0] | null = null;
       let receivedAt = 0;
+      let previewToken: string | null = null;
+      let startedAt = 0;
       function render() {
         if (!latest) return;
         const fields = statusFields(latest);
         if (Date.now() - receivedAt > 30000) fields.delivery = 'No recent API response';
         for (const [id, value] of Object.entries(fields)) field(id).textContent = value;
+        const execution = executionFields(latest.execution);
+        for (const id of ['state', 'entry', 'sl', 'tp', 'opened', 'closed', 'updated', 'guidance'] as const) field(`execution-${id}`).textContent = execution[id];
+        field('execution-summary').textContent = execution.state === 'Unknown' ? 'No current report'
+          : [execution.side, execution.volume, execution.result].filter(value => value !== '—').join(' · ') || execution.state;
+        const state = latest.execution?.status;
+        const resolved = state === 'closed' || state === 'disarmed';
+        if (startedAt && latest.execution && latest.execution.updated_at > startedAt && resolved) {
+          startedAt = 0;
+          side.disabled = false;
+          for (const input of [entry, sl, tp]) input.disabled = false;
+          field('control-message').textContent = 'Attempt finished. Review the result and turn Algo Trading off in MT5.';
+        }
+        prepare.disabled = !!previewToken || !!startedAt || !resolved || fields.state !== 'Observing';
+        start.disabled = !previewToken || !resolved || Date.now() - receivedAt > 30000;
       }
+
+      async function control(action: 'preview' | 'arm', body: object) {
+        const response = await fetch(`/api/trading/${action}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+          cache: 'no-store', credentials: 'same-origin', redirect: 'manual', signal: AbortSignal.timeout(60000),
+        });
+        if (response.type === 'opaqueredirect' || [401, 403].includes(response.status)) throw new Error('Sign in through Cloudflare Access first.');
+        const result = await response.json();
+        if (!response.ok) throw new Error(typeof result.error === 'string' ? result.error : 'Demo control is unavailable.');
+        return result;
+      }
+
+      form.addEventListener('input', () => {
+        if (!previewToken) return;
+        previewToken = null;
+        previewBox.hidden = true;
+        prepare.hidden = false;
+        field('control-message').textContent = 'Prices changed. Preview the order again before placing it.';
+        render();
+      });
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        prepare.disabled = true;
+        side.disabled = true;
+        for (const input of [entry, sl, tp]) input.disabled = true;
+        field('control-message').textContent = 'Checking the demo account and preparing a no-order preview…';
+        try {
+          const result = await control('preview', { side: side.value, entry: entry.valueAsNumber,
+            sl: sl.valueAsNumber, tp: tp.valueAsNumber });
+          const p = result.preview;
+          previewToken = result.token;
+          field('preview-summary').textContent = `${p.order_kind} · ${p.volume} lot · entry ${p.quote_reference.toFixed(2)} · stop ${p.sl.toFixed(2)} · target ${p.tp.toFixed(2)}.`;
+          field('preview-protection').textContent = `Modeled loss at stop: $${p.modeled_stop_usd.toFixed(2)} (${p.modeled_stop_pct_of_equity.toFixed(5)}% of equity), before fees, slippage or gaps.`;
+          start.textContent = `Place one ${p.order_kind.toLowerCase()} order`;
+          previewBox.hidden = false;
+          prepare.hidden = true;
+          side.disabled = false;
+          for (const input of [entry, sl, tp]) input.disabled = false;
+          field('control-message').textContent = 'No order was placed by this preview. Review it, then enable Algo Trading in MT5.';
+          render();
+        } catch (error) {
+          side.disabled = false;
+          for (const input of [entry, sl, tp]) input.disabled = false;
+          field('control-message').textContent = error instanceof Error ? error.message : 'Preview failed.';
+          render();
+        }
+      });
+
+      start.addEventListener('click', async () => {
+        if (!previewToken) return;
+        start.disabled = true;
+        field('control-message').textContent = 'Starting one demo attempt. Watch MT5 and the status below.';
+        try {
+          await control('arm', { token: previewToken });
+          previewToken = null;
+          startedAt = Date.now() / 1000;
+          previewBox.hidden = true;
+          prepare.hidden = false;
+          side.disabled = true;
+          for (const input of [entry, sl, tp]) input.disabled = true;
+          field('control-message').textContent = 'Order request accepted. Watch MT5 for a pending order or position. Cancel a pending order in MT5 if needed.';
+          load();
+        } catch (error) {
+          previewToken = null;
+          startedAt = Date.now() / 1000;
+          previewBox.hidden = true;
+          prepare.hidden = false;
+          side.disabled = true;
+          for (const input of [entry, sl, tp]) input.disabled = true;
+          field('control-message').textContent = `${error instanceof Error ? error.message : 'Start failed.'} Check MT5 for a position or order before reloading this page.`;
+          render();
+        }
+      });
 
       async function load() {
         if (refresh.disabled) return;
@@ -88,6 +231,8 @@ export const prerender = true;
           render();
         } catch (error) {
           latest = null;
+          prepare.disabled = true;
+          start.disabled = true;
           const needsAccess = error instanceof Error && error.message === 'access';
           field('state').textContent = needsAccess ? 'Sign-in required' : 'Unavailable';
           field('delivery').textContent = needsAccess ? 'Sign-in required' : 'Status path unavailable';
@@ -100,6 +245,9 @@ export const prerender = true;
           field('checked').textContent = '—';
           field('reason').textContent = needsAccess ? 'Sign in through Cloudflare Access to view this status.' : 'The private status API is unavailable. Try again shortly.';
           field('guidance').textContent = field('reason').textContent;
+          const execution = executionFields(null);
+          for (const id of ['state', 'entry', 'sl', 'tp', 'opened', 'closed', 'updated', 'guidance'] as const) field(`execution-${id}`).textContent = execution[id];
+          field('execution-summary').textContent = 'No current report';
           signIn.hidden = !needsAccess;
         } finally {
           refresh.disabled = false;
@@ -137,7 +285,20 @@ export const prerender = true;
       .status__reason { min-height: 1.5em; margin: 0 0 var(--sp-xl); color: var(--c-body); }
       .status__actions { display: flex; flex-wrap: wrap; gap: var(--sp-md); }
       .status__actions [hidden] { display: none; }
-      @media (max-width: 40rem) { .status__rows div { grid-template-columns: 1fr; gap: var(--sp-xs); } }
+      .trade__form { display: grid; gap: var(--sp-lg); margin-bottom: var(--sp-lg); }
+      .trade__fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-md); }
+      .trade__field { display: grid; gap: var(--sp-sm); min-width: 0; }
+      .trade__field input, .trade__field select { width: 100%; min-height: var(--sp-3xl); padding: var(--sp-sm) var(--sp-lg); border: 1px solid var(--c-hairline-bright); border-radius: var(--r-pill); background: var(--c-canvas); color: var(--c-ink); font: inherit; font-variant-numeric: tabular-nums; }
+      .trade__field input::placeholder { color: var(--c-body); }
+      .trade__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-md); }
+      .trade__preview { max-width: 65ch; margin-top: var(--sp-xl); padding-top: var(--sp-xl); border-top: 1px solid var(--c-hairline); }
+      .trade__preview h3 { margin: 0 0 var(--sp-md); font-size: var(--fs-5); font-weight: var(--fw-regular); }
+      .trade__preview p { color: var(--c-body); line-height: 1.5; }
+      .trade__preview[hidden], .trade__actions [hidden] { display: none; }
+      #control-message { min-height: 1.5em; color: var(--c-body); }
+      button:disabled { opacity: .5; cursor: not-allowed; }
+      @media (max-width: 48rem) { .trade__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (max-width: 40rem) { .status__rows div, .trade__fields { grid-template-columns: 1fr; gap: var(--sp-xs); } }
     </style>
   </body>
 </html>

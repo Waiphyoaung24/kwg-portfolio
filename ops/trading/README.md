@@ -14,11 +14,98 @@ The updated image was deployed on 2026-09-27. The pinned demo and Algo-off
 guard passed, but the gold quote was stale during market closure, so both the
 diagnostic and one-shot observer blocked as intended. The VPS now runs the
 signal-only observer continuously. Live candle transitions, restart persistence,
-and advancing tick freshness still need qualification during an open gold session.
-Review live signals and risk checks before a separate demo-order implementation.
-Keep Algo Trading off.
+and advancing tick freshness passed the 2026-09-28 Batch 1 session; see
+[HANDOFF.md](HANDOFF.md). Later sessions still require fresh preflight checks.
+On 2026-09-29 the owner authorized one supervised minimum-lot demo buy. It
+opened at 09:11:16 UTC, closed at 09:12:17 UTC, and reconciled to -$0.24 net.
+The first close reconciliation missed broker deals because MT5 reports their
+timestamps three hours ahead of UTC. Commit `5225fce` fixes the history window
+and UTC close timestamp; the VPS source, running container and rebuilt image
+matched SHA-256 `ac4f67888ac4a3e327948719869c47ae01fd16e3286572179c17bb5fee58217b`.
+The patched desktop was recreated after closure. The original journal row
+remains closed; the supervised web control below can append a new attempt only
+after fresh checks and an explicit Start click. Keep Algo Trading off between
+supervised attempts. This smoke test proves execution mechanics only; Batch 2
+strategy qualification remains blocked.
 
-## Read-only Vault status
+## Supervised web control (deployed 2026-09-29)
+
+### Pending-entry update (prepared locally; deploy after review)
+
+The next version removes the 60-second forced close. The owner enters a buy or
+sell **Entry price**, **Stop loss**, and **Take profit** on `/vault/trading` and
+previews the exact 0.01-lot request. An entry below the current ask for a buy
+or above the current bid for a sell is a limit order; the other direction is a
+stop order. The preview does not place an order. Start sends one broker-held
+GTC pending order after a fresh demo, quote, contract, occupancy and risk
+check. An unfilled order remains pending until the owner cancels it in MT5.
+After a fill, the position remains open until broker SL or TP. The page shows
+the pending/open state and reviewed levels. Broker-side stops can slip or gap.
+The runner never promotes the strategy or submits another entry on its own.
+
+Before updating the VPS, verify no gold position or pending order remains,
+back up the SQLite journal, and keep Algo Trading off. Deploy the matching
+desktop image, status sidecar, standalone `trading.html`, and Worker together;
+the old 60-second page and new request format cannot be mixed. Confirm the
+historical closed row survives restart. Do a no-order preview and inspect its
+exact levels and modeled stop loss. Only then enable Algo Trading and click
+the one-order Start button. If a pending order is unwanted, cancel it in MT5
+and wait for the page to show DISARMED. If the status becomes NEEDS ATTENTION,
+inspect the broker order/position and journal; do not click Start again.
+
+The private CLI equivalent uses all three prices:
+
+```sh
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/demo_one_shot.py preview --side buy --entry ENTRY_PRICE --sl STOP_PRICE --tp TARGET_PRICE --state 'C:\users\mt5\gold-one-shot.sqlite3'
+```
+
+Replace the placeholder prices with current reviewed prices. The CLI arm command
+requires the same `--entry`, `--sl`, and `--tp` values plus
+`--enable-demo-execution`; use the web preview and Start flow for the owner
+instead of arming from a second shell.
+
+The new Vault page shows the latest attempt, the live price-feed state and a
+link to the SSH-protected MT5 desktop at
+`http://127.0.0.1:6081/vnc.html?autoconnect=1&resize=scale`.
+Its **Preview demo trade** button runs the existing no-order preflight with
+Algo Trading off. A 10-minute, single-use confirmation token then permits
+one explicit **Start one demo BUY/SELL** click. The runner rebuilds the request,
+checks the broker again and writes a new attempt row to the private journal;
+older rows, including the 2026-09-29 -$0.24 result, remain unchanged. An
+unresolved attempt, occupied gold symbol, stale feed or failed broker guard
+blocks another entry. The runner supervises the attempt independently of the
+browser; its broker-held stop/target and resume-only recovery still apply.
+
+This code does not enable continuous strategy trading or AI promotion. The
+controller, private network, shared secret, status sidecar, page and Worker
+were deployed on 2026-09-29. The original -$0.24 attempt remained closed
+after the desktop restart. An authenticated page preview succeeded with
+`order_sent: false`; a fresh unauthenticated GET and POST both redirected to
+Cloudflare Access. No new demo trade was placed, and Algo Trading remained off.
+The control endpoint must be reachable only on a private Compose network
+shared by `desktop` and `status`; retain `desktop` on its existing Compose
+default network for broker connectivity. Its `gw_priority: 1` keeps that
+network as the default route, so the VPS needs Docker Compose 2.33.1 or later
+and Docker Engine 28 or later. Check both versions before rebuilding.
+Publish no control host port. A
+32-character-or-longer `TRADING_CONTROL_SECRET` must be stored privately in
+the VPS Compose `.env` and as a Worker secret with the same value. Never put it
+in Git, browser code, commands shown in chat, or logs. Keep Cloudflare Access
+restricted to the owner and the status origin restricted to the existing
+service token. A POST from another browser origin is rejected.
+
+Before replacing the desktop image, back up the SQLite journal with SQLite's
+backup API and verify the backup. Keep Algo Trading off. Build the image,
+regenerate `trading.html` from Astro, then deploy the desktop and status
+sidecar. Confirm the old closed result survives restart, the observer is
+fresh, no gold position/order exists, and unauthenticated page/API requests
+remain behind Access. Deploy the Worker last. A page preview is read-only;
+the user must inspect its new prices, enable Algo Trading in the private MT5
+desktop and click Start to authorize a new attempt. Watch MT5 until it is
+closed or needs attention, then turn Algo Trading off. Do not repeat Start
+after an uncertain response; inspect the journal and broker state first.
+
+## Vault status and Access boundary
 
 The observer now publishes a small JSON snapshot to a **separate** Docker
 volume. `kwg-trading-status` serves that snapshot and the prebuilt trading page
@@ -26,8 +113,9 @@ on `dokploy-network` with no host port; it cannot read MT5's home volume.
 Cloudflare routes `/vault/trading` and `/api/trading/status` to the same Worker,
 without moving the rest of the portfolio from its current origin. The Worker requires
 Cloudflare Access identity, checks the exact approved viewer email, and fetches
-the status origin through the existing Cloudflare Tunnel. It exposes no broker
-login, balance, password, or order operation. A missing heartbeat becomes
+the status origin through the existing Cloudflare Tunnel. The status payload
+exposes no broker login, balance, password or order request. The prepared
+control POST path additionally requires the private shared secret. A missing heartbeat becomes
 `offline`; a stale gold quote remains `blocked`.
 
 On the VPS only, set `MT5_DEMO_LOGIN` in this Compose project's private `.env`.
@@ -40,8 +128,9 @@ docker compose --profile status up -d --build
 ```
 
 Keep `.env` outside Git. The desktop process starts the signal-only observer
-when the login is set; it never calls an order API. Confirm the private service
-is reachable from `dokploy-network` and has **no host port** before adding its
+when the login is set; that observer never calls an order API. The separate
+resume-only hook may close an already submitted one-shot position. Confirm the
+private service is reachable from `dokploy-network` and has **no host port** before adding its
 Cloudflare Tunnel public hostname. In Cloudflare Zero Trust, protect that
 hostname with an Access **Service Auth** policy for a dedicated service token.
 The Worker receives the token as `STATUS_ACCESS_CLIENT_ID` and
@@ -84,6 +173,61 @@ Commit this directory's source and documentation only. Broker passwords,
 `mt5.json`, SSH keys, and the terminal's persistent volume stay outside Git.
 The VPS setup was deployed directly; committing or pushing this repository
 does not update that running Compose project automatically.
+
+## Initial one-shot demo dry-run and recovery
+
+The one-shot runner is separate from `observe-gold.py`. Initially, its only
+entry path was the private Wine CLI `arm` command. The deployed web control
+adds an owner-only preview and explicit Start path. Its persistent journal in
+the MT5 home allows a new attempt only after the previous one is resolved.
+Boot invokes `resume`, which can reconcile an existing submitted
+attempt but cannot send a new entry. `execution.json` on the status volume
+contains display fields only; tickets, account details, request bodies and
+deal history stay private.
+
+Before deploying the new image, verify the source hashes on the VPS and in the
+image, take a consistent SQLite backup of `gold-observer.sqlite3`, and retain
+the running container until the replacement is verified. Build without arming,
+confirm `resume` with no journal sends no orders, then recheck the pinned demo,
+Algo Trading off, MT5 SDK/build, synchronized UTC against Market Watch, fresh
+gold quote and 250 completed M15 bars. Reconfirm the server offset after a DST
+change. Inspect current symbol trading, minimum lot, stop/freeze and filling
+rules, and confirm there is no gold position or active gold order. Keep the
+desktop bound to SSH loopback and the page behind Cloudflare Access.
+
+Run a private **no-order preview** only after those checks, with Algo Trading
+off. Replace `buy` with `sell` only if that is the owner's chosen side:
+
+```sh
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/demo_one_shot.py preview --side buy --entry ENTRY_PRICE --sl STOP_PRICE --tp TARGET_PRICE --state 'C:\users\mt5\gold-one-shot.sqlite3'
+```
+
+The preview prints the current minimum lot, pending order type, reviewed broker
+SL/TP, modeled stop exposure and timestamp. It does not
+create a journal, call `order_check` or call `order_send`. Store its full JSON
+privately in the persistent MT5 home or another private VPS directory, record
+its SHA-256 hash, and review it promptly: its quote and contract checks are
+time-limited. `arm` rebuilds and rechecks the request; the preview never grants
+permission to submit it. Unknown fees, gaps and slippage are outside the
+modeled stop exposure.
+
+Only after the owner reviews that concrete preview should the operator enable
+Algo Trading on the private desktop and run a single `arm` with the explicit
+flag, using the reviewed side:
+
+```sh
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/demo_one_shot.py arm --side buy --entry ENTRY_PRICE --sl STOP_PRICE --tp TARGET_PRICE --state 'C:\users\mt5\gold-one-shot.sqlite3' --enable-demo-execution
+```
+
+The operator watches the journal, broker position and orders until the
+pending order is canceled, the protected position closes, or a `needs_attention`
+state is resolved. Do not
+repeat `arm`, create another journal, or treat a missing reply as a failed
+order. If reconciliation is uncertain, preserve the journal and broker-held
+protection for ticket-specific recovery. After confirmed closure, ensure no
+gold position/order remains, turn Algo Trading off, and verify the observer's
+read-only guard again. The smoke result does not qualify the strategy or
+enable continuous entry.
 
 ## SDK probe
 
@@ -214,9 +358,29 @@ WINDOWS.json` is optional; without them the old three scenarios remain
 hypothetical. A profile with unknown or uncovered costs is rejected. Window
 JSON specifies fixed `development` and `validation` objects, each with
 integer `start` and `end` bar timestamps. Keep profiles and detailed
-reports private. `evaluation-policy.json` is **draft** and the offline
-`evaluate-gold.py` cannot produce shadow eligibility from it. No candidate
-or order path is installed.
+reports private. `evaluation-policy.json` is **approved for prospective
+evaluation** after owner review on 2026-09-29. Historical costs, sufficient
+validation observations and real evaluator inputs remain unavailable. No
+candidate or order path is installed.
+For an approved policy, both evaluator input reports must carry the SHA-256
+of its canonical JSON (`sort_keys=True`, compact separators, finite numbers)
+in `identity.policy_sha256`; changing a threshold invalidates the comparison.
+Simulation reports now include `entry_risk_usd` and `net_r` per trade,
+`notional_turnover_usd`, and close-sampled `raw_epoch_daily_returns`. The
+last field uses raw broker epochs, **not verified UTC dates**, so it must not
+be copied into the evaluator's `daily_returns`. The frozen provisional
+manifest rejects `--cost-profile` and cannot supply the required three
+prospective folds. A new covered dataset and manifest are needed before
+building real gate inputs.
+Until that adapter verifies raw simulator hashes, UTC dates, dated costs and
+folds, the `evaluate-gold.py` CLI caps any otherwise eligible result at
+`inconclusive` with `simulator_provenance_unverified`. Pure gate fixtures are
+software checks, not candidate qualification.
+For prospective windows, `folds` may contain exactly three ordered
+`{start,end}` timestamp pairs partitioning validation. Each fold runs from
+flat initial capital and cannot include the reserved holdout. The current
+frozen manifest has no such folds; adding them to it would invalidate its
+identity and would not create missing observed days.
 
 Once deployed with the offset, the observer normalizes the displayed quote
 timestamp; the one-shot verifier still retains raw broker timestamps. The

@@ -18,6 +18,46 @@ class GoldDataTest(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(ValueError):
                 validate_account(SimpleNamespace(**account), SimpleNamespace(**(terminal | {field: value})), 123, "VTMarkets-Demo")
 
+    def test_execution_guard_requires_enabled_demo_trading(self):
+        account = dict(trade_mode=0, login=123, server="VTMarkets-Demo",
+                       trade_allowed=True, trade_expert=True)
+        terminal = dict(connected=True, trade_allowed=True, tradeapi_disabled=False)
+        validate_account(SimpleNamespace(**account), SimpleNamespace(**terminal), 123, execution=True)
+        for owner, field, value in ((account, "trade_mode", 2), (account, "login", 456),
+                                    (account, "server", "Live"), (account, "trade_allowed", False),
+                                    (account, "trade_expert", False), (terminal, "trade_allowed", False),
+                                    (terminal, "tradeapi_disabled", True)):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                changed = owner | {field: value}
+                validate_account(SimpleNamespace(**(changed if owner is account else account)),
+                                 SimpleNamespace(**(changed if owner is terminal else terminal)),
+                                 123, execution=True)
+
+    def test_execution_read_gold_rejects_stale_quote_and_bad_bars(self):
+        sdk = Mock(TIMEFRAME_M15=15)
+        sdk.account_info.return_value = SimpleNamespace(trade_mode=0, login=123,
+            server="VTMarkets-Demo", trade_allowed=True, trade_expert=True)
+        sdk.terminal_info.return_value = SimpleNamespace(connected=True, trade_allowed=True,
+            tradeapi_disabled=False)
+        sdk.symbol_select.return_value = True
+        sdk.symbol_info.return_value = SimpleNamespace(point=.01)
+        now = 251 * 900
+        sdk.symbol_info_tick.return_value = SimpleNamespace(bid=100, ask=100.1,
+            time=now, time_msc=0)
+        sdk.copy_rates_from_pos.return_value = [dict(time=(i + 1) * 900,
+            open=100, high=101, low=99, close=100) for i in range(250)]
+        self.assertEqual(len(read_gold(sdk, 123, now, execution=True)[1]), 250)
+        sdk.symbol_info_tick.return_value.time = now - 31
+        with self.assertRaises(ValueError):
+            read_gold(sdk, 123, now, execution=True)
+        sdk.symbol_info_tick.return_value.time = now + 1
+        with self.assertRaises(ValueError):
+            read_gold(sdk, 123, now, execution=True)
+        sdk.symbol_info_tick.return_value.time = now
+        sdk.copy_rates_from_pos.return_value[-1]["time"] -= 900
+        with self.assertRaises(ValueError):
+            read_gold(sdk, 123, now, execution=True)
+
     def test_tick_age_and_prices(self):
         tick = SimpleNamespace(bid=100, ask=101, time=1000, time_msc=0)
         self.assertEqual(validate_tick(tick, 1000), 0)

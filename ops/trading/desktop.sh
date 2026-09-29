@@ -32,6 +32,19 @@ if [ -n "${MT5_DEMO_LOGIN:-}" ]; then
       sleep 10
     done
   ) &
+  # Reconcile an existing one-shot journal after terminal startup; resume cannot enter.
+  (
+    sleep 10
+    while true; do
+      if script -q -e -c "wine /opt/python/python.exe /opt/trading/demo_one_shot.py resume --state 'C:\users\mt5\gold-one-shot.sqlite3'" /dev/null; then
+        break
+      fi
+      sleep 10
+    done
+  ) &
+  if [ -n "${TRADING_CONTROL_SECRET:-}" ]; then
+    python3 /opt/trading/control_server.py &
+  fi
 fi
 # The installer may exit normally after launching MT5; keep the desktop available.
 wait
