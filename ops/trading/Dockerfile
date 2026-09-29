@@ -13,7 +13,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     && curl -fL --retry 2 https://bootstrap.pypa.io/get-pip.py -o /opt/python/get-pip.py \
     && curl -fL --retry 2 https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe -o /opt/trading/mt5setup.exe \
     && chown -R mt5:mt5 /opt/python /opt/status
-COPY desktop.sh verify-demo.py mt5_data.py gold_signal.py gold_qualification.py observe-gold.py export-gold.py demo_one_shot.py control_server.py /opt/trading/
+COPY desktop.sh verify-demo.py mt5_data.py gold_signal.py gold_qualification.py observe-gold.py export-gold.py demo_one_shot.py control_server.py batch2-evidence.py /opt/trading/
 USER mt5
 WORKDIR /home/mt5
 RUN xvfb-run -a script -q -e -c "bash -ec '\
