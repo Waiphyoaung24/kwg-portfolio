@@ -29,39 +29,22 @@ export const prerender = true;
           <h2 id="control-title">One supervised trade</h2>
           <span class="status__state label" id="execution-state" aria-live="polite">Checking</span>
         </div>
-        <p class="status__symbol">Set one pending entry for 0.01 lot of XAUUSD-VIP. Once filled, broker-held stop loss or take profit closes the position.</p>
+        <p class="status__symbol">XAUUSD-VIP · 0.01 lot · VT Markets demo</p>
         <dl class="status__rows">
           <div><dt class="label">Latest attempt</dt><dd id="execution-summary">Checking</dd></div>
         </dl>
         <p class="status__guidance" id="execution-guidance">Connecting to the private status API.</p>
-        <form id="trade-form" class="trade__form">
-          <div class="trade__fields">
-            <label class="trade__field"><span class="label">Direction</span><select id="trade-side" aria-label="Demo trade direction"><option value="buy">Buy</option><option value="sell">Sell</option></select></label>
-            <label class="trade__field"><span class="label">Entry price</span><input id="trade-entry" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
-            <label class="trade__field"><span class="label">Stop loss</span><input id="trade-sl" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
-            <label class="trade__field"><span class="label">Take profit</span><input id="trade-tp" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
-          </div>
-          <p class="page__note">Choose prices from MT5. Buy: stop below entry, target above. Sell: target below entry, stop above. The pending order stays until you cancel it in MT5.</p>
-          <div class="trade__actions">
-            <button class="pill-btn pill-btn--filled" id="prepare-trade" type="submit" disabled>Preview pending order</button>
-            <a class="pill-btn" href="http://127.0.0.1:6081/vnc.html?autoconnect=1&amp;resize=scale" target="_blank" rel="noopener noreferrer">Open MT5 desktop ↗</a>
-          </div>
-        </form>
-        <p class="page__note">The MT5 link needs your SSH tunnel to port 6081. Keep Algo Trading off for the preview.</p>
-        <div id="trade-preview" class="trade__preview" hidden>
-          <h3>Review before starting</h3>
-          <p id="preview-summary"></p>
-          <p id="preview-protection"></p>
-          <p>This preview expires after 10 minutes. Enable Algo Trading in MT5, then place this one pending order. Prices, account and broker conditions are checked again first.</p>
-          <button class="pill-btn pill-btn--filled" id="start-trade" type="button">Place one pending order</button>
-        </div>
-        <p id="control-message" role="status" aria-live="polite"></p>
+        <dl class="status__rows status__rows--levels" aria-label="Broker order levels">
+          <div><dt class="label">Entry</dt><dd id="execution-entry">—</dd></div>
+          <div><dt class="label">Stop loss</dt><dd id="execution-sl">—</dd></div>
+          <div><dt class="label">Take profit</dt><dd id="execution-tp">—</dd></div>
+        </dl>
+        <a class="pill-btn" href="http://127.0.0.1:6081/vnc.html?autoconnect=1&amp;resize=scale" target="_blank" rel="noopener noreferrer">Open MT5 desktop ↗</a>
+        <p class="page__note">The MT5 link needs your SSH tunnel to port 6081.</p>
+        <p id="attempt-message" role="status" aria-live="polite"></p>
         <details class="status__details">
           <summary class="pill-btn">Trade details <span aria-hidden="true">⌄</span></summary>
           <dl class="status__rows">
-            <div><dt class="label">Entry price</dt><dd id="execution-entry">—</dd></div>
-            <div><dt class="label">Stop loss</dt><dd id="execution-sl">—</dd></div>
-            <div><dt class="label">Take profit</dt><dd id="execution-tp">—</dd></div>
             <div><dt class="label">Opened</dt><dd id="execution-opened">—</dd></div>
             <div><dt class="label">Closed</dt><dd id="execution-closed">—</dd></div>
             <div><dt class="label">Last report</dt><dd id="execution-updated">—</dd></div>
@@ -99,6 +82,31 @@ export const prerender = true;
           <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
         </div>
       </section>
+      <section class="card status" id="new-order" aria-labelledby="new-order-title" hidden>
+        <div class="status__head"><h2 id="new-order-title">Prepare one order</h2></div>
+        <p class="status__symbol">Set one pending entry for 0.01 lot. Once filled, broker-held stop loss or take profit closes the position.</p>
+        <form id="trade-form" class="trade__form">
+          <div class="trade__fields">
+            <label class="trade__field"><span class="label">Direction</span><select id="trade-side" aria-label="Demo trade direction"><option value="buy">Buy</option><option value="sell">Sell</option></select></label>
+            <label class="trade__field"><span class="label">Entry price</span><input id="trade-entry" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
+            <label class="trade__field"><span class="label">Stop loss</span><input id="trade-sl" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
+            <label class="trade__field"><span class="label">Take profit</span><input id="trade-tp" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
+          </div>
+          <p class="page__note">Choose prices from MT5. Buy: stop below entry, target above. Sell: target below entry, stop above. The pending order stays until you cancel it in MT5.</p>
+          <div class="trade__actions">
+            <button class="pill-btn pill-btn--filled" id="prepare-trade" type="submit" disabled>Preview pending order</button>
+          </div>
+        </form>
+        <p class="page__note">Keep Algo Trading off for the preview.</p>
+        <div id="trade-preview" class="trade__preview" hidden>
+          <h3>Review before starting</h3>
+          <p id="preview-summary"></p>
+          <p id="preview-protection"></p>
+          <p>This preview expires after 10 minutes. Enable Algo Trading in MT5, then place this one pending order. Prices, account and broker conditions are checked again first.</p>
+          <button class="pill-btn pill-btn--filled" id="start-trade" type="button">Place one pending order</button>
+        </div>
+        <p id="control-message" role="status" aria-live="polite"></p>
+      </section>
       <p class="page__note">Status updates every 10 seconds. This control starts only a reviewed, single demo attempt; it does not run the strategy continuously.</p>
     </main>
 
@@ -115,6 +123,7 @@ export const prerender = true;
       const sl = field('trade-sl') as HTMLInputElement;
       const tp = field('trade-tp') as HTMLInputElement;
       const previewBox = field('trade-preview');
+      const newOrder = field('new-order');
       let latest: Parameters<typeof statusFields>[0] | null = null;
       let receivedAt = 0;
       let previewToken: string | null = null;
@@ -130,11 +139,12 @@ export const prerender = true;
           : [execution.side, execution.volume, execution.result].filter(value => value !== '—').join(' · ') || execution.state;
         const state = latest.execution?.status;
         const resolved = state === 'closed' || state === 'disarmed';
+        newOrder.hidden = !resolved || !!startedAt;
         if (startedAt && latest.execution && latest.execution.updated_at > startedAt && resolved) {
           startedAt = 0;
           side.disabled = false;
           for (const input of [entry, sl, tp]) input.disabled = false;
-          field('control-message').textContent = 'Attempt finished. Review the result and turn Algo Trading off in MT5.';
+          field('attempt-message').textContent = 'Attempt finished. Review the result and turn Algo Trading off in MT5.';
         }
         prepare.disabled = !!previewToken || !!startedAt || !resolved || fields.state !== 'Observing';
         start.disabled = !previewToken || !resolved || Date.now() - receivedAt > 30000;
@@ -192,7 +202,7 @@ export const prerender = true;
       start.addEventListener('click', async () => {
         if (!previewToken) return;
         start.disabled = true;
-        field('control-message').textContent = 'Starting one demo attempt. Watch MT5 and the status below.';
+        field('attempt-message').textContent = 'Starting one demo attempt. Watch MT5 and the status above.';
         try {
           await control('arm', { token: previewToken });
           previewToken = null;
@@ -201,7 +211,7 @@ export const prerender = true;
           prepare.hidden = false;
           side.disabled = true;
           for (const input of [entry, sl, tp]) input.disabled = true;
-          field('control-message').textContent = 'Order request accepted. Watch MT5 for a pending order or position. Cancel a pending order in MT5 if needed.';
+          field('attempt-message').textContent = 'Order request accepted. Watch MT5 for a pending order or position. Cancel a pending order in MT5 if needed.';
           load();
         } catch (error) {
           previewToken = null;
@@ -210,7 +220,7 @@ export const prerender = true;
           prepare.hidden = false;
           side.disabled = true;
           for (const input of [entry, sl, tp]) input.disabled = true;
-          field('control-message').textContent = `${error instanceof Error ? error.message : 'Start failed.'} Check MT5 for a position or order before reloading this page.`;
+          field('attempt-message').textContent = `${error instanceof Error ? error.message : 'Start failed.'} Check MT5 for a position or order before reloading this page.`;
           render();
         }
       });
@@ -231,6 +241,7 @@ export const prerender = true;
           render();
         } catch (error) {
           latest = null;
+          newOrder.hidden = true;
           prepare.disabled = true;
           start.disabled = true;
           const needsAccess = error instanceof Error && error.message === 'access';
@@ -273,6 +284,8 @@ export const prerender = true;
       .status__state { color: var(--c-body); }
       .status__rows { margin: var(--sp-xl) 0; }
       .status__rows div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-md); padding: var(--sp-md) 0; border-top: 1px solid var(--c-hairline); }
+      .status__rows--levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-md); }
+      .status__rows--levels div { display: block; }
       .status__rows dt { display: flex; align-items: center; gap: var(--sp-sm); color: var(--c-body); }
       .status__rows svg { width: var(--sp-xl); height: var(--sp-xl); flex-shrink: 0; }
       .status__symbol { margin: var(--sp-md) 0 0; color: var(--c-body); }
@@ -282,11 +295,13 @@ export const prerender = true;
       .status__details summary::-webkit-details-marker { display: none; }
       .status__details[open] summary span { transform: rotate(180deg); }
       .status__rows dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+      .status__rows--levels dd { margin-top: var(--sp-sm); }
       .status__reason { min-height: 1.5em; margin: 0 0 var(--sp-xl); color: var(--c-body); }
       .status__actions { display: flex; flex-wrap: wrap; gap: var(--sp-md); }
+      #control-message, #attempt-message { min-height: 1.5em; color: var(--c-body); }
       .status__actions [hidden] { display: none; }
       .trade__form { display: grid; gap: var(--sp-lg); margin-bottom: var(--sp-lg); }
-      .trade__fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-md); }
+      .trade__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-md); }
       .trade__field { display: grid; gap: var(--sp-sm); min-width: 0; }
       .trade__field input, .trade__field select { width: 100%; min-height: var(--sp-3xl); padding: var(--sp-sm) var(--sp-lg); border: 1px solid var(--c-hairline-bright); border-radius: var(--r-pill); background: var(--c-canvas); color: var(--c-ink); font: inherit; font-variant-numeric: tabular-nums; }
       .trade__field input::placeholder { color: var(--c-body); }
@@ -295,10 +310,9 @@ export const prerender = true;
       .trade__preview h3 { margin: 0 0 var(--sp-md); font-size: var(--fs-5); font-weight: var(--fw-regular); }
       .trade__preview p { color: var(--c-body); line-height: 1.5; }
       .trade__preview[hidden], .trade__actions [hidden] { display: none; }
-      #control-message { min-height: 1.5em; color: var(--c-body); }
       button:disabled { opacity: .5; cursor: not-allowed; }
-      @media (max-width: 48rem) { .trade__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-      @media (max-width: 40rem) { .status__rows div, .trade__fields { grid-template-columns: 1fr; gap: var(--sp-xs); } }
+      @media (max-width: 48rem) { .status__rows--levels { grid-template-columns: 1fr; } }
+      @media (max-width: 40rem) { .status__rows:not(.status__rows--levels) div, .trade__fields { grid-template-columns: 1fr; gap: var(--sp-xs); } }
     </style>
   </body>
 </html>
