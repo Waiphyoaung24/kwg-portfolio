@@ -1,5 +1,6 @@
 """Private, one-at-a-time bridge from a reviewed preview to the demo CLI."""
 import json
+import math
 import os
 import secrets
 import shlex
@@ -36,33 +37,41 @@ def run_action(action, payload):
         return 409, {"error": "Resolve the current demo attempt before starting another."}
     if action == "preview":
         side = payload.get("side")
-        if side not in ("buy", "sell") or set(payload) != {"side"}:
-            return 400, {"error": "Choose buy or sell."}
+        levels = {key: payload.get(key) for key in ("entry", "sl", "tp")}
+        if (side not in ("buy", "sell") or set(payload) != {"side", *levels}
+                or any(type(value) not in (int, float) or not math.isfinite(value)
+                       or value <= 0 or value > 1000000 for value in levels.values())):
+            return 400, {"error": "Choose a side and valid entry, stop and target prices."}
         pending = None
         try:
-            result = subprocess.run(COMMAND + ["preview", "--side", side, "--state", WINDOWS_STATE],
+            result = subprocess.run(COMMAND + ["preview", "--side", side, "--state", WINDOWS_STATE]
+                                    + [item for key, value in levels.items()
+                                       for item in (f"--{key}", str(value))],
                                     capture_output=True, text=True, timeout=45, check=True)
             preview = json.loads(result.stdout.strip().splitlines()[-1])
+            if isinstance(preview, dict) and isinstance(preview.get("error"), str):
+                return 409, {"error": preview["error"][:160]}
             if (preview.get("mode") != "private-demo-preview" or preview.get("side") != side
                     or preview.get("symbol") != "XAUUSD-VIP" or preview.get("order_sent") is not False):
                 raise ValueError("Invalid preview")
         except (subprocess.SubprocessError, IndexError, json.JSONDecodeError, ValueError):
             return 409, {"error": "Preview failed. Check the demo connection, quote and Algo Trading setting in MT5."}
         token = secrets.token_urlsafe(24)
-        pending = (token, side, time.time() + 600)
+        pending = (token, side, levels, time.time() + 600)
         return 200, {"preview": preview, "token": token}
     if action == "arm":
         token = payload.get("token")
         if set(payload) != {"token"} or not isinstance(token, str):
             return 400, {"error": "Prepare and review a demo preview first."}
-        if pending is None or not secrets.compare_digest(token, pending[0]) or time.time() > pending[2]:
+        if pending is None or not secrets.compare_digest(token, pending[0]) or time.time() > pending[3]:
             return 409, {"error": "Preview expired. Prepare a new preview."}
-        side = pending[1]
+        side, levels = pending[1:3]
         pending = None
         log = (STATE.parent / "gold-one-shot-control.log").open("ab")
         try:
             command = COMMAND + ["arm", "--side", side, "--state", WINDOWS_STATE,
-                                 "--enable-demo-execution"]
+                                 "--enable-demo-execution"] + [item for key, value in levels.items()
+                                                                  for item in (f"--{key}", str(value))]
             runner = subprocess.Popen(["script", "-q", "-e", "-c", shlex.join(command), "/dev/null"],
                                       stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         except OSError:

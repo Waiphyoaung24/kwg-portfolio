@@ -41,22 +41,23 @@ class ControlTest(unittest.TestCase):
         with patch.object(control.subprocess, "run", return_value=SimpleNamespace(stdout=json.dumps(preview))) as no_order, \
              patch.object(control.subprocess, "Popen", return_value=Mock(poll=lambda: None)) as arm:
             self.assertEqual(control.run_action("arm", {"token": "missing"})[0], 409)
-            status, result = control.run_action("preview", {"side": "sell"})
+            levels = {"entry": 100, "sl": 102, "tp": 98}
+            status, result = control.run_action("preview", {"side": "sell", **levels})
             self.assertEqual(status, 200)
             token = result["token"]
-            self.assertEqual(no_order.call_args.args[0][-1], control.WINDOWS_STATE)
+            self.assertIn("--entry", no_order.call_args.args[0])
             self.assertEqual(control.run_action("arm", {"token": token})[0], 202)
             launch = arm.call_args.args[0]
             self.assertEqual(launch[:4], ["script", "-q", "-e", "-c"])
             self.assertEqual(launch[5], "/dev/null")
             self.assertEqual(shlex.split(launch[4]), control.COMMAND +
                              ["arm", "--side", "sell", "--state", control.WINDOWS_STATE,
-                              "--enable-demo-execution"])
+                              "--enable-demo-execution", "--entry", "100", "--sl", "102", "--tp", "98"])
             self.assertEqual(control.run_action("arm", {"token": token})[0], 409)
             self.assertEqual(arm.call_count, 1)
 
     def test_expired_preview_does_not_launch(self):
-        control.pending = ("token", "buy", 10)
+        control.pending = ("token", "buy", {"entry": 99, "sl": 95, "tp": 105}, 10)
         with patch.object(control.subprocess, "Popen") as arm:
             self.assertEqual(control.run_action("arm", {"token": "token"})[0], 409)
             arm.assert_not_called()

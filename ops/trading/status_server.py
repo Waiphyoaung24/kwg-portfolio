@@ -37,7 +37,7 @@ def sanitize_execution(value, now: float):
     if not isinstance(value, dict) or value.get("mode") != "one-shot-demo":
         raise ValueError("invalid execution snapshot")
     status = value.get("status")
-    if status not in ("disarmed", "armed", "submitting", "open", "closing",
+    if status not in ("disarmed", "armed", "submitting", "pending", "open", "closing",
                       "closed", "needs_attention"):
         raise ValueError("invalid execution state")
     updated_at = value.get("updated_at")
@@ -49,12 +49,12 @@ def sanitize_execution(value, now: float):
         raise ValueError("invalid execution side")
     result = {"mode": "one-shot-demo", "status": status,
               "updated_at": updated_at, "side": side}
-    for key in ("volume", "opened_at", "closed_at", "realized_net_usd"):
+    for key in ("volume", "opened_at", "closed_at", "realized_net_usd", "entry_price", "sl", "tp"):
         number = value.get(key)
         if number is not None and (type(number) not in (int, float)
                                    or not math.isfinite(number) or abs(number) > 1e12):
             raise ValueError("invalid execution number")
-        if key in ("volume", "opened_at", "closed_at") and number is not None and number <= 0:
+        if key != "realized_net_usd" and number is not None and number <= 0:
             raise ValueError("invalid execution number")
         result[key] = number
     reason = value.get("close_reason")

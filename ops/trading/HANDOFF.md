@@ -1,5 +1,17 @@
 # Gold trading handoff — 2026-09-28
 
+## Pending-entry update — prepared, not deployed
+
+The owner requested removing the 60-second timed close and editing Entry,
+SL and TP in the Vault page. The chosen Entry creates a broker-held GTC
+pending order; the owner cancels an unfilled order manually in MT5. A filled
+position stays open until broker SL or TP. The local branch implements this
+across the runner, private controller, status sidecar, Worker, and standalone
+page. The previous timed-close trades below are historical. Do not use the
+new UI with the old runner or the old UI with the new controller. See the
+[README deployment note](README.md#pending-entry-update-prepared-locally-deploy-after-review)
+before any supervised attempt. No order was placed by this code change.
+
 Resume here from another terminal or machine. This page records the latest
 verified state; older plan and result files are historical evidence. Keep the
 signal observer read-only, all execution demo-only and gold-only

@@ -16,7 +16,10 @@ NOW = 251 * 900
 
 
 def fake_mt5(*, enabled=False):
-    mt5 = Mock(TIMEFRAME_M15=15, TRADE_ACTION_DEAL=1, ORDER_TYPE_BUY=0,
+    mt5 = Mock(TIMEFRAME_M15=15, TRADE_ACTION_DEAL=1, TRADE_ACTION_PENDING=5,
+               ORDER_TYPE_BUY_LIMIT=2, ORDER_TYPE_SELL_LIMIT=3,
+               ORDER_TYPE_BUY_STOP=4, ORDER_TYPE_SELL_STOP=5,
+               ORDER_STATE_CANCELED=2, ORDER_FILLING_RETURN=2, ORDER_TYPE_BUY=0,
                ORDER_TYPE_SELL=1, ORDER_TIME_GTC=0, ORDER_FILLING_FOK=0,
                ORDER_FILLING_IOC=1, SYMBOL_TRADE_MODE_FULL=4,
                SYMBOL_FILLING_FOK=1, SYMBOL_FILLING_IOC=2,
@@ -34,7 +37,7 @@ def fake_mt5(*, enabled=False):
     mt5.symbol_info.return_value = Record(name="XAUUSD-VIP", point=.01,
         trade_tick_size=.01, digits=2, volume_min=.01, volume_max=100,
         volume_step=.01, trade_mode=4, trade_exemode=2, filling_mode=1,
-        order_mode=49, trade_stops_level=10, trade_freeze_level=0)
+        order_mode=55, trade_stops_level=10, trade_freeze_level=0)
     mt5.positions_get.return_value = ()
     mt5.orders_get.return_value = ()
     mt5.order_calc_profit.return_value = -4
@@ -43,6 +46,31 @@ def fake_mt5(*, enabled=False):
 
 
 class EntryRequestTest(unittest.TestCase):
+    def test_manual_pending_prices_choose_limit_or_stop_and_enforce_risk(self):
+        mt5 = fake_mt5()
+        request = build_entry_request(mt5, 123, "buy", NOW, 0, execution=False,
+                                      levels={"entry": 99, "sl": 95, "tp": 105})
+        self.assertEqual((request["action"], request["type"], request["type_time"],
+                          request["type_filling"]), (5, 2, 0, 2))
+        self.assertEqual(request["price"], 99)
+        stop = build_entry_request(mt5, 123, "sell", NOW, 0, execution=False,
+                                   levels={"entry": 99, "sl": 104, "tp": 95})
+        self.assertEqual(stop["type"], mt5.ORDER_TYPE_SELL_STOP)
+        self.assertEqual(build_entry_request(mt5, 123, "buy", NOW, 0, execution=False,
+                         levels={"entry": 101, "sl": 95, "tp": 105})["type"], mt5.ORDER_TYPE_BUY_STOP)
+        self.assertEqual(build_entry_request(mt5, 123, "sell", NOW, 0, execution=False,
+                         levels={"entry": 101, "sl": 105, "tp": 95})["type"], mt5.ORDER_TYPE_SELL_LIMIT)
+        for levels in ({"entry": 99, "sl": 100, "tp": 105},
+                       {"entry": 99.005, "sl": 95, "tp": 105},
+                       {"entry": 100.1, "sl": 95, "tp": 105}):
+            with self.subTest(levels=levels), self.assertRaises(ValueError):
+                build_entry_request(mt5, 123, "buy", NOW, 0, execution=False, levels=levels)
+        mt5.order_calc_profit.return_value = -11
+        with self.assertRaises(ValueError):
+            build_entry_request(mt5, 123, "buy", NOW, 0, execution=False,
+                                levels={"entry": 99, "sl": 95, "tp": 105})
+        mt5.order_send.assert_not_called()
+
     def test_preview_is_protected_minimum_lot_without_sending(self):
         mt5 = fake_mt5()
         request = build_entry_request(mt5, 123, "buy", NOW, 0, execution=False)
@@ -121,6 +149,74 @@ class AttemptTest(unittest.TestCase):
         self.addCleanup(reopened.close)
         self.assertEqual(reopened.execute("SELECT count(*) FROM attempts").fetchone()[0], 1)
         self.assertEqual(reopened.execute("SELECT state FROM attempts").fetchone()[0], "armed")
+
+    def test_pending_order_waits_until_manual_cancel(self):
+        arm_once(self.db, "buy", NOW, {"entry": 99, "sl": 95, "tp": 105})
+        order = None
+
+        def send(request):
+            nonlocal order
+            order = Record(ticket=77, symbol="XAUUSD-VIP", magic=request["magic"],
+                           type=request["type"], volume_initial=.01,
+                           price_open=request["price"],
+                           sl=request["sl"], tp=request["tp"])
+            return Record(retcode=10008, order=77, deal=0)
+
+        self.mt5.order_send.side_effect = send
+        self.mt5.orders_get.side_effect = lambda *, symbol: (order,) if order else ()
+        pending = process_once(self.mt5, self.db, NOW)
+        self.assertEqual(pending["status"], "pending")
+        self.assertEqual((pending["entry_price"], pending["sl"], pending["tp"]), (99, 95, 105))
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 3600)["status"], "pending")
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+        order.sl = 94
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 3600)["status"], "needs_attention")
+        order = None
+        self.mt5.history_orders_get.return_value = (
+            Record(ticket=77, symbol="XAUUSD-VIP", magic=20260929,
+                   state=self.mt5.ORDER_STATE_CANCELED),)
+        result = process_once(self.mt5, self.db, NOW + 3601)
+        self.assertEqual(result["status"], "disarmed")
+        self.assertIn("cancelled", result["close_reason"])
+
+    def test_pending_fill_keeps_broker_protection_until_stop(self):
+        arm_once(self.db, "buy", NOW, {"entry": 99, "sl": 95, "tp": 105})
+        order = None
+        position = None
+        deals = []
+
+        def send(request):
+            nonlocal order
+            order = Record(ticket=77, symbol="XAUUSD-VIP", magic=request["magic"],
+                           type=request["type"], volume_initial=.01,
+                           price_open=request["price"],
+                           sl=request["sl"], tp=request["tp"])
+            return Record(retcode=10008, order=77, deal=0)
+
+        self.mt5.order_send.side_effect = send
+        self.mt5.orders_get.side_effect = lambda *, symbol: (order,) if order else ()
+        self.mt5.positions_get.side_effect = lambda *, symbol: (position,) if position else ()
+        self.mt5.history_deals_get.side_effect = lambda *args: tuple(deals)
+        self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "pending")
+        order = None
+        position = Record(ticket=77, symbol="XAUUSD-VIP", magic=20260929,
+                          comment=json.loads(self.db.execute("SELECT request_json FROM attempts").fetchone()[0])["comment"],
+                          volume=.01, type=self.mt5.ORDER_TYPE_BUY,
+                          price_open=99, sl=95, tp=105)
+        deals.append(Record(position_id=77, entry=0, symbol="XAUUSD-VIP", magic=20260929,
+                            order=77, ticket=88, type=0, volume=.01, profit=0,
+                            commission=0, swap=0, fee=0, time=NOW + 10))
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 10)["status"], "open")
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 3600)["status"], "open")
+        position = None
+        deals.append(Record(position_id=77, entry=1, symbol="XAUUSD-VIP", magic=0,
+                            order=78, ticket=89, type=1, reason=self.mt5.DEAL_REASON_SL,
+                            volume=.01, profit=-4, commission=0, swap=0, fee=0,
+                            time=NOW + 3601))
+        result = process_once(self.mt5, self.db, NOW + 3601)
+        self.assertEqual(result["status"], "closed")
+        self.assertEqual(result["close_reason"], "stop loss")
+        self.assertEqual(self.mt5.order_send.call_count, 1)
 
     def test_new_attempt_keeps_closed_history_and_blocks_unresolved_one(self):
         first = arm_once(self.db, "buy", NOW)
@@ -236,7 +332,7 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "disarmed")
         self.assertEqual(self.mt5.order_send.call_count, 1)
 
-    def test_success_requires_matching_protected_position_then_ticket_close(self):
+    def test_position_stays_open_until_broker_target(self):
         arm_once(self.db, "sell", NOW)
         position = None
         deals = []
@@ -269,13 +365,18 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(opened["status"], "open")
         self.assertEqual(opened["volume"], .01)
         self.assertEqual(process_once(self.mt5, self.db, NOW + 59)["status"], "open")
-        self.mt5.symbol_info_tick.return_value.time = NOW + 61
-        self.mt5.symbol_info_tick.return_value.time_msc = (NOW + 61) * 1000
-        self.assertEqual(process_once(self.mt5, self.db, NOW + 61)["status"], "closed")
-        self.assertEqual(self.mt5.order_send.call_count, 2)
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 61)["status"], "open")
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+        position = None
+        deals.append(Record(position_id=77, entry=1, symbol="XAUUSD-VIP", magic=0,
+                            order=78, ticket=89, volume=.01, type=0,
+                            reason=self.mt5.DEAL_REASON_TP, profit=1, commission=0,
+                            swap=0, fee=0, time=NOW + 62))
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 62)["status"], "closed")
+        self.assertEqual(self.mt5.order_send.call_count, 1)
         self.assertEqual(self.db.execute("SELECT state FROM attempts").fetchone()[0], "closed")
         self.assertEqual(process_once(self.mt5, self.db, NOW + 62)["realized_net_usd"], .8)
-        self.assertEqual(process_once(self.mt5, self.db, NOW + 62)["close_reason"], "timed")
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 63)["close_reason"], "take profit")
 
     def test_reconcile_uses_broker_offset_and_reports_utc_close(self):
         arm_once(self.db, "buy", NOW)
@@ -309,7 +410,7 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(result["realized_net_usd"], -1)
         self.mt5.order_send.assert_not_called()
 
-    def test_lost_timed_close_reply_then_stop_exit_is_attributed_to_stop(self):
+    def test_stop_exit_is_attributed_to_stop_without_timed_close(self):
         arm_once(self.db, "buy", NOW)
         position = None
         deals = []
@@ -333,7 +434,7 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "open")
         self.mt5.symbol_info_tick.return_value.time = NOW + 61
         self.mt5.symbol_info_tick.return_value.time_msc = (NOW + 61) * 1000
-        self.assertEqual(process_once(self.mt5, self.db, NOW + 61)["status"], "needs_attention")
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 61)["status"], "open")
         position = None
         deals.append(Record(position_id=77, entry=1, symbol="XAUUSD-VIP", magic=0,
                             order=79, ticket=89, type=1, reason=self.mt5.DEAL_REASON_SL,
@@ -342,7 +443,7 @@ class AttemptTest(unittest.TestCase):
         result = process_once(self.mt5, self.db, NOW + 62, allow_entry=False)
         self.assertEqual(result["status"], "closed")
         self.assertEqual(result["close_reason"], "stop loss")
-        self.assertEqual(self.mt5.order_send.call_count, 2)
+        self.assertEqual(self.mt5.order_send.call_count, 1)
 
     def test_broker_protection_closes_before_first_position_read(self):
         arm_once(self.db, "buy", NOW)
@@ -518,11 +619,12 @@ class AttemptTest(unittest.TestCase):
         self.mt5.positions_get.side_effect = positions_get
         self.mt5.history_deals_get.side_effect = lambda *args: tuple(deals)
         self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "open")
+        protected = None
         self.mt5.symbol_info_tick.return_value.time = NOW + 61
         self.mt5.symbol_info_tick.return_value.time_msc = (NOW + 61) * 1000
         self.assertEqual(process_once(self.mt5, self.db, NOW + 61)["status"], "needs_attention")
 
-    def test_lost_close_reply_keeps_position_and_never_retries(self):
+    def test_position_remains_open_without_close_request(self):
         arm_once(self.db, "buy", NOW)
         position = None
 
@@ -540,9 +642,9 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "open")
         self.mt5.symbol_info_tick.return_value.time = NOW + 61
         self.mt5.symbol_info_tick.return_value.time_msc = (NOW + 61) * 1000
-        self.assertEqual(process_once(self.mt5, self.db, NOW + 61)["status"], "needs_attention")
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 61)["status"], "open")
         process_once(self.mt5, self.db, NOW + 62, allow_entry=False)
-        self.assertEqual(self.mt5.order_send.call_count, 2)
+        self.assertEqual(self.mt5.order_send.call_count, 1)
         self.assertIsNotNone(position.sl)
 
 
@@ -577,7 +679,8 @@ class CliTest(unittest.TestCase):
                                        "MT5_SERVER_OFFSET_SECONDS": "0"}),
                   patch.dict(sys.modules, {"MetaTrader5": mt5}),
                   patch.object(sys, "argv", ["demo_one_shot.py", "preview", "--side", "buy",
-                                             "--state", str(state)]),
+                                             "--state", str(state), "--entry", "99",
+                                             "--sl", "95", "--tp", "105"]),
                   patch("sys.stdout", output)):
                 main()
             self.assertFalse(state.exists())

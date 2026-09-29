@@ -30,6 +30,40 @@ strategy qualification remains blocked.
 
 ## Supervised web control (deployed 2026-09-29)
 
+### Pending-entry update (prepared locally; deploy after review)
+
+The next version removes the 60-second forced close. The owner enters a buy or
+sell **Entry price**, **Stop loss**, and **Take profit** on `/vault/trading` and
+previews the exact 0.01-lot request. An entry below the current ask for a buy
+or above the current bid for a sell is a limit order; the other direction is a
+stop order. The preview does not place an order. Start sends one broker-held
+GTC pending order after a fresh demo, quote, contract, occupancy and risk
+check. An unfilled order remains pending until the owner cancels it in MT5.
+After a fill, the position remains open until broker SL or TP. The page shows
+the pending/open state and reviewed levels. Broker-side stops can slip or gap.
+The runner never promotes the strategy or submits another entry on its own.
+
+Before updating the VPS, verify no gold position or pending order remains,
+back up the SQLite journal, and keep Algo Trading off. Deploy the matching
+desktop image, status sidecar, standalone `trading.html`, and Worker together;
+the old 60-second page and new request format cannot be mixed. Confirm the
+historical closed row survives restart. Do a no-order preview and inspect its
+exact levels and modeled stop loss. Only then enable Algo Trading and click
+the one-order Start button. If a pending order is unwanted, cancel it in MT5
+and wait for the page to show DISARMED. If the status becomes NEEDS ATTENTION,
+inspect the broker order/position and journal; do not click Start again.
+
+The private CLI equivalent uses all three prices:
+
+```sh
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/demo_one_shot.py preview --side buy --entry ENTRY_PRICE --sl STOP_PRICE --tp TARGET_PRICE --state 'C:\users\mt5\gold-one-shot.sqlite3'
+```
+
+Replace the placeholder prices with current reviewed prices. The CLI arm command
+requires the same `--entry`, `--sl`, and `--tp` values plus
+`--enable-demo-execution`; use the web preview and Start flow for the owner
+instead of arming from a second shell.
+
 The new Vault page shows the latest attempt, the live price-feed state and a
 link to the SSH-protected MT5 desktop at
 `http://127.0.0.1:6081/vnc.html?autoconnect=1&resize=scale`.
@@ -146,7 +180,7 @@ The one-shot runner is separate from `observe-gold.py`. Initially, its only
 entry path was the private Wine CLI `arm` command. The deployed web control
 adds an owner-only preview and explicit Start path. Its persistent journal in
 the MT5 home allows a new attempt only after the previous one is resolved.
-Boot invokes `resume`, which can reconcile or close an existing submitted
+Boot invokes `resume`, which can reconcile an existing submitted
 attempt but cannot send a new entry. `execution.json` on the status volume
 contains display fields only; tickets, account details, request bodies and
 deal history stay private.
@@ -165,11 +199,11 @@ Run a private **no-order preview** only after those checks, with Algo Trading
 off. Replace `buy` with `sell` only if that is the owner's chosen side:
 
 ```sh
-docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/demo_one_shot.py preview --side buy --state 'C:\users\mt5\gold-one-shot.sqlite3'
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/demo_one_shot.py preview --side buy --entry ENTRY_PRICE --sl STOP_PRICE --tp TARGET_PRICE --state 'C:\users\mt5\gold-one-shot.sqlite3'
 ```
 
-The preview prints the current minimum lot, quote reference, proposed broker
-SL/TP, modeled stop exposure, 60-second hold rule and timestamp. It does not
+The preview prints the current minimum lot, pending order type, reviewed broker
+SL/TP, modeled stop exposure and timestamp. It does not
 create a journal, call `order_check` or call `order_send`. Store its full JSON
 privately in the persistent MT5 home or another private VPS directory, record
 its SHA-256 hash, and review it promptly: its quote and contract checks are
@@ -182,11 +216,12 @@ Algo Trading on the private desktop and run a single `arm` with the explicit
 flag, using the reviewed side:
 
 ```sh
-docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/demo_one_shot.py arm --side buy --state 'C:\users\mt5\gold-one-shot.sqlite3' --enable-demo-execution
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/demo_one_shot.py arm --side buy --entry ENTRY_PRICE --sl STOP_PRICE --tp TARGET_PRICE --state 'C:\users\mt5\gold-one-shot.sqlite3' --enable-demo-execution
 ```
 
 The operator watches the journal, broker position and orders until the
-protected position closes or a `needs_attention` state is resolved. Do not
+pending order is canceled, the protected position closes, or a `needs_attention`
+state is resolved. Do not
 repeat `arm`, create another journal, or treat a missing reply as a failed
 order. If reconciliation is uncertain, preserve the journal and broker-held
 protection for ticket-specific recovery. After confirmed closure, ensure no

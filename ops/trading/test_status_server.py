@@ -25,6 +25,11 @@ class StatusServerTest(unittest.TestCase):
             self.assertNotIn("login", payload["execution"])
             self.assertNotIn("ticket", payload["execution"])
             self.assertNotIn("password", payload["execution"])
+            execution.write_text(json.dumps(entry | {"status": "pending", "entry_price": 99,
+                                                     "sl": 95, "tp": 105}))
+            pending = read_status(observer, 105, execution_path=execution)[1]["execution"]
+            self.assertEqual((pending["status"], pending["entry_price"], pending["sl"], pending["tp"]),
+                             ("pending", 99, 95, 105))
             self.assertIsNone(read_status(observer, 131, execution_path=execution)[1]["execution"])
             execution.write_text(json.dumps(entry | {"status": "closed", "closed_at": 101,
                                                     "realized_net_usd": .8}))

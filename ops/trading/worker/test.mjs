@@ -28,6 +28,7 @@ test('execution state is allowlisted and stale open state expires', () => {
       realized_net_usd: null, login: 123, ticket: 456, password: 'secret' } };
   const current = normalizeStatus(report, 105).execution;
   assert.equal(current.status, 'open');
+  assert.equal(normalizeStatus({ ...report, execution: { ...report.execution, status: 'pending' } }, 105).execution.status, 'pending');
   for (const field of ['login', 'ticket', 'password']) assert.equal(current[field], undefined);
   assert.equal(normalizeStatus(report, 131).execution, null);
   const closed = normalizeStatus({ ...report, execution: { ...report.execution,
@@ -120,19 +121,21 @@ test('reviewed preview and one arm reach only the private control route', async 
       return Response.json({ status: 'starting', account: 123 }, { status: 202 });
     }
     assert.equal(new URL(origin).pathname, '/control/preview');
-    assert.deepEqual(JSON.parse(options.body), { side: 'buy' });
+    assert.deepEqual(JSON.parse(options.body), { side: 'buy', entry: 4142.51, sl: 4129.57, tp: 4161.92 });
     return Response.json({ token: 'a'.repeat(32), preview: {
       mode: 'private-demo-preview', symbol: 'XAUUSD-VIP', side: 'buy', volume: .01,
       quote_reference: 4142.51, sl: 4129.57, tp: 4161.92, modeled_stop_usd: 12.94,
       modeled_stop_pct_of_equity: .01294, previewed_at: 1790672644,
-      hold_seconds: 60, order_sent: false, order_check_passed: false, account: 123,
+      order_kind: 'Buy limit', pending_until_cancelled: true,
+      order_sent: false, order_check_passed: false, account: 123,
     } });
   };
   const post = (route, body) => new Request(`https://waiphyoaung.com/api/trading/${route}`, {
     method: 'POST', headers: { Origin: 'https://waiphyoaung.com', 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  const preview = await worker.fetch(post('preview', { side: 'buy' }), enabled, { access });
+  const preview = await worker.fetch(post('preview', { side: 'buy', entry: 4142.51,
+    sl: 4129.57, tp: 4161.92 }), enabled, { access });
   assert.equal(preview.status, 200);
   const result = await preview.json();
   assert.equal(result.preview.account, undefined);

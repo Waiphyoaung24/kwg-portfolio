@@ -26,8 +26,16 @@ def _positive(value, name):
     return float(value)
 
 
+def _direction_type(mt5, request):
+    if request["type"] in (mt5.ORDER_TYPE_BUY, mt5.ORDER_TYPE_BUY_LIMIT, mt5.ORDER_TYPE_BUY_STOP):
+        return mt5.ORDER_TYPE_BUY
+    if request["type"] in (mt5.ORDER_TYPE_SELL, mt5.ORDER_TYPE_SELL_LIMIT, mt5.ORDER_TYPE_SELL_STOP):
+        return mt5.ORDER_TYPE_SELL
+    raise ValueError("Unknown journal order direction.")
+
+
 def build_entry_request(mt5, login: int, side: str, now: float,
-                        server_offset_seconds: int, *, execution: bool) -> dict:
+                        server_offset_seconds: int, *, execution: bool, levels=None) -> dict:
     """Return one locally checked protected request without submitting it."""
     if side not in ("buy", "sell"):
         raise ValueError("Operator must choose buy or sell.")
@@ -94,11 +102,38 @@ def build_entry_request(mt5, login: int, side: str, now: float,
     if (type(profit) not in (int, float) or not math.isfinite(profit)
             or profit >= 0 or -profit > equity * .001):
         raise ValueError("Minimum-lot stop exposure exceeds 0.1% of equity or is unknown.")
-    return {"action": mt5.TRADE_ACTION_DEAL, "symbol": SYMBOL, "volume": minimum,
+    request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": SYMBOL, "volume": minimum,
             "type": order_type, "price": price, "sl": sl, "tp": tp,
             "deviation": 10, "magic": MAGIC,
             "comment": f"kwg-demo-{secrets.token_hex(4)}",
             "type_time": mt5.ORDER_TIME_GTC, "type_filling": fill_type}
+    if levels is None:
+        return request
+    if set(levels) != {"entry", "sl", "tp"}:
+        raise ValueError("Entry, stop loss and take profit are required.")
+    entry, sl, tp = (_positive(levels[key], key) for key in ("entry", "sl", "tp"))
+    if any(abs(value / tick_size - round(value / tick_size)) > 1e-7
+           for value in (entry, sl, tp)):
+        raise ValueError("Prices must align with the gold tick size.")
+    if side == "buy":
+        pending_type = mt5.ORDER_TYPE_BUY_LIMIT if entry < float(tick.ask) else mt5.ORDER_TYPE_BUY_STOP
+        if not sl < entry < tp or abs(entry - float(tick.ask)) < distance + tick_size:
+            raise ValueError("Buy entry and protection must be beyond the broker minimum distance.")
+        mode_flag = 2 if pending_type == mt5.ORDER_TYPE_BUY_LIMIT else 4
+    else:
+        pending_type = mt5.ORDER_TYPE_SELL_LIMIT if entry > float(tick.bid) else mt5.ORDER_TYPE_SELL_STOP
+        if not tp < entry < sl or abs(entry - float(tick.bid)) < distance + tick_size:
+            raise ValueError("Sell entry and protection must be beyond the broker minimum distance.")
+        mode_flag = 2 if pending_type == mt5.ORDER_TYPE_SELL_LIMIT else 4
+    if order_mode & mode_flag != mode_flag or min(abs(entry - sl), abs(entry - tp)) < distance:
+        raise ValueError("Broker does not permit this protected pending order.")
+    profit = mt5.order_calc_profit(order_type, SYMBOL, minimum, entry, sl)
+    if (type(profit) not in (int, float) or not math.isfinite(profit)
+            or profit >= 0 or -profit > equity * .001):
+        raise ValueError("Minimum-lot stop exposure exceeds 0.1% of equity or is unknown.")
+    request.update(action=mt5.TRADE_ACTION_PENDING, type=pending_type, price=entry,
+                   sl=sl, tp=tp, type_filling=mt5.ORDER_FILLING_RETURN)
+    return request
 
 
 def open_journal(path: Path, login: int) -> sqlite3.Connection:
@@ -122,8 +157,11 @@ def open_journal(path: Path, login: int) -> sqlite3.Connection:
                            "request_json TEXT, result_code INTEGER, order_id INTEGER, deal_id INTEGER, "
                            "position_ticket INTEGER, volume REAL, opened_at REAL, closed_at REAL, "
                            "close_reason TEXT, realized_net_usd REAL, entry_equity REAL, "
-                           "close_order_id INTEGER, close_deal_id INTEGER)")
+                           "close_order_id INTEGER, close_deal_id INTEGER, plan_json TEXT)")
                 db.execute("INSERT INTO metadata VALUES (?, ?, ?)", (login, SERVER, SYMBOL))
+        elif "plan_json" not in {row[1] for row in db.execute("PRAGMA table_info(attempts)")}:
+            with db:
+                db.execute("ALTER TABLE attempts ADD COLUMN plan_json TEXT")
         identity = db.execute("SELECT login, server, symbol FROM metadata").fetchall()
         if [tuple(row) for row in identity] != [(login, SERVER, SYMBOL)]:
             raise ValueError("One-shot journal belongs to another account or symbol.")
@@ -133,7 +171,7 @@ def open_journal(path: Path, login: int) -> sqlite3.Connection:
         raise
 
 
-def arm_once(db: sqlite3.Connection, side: str, now: int) -> str:
+def arm_once(db: sqlite3.Connection, side: str, now: int, levels=None) -> str:
     if side not in ("buy", "sell") or type(now) is not int:
         raise ValueError("Arm requires an operator side and UTC timestamp.")
     arm_id = secrets.token_hex(8)
@@ -141,8 +179,9 @@ def arm_once(db: sqlite3.Connection, side: str, now: int) -> str:
         previous = _attempt(db)
         if previous is not None and previous["state"] not in ("closed", "disarmed"):
             raise ValueError("The previous demo attempt is not resolved.")
-        db.execute("INSERT INTO attempts (id, side, armed_at, expires_at, state, phase) "
-                   "VALUES (?, ?, ?, ?, 'armed', 'entry')", (arm_id, side, now, now + 900))
+        db.execute("INSERT INTO attempts (id, side, armed_at, expires_at, state, phase, plan_json) "
+                   "VALUES (?, ?, ?, ?, 'armed', 'entry', ?)",
+                   (arm_id, side, now, now + 900, json.dumps(levels) if levels else None))
     return arm_id
 
 
@@ -161,11 +200,16 @@ def _status(db, now):
     if row is None:
         return {"mode": "one-shot-demo", "status": "disarmed", "updated_at": now,
                 "side": None, "volume": None, "opened_at": None, "closed_at": None,
-                "close_reason": None, "realized_net_usd": None}
+                "close_reason": None, "realized_net_usd": None,
+                "entry_price": None, "sl": None, "tp": None}
+    request = json.loads(row["request_json"]) if row["request_json"] else None
     return {"mode": "one-shot-demo", "status": row["state"], "updated_at": now,
             "side": row["side"], "volume": row["volume"], "opened_at": row["opened_at"],
             "closed_at": row["closed_at"], "close_reason": row["close_reason"],
-            "realized_net_usd": row["realized_net_usd"]}
+            "realized_net_usd": row["realized_net_usd"],
+            "entry_price": request.get("price") if request else None,
+            "sl": request.get("sl") if request else None,
+            "tp": request.get("tp") if request else None}
 
 
 def _broker_state(mt5, row, now, login):
@@ -216,16 +260,17 @@ def _protected(mt5, position, request, entry_equity):
     price = _positive(getattr(position, "price_open", None), "fill price")
     sl = _positive(getattr(position, "sl", None), "server stop")
     tp = _positive(getattr(position, "tp", None), "server target")
-    if (volume > request["volume"] + 1e-8 or getattr(position, "type", None) != request["type"]
+    direction = _direction_type(mt5, request)
+    if (volume > request["volume"] + 1e-8 or getattr(position, "type", None) != direction
             or abs(sl - request["sl"]) > tick_size / 2
             or abs(tp - request["tp"]) > tick_size / 2
-            or (request["type"] == mt5.ORDER_TYPE_BUY and not sl < price < tp)
-            or (request["type"] == mt5.ORDER_TYPE_SELL and not tp < price < sl)):
+            or (direction == mt5.ORDER_TYPE_BUY and not sl < price < tp)
+            or (direction == mt5.ORDER_TYPE_SELL and not tp < price < sl)):
         raise ValueError("Filled position is not the requested protected volume and side.")
     account = mt5.account_info()
     if account is None or account.trade_mode != 0 or account.server != SERVER:
         raise ValueError("Pinned demo identity changed during reconciliation.")
-    profit = mt5.order_calc_profit(request["type"], SYMBOL, volume, price, sl)
+    profit = mt5.order_calc_profit(direction, SYMBOL, volume, price, sl)
     if (type(profit) not in (int, float) or not math.isfinite(profit)
             or profit >= 0 or -profit > _positive(entry_equity, "entry equity") * .001):
         raise ValueError("Actual filled stop exposure exceeds the demo risk ceiling.")
@@ -238,9 +283,10 @@ def _close_evidence(deals, ticket, request, mt5):
     exits = [deal for deal in position_deals if getattr(deal, "entry", None) == 1]
     if not entries or not exits or len(entries) + len(exits) != len(position_deals):
         return None
-    reverse = mt5.ORDER_TYPE_SELL if request["type"] == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
+    direction = _direction_type(mt5, request)
+    reverse = mt5.ORDER_TYPE_SELL if direction == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
     if (any(getattr(deal, "magic", None) != MAGIC or
-            getattr(deal, "type", None) != request["type"] for deal in entries)
+            getattr(deal, "type", None) != direction for deal in entries)
             or any(getattr(deal, "type", None) != reverse for deal in exits)):
         return None
     entry_volumes = [getattr(deal, "volume", None) for deal in entries]
@@ -315,7 +361,8 @@ def _historical_protection(mt5, row, request, deals, ticket):
     exposure = 0.0
     for deal in entries:
         price = _positive(getattr(deal, "price", None), "filled price")
-        profit = mt5.order_calc_profit(request["type"], SYMBOL, deal.volume, price, request["sl"])
+        profit = mt5.order_calc_profit(_direction_type(mt5, request), SYMBOL,
+                                      deal.volume, price, request["sl"])
         if type(profit) not in (int, float) or not math.isfinite(profit) or profit >= 0:
             return None
         exposure -= profit
@@ -328,10 +375,24 @@ def _reconcile(mt5, db, row, now):
     try:
         login = db.execute("SELECT login FROM metadata").fetchone()[0]
         positions, all_positions, orders, deals = _broker_state(mt5, row, now, login)
-        if (len(positions) > 1 or len(all_positions) != len(positions)
-                or any(getattr(order, "symbol", None) == SYMBOL for order in orders)):
-            raise ValueError("Gold order or multiple positions need operator reconciliation.")
         request = json.loads(row["request_json"])
+        pending_request = request.get("action") == mt5.TRADE_ACTION_PENDING
+        own_orders = [order for order in orders if getattr(order, "symbol", None) == SYMBOL
+                      and getattr(order, "ticket", None) == row["order_id"]
+                      and getattr(order, "magic", None) == MAGIC
+                      and getattr(order, "type", None) == request["type"]
+                      and getattr(order, "volume_initial", None) == request["volume"]
+                      and getattr(order, "price_open", None) == request["price"]
+                      and getattr(order, "sl", None) == request["sl"]
+                      and getattr(order, "tp", None) == request["tp"]]
+        if (len(positions) > 1 or len(all_positions) != len(positions)
+                or len(orders) != len(own_orders) or len(own_orders) > 1):
+            raise ValueError("Gold order or multiple positions need operator reconciliation.")
+        if own_orders and not positions and pending_request:
+            _update(db, state="pending", volume=request["volume"])
+            return
+        if own_orders and positions:
+            raise ValueError("Partially filled pending order needs operator reconciliation.")
         entry_positions = {getattr(deal, "position_id", None) for deal in deals
                            if getattr(deal, "entry", None) == 0}
         if len(entry_positions) > 1:
@@ -375,42 +436,20 @@ def _reconcile(mt5, db, row, now):
                     close_reason=close_reason,
                     realized_net_usd=closed[1])
         else:
+            if (pending_request and row["state"] == "submitting" and row["order_id"]
+                    and now - row["armed_at"] < 30):
+                return  # The accepted pending order may not appear in MT5 immediately.
+            if pending_request and row["order_id"] and not deals:
+                history = mt5.history_orders_get(ticket=row["order_id"])
+                if (history is not None and len(history) == 1
+                        and getattr(history[0], "symbol", None) == SYMBOL
+                        and getattr(history[0], "magic", None) == MAGIC
+                        and getattr(history[0], "state", None) == mt5.ORDER_STATE_CANCELED):
+                    _update(db, state="disarmed", close_reason="pending order cancelled in MT5")
+                    return
             _update(db, state="needs_attention")
     except (ValueError, TypeError, OverflowError):
         _update(db, state="needs_attention")
-
-
-def _close_position(mt5, db, row, now):
-    try:
-        validate_account(mt5.account_info(), mt5.terminal_info(),
-                         db.execute("SELECT login FROM metadata").fetchone()[0], execution=True)
-        tick = mt5.symbol_info_tick(SYMBOL)
-        validate_tick(tick, now, server_offset_seconds=_server_offset())
-        request = json.loads(row["request_json"])
-        reverse = mt5.ORDER_TYPE_SELL if request["type"] == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
-        close = {"action": mt5.TRADE_ACTION_DEAL, "symbol": SYMBOL,
-                 "volume": row["volume"], "type": reverse,
-                 "position": row["position_ticket"],
-                 "price": float(tick.bid if reverse == mt5.ORDER_TYPE_SELL else tick.ask),
-                 "deviation": 10, "magic": MAGIC, "comment": "kwg-demo-close",
-                 "type_time": mt5.ORDER_TIME_GTC, "type_filling": request["type_filling"]}
-        check = mt5.order_check(close)
-        if check is None or getattr(check, "retcode", None) != 0:
-            _update(db, state="needs_attention", phase="close")
-            return
-        validate_account(mt5.account_info(), mt5.terminal_info(),
-                         db.execute("SELECT login FROM metadata").fetchone()[0], execution=True)
-        _update(db, state="closing", phase="close")
-        try:
-            result = mt5.order_send(close)
-        except Exception:
-            result = None
-        _update(db, result_code=getattr(result, "retcode", None),
-                close_order_id=getattr(result, "order", None),
-                close_deal_id=getattr(result, "deal", None))
-        _reconcile(mt5, db, _attempt(db), now)
-    except (ValueError, TypeError, OverflowError):
-        _update(db, state="needs_attention", phase="close")
 
 
 def _server_offset():
@@ -429,6 +468,7 @@ def _final_entry_guard(mt5, login, request):
     positions, orders = mt5.positions_get(symbol=SYMBOL), mt5.orders_get(symbol=SYMBOL)
     if positions is None or orders is None or positions or orders:
         raise ValueError("Gold position/order state changed before entry.")
+    pending_request = request["action"] == mt5.TRADE_ACTION_PENDING
     fill_flag = (FILLING_FOK_FLAG if request["type_filling"] == mt5.ORDER_FILLING_FOK
                  else FILLING_IOC_FLAG)
     filling = getattr(info, "filling_mode", None)
@@ -436,14 +476,14 @@ def _final_entry_guard(mt5, login, request):
     if (getattr(info, "name", None) != SYMBOL
             or getattr(info, "trade_mode", None) != mt5.SYMBOL_TRADE_MODE_FULL
             or getattr(info, "trade_exemode", None) not in (0, 1, 2, 3)
-            or type(filling) is not int or not filling & fill_flag
+            or type(filling) is not int or (not pending_request and not filling & fill_flag)
             or type(order_mode) is not int or order_mode & 49 != 49
             or getattr(info, "volume_min", None) != request["volume"]):
         raise ValueError("Gold trading conditions changed before entry.")
     point = _positive(getattr(info, "point", None), "point")
     tick_size = _positive(getattr(info, "trade_tick_size", None), "tick size")
     if any(abs(price / tick_size - round(price / tick_size)) > 1e-7
-           for price in (request["sl"], request["tp"])):
+           for price in (request["price"], request["sl"], request["tp"])):
         raise ValueError("Gold tick size changed before entry.")
     stops = getattr(info, "trade_stops_level", None)
     freeze = getattr(info, "trade_freeze_level", None)
@@ -451,17 +491,30 @@ def _final_entry_guard(mt5, login, request):
         raise ValueError("Broker stop distance changed.")
     distance = max(stops, freeze) * point
     bid, ask = float(tick.bid), float(tick.ask)
-    current_price = ask if request["type"] == mt5.ORDER_TYPE_BUY else bid
-    if abs(current_price - request["price"]) > request["deviation"] * point:
+    direction = _direction_type(mt5, request)
+    current_price = ask if direction == mt5.ORDER_TYPE_BUY else bid
+    if not pending_request and abs(current_price - request["price"]) > request["deviation"] * point:
         raise ValueError("Gold price moved beyond the checked entry deviation.")
-    if request["type"] == mt5.ORDER_TYPE_BUY:
+    if pending_request:
+        kind = (mt5.ORDER_TYPE_BUY_LIMIT if direction == mt5.ORDER_TYPE_BUY and request["price"] < ask
+                else mt5.ORDER_TYPE_BUY_STOP if direction == mt5.ORDER_TYPE_BUY
+                else mt5.ORDER_TYPE_SELL_LIMIT if request["price"] > bid
+                else mt5.ORDER_TYPE_SELL_STOP)
+        flag = 2 if kind in (mt5.ORDER_TYPE_BUY_LIMIT, mt5.ORDER_TYPE_SELL_LIMIT) else 4
+        valid = (kind == request["type"] and order_mode & flag == flag
+                 and abs(request["price"] - current_price) >= distance + tick_size
+                 and min(abs(request["price"] - request["sl"]),
+                         abs(request["price"] - request["tp"])) >= distance
+                 and (request["sl"] < request["price"] < request["tp"] if direction == mt5.ORDER_TYPE_BUY
+                      else request["tp"] < request["price"] < request["sl"]))
+    elif direction == mt5.ORDER_TYPE_BUY:
         valid = bid - request["sl"] >= distance and request["tp"] - bid >= distance
     else:
         valid = request["sl"] - ask >= distance and ask - request["tp"] >= distance
     if not valid:
         raise ValueError("Gold stop distance changed before entry.")
-    profit = mt5.order_calc_profit(request["type"], SYMBOL, request["volume"],
-                                   current_price, request["sl"])
+    profit = mt5.order_calc_profit(direction, SYMBOL, request["volume"],
+                                   request["price"] if pending_request else current_price, request["sl"])
     if (type(profit) not in (int, float) or not math.isfinite(profit)
             or profit >= 0 or -profit > _positive(getattr(account, "equity", None), "equity") * .001):
         raise ValueError("Gold stop exposure changed before entry.")
@@ -481,8 +534,9 @@ def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True) -
             return _status(db, now)
         login = db.execute("SELECT login FROM metadata").fetchone()[0]
         try:
+            levels = json.loads(row["plan_json"]) if row["plan_json"] else None
             request = build_entry_request(mt5, login, row["side"], now,
-                                          _server_offset(), execution=True)
+                                          _server_offset(), execution=True, levels=levels)
             check = mt5.order_check(request)
             if check is None or getattr(check, "retcode", None) != 0:
                 raise ValueError("Broker rejected protected entry check.")
@@ -511,14 +565,11 @@ def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True) -
                     _update(db, state="disarmed", close_reason="broker rejected entry")
             except ValueError:
                 pass
-    elif row["state"] in ("submitting", "closing", "needs_attention"):
+    elif row["state"] in ("submitting", "pending", "closing", "needs_attention"):
         if row["request_json"] is not None:
             _reconcile(mt5, db, row, now)
     elif row["state"] == "open":
         _reconcile(mt5, db, row, now)
-    row = _attempt(db)
-    if row["state"] == "open" and now - row["opened_at"] >= 60:
-        _close_position(mt5, db, row, now)
     return _status(db, now)
 
 
@@ -526,7 +577,7 @@ def write_snapshot(path: Path, status: dict) -> None:
     """Publish the allowlisted execution state atomically to the private volume."""
     payload = {key: status.get(key) for key in
                ("mode", "status", "updated_at", "side", "volume", "opened_at",
-                "closed_at", "close_reason", "realized_net_usd")}
+                "closed_at", "close_reason", "realized_net_usd", "entry_price", "sl", "tp")}
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, allow_nan=False), encoding="utf-8")
     temporary.replace(path)
@@ -567,6 +618,8 @@ def main():
         command.add_argument("--state", required=True, type=Path)
         if name != "resume":
             command.add_argument("--side", required=True, choices=("buy", "sell"))
+            for level in ("entry", "sl", "tp"):
+                command.add_argument(f"--{level}", required=True, type=float)
         if name == "arm":
             command.add_argument("--enable-demo-execution", action="store_true")
     args = parser.parse_args()
@@ -589,16 +642,25 @@ def main():
     try:
         if args.command == "preview":
             now = time.time()
-            request = build_entry_request(mt5, login, args.side, now, offset, execution=False)
-            profit = mt5.order_calc_profit(request["type"], SYMBOL, request["volume"],
+            levels = {key: getattr(args, key) for key in ("entry", "sl", "tp")}
+            try:
+                request = build_entry_request(mt5, login, args.side, now, offset,
+                                              execution=False, levels=levels)
+            except ValueError as exc:
+                print(json.dumps({"error": str(exc)[:160]}))
+                return
+            profit = mt5.order_calc_profit(_direction_type(mt5, request), SYMBOL, request["volume"],
                                            request["price"], request["sl"])
             equity = _positive(getattr(mt5.account_info(), "equity", None), "equity")
+            kind = {mt5.ORDER_TYPE_BUY_LIMIT: "Buy limit", mt5.ORDER_TYPE_BUY_STOP: "Buy stop",
+                    mt5.ORDER_TYPE_SELL_LIMIT: "Sell limit", mt5.ORDER_TYPE_SELL_STOP: "Sell stop"}[request["type"]]
             print(json.dumps({"mode": "private-demo-preview", "side": args.side,
                               "symbol": SYMBOL, "volume": request["volume"],
                               "quote_reference": request["price"], "sl": request["sl"],
                               "tp": request["tp"], "modeled_stop_usd": -profit,
                               "modeled_stop_pct_of_equity": -profit / equity * 100,
-                              "hold_seconds": 60, "previewed_at": now,
+                              "order_kind": kind, "pending_until_cancelled": True,
+                              "previewed_at": now,
                               "new_preflight_required_before_arm": True,
                               "order_check_passed": False, "order_sent": False}, allow_nan=False))
             return
@@ -606,15 +668,19 @@ def main():
             db = open_journal(path, login)
             try:
                 if args.command == "arm":
-                    arm_once(db, args.side, int(time.time()))
+                    arm_once(db, args.side, int(time.time()),
+                             {key: getattr(args, key) for key in ("entry", "sl", "tp")})
+                previous_status = None
                 while True:
                     result = process_once(mt5, db, time.time(),
                                           allow_entry=args.command == "arm")
                     write_snapshot(SNAPSHOT, result)
-                    print(json.dumps(result, allow_nan=False), flush=True)
-                    if result["status"] not in ("open", "closing", "submitting"):
+                    if result["status"] != previous_status:
+                        print(json.dumps(result, allow_nan=False), flush=True)
+                        previous_status = result["status"]
+                    if result["status"] not in ("pending", "open", "closing", "submitting", "needs_attention"):
                         break
-                    time.sleep(1)
+                    time.sleep(5)
             finally:
                 db.close()
     finally:

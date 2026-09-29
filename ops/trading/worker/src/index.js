@@ -10,12 +10,12 @@ function unavailable(reason = 'Trading status is unavailable') {
 function normalizeExecution(value, now) {
   if (value === null) return null;
   if (!value || value.mode !== 'one-shot-demo' ||
-      !['disarmed', 'armed', 'submitting', 'open', 'closing', 'closed', 'needs_attention'].includes(value.status) ||
+      !['disarmed', 'armed', 'submitting', 'pending', 'open', 'closing', 'closed', 'needs_attention'].includes(value.status) ||
       !Number.isFinite(value.updated_at) || value.updated_at <= 0 || value.updated_at > now ||
       (value.side !== null && !['buy', 'sell'].includes(value.side))) throw new Error('Invalid execution');
   const execution = { mode: 'one-shot-demo', status: value.status,
     updated_at: value.updated_at, side: value.side };
-  for (const key of ['volume', 'opened_at', 'closed_at', 'realized_net_usd']) {
+  for (const key of ['volume', 'opened_at', 'closed_at', 'realized_net_usd', 'entry_price', 'sl', 'tp']) {
     const number = value[key] ?? null;
     if (number !== null && (typeof number !== 'number' || !Number.isFinite(number) || Math.abs(number) > 1e12 ||
         (key !== 'realized_net_usd' && number <= 0))) throw new Error('Invalid execution number');
@@ -89,7 +89,9 @@ export default {
         if (raw.length > 256) throw new Error('Oversized request');
         body = JSON.parse(raw);
         if (!body || typeof body !== 'object' || Array.isArray(body) ||
-            (action === 'preview' && (Object.keys(body).join() !== 'side' || !['buy', 'sell'].includes(body.side))) ||
+            (action === 'preview' && (Object.keys(body).sort().join() !== 'entry,side,sl,tp' ||
+              !['buy', 'sell'].includes(body.side) ||
+              ![body.entry, body.sl, body.tp].every(x => typeof x === 'number' && Number.isFinite(x) && x > 0 && x <= 1e6))) ||
             (action === 'arm' && (Object.keys(body).join() !== 'token' || !/^[A-Za-z0-9_-]{32}$/.test(body.token)))) {
           throw new Error('Invalid request');
         }
@@ -123,12 +125,17 @@ export default {
             !/^[A-Za-z0-9_-]{32}$/.test(result.token) ||
             ![p.volume, p.quote_reference, p.sl, p.tp, p.modeled_stop_usd,
               p.modeled_stop_pct_of_equity, p.previewed_at].every(x => typeof x === 'number' && Number.isFinite(x) && x > 0) ||
-            p.volume > 1 || p.modeled_stop_pct_of_equity > .1 || p.hold_seconds !== 60) throw new Error('Invalid preview');
+            p.volume !== .01 || p.modeled_stop_pct_of_equity > .1 ||
+            p.quote_reference !== body.entry || p.sl !== body.sl || p.tp !== body.tp ||
+            p.pending_until_cancelled !== true ||
+            !['Buy limit', 'Buy stop', 'Sell limit', 'Sell stop'].includes(p.order_kind) ||
+            !p.order_kind.toLowerCase().startsWith(body.side)) throw new Error('Invalid preview');
         return Response.json({ preview: { side: p.side, symbol: p.symbol, volume: p.volume,
           quote_reference: p.quote_reference, sl: p.sl, tp: p.tp,
           modeled_stop_usd: p.modeled_stop_usd,
           modeled_stop_pct_of_equity: p.modeled_stop_pct_of_equity,
-          hold_seconds: p.hold_seconds, previewed_at: p.previewed_at }, token: result.token }, { headers: noStore });
+          order_kind: p.order_kind, pending_until_cancelled: true,
+          previewed_at: p.previewed_at }, token: result.token }, { headers: noStore });
       } catch {
         return Response.json({ error: 'Demo control is unavailable.' }, { status: 503, headers: noStore });
       }

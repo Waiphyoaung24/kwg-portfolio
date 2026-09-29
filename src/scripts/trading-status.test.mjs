@@ -35,6 +35,8 @@ const execution = { mode: 'one-shot-demo', status: 'open', updated_at: 100,
 assert.equal(executionFields(null, 105).state, 'Unknown');
 assert.equal(executionFields({ ...execution, status: 'disarmed' }, 105).state, 'Disarmed');
 assert.equal(executionFields(execution, 105).state, 'Open');
+assert.match(executionFields(execution, 105).guidance, /until one is hit/);
+assert.match(executionFields({ ...execution, status: 'pending' }, 105).guidance, /Cancel it manually in MT5/);
 assert.equal(executionFields(execution, 131).state, 'Unknown');
 assert.equal(executionFields({ ...execution, status: 'needs_attention' }, 105).state, 'Needs attention');
 const closedExecution = executionFields({ ...execution, status: 'closed',

@@ -40,9 +40,10 @@ export function executionFields(execution, now = Date.now() / 1000) {
   if (!execution || execution.mode !== 'one-shot-demo' ||
       (!['closed', 'disarmed'].includes(execution.status) && !recent(execution.updated_at, now))) {
     return { state: 'Unknown', side: '—', volume: '—', opened: '—', closed: '—',
-      result: '—', updated: '—', guidance: 'No current one-shot execution report.' };
+      result: '—', updated: '—', entry: '—', sl: '—', tp: '—',
+      guidance: 'No current one-shot execution report.' };
   }
-  const labels = { disarmed: 'Disarmed', armed: 'Armed', submitting: 'Submitting',
+  const labels = { disarmed: 'Disarmed', armed: 'Armed', submitting: 'Submitting', pending: 'Pending',
     open: 'Open', closing: 'Closing', closed: 'Closed', needs_attention: 'Needs attention' };
   const state = labels[execution.status] ?? 'Unknown';
   const result = execution.status === 'closed' && typeof execution.realized_net_usd === 'number'
@@ -50,11 +51,15 @@ export function executionFields(execution, now = Date.now() / 1000) {
   const guidance = execution.status === 'needs_attention'
     ? 'Review the private journal and broker position. No new entry will be sent.'
     : execution.status === 'closed' ? 'The broker close was reconciled. This is a historical result.'
-    : execution.status === 'open' ? 'Broker-held stop and target were confirmed. The runner will attempt a timed close.'
-    : execution.status === 'disarmed' ? 'No new demo attempt is armed.'
+    : execution.status === 'open' ? 'Position protected by broker-held stop and target. It stays open until one is hit.'
+    : execution.status === 'pending' ? 'Entry is waiting at the broker. Cancel it manually in MT5 if you no longer want it.'
+    : execution.status === 'disarmed' ? execution.close_reason || 'No new demo attempt is armed.'
     : 'A supervised demo attempt is in progress. Review the private journal for details.';
   return { state, side: execution.side ? execution.side.toUpperCase() : '—',
     volume: typeof execution.volume === 'number' ? `${execution.volume} lot` : '—',
     opened: date(execution.opened_at), closed: date(execution.closed_at), result,
-    updated: date(execution.updated_at), guidance };
+    updated: date(execution.updated_at), guidance,
+    entry: typeof execution.entry_price === 'number' ? execution.entry_price.toFixed(2) : '—',
+    sl: typeof execution.sl === 'number' ? execution.sl.toFixed(2) : '—',
+    tp: typeof execution.tp === 'number' ? execution.tp.toFixed(2) : '—' };
 }
