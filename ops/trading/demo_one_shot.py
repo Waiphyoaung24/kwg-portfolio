@@ -159,12 +159,12 @@ def open_journal(path: Path, login: int) -> sqlite3.Connection:
                            "close_reason TEXT, realized_net_usd REAL, entry_equity REAL, "
                            "close_order_id INTEGER, close_deal_id INTEGER, plan_json TEXT)")
                 db.execute("INSERT INTO metadata VALUES (?, ?, ?)", (login, SERVER, SYMBOL))
-        elif "plan_json" not in {row[1] for row in db.execute("PRAGMA table_info(attempts)")}:
-            with db:
-                db.execute("ALTER TABLE attempts ADD COLUMN plan_json TEXT")
         identity = db.execute("SELECT login, server, symbol FROM metadata").fetchall()
         if [tuple(row) for row in identity] != [(login, SERVER, SYMBOL)]:
             raise ValueError("One-shot journal belongs to another account or symbol.")
+        if existed and "plan_json" not in {row[1] for row in db.execute("PRAGMA table_info(attempts)")}:
+            with db:
+                db.execute("ALTER TABLE attempts ADD COLUMN plan_json TEXT")
         return db
     except BaseException:
         db.close()

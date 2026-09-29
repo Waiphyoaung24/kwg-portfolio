@@ -4,7 +4,9 @@ import tempfile
 import os
 import io
 import json
+import sqlite3
 import sys
+from contextlib import closing
 from pathlib import Path
 from types import SimpleNamespace as Record
 from unittest.mock import Mock, patch
@@ -149,6 +151,21 @@ class AttemptTest(unittest.TestCase):
         self.addCleanup(reopened.close)
         self.assertEqual(reopened.execute("SELECT count(*) FROM attempts").fetchone()[0], 1)
         self.assertEqual(reopened.execute("SELECT state FROM attempts").fetchone()[0], "armed")
+
+    def test_existing_journal_migrates_only_after_account_check(self):
+        legacy = Path(self.temp.name) / "legacy.sqlite3"
+        with closing(sqlite3.connect(legacy)) as db:
+            with db:
+                db.execute("CREATE TABLE metadata (login INTEGER, server TEXT, symbol TEXT)")
+                db.execute("INSERT INTO metadata VALUES (123, 'VTMarkets-Demo', 'XAUUSD-VIP')")
+                db.execute("CREATE TABLE attempts (id TEXT, state TEXT)")
+        with self.assertRaises(ValueError):
+            open_journal(legacy, 456)
+        with closing(sqlite3.connect(legacy)) as db:
+            self.assertNotIn("plan_json", {row[1] for row in db.execute("PRAGMA table_info(attempts)")})
+        migrated = open_journal(legacy, 123)
+        self.addCleanup(migrated.close)
+        self.assertIn("plan_json", {row[1] for row in migrated.execute("PRAGMA table_info(attempts)")})
 
     def test_pending_order_waits_until_manual_cancel(self):
         arm_once(self.db, "buy", NOW, {"entry": 99, "sl": 95, "tp": 105})
