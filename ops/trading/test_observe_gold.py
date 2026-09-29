@@ -89,6 +89,20 @@ class ObserverTest(unittest.TestCase):
                 observer.poll_once(sdk, db, 123, 251 * 900, True)
             db.close()
 
+    def test_algo_on_pauses_without_restarting_or_recording(self):
+        with tempfile.TemporaryDirectory() as root:
+            db = observer.open_state(Path(root) / "state.sqlite3", 123)
+            sdk = fake_sdk()
+            sdk.terminal_info.return_value.trade_allowed = True
+            blocked = observer.poll_once(sdk, db, 123, 251 * 900, True)
+            self.assertEqual((blocked["status"], blocked["signal"]), ("blocked", "none"))
+            self.assertEqual(blocked["health"]["terminal"], "guard_failed")
+            self.assertEqual(db.execute("SELECT count(*) FROM observations").fetchone()[0], 0)
+            sdk.terminal_info.return_value.trade_allowed = False
+            self.assertEqual(observer.poll_once(sdk, db, 123, 251 * 900, True)["status"], "baseline")
+            sdk.order_send.assert_not_called()
+            db.close()
+
     def test_fresh_quote_with_spread_block_stays_publishable(self):
         with tempfile.TemporaryDirectory() as root:
             db = observer.open_state(Path(root) / "state.sqlite3", 123)

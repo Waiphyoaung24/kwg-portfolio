@@ -16,6 +16,10 @@ class AccountGuardError(ValueError):
     """The terminal is no longer the pinned, non-trading demo session."""
 
 
+class AlgoTradingOn(AccountGuardError):
+    """The pinned demo is connected, but read-only observation is paused."""
+
+
 def validate_account(account, terminal, login, server=SERVER, *, execution=False):
     if account is None or terminal is None or not terminal.connected:
         raise AccountGuardError("MT5 is not connected; sign in through the private desktop.")
@@ -27,7 +31,7 @@ def validate_account(account, terminal, login, server=SERVER, *, execution=False
                 or not getattr(account, "trade_expert", False)):
             raise AccountGuardError("Demo execution is disabled in the account or terminal.")
     elif terminal.trade_allowed:
-        raise AccountGuardError("Turn Algo Trading off for this read-only check.")
+        raise AlgoTradingOn("Turn Algo Trading off for this read-only check.")
 
 
 def validate_tick(tick, now: float, evidence: dict | None = None, *, server_offset_seconds: int = 0) -> float:

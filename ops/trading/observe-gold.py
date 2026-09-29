@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 from gold_signal import evaluate
-from mt5_data import AccountGuardError, DataUnavailable, SERVER, SYMBOL, read_gold
+from mt5_data import AccountGuardError, AlgoTradingOn, DataUnavailable, SERVER, SYMBOL, read_gold
 
 VERSION = "gold-ema-v1"
 SNAPSHOT = Path(r"Z:\opt\status\latest.json")
@@ -59,6 +59,9 @@ def poll_once(mt5, db: sqlite3.Connection, login: int, now: float | None, bootst
         tick, bars = read_gold(mt5, login, now, health, server_offset_seconds=server_offset_seconds)
         now = health["sampled_at"]
         result = evaluate(bars, float(tick.bid), float(tick.ask), now)
+    except AlgoTradingOn as exc:
+        return {"mode": "signal-only", "symbol": SYMBOL, "status": "blocked",
+                "signal": "none", "reason": str(exc), "health": health}
     except AccountGuardError as exc:
         exc.health = health
         raise
