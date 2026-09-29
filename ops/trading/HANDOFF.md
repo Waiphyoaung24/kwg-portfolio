@@ -2,6 +2,16 @@
 
 ## Current checkpoint — Batch 2 evidence, 2026-09-30
 
+**Resume from the [session sign-off checkpoint](../../docs/superpowers/plans/2026-09-30-gold-batch2-session-checkpoint.md).**
+It supersedes the initial probe-preparation status below. Qualification remains
+`prepared_but_blocked`; detailed runtime evidence stays private outside Git.
+Next work is read-only session recovery, supported desktop-origin close
+reconciliation, and dated cost/clock coverage before prospective evaluation.
+No new attempt, desktop restart, journal reset or Batch 3 job is authorized by
+this handoff. Keep Algo Trading off for observation.
+
+### Initial probe preparation — historical
+
 The owner reports the editable pending-entry version deployed to the VPS and
 Worker and a gold pending order currently in MT5. The preparation notes below
 are historical. Do not restart the desktop, cancel that order, or resubmit it
