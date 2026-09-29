@@ -177,8 +177,9 @@ def _broker_state(mt5, row, now, login):
         raise ValueError("Pinned demo identity is unavailable during reconciliation.")
     positions = mt5.positions_get(symbol=SYMBOL)
     orders = mt5.orders_get(symbol=SYMBOL)
-    start = datetime.fromtimestamp(row["armed_at"] - 120, timezone.utc)
-    end = datetime.fromtimestamp(now + 60, timezone.utc)
+    offset = _server_offset()
+    start = datetime.fromtimestamp(row["armed_at"] - 120 + offset, timezone.utc)
+    end = datetime.fromtimestamp(now + 60 + offset, timezone.utc)
     deals = mt5.history_deals_get(start, end)
     if positions is None or orders is None or deals is None:
         raise ValueError("Broker reconciliation data unavailable.")
@@ -366,9 +367,10 @@ def _reconcile(mt5, db, row, now):
                 exits = [deal for deal in deals if getattr(deal, "position_id", None) == ticket
                          and getattr(deal, "entry", None) == 1]
                 close_reason = _close_cause(mt5, row, exits)
-            _update(db, state="closed", position_ticket=ticket, closed_at=closed[0],
+            offset = _server_offset()
+            _update(db, state="closed", position_ticket=ticket, closed_at=closed[0] - offset,
                     volume=closed[2], opened_at=row["opened_at"] or
-                    min(getattr(deal, "time") for deal in deals if getattr(deal, "entry", None) == 0),
+                    min(getattr(deal, "time") for deal in deals if getattr(deal, "entry", None) == 0) - offset,
                     close_reason=close_reason,
                     realized_net_usd=closed[1])
         else:

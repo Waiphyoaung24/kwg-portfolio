@@ -262,6 +262,38 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(process_once(self.mt5, self.db, NOW + 62)["realized_net_usd"], .8)
         self.assertEqual(process_once(self.mt5, self.db, NOW + 62)["close_reason"], "timed")
 
+    def test_reconcile_uses_broker_offset_and_reports_utc_close(self):
+        arm_once(self.db, "buy", NOW)
+        request = {"type": 0, "volume": .01, "comment": "kwg-demo-test"}
+        with self.db:
+            self.db.execute("UPDATE attempts SET state='needs_attention', phase='close', "
+                            "request_json=?, order_id=77, deal_id=88, position_ticket=77, "
+                            "opened_at=?, close_order_id=78, close_deal_id=89",
+                            (json.dumps(request), NOW))
+        deals = (
+            Record(position_id=77, entry=0, symbol="XAUUSD-VIP", magic=20260929,
+                   comment="kwg-demo-test", order=77, ticket=88, type=0,
+                   volume=.01, profit=0, commission=0, swap=0, fee=0,
+                   time=NOW + 10800),
+            Record(position_id=77, entry=1, symbol="XAUUSD-VIP", magic=20260929,
+                   order=78, ticket=89, type=1, volume=.01, profit=-1,
+                   commission=0, swap=0, fee=0, time=NOW + 61 + 10800),
+        )
+
+        def history(start, end):
+            self.assertEqual(int(start.timestamp()), NOW - 120 + 10800)
+            self.assertEqual(int(end.timestamp()), NOW + 62 + 60 + 10800)
+            return deals
+
+        self.mt5.history_deals_get.side_effect = history
+        with patch.dict(os.environ, {"MT5_SERVER_OFFSET_SECONDS": "10800"}):
+            result = process_once(self.mt5, self.db, NOW + 62, allow_entry=False)
+        self.assertEqual(result["status"], "closed")
+        self.assertEqual(result["closed_at"], NOW + 61)
+        self.assertEqual(result["close_reason"], "timed")
+        self.assertEqual(result["realized_net_usd"], -1)
+        self.mt5.order_send.assert_not_called()
+
     def test_lost_timed_close_reply_then_stop_exit_is_attributed_to_stop(self):
         arm_once(self.db, "buy", NOW)
         position = None
