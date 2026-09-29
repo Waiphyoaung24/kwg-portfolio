@@ -2,6 +2,7 @@
 import json
 import os
 import secrets
+import shlex
 import sqlite3
 import subprocess
 import threading
@@ -60,8 +61,9 @@ def run_action(action, payload):
         pending = None
         log = (STATE.parent / "gold-one-shot-control.log").open("ab")
         try:
-            runner = subprocess.Popen(COMMAND + ["arm", "--side", side, "--state", WINDOWS_STATE,
-                                                 "--enable-demo-execution"],
+            command = COMMAND + ["arm", "--side", side, "--state", WINDOWS_STATE,
+                                 "--enable-demo-execution"]
+            runner = subprocess.Popen(["script", "-q", "-e", "-c", shlex.join(command), "/dev/null"],
                                       stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         except OSError:
             return 503, {"error": "Could not start the private demo runner."}

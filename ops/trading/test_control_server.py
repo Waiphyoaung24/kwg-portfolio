@@ -1,5 +1,6 @@
 """The web bridge must never arm without a fresh, reviewed preview."""
 import json
+import shlex
 import sqlite3
 import tempfile
 import unittest
@@ -45,9 +46,12 @@ class ControlTest(unittest.TestCase):
             token = result["token"]
             self.assertEqual(no_order.call_args.args[0][-1], control.WINDOWS_STATE)
             self.assertEqual(control.run_action("arm", {"token": token})[0], 202)
-            self.assertEqual(arm.call_args.args[0][-2:], [control.WINDOWS_STATE, "--enable-demo-execution"])
-            self.assertIn("--side", arm.call_args.args[0])
-            self.assertEqual(arm.call_args.args[0][arm.call_args.args[0].index("--side") + 1], "sell")
+            launch = arm.call_args.args[0]
+            self.assertEqual(launch[:4], ["script", "-q", "-e", "-c"])
+            self.assertEqual(launch[5], "/dev/null")
+            self.assertEqual(shlex.split(launch[4]), control.COMMAND +
+                             ["arm", "--side", "sell", "--state", control.WINDOWS_STATE,
+                              "--enable-demo-execution"])
             self.assertEqual(control.run_action("arm", {"token": token})[0], 409)
             self.assertEqual(arm.call_count, 1)
 
