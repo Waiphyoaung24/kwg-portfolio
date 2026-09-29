@@ -73,6 +73,15 @@ class EntryRequestTest(unittest.TestCase):
                                 levels={"entry": 99, "sl": 95, "tp": 105})
         mt5.order_send.assert_not_called()
 
+    def test_manual_pending_levels_do_not_depend_on_auto_atr_or_market_filling(self):
+        mt5 = fake_mt5()
+        mt5.symbol_info.return_value.filling_mode = 0
+        with patch("demo_one_shot.evaluate", return_value={"signal": "none", "atr14": 1000}):
+            request = build_entry_request(mt5, 123, "buy", NOW, 0, execution=False,
+                                          levels={"entry": 99, "sl": 95, "tp": 105})
+        self.assertEqual(request["type_filling"], mt5.ORDER_FILLING_RETURN)
+        self.assertEqual(request["sl"], 95)
+
     def test_preview_is_protected_minimum_lot_without_sending(self):
         mt5 = fake_mt5()
         request = build_entry_request(mt5, 123, "buy", NOW, 0, execution=False)

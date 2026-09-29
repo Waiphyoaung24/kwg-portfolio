@@ -61,79 +61,78 @@ def build_entry_request(mt5, login: int, side: str, now: float,
     step = _positive(getattr(info, "volume_step", None), "volume step")
     maximum = _positive(getattr(info, "volume_max", None), "maximum volume")
     digits = getattr(info, "digits", None)
-    if (minimum > maximum or not math.isclose(minimum / step, round(minimum / step), abs_tol=1e-7)
+    if (minimum > maximum or not math.isclose(minimum, .01, abs_tol=1e-8)
+            or not math.isclose(minimum / step, round(minimum / step), abs_tol=1e-7)
             or type(digits) is not int or not 0 <= digits <= 10
             or not math.isclose(tick_size / point, round(tick_size / point), abs_tol=1e-7)
             or getattr(info, "trade_mode", None) != mt5.SYMBOL_TRADE_MODE_FULL
             or getattr(info, "trade_exemode", None) not in (0, 1, 2, 3)):
         raise ValueError("Gold contract cannot support this entry.")
     order_mode = getattr(info, "order_mode", None)
-    if type(order_mode) is not int or order_mode & (1 | 16 | 32) != (1 | 16 | 32):
-        raise ValueError("Broker does not allow market orders with SL and TP.")
-    filling = getattr(info, "filling_mode", None)
-    if type(filling) is not int:
-        raise ValueError("Unknown broker filling policy.")
-    if filling & FILLING_FOK_FLAG:
-        fill_type = mt5.ORDER_FILLING_FOK
-    elif filling & FILLING_IOC_FLAG:
-        fill_type = mt5.ORDER_FILLING_IOC
-    else:
-        raise ValueError("Unsupported broker filling policy.")
+    if type(order_mode) is not int or order_mode & (16 | 32) != (16 | 32):
+        raise ValueError("Broker does not allow protected gold orders.")
     stops = getattr(info, "trade_stops_level", None)
     freeze = getattr(info, "trade_freeze_level", None)
     if (type(stops) is not int or stops < 0 or type(freeze) is not int or freeze < 0):
         raise ValueError("Unknown broker stop distance.")
     distance = max(stops, freeze) * point
-    atr = _positive(assessment["atr14"], "ATR")
     price = float(tick.ask if side == "buy" else tick.bid)
-    if side == "buy":
-        sl = round(math.floor((price - 2 * atr) / tick_size + 1e-9) * tick_size, digits)
-        tp = round(math.ceil((price + 3 * atr) / tick_size - 1e-9) * tick_size, digits)
-        if sl <= 0 or float(tick.bid) - sl < distance or tp - float(tick.bid) < distance:
-            raise ValueError("Protected buy prices violate broker stop/freeze distance.")
-        order_type = mt5.ORDER_TYPE_BUY
-    else:
-        sl = round(math.ceil((price + 2 * atr) / tick_size - 1e-9) * tick_size, digits)
-        tp = round(math.floor((price - 3 * atr) / tick_size + 1e-9) * tick_size, digits)
-        if tp <= 0 or sl - float(tick.ask) < distance or float(tick.ask) - tp < distance:
-            raise ValueError("Protected sell prices violate broker stop/freeze distance.")
-        order_type = mt5.ORDER_TYPE_SELL
-    profit = mt5.order_calc_profit(order_type, SYMBOL, minimum, price, sl)
-    if (type(profit) not in (int, float) or not math.isfinite(profit)
-            or profit >= 0 or -profit > equity * .001):
-        raise ValueError("Minimum-lot stop exposure exceeds 0.1% of equity or is unknown.")
-    request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": SYMBOL, "volume": minimum,
-            "type": order_type, "price": price, "sl": sl, "tp": tp,
-            "deviation": 10, "magic": MAGIC,
-            "comment": f"kwg-demo-{secrets.token_hex(4)}",
-            "type_time": mt5.ORDER_TIME_GTC, "type_filling": fill_type}
+    order_type = mt5.ORDER_TYPE_BUY if side == "buy" else mt5.ORDER_TYPE_SELL
     if levels is None:
-        return request
-    if set(levels) != {"entry", "sl", "tp"}:
-        raise ValueError("Entry, stop loss and take profit are required.")
-    entry, sl, tp = (_positive(levels[key], key) for key in ("entry", "sl", "tp"))
-    if any(abs(value / tick_size - round(value / tick_size)) > 1e-7
-           for value in (entry, sl, tp)):
-        raise ValueError("Prices must align with the gold tick size.")
-    if side == "buy":
-        pending_type = mt5.ORDER_TYPE_BUY_LIMIT if entry < float(tick.ask) else mt5.ORDER_TYPE_BUY_STOP
-        if not sl < entry < tp or abs(entry - float(tick.ask)) < distance + tick_size:
-            raise ValueError("Buy entry and protection must be beyond the broker minimum distance.")
-        mode_flag = 2 if pending_type == mt5.ORDER_TYPE_BUY_LIMIT else 4
+        if order_mode & 1 != 1:
+            raise ValueError("Broker does not allow market orders.")
+        filling = getattr(info, "filling_mode", None)
+        if type(filling) is not int:
+            raise ValueError("Unknown broker filling policy.")
+        if filling & FILLING_FOK_FLAG:
+            fill_type = mt5.ORDER_FILLING_FOK
+        elif filling & FILLING_IOC_FLAG:
+            fill_type = mt5.ORDER_FILLING_IOC
+        else:
+            raise ValueError("Unsupported broker filling policy.")
+        atr = _positive(assessment["atr14"], "ATR")
+        if side == "buy":
+            sl = round(math.floor((price - 2 * atr) / tick_size + 1e-9) * tick_size, digits)
+            tp = round(math.ceil((price + 3 * atr) / tick_size - 1e-9) * tick_size, digits)
+            valid = sl > 0 and float(tick.bid) - sl >= distance and tp - float(tick.bid) >= distance
+        else:
+            sl = round(math.ceil((price + 2 * atr) / tick_size - 1e-9) * tick_size, digits)
+            tp = round(math.floor((price - 3 * atr) / tick_size + 1e-9) * tick_size, digits)
+            valid = tp > 0 and sl - float(tick.ask) >= distance and float(tick.ask) - tp >= distance
+        if not valid:
+            raise ValueError("Protected prices violate broker stop/freeze distance.")
+        action = mt5.TRADE_ACTION_DEAL
+        entry = price
+        pending_type = order_type
     else:
-        pending_type = mt5.ORDER_TYPE_SELL_LIMIT if entry > float(tick.bid) else mt5.ORDER_TYPE_SELL_STOP
-        if not tp < entry < sl or abs(entry - float(tick.bid)) < distance + tick_size:
-            raise ValueError("Sell entry and protection must be beyond the broker minimum distance.")
-        mode_flag = 2 if pending_type == mt5.ORDER_TYPE_SELL_LIMIT else 4
-    if order_mode & mode_flag != mode_flag or min(abs(entry - sl), abs(entry - tp)) < distance:
-        raise ValueError("Broker does not permit this protected pending order.")
+        if set(levels) != {"entry", "sl", "tp"}:
+            raise ValueError("Entry, stop loss and take profit are required.")
+        entry, sl, tp = (_positive(levels[key], key) for key in ("entry", "sl", "tp"))
+        if any(abs(value / tick_size - round(value / tick_size)) > 1e-7
+               for value in (entry, sl, tp)):
+            raise ValueError("Prices must align with the gold tick size.")
+        if side == "buy":
+            pending_type = mt5.ORDER_TYPE_BUY_LIMIT if entry < float(tick.ask) else mt5.ORDER_TYPE_BUY_STOP
+            if not sl < entry < tp or abs(entry - float(tick.ask)) < distance + tick_size:
+                raise ValueError("Buy entry and protection must be beyond the broker minimum distance.")
+            mode_flag = 2 if pending_type == mt5.ORDER_TYPE_BUY_LIMIT else 4
+        else:
+            pending_type = mt5.ORDER_TYPE_SELL_LIMIT if entry > float(tick.bid) else mt5.ORDER_TYPE_SELL_STOP
+            if not tp < entry < sl or abs(entry - float(tick.bid)) < distance + tick_size:
+                raise ValueError("Sell entry and protection must be beyond the broker minimum distance.")
+            mode_flag = 2 if pending_type == mt5.ORDER_TYPE_SELL_LIMIT else 4
+        if order_mode & mode_flag != mode_flag or min(abs(entry - sl), abs(entry - tp)) < distance:
+            raise ValueError("Broker does not permit this protected pending order.")
+        action, fill_type = mt5.TRADE_ACTION_PENDING, mt5.ORDER_FILLING_RETURN
     profit = mt5.order_calc_profit(order_type, SYMBOL, minimum, entry, sl)
     if (type(profit) not in (int, float) or not math.isfinite(profit)
             or profit >= 0 or -profit > equity * .001):
         raise ValueError("Minimum-lot stop exposure exceeds 0.1% of equity or is unknown.")
-    request.update(action=mt5.TRADE_ACTION_PENDING, type=pending_type, price=entry,
-                   sl=sl, tp=tp, type_filling=mt5.ORDER_FILLING_RETURN)
-    return request
+    return {"action": action, "symbol": SYMBOL, "volume": minimum,
+            "type": pending_type, "price": entry, "sl": sl, "tp": tp,
+            "deviation": 10, "magic": MAGIC,
+            "comment": f"kwg-demo-{secrets.token_hex(4)}",
+            "type_time": mt5.ORDER_TIME_GTC, "type_filling": fill_type}
 
 
 def open_journal(path: Path, login: int) -> sqlite3.Connection:
@@ -469,6 +468,7 @@ def _final_entry_guard(mt5, login, request):
     if positions is None or orders is None or positions or orders:
         raise ValueError("Gold position/order state changed before entry.")
     pending_request = request["action"] == mt5.TRADE_ACTION_PENDING
+    required_mode = (16 | 32) if pending_request else (1 | 16 | 32)
     fill_flag = (FILLING_FOK_FLAG if request["type_filling"] == mt5.ORDER_FILLING_FOK
                  else FILLING_IOC_FLAG)
     filling = getattr(info, "filling_mode", None)
@@ -476,8 +476,8 @@ def _final_entry_guard(mt5, login, request):
     if (getattr(info, "name", None) != SYMBOL
             or getattr(info, "trade_mode", None) != mt5.SYMBOL_TRADE_MODE_FULL
             or getattr(info, "trade_exemode", None) not in (0, 1, 2, 3)
-            or type(filling) is not int or (not pending_request and not filling & fill_flag)
-            or type(order_mode) is not int or order_mode & 49 != 49
+            or (not pending_request and (type(filling) is not int or not filling & fill_flag))
+            or type(order_mode) is not int or order_mode & required_mode != required_mode
             or getattr(info, "volume_min", None) != request["volume"]):
         raise ValueError("Gold trading conditions changed before entry.")
     point = _positive(getattr(info, "point", None), "point")
