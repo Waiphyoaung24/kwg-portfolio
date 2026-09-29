@@ -4,7 +4,36 @@ Resume here from another terminal or machine. This page records the latest
 verified state; older plan and result files are historical evidence. Keep the
 system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
 
-## Updated owner direction — 2026-09-29
+## Latest one-shot result — 2026-09-29
+
+The owner authorized one supervised minimum-lot demo **buy**. A fresh verifier
+reported `ready` with 250 completed M15 bars and a 0.222-second gold quote.
+The operator armed once; the broker showed a protected 0.01-lot position.
+The timed close left no gold position or order, but the journal initially
+reported `needs_attention`: MT5's deal timestamps and history search window
+were three hours ahead of UTC. A read-only probe found one entry and one exit
+in the UTC+3 window and no gold deals in the UTC window.
+
+Commit `5225fce` applies the verified broker offset to deal-history queries and
+normalizes recorded close time to UTC. After a consistent private SQLite backup
+and source backup, the patched runner was installed in the VPS source and
+running container (SHA-256
+`ac4f67888ac4a3e327948719869c47ae01fd16e3286572179c17bb5fee58217b`).
+`resume` reconciled the existing attempt to `closed`: buy 0.01 lot, opened
+09:11:16 UTC, closed 09:12:17 UTC, `timed`, realized **-$0.24 net**. It sent
+no second entry. The post-trade verifier reported `ready` with Algo Trading
+off; the authenticated Vault page displayed the same closed result. This is
+an execution-mechanics smoke test, not strategy qualification. Batch 2 remains
+`prepared_but_blocked`; no continuous trading or model order path is enabled.
+
+The older activation checklist below is historical. Preserve the private
+one-shot journal and backups; never re-arm that journal. The patched Docker
+image was built, verified against the same hash and used to recreate only the
+desktop after the trade closed. Post-restart checks passed: the boot snapshot
+remained `closed`, the verifier returned `ready` with Algo Trading off, and the
+authenticated Vault page showed the same 0.01-lot, -$0.24 result.
+
+## Earlier owner direction — 2026-09-29 (historical)
 
 The immediate engineering milestone is one supervised, operator-armed,
 minimum-lot demo smoke trade that opens with broker-held protection, closes,
@@ -14,7 +43,7 @@ separate that machinery test from Batch 2/3 strategy qualification and later
 continuous demo execution. The runner is installed on the private VPS but is
 disarmed; the existing observer stays read-only with Algo Trading off.
 
-## Implementation update — 2026-09-29
+## Earlier implementation update — 2026-09-29 (historical)
 
 The one-shot preflight, durable journal/reconciliation, resume-only boot hook,
 and sanitized read-only dashboard status are implemented on this branch in
@@ -57,7 +86,7 @@ Worker's account ID to bypass that mismatch. No `order_check` or `order_send` wa
 Algo Trading was not enabled, and no order was sent. Batch 2 stays
 `prepared_but_blocked` and continuous execution stays disabled.
 
-## Remaining one-shot to-do
+## Earlier one-shot activation checklist (completed)
 
 1. **Review the private preview.** Confirm the chosen side and time-specific
    stop, target, volume, and modeled exposure with the owner. Preserve the
@@ -87,13 +116,12 @@ checkout, fetch and switch to the planning branch before continuing.
 > Read `AGENTS.md`, `ops/trading/HANDOFF.md`,
 > `docs/superpowers/plans/2026-09-29-gold-agent-design.md` and
 > `docs/superpowers/plans/2026-09-29-gold-one-shot-demo-execution.md`.
-> Implement the one-shot demo runner with native execution, task by task:
-> preflight, durable reconciliation, then read-only dashboard status.
-> Keep the existing observer signal-only and the pinned demo/Algo-off guard
-> intact. Run the plan's fake-MT5, Python, Worker and site checks. Prepare
-> the private dry-run preview for owner review before any order is sent.
-> Do not place a trade, enable continuous entry, run Vibe-Trading, change
-> risk policy or expose account data during this handoff.
+> The one-shot demo smoke trade is complete and its journal is single-use.
+> Confirm the patched runner `5225fce` and post-restart closed/Algo-off status;
+> do not re-arm or reset the journal. Continue the separate Batch 2 evidence
+> gates (dated broker costs and the remaining strategy validation) before
+> Batch 3 research or continuous demo execution. Keep the observer read-only,
+> the pinned demo account, and private broker data outside Git and the web API.
 
 Batch 2 remains `prepared_but_blocked`; the one-shot smoke test is an
 independent execution-machinery milestone, not strategy qualification.

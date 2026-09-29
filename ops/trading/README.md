@@ -14,16 +14,17 @@ The updated image was deployed on 2026-09-27. The pinned demo and Algo-off
 guard passed, but the gold quote was stale during market closure, so both the
 diagnostic and one-shot observer blocked as intended. The VPS now runs the
 signal-only observer continuously. Live candle transitions, restart persistence,
-and advancing tick freshness still need qualification during an open gold session.
-The separate one-shot demo runner was deployed to the private desktop on
-2026-09-29 without arming. Its resume-only boot published `disarmed`; the
-operator's 07:01 UTC verifier reported a fresh quote and valid M15 history,
-and the subsequent no-order buy preview produced a minimum-lot protected
-request below the modeled 0.1% stop exposure limit. Its full values are in a
-private review packet outside Git. The preview did not run `order_check` or
-send an order and must be rebuilt after owner review. Keep Algo Trading off
-until separately authorized supervised activation. The read-only execution
-status update still needs deployment; see [remaining tasks](HANDOFF.md#remaining-one-shot-to-do).
+and advancing tick freshness passed the 2026-09-28 Batch 1 session; see
+[HANDOFF.md](HANDOFF.md). Later sessions still require fresh preflight checks.
+On 2026-09-29 the owner authorized one supervised minimum-lot demo buy. It
+opened at 09:11:16 UTC, closed at 09:12:17 UTC, and reconciled to -$0.24 net.
+The first close reconciliation missed broker deals because MT5 reports their
+timestamps three hours ahead of UTC. Commit `5225fce` fixes the history window
+and UTC close timestamp; the VPS source, running container and rebuilt image
+matched SHA-256 `ac4f67888ac4a3e327948719869c47ae01fd16e3286572179c17bb5fee58217b`.
+The patched desktop was recreated after closure. The one-shot journal is
+single-use; do not arm it again. Keep Algo Trading off. This smoke test proves
+execution mechanics only; Batch 2 strategy qualification remains blocked.
 
 ## Read-only Vault status
 
