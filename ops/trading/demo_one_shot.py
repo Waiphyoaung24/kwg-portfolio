@@ -102,7 +102,7 @@ def build_entry_request(mt5, login: int, side: str, now: float,
 
 
 def open_journal(path: Path, login: int) -> sqlite3.Connection:
-    """Open one persistent, account-bound attempt; never touch observer state."""
+    """Open the persistent, account-bound attempt history; never touch observer state."""
     path = Path(path)
     if path.is_dir() or not path.parent.is_dir():
         raise ValueError("One-shot journal needs an existing private directory.")
@@ -138,21 +138,22 @@ def arm_once(db: sqlite3.Connection, side: str, now: int) -> str:
         raise ValueError("Arm requires an operator side and UTC timestamp.")
     arm_id = secrets.token_hex(8)
     with db:
-        if db.execute("SELECT count(*) FROM attempts").fetchone()[0]:
-            raise ValueError("This one-shot journal has already been armed.")
+        previous = _attempt(db)
+        if previous is not None and previous["state"] not in ("closed", "disarmed"):
+            raise ValueError("The previous demo attempt is not resolved.")
         db.execute("INSERT INTO attempts (id, side, armed_at, expires_at, state, phase) "
                    "VALUES (?, ?, ?, ?, 'armed', 'entry')", (arm_id, side, now, now + 900))
     return arm_id
 
 
 def _attempt(db):
-    return db.execute("SELECT * FROM attempts").fetchone()
+    return db.execute("SELECT * FROM attempts ORDER BY rowid DESC LIMIT 1").fetchone()
 
 
 def _update(db, **fields):
     with db:
-        db.execute("UPDATE attempts SET " + ", ".join(f"{key}=?" for key in fields),
-                   tuple(fields.values()))
+        db.execute("UPDATE attempts SET " + ", ".join(f"{key}=?" for key in fields) + " WHERE id=?",
+                   (*fields.values(), _attempt(db)["id"]))
 
 
 def _status(db, now):

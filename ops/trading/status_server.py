@@ -4,6 +4,8 @@ import math
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 SNAPSHOT = Path("/status/latest.json")
 EXECUTION = Path("/status/execution.json")
@@ -104,6 +106,33 @@ def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION) -> 
 
 
 class Handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        if self.path not in ("/control/preview", "/control/arm"):
+            self.send_error(404)
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if not 0 < length <= 256 or self.headers.get("Content-Type") != "application/json":
+                raise ValueError
+            body = self.rfile.read(length)
+            request = Request("http://desktop:8001/" + self.path.rsplit("/", 1)[-1], body,
+                              {"Content-Type": "application/json",
+                               "X-KWG-Control-Secret": self.headers.get("X-KWG-Control-Secret", "")},
+                              method="POST")
+            try:
+                with urlopen(request, timeout=50) as response:
+                    status, result = response.status, response.read(2048)
+            except HTTPError as error:
+                status, result = error.code, error.read(2048)
+        except (ValueError, URLError, TimeoutError, OSError):
+            status, result = 503, b'{"error":"Private demo control is unavailable."}'
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(result)))
+        self.end_headers()
+        self.wfile.write(result)
+
     def do_GET(self):
         if self.path == "/vault/trading":
             try:

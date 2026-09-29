@@ -91,3 +91,54 @@ test('serves the trading page only to the approved Access viewer', async (t) => 
   assert.equal(await response.text(), '<h1>Trading</h1>');
   assert.equal(calls, 1);
 });
+
+test('demo control requires exact Access viewer and same-origin POST', async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  globalThis.fetch = () => { throw new Error('origin must not be called'); };
+  const request = (origin) => new Request('https://waiphyoaung.com/api/trading/preview', {
+    method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: '{"side":"buy"}',
+  });
+  const enabled = { ...env, TRADING_CONTROL_SECRET: 'private-control-secret' };
+  assert.equal((await worker.fetch(request('https://waiphyoaung.com'), enabled, {})).status, 403);
+  assert.equal((await worker.fetch(request('https://evil.example'), enabled, { access })).status, 400);
+  assert.equal((await worker.fetch(request('https://waiphyoaung.com'), env, { access })).status, 503);
+  assert.equal((await worker.fetch(new Request('https://waiphyoaung.com/api/trading/arm'), enabled, { access })).status, 404);
+});
+
+test('reviewed preview and one arm reach only the private control route', async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  const enabled = { ...env, TRADING_CONTROL_SECRET: 'private-control-secret' };
+  let calls = 0;
+  globalThis.fetch = async (origin, options) => {
+    calls++;
+    assert.equal(options.method, 'POST');
+    assert.equal(options.headers['X-KWG-Control-Secret'], enabled.TRADING_CONTROL_SECRET);
+    if (new URL(origin).pathname === '/control/arm') {
+      assert.deepEqual(JSON.parse(options.body), { token: 'a'.repeat(32) });
+      return Response.json({ status: 'starting', account: 123 }, { status: 202 });
+    }
+    assert.equal(new URL(origin).pathname, '/control/preview');
+    assert.deepEqual(JSON.parse(options.body), { side: 'buy' });
+    return Response.json({ token: 'a'.repeat(32), preview: {
+      mode: 'private-demo-preview', symbol: 'XAUUSD-VIP', side: 'buy', volume: .01,
+      quote_reference: 4142.51, sl: 4129.57, tp: 4161.92, modeled_stop_usd: 12.94,
+      modeled_stop_pct_of_equity: .01294, previewed_at: 1790672644,
+      hold_seconds: 60, order_sent: false, order_check_passed: false, account: 123,
+    } });
+  };
+  const post = (route, body) => new Request(`https://waiphyoaung.com/api/trading/${route}`, {
+    method: 'POST', headers: { Origin: 'https://waiphyoaung.com', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const preview = await worker.fetch(post('preview', { side: 'buy' }), enabled, { access });
+  assert.equal(preview.status, 200);
+  const result = await preview.json();
+  assert.equal(result.preview.account, undefined);
+  assert.equal(result.token, 'a'.repeat(32));
+  const armed = await worker.fetch(post('arm', { token: result.token }), enabled, { access });
+  assert.equal(armed.status, 202);
+  assert.deepEqual(await armed.json(), { status: 'starting' });
+  assert.equal(calls, 2);
+});

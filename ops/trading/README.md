@@ -22,11 +22,50 @@ The first close reconciliation missed broker deals because MT5 reports their
 timestamps three hours ahead of UTC. Commit `5225fce` fixes the history window
 and UTC close timestamp; the VPS source, running container and rebuilt image
 matched SHA-256 `ac4f67888ac4a3e327948719869c47ae01fd16e3286572179c17bb5fee58217b`.
-The patched desktop was recreated after closure. The one-shot journal is
-single-use; do not arm it again. Keep Algo Trading off. This smoke test proves
+The patched desktop was recreated after closure. As deployed on 2026-09-29,
+the one-shot journal is single-use; do not arm it again by hand. Keep Algo Trading off. This smoke test proves
 execution mechanics only; Batch 2 strategy qualification remains blocked.
 
-## Read-only Vault status
+## Supervised web control (prepared, not deployed)
+
+The new Vault page shows the latest attempt, the live price-feed state and a
+link to the SSH-protected MT5 desktop at `http://127.0.0.1:6081/vnc.html`.
+Its **Preview demo trade** button runs the existing no-order preflight with
+Algo Trading off. A 10-minute, single-use confirmation token then permits
+one explicit **Start one demo BUY/SELL** click. The runner rebuilds the request,
+checks the broker again and writes a new attempt row to the private journal;
+older rows, including the 2026-09-29 -$0.24 result, remain unchanged. An
+unresolved attempt, occupied gold symbol, stale feed or failed broker guard
+blocks another entry. The runner supervises the attempt independently of the
+browser; its broker-held stop/target and resume-only recovery still apply.
+
+This code does not enable continuous strategy trading or AI promotion. The
+currently deployed Worker and VPS remain read-only until the new controller,
+network, shared secret, status sidecar, page and Worker are deployed together.
+The control endpoint must be reachable only on a private Compose network
+shared by `desktop` and `status`; retain `desktop` on its existing Compose
+default network for broker connectivity. Its `gw_priority: 1` keeps that
+network as the default route, so the VPS needs Docker Compose 2.33.1 or later
+and Docker Engine 28 or later. Check both versions before rebuilding.
+Publish no control host port. A
+32-character-or-longer `TRADING_CONTROL_SECRET` must be stored privately in
+the VPS Compose `.env` and as a Worker secret with the same value. Never put it
+in Git, browser code, commands shown in chat, or logs. Keep Cloudflare Access
+restricted to the owner and the status origin restricted to the existing
+service token. A POST from another browser origin is rejected.
+
+Before replacing the desktop image, back up the SQLite journal with SQLite's
+backup API and verify the backup. Keep Algo Trading off. Build the image,
+regenerate `trading.html` from Astro, then deploy the desktop and status
+sidecar. Confirm the old closed result survives restart, the observer is
+fresh, no gold position/order exists, and unauthenticated page/API requests
+remain behind Access. Deploy the Worker last. A page preview is read-only;
+the user must inspect its new prices, enable Algo Trading in the private MT5
+desktop and click Start to authorize a new attempt. Watch MT5 until it is
+closed or needs attention, then turn Algo Trading off. Do not repeat Start
+after an uncertain response; inspect the journal and broker state first.
+
+## Vault status and Access boundary
 
 The observer now publishes a small JSON snapshot to a **separate** Docker
 volume. `kwg-trading-status` serves that snapshot and the prebuilt trading page
@@ -34,8 +73,9 @@ on `dokploy-network` with no host port; it cannot read MT5's home volume.
 Cloudflare routes `/vault/trading` and `/api/trading/status` to the same Worker,
 without moving the rest of the portfolio from its current origin. The Worker requires
 Cloudflare Access identity, checks the exact approved viewer email, and fetches
-the status origin through the existing Cloudflare Tunnel. It exposes no broker
-login, balance, password, or order operation. A missing heartbeat becomes
+the status origin through the existing Cloudflare Tunnel. The status payload
+exposes no broker login, balance, password or order request. The prepared
+control POST path additionally requires the private shared secret. A missing heartbeat becomes
 `offline`; a stale gold quote remains `blocked`.
 
 On the VPS only, set `MT5_DEMO_LOGIN` in this Compose project's private `.env`.
@@ -94,11 +134,13 @@ Commit this directory's source and documentation only. Broker passwords,
 The VPS setup was deployed directly; committing or pushing this repository
 does not update that running Compose project automatically.
 
-## One-shot demo dry-run and recovery
+## Initial one-shot demo dry-run and recovery
 
-The one-shot runner is separate from `observe-gold.py`. Its only entry path is
-the private Wine CLI `arm` command with `--enable-demo-execution`; the browser,
-Worker and status origin have no arm or order endpoint. A persistent journal in
+The one-shot runner is separate from `observe-gold.py`. In the initial deployed
+version, its only entry path is the private Wine CLI `arm` command with
+`--enable-demo-execution`; the browser, Worker and status origin have no arm or
+order endpoint. The prepared web control above changes this only after its
+private network and secret are deployed. A persistent journal in
 the MT5 home allows one attempt and prevents entry after restart. Boot invokes
 `resume`, which can reconcile or close an existing submitted attempt but cannot
 send a new entry. `execution.json` on the status volume contains display fields

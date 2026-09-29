@@ -122,6 +122,21 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(reopened.execute("SELECT count(*) FROM attempts").fetchone()[0], 1)
         self.assertEqual(reopened.execute("SELECT state FROM attempts").fetchone()[0], "armed")
 
+    def test_new_attempt_keeps_closed_history_and_blocks_unresolved_one(self):
+        first = arm_once(self.db, "buy", NOW)
+        with self.db:
+            self.db.execute("UPDATE attempts SET state='closed', closed_at=?, realized_net_usd=? WHERE id=?",
+                            (NOW + 61, -.24, first))
+        second = arm_once(self.db, "sell", NOW + 120)
+        self.assertNotEqual(first, second)
+        with self.assertRaises(ValueError):
+            arm_once(self.db, "buy", NOW + 121)
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 1021, allow_entry=False)["status"],
+                         "disarmed")
+        rows = self.db.execute("SELECT id, side, state, realized_net_usd FROM attempts ORDER BY rowid").fetchall()
+        self.assertEqual([tuple(row) for row in rows],
+                         [(first, "buy", "closed", -.24), (second, "sell", "disarmed", None)])
+
     def test_expired_arm_disarms_without_order(self):
         arm_once(self.db, "buy", NOW)
         result = process_once(self.mt5, self.db, NOW + 901)

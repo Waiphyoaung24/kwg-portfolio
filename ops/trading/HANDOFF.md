@@ -2,7 +2,28 @@
 
 Resume here from another terminal or machine. This page records the latest
 verified state; older plan and result files are historical evidence. Keep the
-system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
+deployed system read-only, demo-only, gold-only (`XAUUSD-VIP`), and Algo Trading off.
+
+## Prepared web control — pending deployment
+
+The owner approved a simpler `/vault/trading` flow: view the gold feed and
+latest attempt, open the MT5 desktop through the SSH tunnel, preview a
+protected minimum-lot buy or sell with **no order**, then explicitly start
+one supervised demo attempt. The new code keeps the previous closed row and
+appends a new journal row only after the prior attempt is resolved. A
+single-use 10-minute preview token, fresh broker preflight, owner-only
+Cloudflare Access check, same-origin POST check and a private shared secret
+guard the entry path. The status sidecar still cannot read the MT5 home. It
+proxies control requests over an internal-only Compose network; the desktop
+retains its broker-connected default network and loopback-only noVNC port.
+
+This is source prepared on the `codex/gold-demo-one-shot-plan` branch, not a
+VPS or Worker deployment. No new trade has been placed. The owner approved
+the two-network connection; the Compose file fixes the external default
+gateway with `gw_priority: 1`, requiring Docker Compose 2.33.1 and Docker
+Engine 28 or later on the VPS. See [README.md](README.md#supervised-web-control-prepared-not-deployed)
+for the deployment and safety checks. Automatic strategy execution, Batch 2
+qualification and AI promotion remain separate and inactive.
 
 ## Latest one-shot result — 2026-09-29
 

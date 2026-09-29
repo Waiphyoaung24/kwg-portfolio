@@ -37,6 +37,9 @@ if [ -n "${MT5_DEMO_LOGIN:-}" ]; then
     sleep 10
     for attempt in {1..30}; do
       if script -q -e -c "wine /opt/python/python.exe /opt/trading/demo_one_shot.py resume --state 'C:\users\mt5\gold-one-shot.sqlite3'" /dev/null; then
+        if [ -n "${TRADING_CONTROL_SECRET:-}" ]; then
+          python3 /opt/trading/control_server.py
+        fi
         break
       fi
       sleep 10

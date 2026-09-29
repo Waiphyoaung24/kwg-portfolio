@@ -62,7 +62,9 @@ export default {
   async fetch(request, env, ctx) {
     const pathname = new URL(request.url).pathname;
     const isPage = pathname === '/vault/trading' || pathname === '/vault/trading/';
-    if (request.method !== 'GET' || (!isPage && pathname !== '/api/trading/status')) {
+    const action = pathname === '/api/trading/preview' ? 'preview' : pathname === '/api/trading/arm' ? 'arm' : null;
+    if (!(request.method === 'GET' && (isPage || pathname === '/api/trading/status')) &&
+        !(request.method === 'POST' && action)) {
       return new Response('Not found', { status: 404 });
     }
     if (!ctx.access || !env.ALLOWED_VIEWER_EMAIL) return new Response('Access required', { status: 403 });
@@ -72,6 +74,64 @@ export default {
     }
     if (!env.STATUS_ORIGIN_URL || !env.STATUS_ACCESS_CLIENT_ID || !env.STATUS_ACCESS_CLIENT_SECRET) {
       return unavailable();
+    }
+    if (action) {
+      if (!env.TRADING_CONTROL_SECRET) return Response.json({ error: 'Demo control is unavailable.' }, { status: 503, headers: noStore });
+      if (request.headers.get('Origin') !== new URL(request.url).origin ||
+          (request.headers.get('Sec-Fetch-Site') && request.headers.get('Sec-Fetch-Site') !== 'same-origin') ||
+          request.headers.get('Content-Type') !== 'application/json' ||
+          Number(request.headers.get('Content-Length') || 0) > 256) {
+        return Response.json({ error: 'Invalid demo request.' }, { status: 400, headers: noStore });
+      }
+      let body;
+      try {
+        const raw = await request.text();
+        if (raw.length > 256) throw new Error('Oversized request');
+        body = JSON.parse(raw);
+        if (!body || typeof body !== 'object' || Array.isArray(body) ||
+            (action === 'preview' && (Object.keys(body).join() !== 'side' || !['buy', 'sell'].includes(body.side))) ||
+            (action === 'arm' && (Object.keys(body).join() !== 'token' || !/^[A-Za-z0-9_-]{32}$/.test(body.token)))) {
+          throw new Error('Invalid request');
+        }
+      } catch {
+        return Response.json({ error: 'Invalid demo request.' }, { status: 400, headers: noStore });
+      }
+      try {
+        const origin = new URL(env.STATUS_ORIGIN_URL);
+        origin.pathname = `/control/${action}`;
+        const response = await fetch(origin, {
+          method: 'POST',
+          headers: { 'CF-Access-Client-ID': env.STATUS_ACCESS_CLIENT_ID,
+            'CF-Access-Client-Secret': env.STATUS_ACCESS_CLIENT_SECRET,
+            'X-KWG-Control-Secret': env.TRADING_CONTROL_SECRET,
+            'Content-Type': 'application/json' },
+          body: JSON.stringify(body), redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(55000),
+        });
+        if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Invalid response');
+        const result = await response.json();
+        if (!response.ok) {
+          return Response.json({ error: typeof result.error === 'string' && result.error.length < 160
+            ? result.error : 'Demo control is unavailable.' }, { status: response.status === 409 ? 409 : 503, headers: noStore });
+        }
+        if (action === 'arm') {
+          if (response.status !== 202 || result.status !== 'starting') throw new Error('Invalid arm response');
+          return Response.json({ status: 'starting' }, { status: 202, headers: noStore });
+        }
+        const p = result.preview;
+        if (p?.mode !== 'private-demo-preview' || p.symbol !== 'XAUUSD-VIP' || p.side !== body.side ||
+            p.order_sent !== false || p.order_check_passed !== false ||
+            !/^[A-Za-z0-9_-]{32}$/.test(result.token) ||
+            ![p.volume, p.quote_reference, p.sl, p.tp, p.modeled_stop_usd,
+              p.modeled_stop_pct_of_equity, p.previewed_at].every(x => typeof x === 'number' && Number.isFinite(x) && x > 0) ||
+            p.volume > 1 || p.modeled_stop_pct_of_equity > .1 || p.hold_seconds !== 60) throw new Error('Invalid preview');
+        return Response.json({ preview: { side: p.side, symbol: p.symbol, volume: p.volume,
+          quote_reference: p.quote_reference, sl: p.sl, tp: p.tp,
+          modeled_stop_usd: p.modeled_stop_usd,
+          modeled_stop_pct_of_equity: p.modeled_stop_pct_of_equity,
+          hold_seconds: p.hold_seconds, previewed_at: p.previewed_at }, token: result.token }, { headers: noStore });
+      } catch {
+        return Response.json({ error: 'Demo control is unavailable.' }, { status: 503, headers: noStore });
+      }
     }
     try {
       const origin = new URL(env.STATUS_ORIGIN_URL);
