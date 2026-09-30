@@ -1,5 +1,40 @@
 # Gold trading handoff — 2026-09-28
 
+## Batch 3 preparation — 2026-10-01 Bangkok
+
+Preparation milestone: [integration specification](../../docs/superpowers/specs/2026-10-01-gold-batch3-vibe-integration.md)
+and [implementation plan](../../docs/superpowers/plans/2026-10-01-gold-batch3-vibe-integration.md)
+saved on main. Owner selected one strict structured Vibe-Trading proposal using
+the existing EMA20 slope-filter schema. No proposal was generated or registered.
+After the owner's subsequent start request, the offline parser/replay path was
+implemented with synthetic fixtures; the trading Python suite passed 117 tests.
+It has no model dispatch or candidate registration. Packet validation and the
+bounded provider controller remain pending on the unverified model route.
+Every parsed artifact remains unreviewed/unqualified; use synthetic replay only
+until the controller's sensitive-content boundary is implemented. Frozen MCP
+dependencies were restored without version changes; all four local MCP tests
+passed with package-store access.
+Both read-only MCP tools responded; anonymous access returned 401. Local package
+metadata confirms Vibe-Trading 0.1.15. Model inference remains unverified; MCP is
+not an inference route. The initial read-only review passed seventeen Python
+checks; subsequent implementation results are recorded above. No VPS runtime
+or configuration change was made.
+
+Batch 2 remains `prepared_but_blocked`: dated costs/clock coverage, prospective
+protocol and adequate observations, verified real-report adapter and repeatable
+baseline remain gates. The candidate CLI's legacy manifest rejects dated costs
+and explicit windows; prospective support must be verified before research.
+Human approval remains mandatory before any promotion; no orders are authorized.
+
+Owner now confirms the one-day smoke collector is running at
+`/root/kwg-gold-research/evidence/smoke-20260930T164651Z`, covering
+2026-09-30 17:00 UTC to 2026-10-01 17:00 UTC. Finish capture only after
+2026-10-01 17:15 UTC (October 2, 00:15 Bangkok). Start checks passed with Algo
+Trading off and no gold positions/pending orders. Costs remain incomplete.
+Preserve collector and artifacts; no restart, reset, finish capture or scheduler
+was performed here. This owner report supersedes the unconfirmed-start note
+below. The pipeline test does not complete Batch 2 qualification.
+
 ## Current checkpoint — Batch 2 evidence, 2026-09-30
 
 ### Owner-selected next step — one-day pipeline smoke test
