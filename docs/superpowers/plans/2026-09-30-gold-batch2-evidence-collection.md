@@ -45,7 +45,7 @@ Modify `ops/trading/batch2-evidence.py`, `ops/trading/test_batch2_evidence.py`, 
 **Interfaces:** Reuse `verify-demo.py --login ... --server-offset-seconds ...`, `batch2-evidence.py`, `export-gold.py`, and `gold_costs.validate_profile(profile, start, end)`. No session prediction API or automated swap-charge test is added.
 
 - [ ] With Algo off, read exact `XAUUSD-VIP` sessions from MT5 Specification and preserve the dated source privately. Record host UTC, terminal wall-clock convention and current offset. Generic public XAU hours are supporting context only.
-- [ ] Capture evidence before a documented close and after the documented reopening using distinct filenames. Run the verifier after reopening. Verify connected pinned demo, fresh quote and expected completed M15 bar. Record a failed result as a blocker; do not restart or trade to force a pass.
+- [x] Capture evidence before a documented close and after the documented reopening using distinct filenames. Run the verifier after reopening. Verify connected pinned demo, fresh quote and expected completed M15 bar. Record a failed result as a blocker; do not restart or trade to force a pass.
 - [ ] Preserve probe/verifier outputs and SHA-256 values privately. A break-period stale quote is expected only when documented session evidence supports it. This check proves bounded session recovery, not historical DST or an actual funding settlement.
 - [ ] Before future collection begins, create private `prospective-collection-manifest.json` with `schema_version=1`, `status="collecting_unqualified"`, creation UTC, future completed-bar start, baseline/code/policy hashes, exact symbol/timeframe, private source references/hashes, observed offset intervals, cost coverage intervals, and an explicit blockers list. Fields with missing evidence remain null or absent as documented, never guessed.
 - [ ] Reserve a separate future holdout without reading its strategy results. Record missing observations and covered dates; use existing historical data only for labelled warmup/diagnostics. Boundary observations do not prove uninterrupted collection between them.
@@ -73,3 +73,7 @@ Wrap-up: the owner verified deployed exclusive output bytes and supplied a
 current session specification crop, preserved privately. Cost validation still
 returns uncovered. A private prospective draft is prepared, not started; no
 start, validation windows or holdout was invented. See the [wrap-up verdict](2026-09-30-gold-batch2-wrap-up.md).
+
+The owner subsequently supplied a saved passing M15 verifier summary. Bounded
+recovery is complete for the observed before/after pair; reopening latency,
+historical clock/cost coverage and uninterrupted collection are not inferred.

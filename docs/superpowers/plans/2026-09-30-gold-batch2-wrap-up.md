@@ -17,6 +17,10 @@ does not qualify the baseline or unlock Batch 3 research.
 - Owner-supplied current session specification preserved with a verified local
   image hash. The crop omits the symbol header, so applicability remains owner
   attributed. This is current session evidence, not historical coverage.
+- Owner-saved post-reopening verifier passed fresh quotes and expected completed
+  M15 history. Together with earlier boundary captures this closes the bounded
+  recovery check. It does not measure immediate reopening latency or prove
+  uninterrupted feed, historical dates or rate coverage.
 - Three cost-validator and ten evaluator tests rerun successfully during this
   wrap-up. Earlier implementation verification passed 113 Python tests,
   JavaScript tests, Astro check/build and standalone page regeneration.
@@ -37,7 +41,7 @@ offset coverage over the frozen evaluation range. No profile was promoted to
 
 | Gate | Required evidence | Status |
 | --- | --- | --- |
-| Session recovery | Bounded before-close/after-reopening captures plus expected completed M15 history; preserve failures | Pending |
+| Session recovery | Bounded before-close/after-reopening captures plus expected completed M15 history; preserve failures | Passed for the observed boundary pair; limitations above |
 | Historical costs | Applicable sourced commission, directional swap rates and rollover events covering exact windows | Uncovered |
 | Historical clock | Dated offset/DST mapping and calendar interpretation across those windows | Uncovered |
 | Prospective protocol | Freeze a future completed-bar start, source/policy hashes, flat folds and separate uninspected holdout before collection | Draft only; not started |
@@ -57,8 +61,8 @@ collection run, and no new observed days have been claimed.
 ## Resume in order
 
 1. Confirm the authenticated page projects the reconciled result correctly.
-2. Complete one bounded session recovery check using the existing probe and
-   verifier; do not repeat arbitrary spot checks as substitutes for coverage.
+2. Preserve the completed bounded recovery evidence; no further arbitrary spot
+   checks are needed for this item.
 3. Establish sourced dated costs and clock coverage for the proposed interval.
    Preserve uncovered status if public current terms cannot provide history.
 4. Freeze the prospective protocol before collecting qualifying future data.

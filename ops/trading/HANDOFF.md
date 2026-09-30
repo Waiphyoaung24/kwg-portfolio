@@ -6,8 +6,10 @@
 
 Read the [current wrap-up and exact remaining gates](../../docs/superpowers/plans/2026-09-30-gold-batch2-wrap-up.md)
 first. The owner verified exclusive capture bytes and fresh exposure-free state;
-the current session specification was preserved privately. These complete
-deployed capture verification, not session recovery or interval qualification.
+the current session specification was preserved privately. The subsequent
+saved verifier passed expected completed M15 history and fresh quotes, closing
+the bounded recovery check. These do not establish interval qualification or
+immediate reopening latency.
 Current cost validation still rejects historical commission and swap coverage.
 A private prospective draft is prepared but has no start/windows/holdout and
 does not represent an active collection run. Batch 3 remains gated.
