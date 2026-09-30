@@ -2,6 +2,17 @@
 
 ## Current checkpoint — Batch 2 evidence, 2026-09-30
 
+### Owner-selected next step — one-day pipeline smoke test
+
+The owner approved a one-day pipeline test while retaining qualification
+thresholds. Use the [one-day smoke-test runbook](../../docs/superpowers/plans/2026-09-30-gold-one-day-smoke-test.md).
+It reuses the running observer, dated probe and raw exporter with a future
+M15 start and private artifacts. All five owner-reported observer/export source
+hashes matched published Git bytes. The observer journal retains signals and
+health, so raw OHLC exports must also be preserved. Setup is prepared locally;
+no VPS smoke-test start is confirmed yet. No new order or scheduler is part
+of this test. A pipeline pass does not complete Batch 2 or unlock Batch 3.
+
 ### Wrap-up verdict — qualification still blocked
 
 Read the [current wrap-up and exact remaining gates](../../docs/superpowers/plans/2026-09-30-gold-batch2-wrap-up.md)
