@@ -2,15 +2,20 @@
 
 ## Current checkpoint — Batch 2 evidence, 2026-09-30
 
-### Continuation implementation — prepared locally, rollout pending
+### Continuation implementation — owner rollout verified, page check pending
 
 The owner approved native execution on main and desktop closes only. Read the
 [continuation specification](../../docs/superpowers/specs/2026-09-30-gold-batch2-continuation.md),
 [desktop-close plan](../../docs/superpowers/plans/2026-09-30-gold-desktop-close-reconciliation.md)
 and [evidence-collection plan](../../docs/superpowers/plans/2026-09-30-gold-batch2-evidence-collection.md).
 Local implementation adds strict observed-volume desktop-close reconciliation,
-its page guidance and exclusive dated probe output. Live rollout and broker
-verification are pending. No deployment or trading action was performed.
+its page guidance and exclusive dated probe output. The owner verified image
+source hashes, a consistent journal backup and an exposure-free Algo-off check,
+then recreated the desktop and status services. Startup reconciled the existing
+attempt as a verified desktop close. Authenticated page projection and a fresh
+exclusive evidence capture remain pending. No new order was used for this check.
+The VPS Dockerfile and `.dockerignore` both needed the existing repository's
+`batch2-evidence.py` inclusion; updating only the runner files was insufficient.
 Qualification remains `prepared_but_blocked`; `simulator_provenance_unverified`
 remains in place. See the [rollout and prospective protocol](README.md#desktop-close-reconciliation-rollout).
 
