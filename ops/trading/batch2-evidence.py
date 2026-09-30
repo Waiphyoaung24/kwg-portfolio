@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -45,10 +46,19 @@ def capture(mt5, login, now, server_offset_seconds):
             'contract_current_only': contract, 'quote': quote}
 
 
+def save_evidence(path: Path, result: dict) -> str:
+    payload = (json.dumps(result, sort_keys=True, allow_nan=False) + '\n').encode('utf-8')
+    with path.open('xb') as output:
+        output.write(payload)
+    return hashlib.sha256(payload).hexdigest()
+
+
 def main():
+    os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--login', type=int, required=True)
     parser.add_argument('--server-offset-seconds', type=int, choices=(0, 7200, 10800), default=0)
+    parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     import MetaTrader5 as mt5
     if not mt5.initialize(r'C:\Program Files\MetaTrader 5\terminal64.exe', timeout=10000):
@@ -67,6 +77,10 @@ def main():
                                   'Commission and rollover timezone/time still need sourced evidence.',
                                   'Three quote samples do not qualify historical dates or DST.'],
                   'samples': samples}
+        if args.output is not None:
+            digest = save_evidence(args.output, result)
+            result = {key: result[key] for key in ('mode', 'cost_status', 'timestamp_status')}
+            result['output_sha256'] = digest
         print(json.dumps(result, sort_keys=True, allow_nan=False))
     except (ValueError, TypeError, OSError) as exc:
         raise SystemExit(f'Evidence capture refused: {exc}') from exc

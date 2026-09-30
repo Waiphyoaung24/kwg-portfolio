@@ -548,3 +548,98 @@ python3 -B "$TOOLS/compare-gold.py" compare --baseline "$EXP/baseline-a.json" --
 
 See the [experiment status](../../docs/superpowers/plans/2026-09-28-gold-first-experiment-results.md)
 for the current blockers. An exploratory comparison never enables orders.
+
+### Desktop-close reconciliation rollout
+
+The continuation supports an MT5 desktop close (`manual desktop`) only after
+this journal observed the protected position and matching unique broker deals
+prove the full recorded volume closed. Mobile/web/mixed closes, incomplete
+history and fast unobserved manual exits remain `needs_attention`. Net result
+includes matching entry and exit profit, commission, swap and fee; later separate
+broker adjustments are outside this result. No new order is needed to verify it.
+
+Before separately authorized deployment:
+
+1. Confirm current pinned demo identity and no unresolved gold position/order.
+   Do not restart the desktop while exposure is unresolved.
+2. Back up the journal using SQLite's backup API, check `PRAGMA integrity_check`,
+   preserve private permissions and verify source/backup hashes. File copying a
+   live SQLite database is not the backup procedure.
+3. Review the runner and generated page diff and source hashes. Update the image
+   build source as well as runtime files; runtime-only copying is not durable.
+4. Coordinate the existing controller journal lock before any bounded read-only
+   `resume`. Do not start another long-lived resume while the control loop owns
+   the lock. Do not reset the journal or arm another attempt to test this change.
+5. Verify the existing attempt's private snapshot and authenticated page agree:
+   Closed, UTC close time, net result and desktop-close guidance. Software tests
+   alone do not establish a live broker reconciliation.
+
+### Dated private Batch 2 captures
+
+After the updated probe is deployed, use a new output filename each time. Expand
+`MT5_DEMO_LOGIN` inside the container, not the host shell. Keep Algo Trading off.
+The Windows home evidence directory must already exist with private permissions.
+
+```sh
+docker exec kwg-mt5-desktop bash -lc 'wine /opt/python/python.exe /opt/trading/batch2-evidence.py --login "$MT5_DEMO_LOGIN" --server-offset-seconds 10800 --output "C:\users\mt5\contract-UNIQUE-UTC-TIMESTAMP.json"'
+```
+
+Replace `UNIQUE-UTC-TIMESTAMP` before running. Output is exclusive canonical
+UTF-8 JSON, sorted keys, no NaN, ending in a newline. Stdout prints only mode,
+unqualified cost/time status and the saved SHA-256; without `--output`, existing
+full JSON stdout remains available. Compare that hash with the actual saved bytes:
+
+```sh
+docker exec kwg-mt5-desktop sha256sum /home/mt5/.wine/drive_c/users/mt5/contract-UNIQUE-UTC-TIMESTAMP.json
+umask 077
+mkdir -p /root/kwg-gold-research/evidence
+chmod 700 /root/kwg-gold-research/evidence
+docker cp kwg-mt5-desktop:/home/mt5/.wine/drive_c/users/mt5/contract-UNIQUE-UTC-TIMESTAMP.json /root/kwg-gold-research/evidence/
+chmod 600 /root/kwg-gold-research/evidence/contract-UNIQUE-UTC-TIMESTAMP.json
+sha256sum /root/kwg-gold-research/evidence/contract-UNIQUE-UTC-TIMESTAMP.json
+```
+
+Never overwrite a capture. An I/O error can leave an incomplete file: preserve
+it as failed, do not count it as verified evidence, and retry with a new filename.
+The CLI sets umask 077; native Windows still requires private directory ACLs.
+Keep captures and account-specific evidence outside Git.
+
+### Prospective qualification protocol — external evidence pending
+
+Record exact `XAUUSD-VIP` sessions from MT5 Specification with dated source
+references. Capture before documented closure and after documented reopening,
+then run `verify-demo.py` with Algo off. Require connected pinned demo, a fresh
+quote and the expected completed M15 bar. Preserve failed checks as blockers;
+do not restart or trade to force a pass. Public generic gold hours support a
+hypothesis, not exact-symbol session proof. Current UTC offset checks are not
+historical DST coverage or evidence of a funding settlement.
+
+Before collecting future validation, create an owner-private
+`prospective-collection-manifest.json` containing:
+
+- schema_version 1, status `collecting_unqualified`, creation UTC and a future
+  completed-bar collection start; creation must precede that start.
+- Exact symbol/timeframe and fixed baseline, source-code and approved policy hashes.
+- Private dated session/cost/clock source references with hashes; missing fields
+  stay null or absent and are named in `blockers`.
+- Observed offset and cost coverage intervals supported by those sources.
+- A separate future reserved holdout, uninspected for strategy outcomes; warmup
+  bars and old inspected snapshots labelled diagnostic rather than validation.
+- Covered dates, missing observations and explicit blockers. Two boundary
+  observations do not prove uninterrupted data or cost coverage between them.
+
+Verify referenced hashes against actual bytes. Validate commission, swap rates,
+account applicability and rollover timezone/events over each exact window with
+`gold_costs.validate_profile`. Current public terms and current contract snapshots
+must not be stretched into `verified_historical` coverage.
+
+The original gates remain: 60 observed validation days across three flat folds
+of at least 20 days, and at least 100 closed trades per strategy, plus unchanged
+risk, stress and bootstrap thresholds. Freeze folds only when covered observations
+exist. Minimum-evidence failures are inconclusive, not permission to relax policy.
+
+Retain `prepared_but_blocked` and `simulator_provenance_unverified`. When qualified
+real inputs exist, specify and test a separate simulator-to-gate adapter against
+actual report schemas and hash identities. Only then run the immutable baseline
+twice to distinct exclusive outputs and compare bytes. No fabricated candidate,
+Batch 3 research call or continuous trading is part of this collection protocol.

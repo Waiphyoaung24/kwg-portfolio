@@ -2,6 +2,26 @@
 
 ## Current checkpoint — Batch 2 evidence, 2026-09-30
 
+### Continuation implementation — prepared locally, rollout pending
+
+The owner approved native execution on main and desktop closes only. Read the
+[continuation specification](../../docs/superpowers/specs/2026-09-30-gold-batch2-continuation.md),
+[desktop-close plan](../../docs/superpowers/plans/2026-09-30-gold-desktop-close-reconciliation.md)
+and [evidence-collection plan](../../docs/superpowers/plans/2026-09-30-gold-batch2-evidence-collection.md).
+Local implementation adds strict observed-volume desktop-close reconciliation,
+its page guidance and exclusive dated probe output. Live rollout and broker
+verification are pending. No deployment or trading action was performed.
+Qualification remains `prepared_but_blocked`; `simulator_provenance_unverified`
+remains in place. See the [rollout and prospective protocol](README.md#desktop-close-reconciliation-rollout).
+
+Five planned tasks precede the Batch 3 gate; the first three code tasks are
+implemented. Remaining owner evidence is exact-symbol session recovery,
+sourced commission/swap/rollover and offset coverage, a future private collection
+manifest and sufficient covered observations under the unchanged policy.
+No current-rate snapshot qualifies a historical interval. A verified real-report
+adapter and repeatable baseline are still required before eligibility. Batch 3
+is not unlocked by the implementation tests.
+
 **Resume from the [session sign-off checkpoint](../../docs/superpowers/plans/2026-09-30-gold-batch2-session-checkpoint.md).**
 It supersedes the initial probe-preparation status below. Qualification remains
 `prepared_but_blocked`; detailed runtime evidence stays private outside Git.

@@ -50,7 +50,9 @@ export function executionFields(execution, now = Date.now() / 1000) {
     ? `${execution.realized_net_usd.toFixed(2)} USD net` : '—';
   const guidance = execution.status === 'needs_attention'
     ? 'Review the private journal and broker position. No new entry will be sent.'
-    : execution.status === 'closed' ? 'The broker close was reconciled. This is a historical result.'
+    : execution.status === 'closed' ? (execution.close_reason === 'manual desktop'
+      ? 'Closed from MT5 desktop. This is a historical result.'
+      : 'The broker close was reconciled. This is a historical result.')
     : execution.status === 'open' ? 'Position protected by broker-held stop and target. It stays open until one is hit.'
     : execution.status === 'pending' ? 'Entry is waiting at the broker. Cancel it manually in MT5 if you no longer want it.'
     : execution.status === 'disarmed' ? execution.close_reason || 'No new demo attempt is armed.'

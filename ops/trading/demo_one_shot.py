@@ -302,6 +302,8 @@ def _close_evidence(deals, ticket, request, mt5):
             if type(value) not in (int, float) or not math.isfinite(value):
                 return None
             total += value
+            if not math.isfinite(total):
+                return None
     closed_at = max(getattr(deal, "time", 0) for deal in exits)
     if type(closed_at) not in (int, float) or not math.isfinite(closed_at) or closed_at <= 0:
         return None
@@ -327,6 +329,26 @@ def _close_cause(mt5, row, exits):
                 and getattr(exits[0], "ticket", None) == deal_id)):
         return "timed"
     return "unknown close cause"
+
+
+def _observed_exit_reason(mt5, deals, ticket, expected_volume):
+    exits = [deal for deal in deals if getattr(deal, "entry", None) == 1]
+    protection = _protective_exit_reason(mt5, exits)
+    if protection is not None:
+        return protection
+    tickets = [getattr(deal, "ticket", None) for deal in deals]
+    if (type(expected_volume) not in (int, float) or not math.isfinite(expected_volume)
+            or expected_volume <= 0 or not exits
+            or any(type(value) is not int or value <= 0 for value in tickets)
+            or len(set(tickets)) != len(tickets)
+            or any(getattr(deal, "position_id", None) != ticket for deal in deals)
+            or any(getattr(deal, "reason", None) != mt5.DEAL_REASON_CLIENT for deal in exits)):
+        return None
+    for entry in (0, 1):
+        volume = sum(deal.volume for deal in deals if deal.entry == entry)
+        if not math.isclose(volume, expected_volume, rel_tol=0, abs_tol=1e-8):
+            return None
+    return "manual desktop"
 
 
 def _historical_protection(mt5, row, request, deals, ticket):
@@ -419,11 +441,9 @@ def _reconcile(mt5, db, row, now):
                 if close_reason is None:
                     raise ValueError("Broker-held protection was not verified before the close.")
             elif row["phase"] == "entry":
-                exits = [deal for deal in deals if getattr(deal, "position_id", None) == ticket
-                         and getattr(deal, "entry", None) == 1]
-                close_reason = _protective_exit_reason(mt5, exits)
+                close_reason = _observed_exit_reason(mt5, deals, ticket, row["volume"])
                 if close_reason is None:
-                    raise ValueError("Early close was not caused by broker protection.")
+                    raise ValueError("Close origin or complete observed volume was not verified.")
             else:
                 exits = [deal for deal in deals if getattr(deal, "position_id", None) == ticket
                          and getattr(deal, "entry", None) == 1]

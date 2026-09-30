@@ -25,7 +25,7 @@ def fake_mt5(*, enabled=False):
                ORDER_TYPE_SELL=1, ORDER_TIME_GTC=0, ORDER_FILLING_FOK=0,
                ORDER_FILLING_IOC=1, SYMBOL_TRADE_MODE_FULL=4,
                SYMBOL_FILLING_FOK=1, SYMBOL_FILLING_IOC=2,
-               DEAL_REASON_SL=4, DEAL_REASON_TP=5)
+               DEAL_REASON_CLIENT=0, DEAL_REASON_SL=4, DEAL_REASON_TP=5)
     mt5.account_info.return_value = Record(trade_mode=0, login=123,
         server="VTMarkets-Demo", trade_allowed=enabled, trade_expert=enabled,
         equity=10000, currency="USD")
@@ -498,7 +498,7 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(result["close_reason"], "stop loss")
         self.assertEqual(result["realized_net_usd"], -4.2)
 
-    def test_manual_early_close_after_observed_position_needs_attention(self):
+    def observed_desktop_close(self):
         arm_once(self.db, "buy", NOW)
         position = None
         deals = []
@@ -511,7 +511,7 @@ class AttemptTest(unittest.TestCase):
             deals.append(Record(position_id=77, entry=0, symbol="XAUUSD-VIP",
                                 magic=request["magic"], comment=request["comment"],
                                 order=78, ticket=88, type=0, volume=.01, price=request["price"],
-                                profit=0, commission=0, swap=0, fee=0, time=NOW))
+                                profit=0, commission=-.10, swap=0, fee=0, time=NOW))
             return Record(retcode=10009, order=78, deal=88)
 
         self.mt5.positions_get.side_effect = lambda *, symbol: () if position is None else (position,)
@@ -520,9 +520,83 @@ class AttemptTest(unittest.TestCase):
         self.assertEqual(process_once(self.mt5, self.db, NOW)["status"], "open")
         position = None
         deals.append(Record(position_id=77, entry=1, symbol="XAUUSD-VIP", magic=0,
-                            type=1, reason=0, volume=.01, profit=1, commission=0,
-                            swap=0, fee=0, time=NOW + 1))
-        self.assertEqual(process_once(self.mt5, self.db, NOW + 1)["status"], "needs_attention")
+                            ticket=89, type=1, reason=0, volume=.01, profit=-.20,
+                            commission=-.20, swap=-.15, fee=-.05, time=NOW + 1))
+        return deals
+
+    def test_manual_desktop_close_after_observed_position_is_reconciled(self):
+        self.observed_desktop_close()
+        with patch.dict(os.environ, {"MT5_SERVER_OFFSET_SECONDS": "10800"}):
+            result = process_once(self.mt5, self.db, NOW + 1, allow_entry=False)
+        self.assertEqual(result["status"], "closed")
+        self.assertEqual(result["close_reason"], "manual desktop")
+        self.assertEqual(result["volume"], .01)
+        self.assertEqual(result["closed_at"], NOW + 1 - 10800)
+        self.assertEqual(result["realized_net_usd"], -.70)
+        repeated = process_once(self.mt5, self.db, NOW + 2, allow_entry=False)
+        for field in ("status", "close_reason", "volume", "opened_at", "closed_at", "realized_net_usd"):
+            self.assertEqual(repeated[field], result[field])
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+        self.assertEqual(self.db.execute("SELECT count(*) FROM attempts").fetchone()[0], 1)
+
+    def test_invalid_desktop_close_evidence_stays_unresolved(self):
+        deals = self.observed_desktop_close()
+        originals = [vars(deal).copy() for deal in deals]
+        changes = [lambda: setattr(deals[1], "volume", .005),
+                   lambda: setattr(deals[1], "ticket", 88),
+                   lambda: delattr(deals[1], "ticket"),
+                   lambda: setattr(deals[1], "reason", 1),
+                   lambda: setattr(deals[1], "reason", 2),
+                   lambda: setattr(deals[1], "reason", 99),
+                   lambda: setattr(deals[1], "position_id", 999),
+                   lambda: delattr(deals[1], "fee"),
+                   lambda: setattr(deals[1], "profit", float("nan")),
+                   lambda: (setattr(deals[0], "profit", 1e308),
+                            setattr(deals[1], "profit", 1e308)),
+                   lambda: (setattr(deals[0], "volume", .005),
+                            setattr(deals[1], "volume", .005))]
+        for index, change in enumerate(changes):
+            for deal, original in zip(deals, originals):
+                deal.__dict__.clear()
+                deal.__dict__.update(original)
+            change()
+            with self.subTest(case=index):
+                result = process_once(self.mt5, self.db, NOW + 1, allow_entry=False)
+                self.assertEqual(result["status"], "needs_attention")
+                self.assertEqual(self.mt5.order_send.call_count, 1)
+
+    def test_multiple_desktop_exit_fills_require_complete_single_origin(self):
+        deals = self.observed_desktop_close()
+        deals[1].volume = .005
+        deals.append(Record(**{**vars(deals[1]), "ticket": 90}))
+        result = process_once(self.mt5, self.db, NOW + 1, allow_entry=False)
+        self.assertEqual(result["status"], "closed")
+        self.assertEqual(result["close_reason"], "manual desktop")
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+
+    def test_mixed_manual_and_protective_exit_is_unresolved(self):
+        deals = self.observed_desktop_close()
+        deals[1].volume = .005
+        deals.append(Record(**{**vars(deals[1]), "ticket": 90, "reason": 4}))
+        self.assertEqual(process_once(self.mt5, self.db, NOW + 1,
+                                     allow_entry=False)["status"], "needs_attention")
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+
+    def test_desktop_close_with_unknown_history_or_other_exposure_is_unresolved(self):
+        self.observed_desktop_close()
+        for query, value in (("history_deals_get", None),
+                             ("positions_get", (Record(symbol="XAUUSD-VIP", magic=0),)),
+                             ("orders_get", (Record(symbol="XAUUSD-VIP", ticket=999),))):
+            method = getattr(self.mt5, query)
+            original = method.side_effect
+            method.side_effect = None
+            method.return_value = value
+            with self.subTest(query=query):
+                self.assertEqual(process_once(self.mt5, self.db, NOW + 1,
+                                             allow_entry=False)["status"], "needs_attention")
+                self.assertEqual(self.mt5.order_send.call_count, 1)
+            method.side_effect = original
+            method.return_value = ()
 
     def test_fast_close_without_historical_protection_stays_unknown(self):
         arm_once(self.db, "buy", NOW)

@@ -44,3 +44,9 @@ const closedExecution = executionFields({ ...execution, status: 'closed',
 assert.equal(closedExecution.state, 'Closed');
 assert.match(closedExecution.closed, /1970/);
 assert.match(closedExecution.result, /0\.80/);
+assert.equal(closedExecution.guidance, 'The broker close was reconciled. This is a historical result.');
+const desktopClose = executionFields({ ...execution, status: 'closed', close_reason: 'manual desktop',
+  closed_at: 101, realized_net_usd: -.7 }, 500);
+assert.equal(desktopClose.state, 'Closed');
+assert.match(desktopClose.result, /-0\.70/);
+assert.equal(desktopClose.guidance, 'Closed from MT5 desktop. This is a historical result.');
