@@ -5,6 +5,9 @@ the owner's subsequent “start”. This document does not authorize research.
 The implemented replay is for synthetic fixtures only until packet/controller
 review and credential quarantine are implemented. All replay output remains
 explicitly unreviewed and unqualified; parsing provides no sensitive-content clearance.
+Development-packet validation and deterministic prompt construction are now
+implemented and tested with synthetic input. Model dispatch, real-report
+provenance and credential quarantine remain pending.
 Batch 2 remains `prepared_but_blocked`. Owner selected a structured proposal in
 this preparation session. Work was performed on `main`, starting at
 `0f31e35011b664627390386fa7c0bf24ceb139d3`.
@@ -192,6 +195,15 @@ Use a strict top-level packet with exactly `schema_version=1`, `experiment_id`,
 development input, fixed risk rules and approved policy. These identify inputs;
 they do not convey validation metrics or holdout contents.
 
+Exact identity keys are `manifest_sha256`, `source_sha256`,
+`development_input_sha256`, `risk_sha256` and `policy_sha256`; each is a lowercase
+64-hex SHA-256. Risk must match both the local unchanged `RISK` object and fixed
+digest `865e46d493db5939e9e3d98375ce727664d57c03bc42a06e548cace61a8e6ce7`.
+Policy must match the approved digest above. The other hashes are references;
+the future adapter must verify their source bytes before launch.
+`experiment_id` is 1–64 ASCII letters, digits, underscores or hyphens, starting
+with a letter or digit. Schema version is integer 1, never a boolean.
+
 For `development`, reuse the existing research summary fields:
 `bars_including_warmup`, `first_bar`, `last_bar`, `first_close`, `last_close`,
 `minimum_close`, `maximum_close`, `median_recorded_spread_points` and `gap_count`.
@@ -200,6 +212,24 @@ For `baseline_development`, include `lower`, `middle` and `stress`, each with
 `expectancy_usd_per_trade` and `close_sampled_drawdown_pct`. Nonfinite numbers
 are rejected; undefined metrics remain explicit nulls and never become zero.
 Bind each summary to its raw development report through the verified adapter.
+Warmup-inclusive bar count must be an integer at least 250; first/last epochs
+must be positive, ordered and aligned to M15. The count cannot exceed the
+available M15 slots. Gap count is an integer from zero to bar count minus one.
+Prices are finite and positive, first/last close lie within minimum/maximum,
+and median spread is finite and nonnegative. Trades are a finite nonnegative
+integer; drawdown is finite from zero to 100 percent. Profit factor is null or
+finite nonnegative; expectancy is null or finite. Return and net P&L are finite
+and required. These structural checks do not qualify timestamps or accounting.
+
+`proposal_schema` has exactly the existing three entries: `kind` is
+`ema20_slope_filter`, `lookback_bars` is the literal `integer 2..5`, and
+`hypothesis` is the literal `nonempty string, at most 2000 characters`.
+Limitations are a nonempty, duplicate-free list drawn only from
+`synthetic_fixture`, `validation_previously_inspected`,
+`reserved_bars_signal_replayed`, `historical_costs_unverified`,
+`broker_timestamps_unqualified` and `slippage_assumed`. These codes replace
+freeform text at the prompt boundary; new evidence limitations require a
+reviewed schema update rather than arbitrary text injection.
 The original `research_input` helper is a field-layout reference, not a
 qualified-input producer: its legacy identity and hypothetical assumptions
 must not be copied into the prospective packet.

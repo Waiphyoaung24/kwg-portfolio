@@ -2,6 +2,13 @@
 
 ## Batch 3 preparation — 2026-10-01 Bangkok
 
+Latest preparation step: strict development-packet validation and deterministic
+prompt construction implemented and reviewed with synthetic input. All 120
+trading Python tests passed, including seven research checks. Fixed risk/policy
+hashes, nested field allowlists and finite numeric checks reject malformed input
+before prompt rendering. Model dispatch, credential clearance and real-report
+provenance remain pending; Batch 2 still gates research. No VPS state changed.
+
 Preparation milestone: [integration specification](../../docs/superpowers/specs/2026-10-01-gold-batch3-vibe-integration.md)
 and [implementation plan](../../docs/superpowers/plans/2026-10-01-gold-batch3-vibe-integration.md)
 saved on main. Owner selected one strict structured Vibe-Trading proposal using

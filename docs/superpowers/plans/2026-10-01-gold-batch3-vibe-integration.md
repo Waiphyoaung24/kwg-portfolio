@@ -4,6 +4,16 @@
 
 ## Implementation checkpoint — owner requested start
 
+Latest preparation checkpoint: `validate_packet(packet: dict) -> dict` and
+`build_prompt(packet: dict) -> str` are implemented in `research-gold.py`.
+They enforce the spec's nested field shapes, fixed risk/policy hashes, finite
+numbers and limitation codes; prompt JSON is canonical and undefined metrics
+stay null. Unknown fields and unsupported values raise a safe generic error
+before rendering. Input remains unreviewed; source hashes are not yet verified
+against raw reports. Seven research tests and all 120 trading tests passed.
+Fresh review found fixed-risk drift and oversized integer gaps; regression
+checks failed first and then passed after fixes, with no remaining scoped finding.
+
 Owner's subsequent “start” is interpreted as authorization for preparation
 implementation on main, within the original prohibition on candidate research.
 The offline portion of Task 2 is implemented in `research-gold.py`:
@@ -29,6 +39,10 @@ prompt generation, model dispatch/deadlines, isolation and usage/cost accounting
 remain pending. No placeholder transport or launch command was added; Task 2
 is partial. Tasks 3/4 remain gated. Synthetic fixtures choose a lookback solely
 to exercise parsing; they are not registered research candidates.
+
+The subsequent owner request to go next completed packet validation and prompt
+generation from that pending list. Dispatch, isolation, credential clearance,
+usage/cost accounting and qualified report provenance are still pending.
 
 Task 1 source inspection identified
 `src.providers.llm.build_llm(*, model_name=None, callbacks=None)` in installed
