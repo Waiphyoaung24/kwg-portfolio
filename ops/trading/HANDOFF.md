@@ -2,6 +2,16 @@
 
 ## Current checkpoint — Batch 2 evidence, 2026-09-30
 
+### Wrap-up verdict — qualification still blocked
+
+Read the [current wrap-up and exact remaining gates](../../docs/superpowers/plans/2026-09-30-gold-batch2-wrap-up.md)
+first. The owner verified exclusive capture bytes and fresh exposure-free state;
+the current session specification was preserved privately. These complete
+deployed capture verification, not session recovery or interval qualification.
+Current cost validation still rejects historical commission and swap coverage.
+A private prospective draft is prepared but has no start/windows/holdout and
+does not represent an active collection run. Batch 3 remains gated.
+
 ### Continuation implementation — owner rollout verified, page check pending
 
 The owner approved native execution on main and desktop closes only. Read the
@@ -12,8 +22,9 @@ Local implementation adds strict observed-volume desktop-close reconciliation,
 its page guidance and exclusive dated probe output. The owner verified image
 source hashes, a consistent journal backup and an exposure-free Algo-off check,
 then recreated the desktop and status services. Startup reconciled the existing
-attempt as a verified desktop close. Authenticated page projection and a fresh
-exclusive evidence capture remain pending. No new order was used for this check.
+attempt as a verified desktop close. The owner subsequently verified exclusive
+capture bytes. Authenticated page projection remains pending. No new order was
+used for this check.
 The VPS Dockerfile and `.dockerignore` both needed the existing repository's
 `batch2-evidence.py` inclusion; updating only the runner files was insufficient.
 Qualification remains `prepared_but_blocked`; `simulator_provenance_unverified`

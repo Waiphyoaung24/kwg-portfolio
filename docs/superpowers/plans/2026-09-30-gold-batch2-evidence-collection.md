@@ -61,10 +61,15 @@ Modify `ops/trading/batch2-evidence.py`, `ops/trading/test_batch2_evidence.py`, 
 - [ ] If coverage is incomplete, append named blockers to the private manifest and sanitized handoff, retaining `prepared_but_blocked`; Task 3 ends with an honest readiness report, not a baseline qualification claim.
 - [ ] If coverage is complete, specify a separate simulator-to-gate adapter plan using the real raw report schema, hash identities, UTC daily aggregation and exact folds. Preserve `simulator_provenance_unverified` until that implementation and its tamper/reconciliation tests pass. This deferred plan is required before using a real eligibility result.
 - [ ] Only after that follow-up, rerun the fixed baseline twice with identical immutable inputs and distinct exclusive filenames, compare bytes and report code/data/cost/policy/window hashes. Keep previously inspected results diagnostic. Do not fabricate a candidate report or call Vibe-Trading in this plan.
-- [ ] Update `HANDOFF.md` with completed collection steps and remaining blockers; commit sanitized docs with `git commit -m "Record gold evidence readiness and remaining gates"`.
+- [x] Update `HANDOFF.md` with completed collection steps and remaining blockers; commit sanitized docs with `git commit -m "Record gold evidence readiness and remaining gates"`.
 
 ## Completion and self-review
 
 Task 1 covers safe capture; Task 2 covers session recovery and prospective provenance; Task 3 covers honest evidence gates. Actual qualification depends on external evidence and adequate observations. A passing capture test or matched holiday gap never promotes a strategy. No private runtime data is embedded in these plans.
 
 Execution note: Task 1 implementation and sanitized protocol are committed on main. Tasks 2/3 external evidence and qualification remain pending; documentation is preparation, not evidence of completion.
+
+Wrap-up: the owner verified deployed exclusive output bytes and supplied a
+current session specification crop, preserved privately. Cost validation still
+returns uncovered. A private prospective draft is prepared, not started; no
+start, validation windows or holdout was invented. See the [wrap-up verdict](2026-09-30-gold-batch2-wrap-up.md).
