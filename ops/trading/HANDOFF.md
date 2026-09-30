@@ -1,5 +1,15 @@
 # Gold trading handoff — 2026-09-28
 
+## Resume checkpoint — 2026-10-01 Bangkok
+
+Owner stopped for the day and will continue tomorrow. Read the
+[saved session checkpoint](../../docs/superpowers/plans/2026-10-01-gold-batch3-session-checkpoint.md)
+first. Local main contains preparation commits `fb80e49` and `8883439`; nothing
+was pushed or deployed. Next independent preparation is secret-safe read-only
+model-route verification, then synthetic controller work. Batch 2 remains
+blocked. Smoke finish capture is after October 2, 00:15 Bangkok; no final
+capture/verdict is confirmed. Preserve collector/artifacts and Algo-off state.
+
 ## Batch 3 preparation — 2026-10-01 Bangkok
 
 Latest preparation step: strict development-packet validation and deterministic
