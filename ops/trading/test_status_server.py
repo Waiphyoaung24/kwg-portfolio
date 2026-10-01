@@ -2,11 +2,37 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from http.server import ThreadingHTTPServer
+from threading import Thread
+from urllib.request import urlopen
+from urllib.error import HTTPError
+from unittest.mock import patch
 
-from status_server import read_status, sanitize_health
+from status_server import Handler, read_status, sanitize_health
 
 
 class StatusServerTest(unittest.TestCase):
+    def test_operations_page_uses_fixed_file_and_rejects_unknown_path(self):
+        with tempfile.TemporaryDirectory() as root:
+            page = Path(root) / "trading-bot.html"
+            page.write_text("<h1>Gold operations</h1>")
+            with patch("status_server.TRADING_BOT_PAGE", page, create=True):
+                server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+                thread = Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    origin = f"http://127.0.0.1:{server.server_port}"
+                    with urlopen(origin + "/vault/trading-bot", timeout=2) as response:
+                        self.assertEqual(response.read(), b"<h1>Gold operations</h1>")
+                        self.assertEqual(response.headers["Cache-Control"], "no-store")
+                    with self.assertRaises(HTTPError) as error:
+                        urlopen(origin + "/vault/trading-bot/unknown", timeout=2)
+                    self.assertEqual(error.exception.code, 404)
+                finally:
+                    server.shutdown()
+                    server.server_close()
+                    thread.join()
+
     def test_execution_snapshot_is_allowlisted_and_expires_except_closed(self):
         with tempfile.TemporaryDirectory() as root:
             observer = Path(root) / "latest.json"

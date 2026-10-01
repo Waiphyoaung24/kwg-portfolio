@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 SNAPSHOT = Path("/status/latest.json")
 EXECUTION = Path("/status/execution.json")
 TRADING_PAGE = Path("/app/trading.html")
+TRADING_BOT_PAGE = Path("/app/trading-bot.html")
 
 
 def sanitize_health(value):
@@ -134,9 +135,9 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(result)
 
     def do_GET(self):
-        if self.path == "/vault/trading":
+        if self.path in ("/vault/trading", "/vault/trading-bot"):
             try:
-                body = TRADING_PAGE.read_bytes()
+                body = (TRADING_BOT_PAGE if self.path == "/vault/trading-bot" else TRADING_PAGE).read_bytes()
             except OSError:
                 self.send_error(503)
                 return

@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import subprocess
+import sys
+from unittest.mock import patch
 
 
 MODULE = Path(__file__).with_name('research-gold.py')
@@ -63,6 +66,36 @@ class ResearchTest(unittest.TestCase):
         boundary = {**proposal, 'hypothesis': 'x' * 2000}
         self.assertEqual(self.research.parse_proposal(json.dumps(boundary).encode()), boundary)
         self.assertEqual(self.research.parse_proposal(GOOD + b' ' * (16384 - len(GOOD))), proposal)
+
+    def test_packet_cli_exports_prompt_without_dispatch_or_overwrite(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            packet = root / 'packet.json'
+            packet.write_text(json.dumps(packet_fixture()), encoding='utf-8')
+            output = root / 'handoff'
+            command = [sys.executable, '-B', str(MODULE), '--packet', str(packet), '--output', str(output)]
+            run = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            result = json.loads(run.stdout)
+            self.assertEqual(result['model_requests'], 0)
+            self.assertEqual(result['promotion_status'], 'blocked')
+            self.assertEqual(result['qualification'], 'unqualified')
+            self.assertEqual(result['status'], 'prepared_offline')
+            prompt = (output / 'prompt.txt').read_bytes()
+            self.assertEqual(prompt, self.research.build_prompt(packet_fixture()).encode('utf-8'))
+            self.assertEqual(result['prompt_sha256'], hashlib.sha256(prompt).hexdigest())
+            saved = {p.name: p.read_bytes() for p in output.iterdir()}
+            self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
+            self.assertEqual({p.name: p.read_bytes() for p in output.iterdir()}, saved)
+            for raw in ('{"schema_version":1,"schema_version":1}',
+                        json.dumps({**packet_fixture(), 'validation': 'DO_NOT_RENDER'}),
+                        'x' * 16385):
+                packet.write_text(raw, encoding='utf-8')
+                rejected = root / 'rejected'
+                run = subprocess.run(command[:-1] + [str(rejected)], capture_output=True, text=True)
+                self.assertNotEqual(run.returncode, 0)
+                self.assertNotIn('DO_NOT_RENDER', run.stdout + run.stderr)
+                self.assertFalse(rejected.exists())
 
     def test_offline_replay_preserves_bytes_and_refuses_overwrite(self):
         self.assertTrue(MODULE.exists(), 'Offline response replay is missing')
@@ -178,6 +211,88 @@ class ResearchTest(unittest.TestCase):
                 self.research.validate_packet(packet)
         finally:
             self.research.RISK['entry_equity_fraction'] = prior
+
+    def test_synthetic_attempt_reserves_before_dispatch_and_never_retries(self):
+        self.assertTrue(hasattr(self.research, 'run_synthetic_attempt'))
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'attempt'
+            calls = []
+            def request(prompt):
+                marker = json.loads((output / 'attempt.json').read_bytes())
+                self.assertEqual(marker['state'], 'dispatch_reserved')
+                self.assertEqual(marker['prompt_sha256'], hashlib.sha256(prompt.encode()).hexdigest())
+                calls.append(prompt)
+                return {'response_bytes': GOOD, 'tool_calls': []}
+            result = self.research.run_synthetic_attempt(packet_fixture(), output, request)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(result['status'], 'parsed_synthetic')
+            self.assertIsNone(result['model_requests'])
+            self.assertEqual(result['request_invocations'], 1)
+            self.assertFalse(result['candidate_registered'])
+            self.assertEqual(result['promotion_status'], 'blocked')
+            self.assertEqual((output / 'response.json').read_bytes(), GOOD)
+            with self.assertRaises(FileExistsError):
+                self.research.run_synthetic_attempt(packet_fixture(), output, request)
+            self.assertEqual(len(calls), 1)
+
+    def test_synthetic_attempt_errors_interruptions_and_input_rejection(self):
+        self.assertTrue(hasattr(self.research, 'run_synthetic_attempt'))
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            calls = []
+            def failure(prompt):
+                calls.append(1)
+                raise RuntimeError('DO_NOT_RENDER_PRIVATE_ERROR')
+            output = root / 'failure'
+            result = self.research.run_synthetic_attempt(packet_fixture(), output, failure)
+            self.assertEqual(result['status'], 'request_failed')
+            self.assertNotIn('DO_NOT_RENDER', (output / 'result.json').read_text())
+            with self.assertRaises(FileExistsError):
+                self.research.run_synthetic_attempt(packet_fixture(), output, failure)
+            self.assertEqual(len(calls), 1)
+
+            def interrupted(prompt):
+                raise KeyboardInterrupt()
+            output = root / 'interrupted'
+            with self.assertRaises(KeyboardInterrupt):
+                self.research.run_synthetic_attempt(packet_fixture(), output, interrupted)
+            self.assertTrue((output / 'attempt.json').exists())
+            self.assertFalse((output / 'result.json').exists())
+            with self.assertRaises(FileExistsError):
+                self.research.run_synthetic_attempt(packet_fixture(), output, failure)
+            for packet in ({**packet_fixture(), 'holdout': [1]},
+                           {**packet_fixture(), 'limitations': ['historical_costs_unverified']}):
+                with self.assertRaises(ValueError):
+                    self.research.run_synthetic_attempt(packet, root / 'rejected', failure)
+                self.assertFalse((root / 'rejected').exists())
+            self.assertEqual(len(calls), 1)
+
+    def test_synthetic_attempt_marker_flush_failure_prevents_dispatch(self):
+        self.assertTrue(hasattr(self.research, 'run_synthetic_attempt'))
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'attempt'
+            calls = []
+            with patch.object(self.research.os, 'fsync', side_effect=OSError('Synthetic disk failure')):
+                with self.assertRaises(OSError):
+                    self.research.run_synthetic_attempt(packet_fixture(), output, lambda prompt: calls.append(1))
+            self.assertFalse(calls)
+            with self.assertRaises(FileExistsError):
+                self.research.run_synthetic_attempt(packet_fixture(), output, lambda prompt: calls.append(1))
+            self.assertFalse(calls)
+
+    def test_synthetic_attempt_bounds_and_tool_output(self):
+        self.assertTrue(hasattr(self.research, 'run_synthetic_attempt'))
+        cases = [({'response_bytes': b'x' * 16385, 'tool_calls': []}, 'response_too_large'),
+                 ({'response_bytes': GOOD, 'tool_calls': [{'name': 'shell'}]}, 'invalid_transport_response'),
+                 ({'response_bytes': GOOD, 'tool_calls': [], 'extra': True}, 'invalid_transport_response'),
+                 ({'response_bytes': b'bad', 'tool_calls': []}, 'invalid_response')]
+        with tempfile.TemporaryDirectory() as folder:
+            for index, (response, status) in enumerate(cases):
+                output = Path(folder) / str(index)
+                result = self.research.run_synthetic_attempt(packet_fixture(), output, lambda prompt: response)
+                self.assertEqual(result['status'], status)
+                self.assertFalse((output / 'proposal.json').exists())
+                self.assertEqual((output / 'response.json').exists(), status == 'invalid_response')
 
 
 if __name__ == '__main__':

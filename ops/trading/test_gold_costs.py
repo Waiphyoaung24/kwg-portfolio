@@ -1,4 +1,5 @@
 import unittest
+import copy
 
 from gold_costs import commission_usd, rollover_cashflow_usd, validate_profile
 
@@ -40,6 +41,24 @@ class CostTest(unittest.TestCase):
         self.assertIn('swap_unverified', validate_profile(self.profile, 1, 100)['blockers'])
         with self.assertRaises(ValueError):
             rollover_cashflow_usd(self.profile, 1, 1, {}, 1, 100)
+
+    def test_malformed_costs_never_claim_coverage(self):
+        for part, updates in (
+                ('commission', {'value': None}),
+                ('commission', {'value': float('nan')}),
+                ('commission', {'currency': 'unknown'}),
+                ('swap', {'mode': 'unknown'}),
+                ('swap', {'rollover_events': [{'at': 100, 'multiplier': 1,
+                                             'rate_long': -2, 'rate_short': None}]}),
+                ('swap', {'rollover_events': [{'at': 100, 'multiplier': -1,
+                                             'rate_long': -2, 'rate_short': 1}]}),
+                ('swap', {'rollover_events': [None]})):
+            with self.subTest(part=part, updates=updates):
+                profile = copy.deepcopy(self.profile)
+                profile[part].update(updates)
+                result = validate_profile(profile, 1, 1000)
+                self.assertFalse(result['historical_coverage'])
+                self.assertIn(f'{part}_terms_invalid', result['blockers'])
 
 
 if __name__ == '__main__':

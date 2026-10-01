@@ -149,19 +149,30 @@ as secrets too. Protect the Worker itself with Access for that email across all
 routes, leave `workers.dev` disabled, then deploy from `ops/trading/worker` with
 Wrangler. No secret values belong in source, commands, logs, or chat.
 
-After changing `src/pages/vault/trading.astro`, build Astro and regenerate the
-self-contained page served by the private status service:
+After changing `src/pages/vault/trading.astro` or `trading-bot.astro`, build
+Astro and regenerate both self-contained pages served by the private status service:
 
 ```sh
 npm run build
 node ops/trading/build-status-page.mjs
 ```
 
-Commit `ops/trading/trading.html` with the source change, copy it and
-`status_server.py` to the VPS Compose directory, then restart only the status
+Commit `ops/trading/trading.html` and `trading-bot.html` with source changes.
+For a separately authorized deployment, copy both pages, `status_server.py`
+and the updated read-only HTML mount in `compose.yml` to the VPS Compose
+directory, then restart only the status
 sidecar. Deploy the Worker routes with Wrangler afterward. The page and API
 both require the one-email Worker Access policy; the origin accepts only its
 dedicated service token.
+
+`/vault/trading-bot` is the read-only gold operations workspace. It reuses
+`/api/trading/status` and shows one-shot results separately from the unavailable
+autonomous runner. Research and qualification sections are dated preparation
+notes, not live evidence. The exact Access-viewer check covers both page routes;
+unknown subpaths and dashboard POSTs are rejected. The existing Worker route
+pattern already covers the new URL. This source change does not deploy it,
+connect Vibe/Codex inference or enable orders. Verify the dashboard's protected
+route end-to-end before exposing a new deployment; Vault obscurity is not auth.
 
 The VPS status sidecar and Cloudflare Tunnel, Access policies, API Worker,
 and trading page route were deployed by 2026-09-28. The sidecar returned HTTP

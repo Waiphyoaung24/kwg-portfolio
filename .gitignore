@@ -38,3 +38,6 @@ public/works/capabilities/
 .claude/
 .superpowers/
 task_plan.md
+
+# private Batch 3 application state, uploads and OAuth credentials
+.batch3-vibe/

@@ -28,6 +28,13 @@ def validate_profile(profile: dict, start: int, end: int) -> dict:
         if part == 'swap' and (not item.get('rollover_timezone') or not item.get('rollover_local_time')
                                or not isinstance(item.get('rollover_events'), list)):
             blockers.append('swap_schedule_missing')
+        try:
+            if part == 'commission':
+                commission_usd(profile, 1, 'entry')
+            else:
+                list(_swap_events(item))
+        except ValueError:
+            blockers.append(f'{part}_terms_invalid')
     if profile.get('symbol') != 'XAUUSD-VIP':
         raise ValueError('Wrong symbol')
     return {'historical_coverage': not blockers, 'blockers': blockers}
@@ -47,6 +54,27 @@ def commission_usd(profile: dict, lots: float, side: str) -> float:
     if value < 0:
         raise ValueError('Negative commission')
     return value * lots / (2 if fee['basis'] == 'round_trip_per_lot' else 1)
+
+
+def _swap_events(swap):
+    if (swap.get('mode') not in ('POINTS', 'USD_PER_LOT')
+            or (swap.get('mode') == 'USD_PER_LOT' and swap.get('currency') != 'USD')
+            or not isinstance(swap.get('rollover_events'), list)):
+        raise ValueError('Unsupported swap terms')
+    previous = None
+    for event in swap['rollover_events']:
+        if not isinstance(event, dict):
+            raise ValueError('Invalid rollover event')
+        at = event.get('at')
+        if type(at) is not int or (previous is not None and at <= previous):
+            raise ValueError('Unsorted rollover events')
+        previous = at
+        multiplier = _amount(event.get('multiplier'), 'rollover multiplier')
+        if multiplier < 0:
+            raise ValueError('Negative rollover multiplier')
+        _amount(event.get('rate_long'), 'long swap rate')
+        _amount(event.get('rate_short'), 'short swap rate')
+        yield event
 
 
 def rollover_cashflow_usd(profile: dict, direction: int, lots: float,
@@ -70,15 +98,9 @@ def rollover_cashflow_usd(profile: dict, direction: int, lots: float,
     else:
         raise ValueError('Unsupported swap mode')
     total = 0.0
-    previous = None
-    for event in swap.get('rollover_events', []):
-        at = event.get('at')
-        if type(at) is not int or (previous is not None and at <= previous):
-            raise ValueError('Unsorted rollover events')
-        previous = at
-        multiplier = _amount(event.get('multiplier'), 'rollover multiplier')
-        if multiplier < 0:
-            raise ValueError('Negative rollover multiplier')
+    for event in _swap_events(swap):
+        at = event['at']
+        multiplier = event['multiplier']
         rate = _amount(event.get('rate_long' if direction == 1 else 'rate_short'), 'swap rate')
         if start < at <= end:
             total += rate * multiplier * factor * lots

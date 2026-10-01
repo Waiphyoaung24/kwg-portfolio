@@ -6,6 +6,31 @@ const url = 'https://waiphyoaung.com/api/trading/status';
 const env = { ALLOWED_VIEWER_EMAIL: 'owner@example.com', STATUS_ORIGIN_URL: 'https://origin.example/status', STATUS_ACCESS_CLIENT_ID: 'id', STATUS_ACCESS_CLIENT_SECRET: 'secret' };
 const access = { getIdentity: async () => ({ email: 'owner@example.com' }) };
 
+test('operations page requires exact Access identity and supports only fixed GET paths', async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  let calls = 0;
+  globalThis.fetch = async (origin) => {
+    calls++;
+    assert.equal(new URL(origin).pathname, '/vault/trading-bot');
+    return new Response('<h1>Gold operations</h1>', { headers: { 'Content-Type': 'text/html' } });
+  };
+  for (const path of ['/vault/trading-bot', '/vault/trading-bot/']) {
+    const page = new Request(`https://waiphyoaung.com${path}`);
+    assert.equal((await worker.fetch(page, env, {})).status, 403);
+    assert.equal((await worker.fetch(page, env, { access: { getIdentity: async () => ({ email: 'other@example.com' }) } })).status, 403);
+    assert.equal(calls, path.endsWith('/') ? 1 : 0);
+    const response = await worker.fetch(page, env, { access });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store');
+    assert.equal(response.headers.get('X-Robots-Tag'), 'noindex');
+    assert.equal(await response.text(), '<h1>Gold operations</h1>');
+  }
+  assert.equal((await worker.fetch(new Request('https://waiphyoaung.com/vault/trading-bot', { method: 'POST' }), env, { access })).status, 404);
+  assert.equal((await worker.fetch(new Request('https://waiphyoaung.com/vault/trading-bot/unknown'), env, { access })).status, 404);
+  assert.equal(calls, 2);
+});
+
 test('health evidence is sanitized and expires at 30 seconds', () => {
   const report = { mode: 'signal-only', symbol: 'XAUUSD-VIP', status: 'blocked', signal: 'none',
     checked_at: 100, bar_time: null, health: { terminal: 'connected', quote: 'future',

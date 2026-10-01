@@ -1,0 +1,213 @@
+---
+import '../../styles/index.scss';
+export const prerender = true;
+const stages = [
+  { number: '01', title: 'Observe', detail: 'Completed gold M15 candles. Feed health comes from the observer.', state: 'Feed below' },
+  { number: '02', title: 'Research', detail: 'Vibe-Trading + Codex OAuth. Separate app configuration prepared; research has not started.', state: 'Not connected' },
+  { number: '03', title: 'Qualify', detail: 'Compare one proposal with the fixed baseline using dated costs and covered evidence.', state: 'Batch 2 gated' },
+  { number: '04', title: 'Approve', detail: 'Human approval applies to the exact strategy and evidence before any promotion.', state: 'No candidate' },
+  { number: '05', title: 'Run', detail: 'A future approved runner manages eligible trades within fixed limits.', state: 'Unavailable' },
+];
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Gold operations — Vault — KWG</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400&family=JetBrains+Mono:wght@400&display=swap" />
+  </head>
+  <body>
+    <main class="operations">
+      <nav class="actions" aria-label="Trading navigation">
+        <a class="pill-btn" href="/vault">← Vault</a>
+        <a class="pill-btn" href="/vault/trading">Supervised demo</a>
+      </nav>
+      <header class="intro">
+        <p class="label">XAUUSD-VIP · M15 · demo</p>
+        <h1>Gold operations</h1>
+        <p>Observe the market. Review the research. Know what can run.</p>
+      </header>
+      <section class="operating" aria-labelledby="operating-title">
+        <div>
+          <p class="label">Autonomous runner</p>
+          <h2 id="operating-title">Not enabled</h2>
+          <p>A continuous runner is not implemented. Strategy qualification and your approval are required before autonomous demo execution.</p>
+        </div>
+        <div class="actions">
+          <button class="pill-btn pill-btn--filled" id="refresh" type="button">Refresh feed</button>
+          <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to feed</a>
+        </div>
+      </section>
+      <div class="workspace">
+        <div class="primary">
+          <section class="panel" aria-labelledby="feed-title">
+            <div class="section-head"><h2 id="feed-title">Market observation</h2><span class="label" id="feed-state">Checking</span></div>
+            <dl class="readings">
+              <div><dt>MT5 connection</dt><dd id="connection">Checking</dd></div>
+              <div><dt>Quote freshness</dt><dd id="freshness">Checking</dd></div>
+              <div><dt>Strategy signal</dt><dd id="signal">Checking</dd></div>
+              <div><dt>Completed history</dt><dd id="history">Checking</dd></div>
+            </dl>
+            <p id="guidance" role="status" aria-live="polite">Connecting to the protected status feed.</p>
+            <details>
+              <summary class="pill-btn">Observation details</summary>
+              <dl class="readings">
+                <div><dt>Observer heartbeat</dt><dd id="heartbeat">Unknown</dd></div>
+                <div><dt>Latest candle opened</dt><dd id="candle">—</dd></div>
+                <div><dt>Quote checked</dt><dd id="tick">—</dd></div>
+                <div><dt>Last report</dt><dd id="checked">—</dd></div>
+              </dl>
+              <p id="reason">Waiting for a current report.</p>
+            </details>
+            <p class="note">This feed provides health and signals, not chart prices. A market chart needs a verified candle-data API.</p>
+          </section>
+          <section class="panel" aria-labelledby="attempt-title">
+            <div class="section-head"><h2 id="attempt-title">Latest supervised attempt</h2><span class="label" id="attempt-state">Unknown</span></div>
+            <p id="attempt-guidance">No execution report loaded.</p>
+            <dl class="readings">
+              <div><dt>Direction / size</dt><dd id="attempt-size">—</dd></div>
+              <div><dt>Broker-reconciled net result</dt><dd id="attempt-result">—</dd></div>
+              <div><dt>Entry / stop / target</dt><dd id="attempt-prices">—</dd></div>
+              <div><dt>Closed</dt><dd id="attempt-closed">—</dd></div>
+            </dl>
+            <p class="note">One supervised attempt only. This is not an autonomous position inventory, trade history or strategy return.</p>
+          </section>
+          <section class="panel" aria-labelledby="workflow-title">
+            <div class="section-head"><h2 id="workflow-title">From evidence to execution</h2></div>
+            <p class="note">Preparation snapshot · October 1, 2026 · not a live qualification report</p>
+            <ol class="workflow">
+              {stages.map(stage => <li><span class="micro">{stage.number}</span><div><h3>{stage.title}</h3><p>{stage.detail}</p></div><span class="micro stage-state">{stage.state}</span></li>)}
+            </ol>
+          </section>
+        </div>
+        <aside class="secondary" aria-label="Strategy and qualification">
+          <section class="panel" aria-labelledby="strategy-title">
+            <p class="label">Fixed baseline</p>
+            <h2 id="strategy-title">EMA20 / EMA50</h2>
+            <p>Completed M15 crossover with ATR14. Research can propose one bounded entry filter; risk rules stay fixed.</p>
+            <dl class="readings">
+              <div><dt>Entry risk</dt><dd>0.1% equity</dd></div>
+              <div><dt>Stop / target</dt><dd>2 ATR / 3 ATR</dd></div>
+              <div><dt>Daily entry pause</dt><dd>1% equity loss</dd></div>
+              <div><dt>Position limit</dt><dd>One gold position</dd></div>
+            </dl>
+            <p class="note">Approved strategy limits, not proof that an autonomous runner is enforcing them. No pyramiding, martingale or same-candle reversal.</p>
+          </section>
+          <section class="panel" aria-labelledby="gates-title">
+            <p class="label">Preparation snapshot · Oct 1</p>
+            <h2 id="gates-title">Qualification gates</h2>
+            <ul class="gates">
+              <li>Dated costs and broker clock coverage</li>
+              <li>Frozen prospective protocol</li>
+              <li>60 validation days; three flat folds of at least 20 days</li>
+              <li>100 closed trades per strategy</li>
+              <li>Verified report provenance and repeatable baseline</li>
+              <li>Performance and stress criteria, then human approval</li>
+            </ul>
+            <p class="note">The one-day smoke test checks the pipeline. Its capture deadline is October 2, 00:15 Bangkok; it does not complete qualification.</p>
+          </section>
+          <section class="panel" aria-labelledby="research-title">
+            <p class="label">AI research workspace</p>
+            <h2 id="research-title">Vibe-Trading</h2>
+            <p>OpenAI Codex through ChatGPT OAuth. Local configuration is prepared; the app and authenticated inference route are not connected to this page.</p>
+            <a class="pill-btn" href="http://127.0.0.1:8899/" target="_blank" rel="noopener noreferrer" aria-describedby="local-workspace-note">Open local Vibe workspace ↗</a>
+            <p class="note" id="local-workspace-note">Opens the separate app on this computer. It must be running locally; OAuth login and research permissions are not verified by this link.</p>
+            <p class="note">No proposal, comparison or approval is available here. Model dispatch stays blocked while isolation and request limits are verified.</p>
+          </section>
+        </aside>
+      </div>
+      <footer><p class="note">Feed refreshes every 10 seconds. Preparation notes are dated and do not update from the observer.</p></footer>
+      <noscript><p>Enable JavaScript to load the feed. No current observation or execution data is shown without it.</p></noscript>
+    </main>
+    <script>
+      import { statusFields, executionFields } from '../../scripts/trading-status.mjs';
+      const field = (id: string) => document.getElementById(id)!;
+      const refresh = field('refresh') as HTMLButtonElement;
+      const signIn = field('sign-in');
+      const offline = { status: 'offline', checked_at: null };
+      let latest: any = offline;
+      function render(data: any) {
+        const status = statusFields(data);
+        field('feed-state').textContent = status.state;
+        for (const key of ['connection', 'freshness', 'signal', 'history', 'guidance', 'heartbeat', 'candle', 'tick', 'checked', 'reason'] as const) {
+          field(key).textContent = status[key];
+        }
+        const execution = executionFields(data.execution);
+        field('attempt-state').textContent = execution.state;
+        field('attempt-guidance').textContent = execution.guidance;
+        field('attempt-size').textContent = `${execution.side} / ${execution.volume}`;
+        field('attempt-result').textContent = execution.result;
+        field('attempt-prices').textContent = `${execution.entry} / ${execution.sl} / ${execution.tp}`;
+        field('attempt-closed').textContent = execution.closed;
+      }
+      async function load() {
+        if (refresh.disabled) return;
+        refresh.disabled = true;
+        refresh.textContent = 'Refreshing…';
+        try {
+          const response = await fetch('/api/trading/status', { cache: 'no-store', redirect: 'manual', signal: AbortSignal.timeout(8000) });
+          if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('Unavailable');
+          const data = await response.json();
+          if (data.mode !== 'signal-only' || data.symbol !== 'XAUUSD-VIP') throw new Error('Invalid feed');
+          latest = data;
+          signIn.hidden = true;
+          render(latest);
+        } catch {
+          latest = offline;
+          render(latest);
+          field('guidance').textContent = 'Feed unavailable. Sign in to the protected feed, then refresh. Existing trading activity is unknown.';
+          signIn.hidden = false;
+        } finally {
+          refresh.disabled = false;
+          refresh.textContent = 'Refresh feed';
+        }
+      }
+      refresh.addEventListener('click', load);
+      load();
+      setInterval(load, 10000);
+      // Expire observations even while a network request is waiting.
+      setInterval(() => { if (latest !== offline) render(latest); }, 1000);
+    </script>
+    <style>
+      /* Structural 1px rules and rem media thresholds are layout constants. */
+      .operations { width: min(100%, var(--container-max-width)); margin-inline: auto; padding: var(--sp-3xl) var(--grid-margin); display: grid; gap: var(--sp-2xl); }
+      .actions { display: flex; flex-wrap: wrap; gap: var(--sp-md); align-items: center; }
+      .actions [hidden] { display: none; }
+      .intro h1 { font-size: var(--fs-2); letter-spacing: var(--ls-2); line-height: 1; margin: var(--sp-lg) 0; }
+      p { color: var(--c-body); line-height: 1.6; max-width: 65ch; }
+      .intro p, .operating p { margin: 0; }
+      h2, h3 { font-weight: var(--fw-regular); }
+      h2 { font-size: var(--fs-4); letter-spacing: var(--ls-4); margin: 0; line-height: 1.2; }
+      h3 { font-size: var(--fs-5); margin: 0; }
+      .operating { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2xl); padding: var(--sp-2xl) 0; border-block: 1px solid var(--c-hairline-bright); }
+      .operating h2 { font-size: var(--fs-3); margin: var(--sp-md) 0; }
+      .operating > div:first-child { flex: 1; }
+      .workspace { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--sp-3xl); }
+      .primary, .secondary { display: grid; gap: var(--sp-2xl); align-content: start; min-width: 0; }
+      .secondary { border-left: 1px solid var(--c-hairline); padding-left: var(--sp-2xl); }
+      .panel { padding-bottom: var(--sp-2xl); border-bottom: 1px solid var(--c-hairline); min-width: 0; }
+      .section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-md); }
+      .label, .micro { color: var(--c-body); }
+      .readings { margin: var(--sp-xl) 0; }
+      .readings > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-lg); padding: var(--sp-md) 0; border-bottom: 1px solid var(--c-hairline); }
+      dt { color: var(--c-body); }
+      dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+      .note { font-size: var(--fs-body-sm); }
+      summary { width: fit-content; }
+      .workflow { list-style: none; padding: 0; margin: var(--sp-xl) 0 0; }
+      .workflow li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--sp-lg); align-items: baseline; border-top: 1px solid var(--c-hairline); padding: var(--sp-xl) 0; }
+      .workflow p { margin: var(--sp-sm) 0 0; }
+      .stage-state { text-align: right; }
+      .gates { color: var(--c-body); padding-left: var(--sp-lg); line-height: 1.6; }
+      .gates li { margin-block: var(--sp-md); }
+      button:disabled { cursor: wait; opacity: .6; }
+      @media (max-width: 60rem) { .workspace { grid-template-columns: minmax(0, 1fr); } .secondary { border-left: 0; padding-left: 0; } }
+      @media (max-width: 40rem) { .operating { flex-direction: column; align-items: start; } .workflow li { grid-template-columns: auto minmax(0, 1fr); } .stage-state { grid-column: 2; text-align: left; } .readings > div { grid-template-columns: minmax(0, 1fr); gap: var(--sp-xs); } dd { text-align: left; } }
+    </style>
+  </body>
+</html>

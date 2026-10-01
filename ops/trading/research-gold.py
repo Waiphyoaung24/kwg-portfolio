@@ -1,8 +1,9 @@
-"""Parse/replay saved proposal bytes offline. No inference, registration or evaluation."""
+"""Prepare a prompt or replay saved proposal bytes offline; never dispatch inference."""
 import argparse
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
 
@@ -90,14 +91,39 @@ def build_prompt(packet: dict) -> str:
     return instructions + json.dumps(validated, sort_keys=True, separators=(',', ':'), allow_nan=False)
 
 
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('Duplicate key')
+        result[key] = value
+    return result
+
+
+def prepare_prompt(raw: bytes, output_dir: Path) -> dict:
+    try:
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise ValueError('Packet size')
+        packet = json.loads(raw.decode('utf-8'), object_pairs_hook=unique_object)
+        prompt = build_prompt(packet).encode('utf-8')
+        encoded = (json.dumps(packet, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n').encode('utf-8')
+    except (ValueError, UnicodeError, RecursionError):
+        raise ValueError('Invalid development packet') from None
+    output_dir.mkdir(mode=0o700)
+    result = {'mode': 'offline-prompt-preparation', 'status': 'prepared_offline',
+              'review_status': 'unreviewed', 'qualification': 'unqualified',
+              'promotion_status': 'blocked', 'model_requests': 0,
+              'provenance_verified': False, 'candidate_registered': False,
+              'packet_sha256': hashlib.sha256(encoded).hexdigest(),
+              'prompt_sha256': hashlib.sha256(prompt).hexdigest()}
+    for name, content in (('packet.json', encoded), ('prompt.txt', prompt),
+                          ('result.json', (json.dumps(result, sort_keys=True) + '\n').encode())):
+        with (output_dir / name).open('xb') as output:
+            output.write(content)
+    return result
+
+
 def parse_proposal(raw: bytes) -> dict:
-    def unique_object(pairs):
-        result = {}
-        for key, value in pairs:
-            if key in result:
-                raise ValueError('Duplicate key')
-            result[key] = value
-        return result
 
     def reject_constant(value):
         raise ValueError('Nonfinite JSON')
@@ -143,19 +169,77 @@ def replay_response(raw: bytes, output_dir: Path) -> dict:
     return result
 
 
+def run_synthetic_attempt(packet: dict, output_dir: Path, request) -> dict:
+    """Exercise attempt durability with a trusted fake callback, not a live provider.
+
+    No callback sandbox or HTTP accounting is implied. Never connect this helper
+    to the app: production isolation, deadlines, usage and cost gates are pending.
+    """
+    prompt = build_prompt(packet)
+    if packet['limitations'] != ['synthetic_fixture']:
+        raise ValueError('Synthetic fixture required')
+    output_dir.mkdir(mode=0o700)
+
+    def write_once(name, raw):
+        with (output_dir / name).open('xb') as output:
+            output.write(raw)
+            output.flush()
+            os.fsync(output.fileno())
+
+    marker = {'mode': 'synthetic-attempt', 'state': 'dispatch_reserved',
+              'packet_sha256': digest(packet),
+              'prompt_sha256': hashlib.sha256(prompt.encode('utf-8')).hexdigest()}
+    # Reserve before calling: a crash leaves a directory that refuses redispatch.
+    write_once('attempt.json', (json.dumps(marker, sort_keys=True) + '\n').encode())
+    result = {'mode': 'synthetic-attempt', 'status': 'request_failed',
+              'request_invocations': 1, 'model_requests': None,
+              'review_status': 'unreviewed', 'qualification': 'unqualified',
+              'promotion_status': 'blocked', 'candidate_registered': False}
+    try:
+        response = request(prompt)
+    except Exception:
+        # Provider exception bodies may contain credentials: never serialize them.
+        response = None
+    else:
+        result['status'] = 'invalid_transport_response'
+    if (isinstance(response, dict) and set(response) == {'response_bytes', 'tool_calls'}
+            and isinstance(response['response_bytes'], bytes)
+            and type(response['tool_calls']) is list and not response['tool_calls']):
+        raw = response['response_bytes']
+        result['status'] = 'response_too_large'
+        if len(raw) <= MAX_RESPONSE_BYTES:
+            write_once('response.json', raw)
+            result.update(status='invalid_response', response_sha256=hashlib.sha256(raw).hexdigest())
+            try:
+                proposal = parse_proposal(raw)
+            except ValueError:
+                pass
+            else:
+                encoded = (json.dumps(proposal, sort_keys=True, separators=(',', ':'),
+                                      allow_nan=False) + '\n').encode('utf-8')
+                write_once('proposal.json', encoded)
+                result.update(status='parsed_synthetic', proposal_sha256=digest(proposal))
+    write_once('result.json', (json.dumps(result, sort_keys=True) + '\n').encode())
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--response', type=Path, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument('--response', type=Path)
+    source.add_argument('--packet', type=Path, help='Prepare an offline prompt from an allowlisted development packet')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     try:
-        with args.response.open('rb') as source:
+        with (args.packet or args.response).open('rb') as source:
             raw = source.read(MAX_RESPONSE_BYTES + 1)
-        result = replay_response(raw, args.output)
+        result = prepare_prompt(raw, args.output) if args.packet else replay_response(raw, args.output)
+    except ValueError:
+        parser.exit(2, 'Invalid development packet.\n')
     except OSError:
-        parser.exit(2, 'Offline replay could not read input or create exclusive output.\n')
+        parser.exit(2, 'Offline preparation could not read input or create exclusive output.\n')
     print(json.dumps(result, sort_keys=True))
-    if result['status'] != 'parsed_offline':
+    if result['status'] not in ('parsed_offline', 'prepared_offline'):
         parser.exit(1)
 
 

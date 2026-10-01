@@ -27,9 +27,68 @@ Alternatives considered with the owner:
 | Generated strategy code | Broader hypotheses | Requires hardened execution isolation; excluded |
 | Manual transcription | Minimal provider integration | Weaker automatic provenance; not selected |
 
-This preserves the roadmap's separate researcher architecture. No new model
-provider purchase, general agent framework, service, scheduler or dashboard is
-needed. No proposal or lookback value was selected during preparation.
+This preserves the roadmap's separate researcher architecture. No proposal or
+lookback value was selected during preparation.
+
+## Owner-selected product architecture — 2026-10-01
+
+Owner selected the existing Vibe-Trading app as a separate research workspace,
+rather than chat-only tools or a full trading terminal. Reuse its application;
+do not build a custom research UI or general agent framework. This supersedes
+the earlier assumption that no separate application would be used. It does not
+authorize installation, deployment, live inference or candidate research.
+
+The boundary is: approved development packet -> isolated Vibe app -> one
+structured proposal -> existing strict validator -> existing Batch 2 simulator
+and qualification gates -> explicit human review. Validation/holdout evidence
+stays with the evaluator. Upstream backtests are exploratory and cannot replace
+our fixed baseline, dated broker costs or qualification evidence. The app gets
+no broker credentials, MT5 volume, order tools or promotion interface.
+
+Prepare a synthetic import/export compatibility check first. Inspect installed
+0.1.15 against the assessed upstream release before pinning a runtime; no
+automatic upgrade. Verify provider route, isolated home, tool permissions,
+background jobs, usage accounting and request limits without model requests.
+An external MCP allowlist alone does not prove built-in app tools are disabled.
+
+The existing one-model-request, zero-retry/fallback/tool-call budget remains.
+The full app workflow is not assumed compatible: if the narrow proposal mode
+cannot enforce it, report the mismatch and seek an explicit revised workflow
+budget before real use. Thin file/API adapters may be needed; no replacement
+provider framework, reporting system or evaluator is planned.
+
+Primary product reference: [Vibe-Trading](https://github.com/HKUDS/Vibe-Trading).
+Batch 2 gates, fixed risk hashes and human promotion approval remain unchanged.
+
+### Selected inference provider: OpenAI Codex with ChatGPT OAuth
+
+Owner selected `LANGCHAIN_PROVIDER=openai-codex` and the product's
+`vibe-trading provider login openai-codex` browser login flow. This replaces the
+earlier intended Claude/Worker inference route for this integration. The gold
+research MCP remains a separate read-only observation service; its bearer token
+must never be used as inference authentication.
+
+Read-only inspection of installed 0.1.15 provider metadata confirms
+`api_key_required=false`, `auth_type=oauth`, no API-key environment field and
+the stated login command. The upstream README documents the same flow and
+OAuth credential storage outside `agent/.env`. No credential store was read,
+login executed, provider configuration changed or model request made here.
+The metadata default model is not an approved model pin; verify the account's
+supported model and record the selected identity before use.
+
+Installed `src/providers/openai_codex.py` automatically refreshes on the first
+HTTP 401 and resends the inference POST (two-attempt stream loop). Therefore
+the provider choice is verified, but the one-request/no-retry contract is not.
+Synthetic transport checks must cover this recovery path as well as outer
+provider retries. Do not claim ordinary app configuration enforces one request
+without proof. Any budget revision requires explicit owner approval.
+
+For later local setup, set the provider in the isolated app's configuration
+and run its login command in an interactive terminal. Complete browser login
+locally; never paste callback URLs, codes or tokens into chat or Git. Login is
+not evidence of inference connectivity, tool isolation or Batch 2 qualification.
+OAuth usage accounting must record observable usage and unavailable cost data
+explicitly rather than inventing API-key billing values.
 
 ## Read-only verification evidence
 

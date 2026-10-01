@@ -1,5 +1,323 @@
 # Gold trading handoff — 2026-09-28
 
+## Current account category documented — 2026-10-02 Bangkok
+
+Private portal screenshot shows active MT5 Standard STP demo on VTMarkets-Demo;
+original preserved with matching copy hash. Identifiers/balance omitted here.
+Official current guide lists zero separate gold commission for Standard STP;
+SDK commission null was not converted to zero and no historical coverage
+assigned. Pinned-login applicability/effective dates and explicit rollover
+timezone/rate history remain unresolved. No prospective run or research started.
+
+## Current Specification identity completed — 2026-10-02 Bangkok
+
+Additional owner crops show XAUUSD-VIP header and explicit In points swap mode,
+with overlapping rates/session rows. Current symbol applicability is resolved
+across the supplied crops; private originals copied with matching hashes.
+UI tick-size/value display differs from precise SDK snapshot; preserved both,
+no simulator inputs changed. Historical effective coverage, applicable
+commission and settlement-clock terms remain missing. No qualification or
+prospective observation start claimed. See dated-broker-evidence-intake plan.
+
+## Current broker capture received — 2026-10-02 Bangkok
+
+Follow-up: owner SSH sha256sum matched the capture byte hash exactly.
+Saved-byte verification complete; coverage and qualification remain blocked.
+Owner supplied saved exact-symbol current contract summary. Swap fields are
+present; commission null and declared offset alone do not establish costs or
+historical clock coverage. Next: current host synchronization, full dated
+Specification sessions and applicable broker fee/rollover terms.
+Current host-clock output received: October 1 20:03:54 UTC, Etc/UTC,
+NTP enabled/synchronized. Current check passed; historical broker-offset and
+cost coverage remain unverified. No new observation run started.
+Specification crop received: weekday quote/trade sessions and daily swap
+multipliers visible; private pixels preserved with matching copy hash.
+Symbol header/capture clock omitted, so applicability is owner-attributed.
+Conditional GMT+3/session mapping supports smoke overnight-gap hypothesis,
+not historical proof or missing-observation repair. Top-of-window symbol
+identity and applicable commission/rollover terms remain required.
+
+Owner capture parsed with three fresh samples October 1 19:58:49–19:58:53 UTC,
+after Algo-off/zero-exposure assertions; byte hash printed. Cost incomplete,
+clock current_spot_checks_only. Trailing shell delimiter error closed SSH
+after summary; reconnect to verify saved bytes without rerunning capture.
+Private broker-intake-S7u11LUf/current-contract.json remains evidence of
+current values only. No future protocol or qualifying sample started.
+
+## Dated evidence intake prepared — 2026-10-02 Bangkok
+
+Direct read-only SSH rejected publickey authentication. No new VPS capture or
+prospective run started. Official source guidance rechecked; account-specific
+dated coverage is still absent. Owner-terminal exclusive capture and source
+checklist: docs/superpowers/plans/2026-10-02-dated-broker-evidence-intake.md.
+Use existing observer only after future protocol/coverage/retention are frozen;
+do not count the smoke, backfill observations or place trades for the sample.
+
+## Local cost validation corrected — 2026-10-02 Bangkok
+
+Cost coverage now rejects unusable commission terms and malformed swap events
+before claiming coverage; cashflow accounting shares the event validator and
+checks both directional rates. Seven regression cases reproduced the gap;
+all 138 Python tests now pass. Revised-source offline Docker rehearsal -03
+passed with zero model requests, identical repeats and promotion blocked.
+Local gold_costs.py hash changed; VPS collector, smoke freeze and sealed
+credential snapshot remain unchanged. No broker source coverage was established.
+Details: docs/superpowers/plans/2026-10-02-batch2-batch3-handoff.md.
+
+## Batch 2 / Batch 3 handoff reverified — 2026-10-02 Bangkok
+
+All 137 Python tests passed. Fresh network-disabled Docker rehearsal completed
+packet -> proposal validation -> existing simulator -> comparison, with zero
+model requests, identical repeated reports and verified isolation/cleanup.
+Private output: .batch3-vibe/batch2-handoff-rehearsal-20261002-02/.
+Initial attempt -01 is preserved failed: sandbox Docker pipe access denied;
+owner execution at a new path passed. No credentials, broker data or model
+dispatch used. Comparison remains inconclusive and promotion blocked.
+Completion sequence: docs/superpowers/plans/2026-10-02-batch2-batch3-handoff.md.
+Batch 2 remains prepared_but_blocked; partial smoke cannot unlock real research.
+No VPS, collector, risk limits or orders changed.
+
+## Retained log parsing corrected — 2026-10-02 Bangkok
+
+Nonempty preserved stdout defeated the initial line parser. Read-only wrapped
+JSON parser recovered 1,164 unique observer samples, October 1 15:38–17:14:56
+UTC, with no blocked samples in that retained portion. It excludes the earlier
+gap/baseline times, so full-day diagnostics remain unverified. Docker json-file
+is bounded at 2m x 2; container restarts=0. Desktop launcher SHA matched local.
+Private observer-wrapped-log-review.json records corrected results/raw hashes;
+original reports/logs remain intact. Runnable synthetic parser check passed in
+ops/trading/review_observer_log.py. Smoke verdict remains partial and Batch 2
+prepared_but_blocked. Full review: docs/superpowers/plans/2026-10-02-gold-smoke-review.md.
+
+## Smoke review closed with limitations — 2026-10-02 Bangkok
+
+Final sanitized verdict: capture complete, artifact preservation passed,
+continuous observation not established; partial pipeline result, not a clean
+pass. All saved report artifact hashes reverified. Missing observer candles:
+September 30 20:45/22:00 UTC; raw gap 21:00–21:45 UTC. Baselines at 22:15,
+23:00 and October 1 06:45 UTC. Retained Docker logs yielded zero parseable
+observer samples, so blocked-read reasons and diagnostic coverage are unknown.
+Do not infer a restart or confirmed scheduled closure. All artifacts and
+collector preserved. Final review and next gates:
+`docs/superpowers/plans/2026-10-02-gold-smoke-review.md`.
+Batch 2 remains prepared_but_blocked: cost/clock/session evidence, prospective
+protocol, adequate 60-day/three-fold/100-trade sample and real-report provenance
+still required. No candidate, orders, risk changes or promotion authorized.
+
+## Smoke finish evidence preserved — 2026-10-02 Bangkok
+
+Owner ran finish capture/backup through connected SSH; results read directly
+from Codex terminal. SQLite integrity and receipt hashes passed; deployed source
+hashes unchanged. Interval: 87 observed + 3 baseline rows, no duplicate or early
+records, all observation timestamps present in raw export. Two raw candles lack
+observations; four elapsed M15 slots lack raw candles and need session review.
+Start/end fresh, Algo off and exposure-free. Private smoke-report.json remains
+pending_review, not a clean pass; preserve all artifacts and collector.
+Details: `docs/superpowers/plans/2026-10-02-gold-smoke-review.md`.
+Qualification remains prepared_but_blocked; no policy gates were waived.
+
+## Smoke finish review pending access — 2026-10-02 Bangkok
+
+Finish threshold passed (initial clock October 1 17:34 UTC). Both existing-key
+SSH routes rejected publickey authentication; Dokploy is signed out in the
+in-app browser. Owner login requested. No remote artifacts inspected or changed;
+no smoke pass/fail claimed. Resume checklist:
+`docs/superpowers/plans/2026-10-02-gold-smoke-review.md`.
+Batch 2 remains prepared_but_blocked under the unchanged 60-day/three-fold/
+100-trade and cost/clock/provenance gates; pipeline smoke cannot complete it.
+
+## Credential hardening and fake auth — 2026-10-01
+
+Completed preparation: `docs/superpowers/plans/2026-10-01-batch3-credential-hardening.md`.
+Harmless canary proved sandbox read/write/delete denial. Private runtime/auth/
+config now owner/SYSTEM only, including replacement-file inheritance. Sealed
+offline code and frozen synthetic inputs are sandbox read/execute only: 48
+hashes verified; write/delete denials passed. Four fake-auth tests passed from
+sealed copies; full Python suite 137 passed. Refresh failures/timeouts block
+inference; fake 401 never resends. Learning app HTTP 200; no real OAuth/model
+request, token read, service restart or VPS change. Live auth/locking/SDK limits,
+unknown cost and Batch 2 qualification remain gates. Finish capture only after
+2026-10-01 17:15 UTC / October 2 00:15 Bangkok; no finish evidence reviewed yet.
+
+## Credential-boundary review — 2026-10-01
+
+Review saved at `docs/superpowers/plans/2026-10-01-batch3-credential-boundary-review.md`.
+Synthetic worker has no credentials, auth imports or credential mounts. Five
+path-guard denials passed without opening tokens. Windows OAuth/config/evidence
+ACLs allow owner, SYSTEM and CodexSandboxOffline; they are not isolated from
+the coding sandbox. Live gates: narrow credential ACLs, sealed reviewed code/
+inputs and a verified trusted OAuth transport boundary, plus unknown cost and
+Batch 2 qualification. Review only: no ACL/service/VPS changes or model requests.
+
+## Integrated provider and sandbox rehearsal — 2026-10-01
+
+Worker now uses pinned request conversion/stream/SSE/usage definitions with fake
+HTTP and no auth imports. Source hash checked before compilation. Added optional
+`--sandbox` to offline rehearsal: cached immutable local image, network none,
+read-only root and mounts, empty read-only overrides for image volumes, user
+65534, no capabilities and bounded resources. Actual configuration and denied
+write/network probes verified. Full synthetic comparison and timeout/cleanup/no-
+reuse checks passed; all 133 Python tests pass. No image pulled or service started.
+Private evidence index: `.batch3-vibe/latest-rehearsal.txt`; timeout fixture is
+`.batch3-vibe/sandbox-timeout-96c86679ac77468399117753a74578e5`.
+This supersedes earlier host-only isolation notes, not live qualification.
+Real HTTP/OAuth integration and endpoint token-cap compatibility remain untested;
+host ACL/credential review, unknown OAuth cost and Batch 2 qualification keep
+live dispatch blocked. No tokens, VPS, MT5, collector, order or promotion changes.
+
+## Bounded offline rehearsal — 2026-10-01
+
+Owner authorized synthetic preparation and confirmed unknown OAuth monetary
+cost keeps live dispatch blocked. Added `batch3_runner.py`, `batch3_adapter.py`
+and `rehearse-batch3.py`; local flow is packet -> fixed fake response -> strict
+proposal -> existing simulator -> repeatable comparison -> existing gate.
+Baseline identities and fictional cost/clock coverage are preserved in the
+adapter audit; validation evidence never enters the model-visible packet.
+Nonzero synthetic candidate trade-count deltas confirm filter execution.
+Reports remain unqualified, gate inconclusive and promotion blocked.
+All 132 trading Python tests and pinned provider fake-transport checks pass.
+Prepared provider guard now tests token/stream/response/timeout limits with fake
+HTTP, but is not applied to the learning app. Offline worker clears credentials
+from its environment and enforces deadline/attempt/output limits; no OS sandbox,
+private NTFS ACL verification or live integrated runner is claimed.
+See [rehearsal plan and commands](../../docs/superpowers/plans/2026-10-01-batch3-bounded-rehearsal.md).
+Private evidence: `.batch3-vibe/latest-rehearsal.txt`. No model, VPS, collector,
+MT5, order, risk-limit or strategy-promotion changes in this continuation.
+
+## Normal Vibe learning workspace — owner authorized, 2026-10-01
+
+Live synthetic CSV retest passed at 20:08 Bangkok on 2026-10-01, session
+`0edab1e6d735`, attempt `fef8020bff4a`. Uploaded fixture SHA-256 matched the
+tracked file. Final JSON: row_count 6, sum 130, positive_count 3, mean 21.67.
+Provider-response metadata confirms `gpt-6.1-sol`, medium reasoning, completed
+in 41.5 seconds. Tools were read_document, read_file and financial_rigor (calc);
+two initial path errors recovered via relative-path read_document. No market
+data or broker tools called. Local server was stopped and started with the
+existing launcher. This supersedes earlier login/access-pending notes below;
+it verifies the learning workflow, not Batch 2 qualification or Batch 3 dispatch.
+Private evidence: `.batch3-vibe/learning-retest.json` and session trace.
+
+Owner now demonstrated a successful GPT-6.1 Sol / medium chat. CSV learning
+trace shows successful read_document and computed values, but grounding rejects
+CSV-derived win_rate as missing analysis evidence; internal recovery injected
+as user-tagged system text produces refusal instead of figures. Corrected the
+learning guide to fresh-chat plain arithmetic JSON; pinned validator accepts
+that synthetic response in a zero-inference check. No grounding bypass, product
+patch, research request or order. The original financial-metric workflow is not
+claimed fixed; do not interpret a Done refusal as a successful calculation test.
+
+Authentication troubleshooting: owner completed login in the default Vibe home;
+presence-only checks confirmed its auth file exists while the separate app
+workspace's auth file does not. API still reports unauthenticated. Root cause
+is profile mismatch; opened a clearly titled workspace login terminal using
+`vibe-workspace.py login`. No token bytes read/copied, model changed or app
+restarted. Owner must complete this workspace login; success is not yet claimed.
+
+Latest model preference supersedes the initial learning default: owner requested
+GPT-6.1 Sol with medium reasoning. Saved and read back
+`openai-codex/gpt-6.1-sol`, `reasoning_effort=medium`; persisted configuration
+constructs the matching request body with no inference. OAuth remains absent
+at the latest settings check, so account/model access is not verified. Use a
+new Agent chat after login and inspect runtime model metadata where available.
+
+Owner explicitly authorized normal AI learning demos after their OAuth login,
+separate from the one-request gold experiment. Existing Vibe UI remains local;
+Settings now select `openai-codex/gpt-5.4` (upstream documented default), outer
+retries 0 and timeout 120. Model account access is not yet verified.
+`vibe-workspace.py` provides repeatable isolated-config login/serve/status using
+the pinned existing product. Interactive login terminal opened without capturing
+auth output; OAuth file still absent at latest check. No model prompt sent.
+[Learning guide](VIBE-LEARNING.md) has the login steps and two practice tests,
+including a tracked six-row synthetic fixture with known totals. All 128 trading
+tests pass. Fresh review's source-verification finding fixed by regression.
+Configuration home is not an OS sandbox; agent-source guard is not a dependency
+or frontend attestation. Broker connectors/scheduler/shell/channels remain off
+or unconfigured. No gold data import, Batch 3 dispatch, VPS change or order.
+
+## Batch 2 → Batch 3 boundary check — 2026-10-01
+
+Latest continuation: synthetic-only attempt rehearsal reserves an exclusive
+fsynced marker before a fake callback and refuses redispatch after failure or
+interruption. Generic errors, response bounds and tool-output rejection tested;
+126 trading tests pass. Callback count is not an HTTP count (`model_requests`
+remains null). No live provider/CLI/app hookup; full production controller and
+all qualification gates remain pending. See connection checkpoint for limits.
+
+Subsequent continuation prepared a small pinned-upstream patch for explicit
+one-request adapter mode. Synthetic checker verifies one POST for five HTTP
+outcomes, rejects tools before dispatch and preserves default app behavior.
+All 122 trading tests remain green. Patch is not applied to the running app;
+durable controller, deadlines/token limit, cost/quarantine and OS isolation
+are still pending. The runtime retry blocker remains active. See the connection
+checkpoint's prepared adapter guard section and its runnable checker.
+
+Local Vibe UI/settings respond; loopback listener confirmed. Both read-only gold
+MCP tools responded, with fresh feed and still-unqualified hypothetical baseline.
+No collector completion is inferred. Added offline `research-gold.py --packet`
+export using the existing strict validator/prompt builder; synthetic export,
+eight research tests and all 122 Python tests passed. Fresh scoped review found
+no material issue. Real input adapter, bounded inference/isolation, OAuth login
+and model pin remain pending. Baseline MCP exposes validation metrics and must
+not be attached to the development-only proposal agent. No real data imported,
+research dispatched, risk changed, VPS written or order placed. See
+[connection checkpoint](../../docs/superpowers/plans/2026-10-01-gold-batch3-connection-checkpoint.md)
+for verified boundaries, offline usage and remaining configuration.
+
+## Separate Vibe application — local UI running, 2026-10-01
+
+Pinned upstream v0.1.15 (`cc54832cb50de29d14bb10097b18e08f0a843650`)
+downloaded/built under ignored `.batch3-vibe/`; no shared-tool upgrade.
+App serves `http://127.0.0.1:8899/` with a separate process home, no inherited
+credentials, Codex provider selected and model unset. Settings/root paths,
+synthetic CSV upload/reader and offline parser boundary passed. Actual model
+requests zero; no OAuth login, research or broker operation. Dashboard has an
+explicit local-workspace link; updated Astro check/build and packaging passed.
+Fake 401 transport produces two POSTs even with outer retries zero; real
+dispatch remains blocked. UI startup alone does not qualify inference or
+provide an OS sandbox. See the app-init plan checkpoint and private runtime
+record for reproduction/state. Keep the smoke collector and evidence unchanged.
+
+## Gold operations page — implemented locally, 2026-10-01
+
+Owner approved the recommended gold demo dashboard and requested implementation.
+`src/pages/vault/trading-bot.astro` adds the read-only operating workspace;
+existing supervised demo page links to it. Worker and sidecar serve its fixed
+path behind the same exact Access identity; standalone HTML and Compose mount
+are prepared. Nothing was deployed and no VPS operation occurred.
+Feed health/signal and latest one-shot attempt reuse the existing sanitized API.
+Research/gates are explicitly dated preparation notes; no chart/history API,
+live Vibe integration, model request or continuous runner is claimed.
+Local build/type check, 121 Python tests, Worker/status formatter checks and
+desktop/mobile fresh/expired/failure fixtures passed. Fresh review found no
+material issues. See the operations-page plan for scope and remaining steps.
+
+## Product architecture decision — 2026-10-01 Bangkok
+
+Owner subsequently authorized starting app initialization while the smoke test
+runs. Follow [app initialization plan](../../docs/superpowers/plans/2026-10-01-gold-batch3-app-init.md):
+local isolated preparation now, no inference/research. Shared-install startup
+can migrate histories and home-based settings are not fully isolated by
+`VIBE_TRADING_HOME`; installed package lacks the expected built frontend.
+Do not launch that shared installation as the new workspace.
+Task 1 complete: ignored `.batch3-vibe/` config prepared with Codex provider,
+shell/scheduler/channel flags off, empty MCP config and no auth/broker profile.
+Runtime path-helper assertions and seven synthetic research tests passed.
+App not running; Task 2 is clean runtime/UI and full settings-isolation checks.
+
+Owner selected the existing Vibe-Trading app as a separate research workspace.
+Provider is now OpenAI Codex with ChatGPT OAuth (`openai-codex`), replacing the
+earlier intended Claude/Worker inference route. Installed metadata/source
+confirms support without `OPENAI_API_KEY`; no login or model request performed.
+Built-in 401 refresh/resend must be checked against the one-request budget.
+Reuse the app and our existing proposal/evaluation boundaries; do not build a
+new research UI or agent framework. See the specification's owner-selected
+product architecture and the plan's next preparation milestone. Next is a
+synthetic import/export and isolation compatibility check, not live research.
+Installed 0.1.15 is not yet an approved app deployment pin. One-request budget,
+Batch 2 gates, unchanged risk and explicit human promotion approval remain.
+The product decision alone did not authorize installation; the later request
+authorizes local initialization under the linked plan. VPS operations remain excluded.
+
 ## Resume checkpoint — 2026-10-01 Bangkok
 
 Owner stopped for the day and will continue tomorrow. Read the

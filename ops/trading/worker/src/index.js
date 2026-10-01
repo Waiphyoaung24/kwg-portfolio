@@ -61,7 +61,9 @@ export function normalizeStatus(value, now = Date.now() / 1000) {
 export default {
   async fetch(request, env, ctx) {
     const pathname = new URL(request.url).pathname;
-    const isPage = pathname === '/vault/trading' || pathname === '/vault/trading/';
+    const pagePath = ['/vault/trading', '/vault/trading/', '/vault/trading-bot', '/vault/trading-bot/'].includes(pathname)
+      ? pathname.replace(/\/$/, '') : null;
+    const isPage = pagePath !== null;
     const action = pathname === '/api/trading/preview' ? 'preview' : pathname === '/api/trading/arm' ? 'arm' : null;
     if (!(request.method === 'GET' && (isPage || pathname === '/api/trading/status')) &&
         !(request.method === 'POST' && action)) {
@@ -142,7 +144,7 @@ export default {
     }
     try {
       const origin = new URL(env.STATUS_ORIGIN_URL);
-      if (isPage) origin.pathname = '/vault/trading';
+      if (isPage) origin.pathname = pagePath;
       const response = await fetch(origin, {
         headers: {
           'CF-Access-Client-ID': env.STATUS_ACCESS_CLIENT_ID,

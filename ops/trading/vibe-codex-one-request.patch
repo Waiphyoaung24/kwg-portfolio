@@ -1,0 +1,96 @@
+--- a/agent/src/providers/openai_codex.py
++++ b/agent/src/providers/openai_codex.py
+@@ -631,7 +631,11 @@
+         tools: list[dict[str, Any]] | None = None,
+         reasoning_effort: str | None = None,
+         codex_url: str | None = None,
++        max_requests: int = 2,
+     ) -> None:
++        if type(max_requests) is not int or max_requests not in (1, 2):
++            raise ValueError("max_requests must be 1 or 2")
++        self.max_requests = max_requests
+         if httpx is None:
+             raise RuntimeError("OpenAI Codex OAuth requires httpx. Install dependencies first.")
+         self.model = model
+@@ -649,6 +653,7 @@
+             tools=tools,
+             reasoning_effort=self.reasoning_effort,
+             codex_url=self.codex_url,
++            max_requests=self.max_requests,
+         )
+ 
+     def _body(self, messages: list[dict[str, Any]], *, stream: bool) -> dict[str, Any]:
+@@ -670,6 +675,8 @@
+             body["tools"] = tools
+         if self.reasoning_effort and self.reasoning_effort.lower() != "none":
+             body["reasoning"] = {"effort": self.reasoning_effort.lower()}
++        if self.max_requests == 1:
++            body.update(max_output_tokens=2048, tool_choice="none", parallel_tool_calls=False)
+         return body
+ 
+     def _headers(
+@@ -687,11 +694,19 @@
+     def stream(
+         self, messages: list[dict[str, Any]], config: Optional[dict[str, Any]] = None
+     ) -> Iterable[CodexAIMessage]:
++        if self.max_requests == 1 and self.tools:
++            raise ValueError("One-request mode forbids tools")
+         timeout = (config or {}).get("timeout") or self.timeout
++        if self.max_requests == 1 and (type(timeout) not in (int, float) or not 0 < timeout <= 120):
++            raise ValueError("Proposal timeout must be positive and at most 120 seconds")
+         body = self._body(messages, stream=True)
+         headers = self._headers()
+-        with httpx.Client(timeout=timeout, follow_redirects=True, trust_env=True) as client:
+-            for attempt in range(2):
++        with httpx.Client(
++            timeout=timeout,
++            follow_redirects=self.max_requests != 1,
++            trust_env=self.max_requests != 1,
++        ) as client:
++            for attempt in range(self.max_requests):
+                 with client.stream(
+                     "POST",
+                     self.codex_url,
+@@ -699,12 +714,39 @@
+                     json=body,
+                 ) as response:
+                     if response.status_code == 200:
+-                        yield from _message_chunks_from_events(_events_from_lines(response.iter_lines()))
++                        if self.max_requests != 1:
++                            yield from _message_chunks_from_events(_events_from_lines(response.iter_lines()))
++                            return
++
++                        def bounded_lines():
++                            pending = b""
++                            received = 0
++                            for part in response.iter_bytes(chunk_size=4096):
++                                received += len(part)
++                                if received > 262144:
++                                    raise ValueError("Proposal stream exceeds byte limit")
++                                pending += part
++                                while b"\n" in pending:
++                                    line, pending = pending.split(b"\n", 1)
++                                    yield line.rstrip(b"\r").decode("utf-8")
++                            if pending:
++                                yield pending.decode("utf-8")
++
++                        emitted = 0
++                        for chunk in _message_chunks_from_events(_events_from_lines(bounded_lines())):
++                            if chunk.tool_calls:
++                                raise ValueError("Proposal returned tool calls")
++                            emitted += len(chunk.content.encode("utf-8"))
++                            if emitted > 16384:
++                                raise ValueError("Proposal exceeds response byte limit")
++                            if chunk.usage_metadata and chunk.usage_metadata.get("output_tokens", 0) > 2048:
++                                raise ValueError("Proposal exceeds output token limit")
++                            yield chunk
+                         return
+-                    raw = response.read().decode("utf-8", "ignore")
++                    raw = "bounded proposal request failed" if self.max_requests == 1 else response.read().decode("utf-8", "ignore")
+                     status_code = response.status_code
+ 
+-                if status_code == 401 and attempt == 0:
++                if status_code == 401 and attempt + 1 < self.max_requests:
+                     authorization = headers.get("Authorization", "")
+                     rejected_access = authorization[7:] if authorization.startswith("Bearer ") else None
+                     headers = self._headers(

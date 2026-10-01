@@ -59,11 +59,31 @@ failure. No MCP source change or deployment was needed.
 
 **Goal:** Produce one reproducible, human-reviewed comparison of a bounded structured Vibe-Trading proposal against the fixed gold baseline.
 
-**Architecture:** Reuse the existing candidate schema, offline replay, simulator and approved evaluator. Add one small private-artifact controller only after its provider interface is verified; consume a separately verified Batch 2 prospective contract and raw-report adapter. Keep the research MCP unchanged.
+**Architecture:** Reuse the existing Vibe-Trading app as a separate isolated research workspace, as selected by the owner on 2026-10-01. Reuse our candidate schema, parser/replay, simulator and approved evaluator. Add only the file/API boundary needed after synthetic product compatibility and enforceable request limits are verified; consume the separately verified Batch 2 prospective contract and raw-report adapter. Keep the research MCP unchanged. Do not build another research application.
 
-**Tech Stack:** Python standard library, installed Vibe-Trading 0.1.15 and its existing provider dependency; existing Node MCP tests. No new service or dependency is planned.
+**Tech Stack:** Existing Vibe-Trading application, Python standard-library boundary helpers and existing Node MCP tests. Installed 0.1.15 is inspection evidence, not a deployment pin. Product version and dependencies must be assessed before adoption; no automatic upgrade or installation is authorized here.
+
+**Next preparation milestone:** A synthetic product compatibility record covering
+development-data import, structured response export, isolated configuration,
+built-in and MCP tool permissions, background jobs, provider route and actual
+request accounting. No model request is needed for this milestone. Retain the
+one-request budget; if the app cannot enforce it, stop at the documented mismatch
+instead of silently enabling its general agent loop. Task 1/2 transport details
+below are provisional until this product boundary is verified. Reuse existing
+parser/prompt checks; do not implement a competing provider or agent framework.
 
 **Spec:** [Batch 3 specification](../specs/2026-10-01-gold-batch3-vibe-integration.md).
+
+**Selected provider:** OpenAI Codex via ChatGPT OAuth, using
+`LANGCHAIN_PROVIDER=openai-codex` and `vibe-trading provider login openai-codex`.
+This supersedes the earlier intended Claude/Worker route. Installed 0.1.15
+metadata/source and upstream README confirm provider support; login and actual
+connectivity remain unverified. No `OPENAI_API_KEY` is required for this route.
+Keep OAuth storage private and isolated from broker configuration; never reuse
+the research-MCP token. Verify model availability instead of accepting a default.
+Synthetic checks must exercise the adapter's built-in 401 refresh/resend, which
+currently conflicts with our one-request/no-retry contract. No live probe or
+implicit budget relaxation is authorized by this provider selection.
 
 ## Global Constraints
 
@@ -120,8 +140,9 @@ supported request bounds and artifact/import results.
   dependencies with `pnpm install --frozen-lockfile` in `ops/trading/research-mcp`;
   run `pnpm test`. Expect four tests passing; stop and record lock/install
   mismatch rather than changing versions to force success.
-- [ ] Pin the isolated research runtime to 0.1.15 and record installed distribution
-  and dependency hashes. Inspect its provider construction before import:
+- [ ] Assess installed 0.1.15 and the chosen upstream app release, then pin the
+  verified isolated runtime and record distribution and dependency hashes.
+  Inspect its application startup and provider construction before import:
   prove no automatic connection, global-home mutation or broker access.
 - [ ] Identify the owner's intended inference route from allowlisted configuration.
   Record its exact installed callable and response/usage shape here before
