@@ -58,6 +58,12 @@ POLICY = dict(mode='gold_account_only', worker_image=SANDBOX_IMAGE, proxy_image=
     max_catalog_gets=1, model=MODEL, inference_dispatch='blocked', billing_ceiling_verified=False)
 
 
+class AccountHTTPError(ValueError):
+    def __init__(self,status):
+        self.status=status
+        super().__init__('Account HTTP refused')
+
+
 def request(client, operation, value=None):
     if operation == 'keys': method, url, options = 'GET', JWKS, {}
     elif operation == 'refresh':
@@ -71,7 +77,7 @@ def request(client, operation, value=None):
         method, url, options = 'GET', MODELS, {'headers': {'Authorization':'Bearer '+value}}
     else: raise ValueError('Account operation required')
     with client.stream(method, url, headers={**options.pop('headers', {}), 'Accept-Encoding':'identity'}, **options) as response:
-        if response.status_code != 200: raise ValueError('Account HTTP refused')
+        if response.status_code != 200: raise AccountHTTPError(response.status_code)
         if response.headers.get('content-encoding', 'identity') != 'identity': raise ValueError('Encoded response refused')
         raw = bytearray()
         for chunk in response.iter_raw(chunk_size=4096):
@@ -211,7 +217,11 @@ def worker():
         os.environ.update(HTTPS_PROXY='http://127.0.0.1:1',HTTP_PROXY='http://127.0.0.1:1',ALL_PROXY='http://127.0.0.1:1',SSL_CERT_FILE='/not-a-trust-store')
         with httpx.Client(proxy='http://kwg-egress:3128',trust_env=False,verify=True,
                 follow_redirects=False,timeout=httpx.Timeout(connect=10,read=30,write=10,pool=10)) as client:
-            result = request(client,value['operation'],value['value'])
+            try: result = request(client,value['operation'],value['value'])
+            except AccountHTTPError as error:
+                print(json.dumps({'account_http_status':error.status}));raise SystemExit(2) from None
+            except Exception as error:
+                print(json.dumps({'account_failure_kind':type(error).__name__}));raise SystemExit(2) from None
     raw = json.dumps(result,allow_nan=False).encode()
     if len(raw) > BOUND: raise ValueError('Worker result limit')
     sys.stdout.buffer.write(raw)
@@ -298,10 +308,10 @@ def run(seal_sha, mode):
     docker=[str(DOCKER),'--config',str(attempt/'docker-config'),'-H','npipe:////./pipe/dockerDesktopLinuxEngine']
     env={k:v for k,v in os.environ.items() if k.upper() in {'SYSTEMROOT','WINDIR'}}
     began=time.monotonic()
-    def command(*args,**options):
+    def command(*args,check=True,**options):
         budget=DEADLINE-(time.monotonic()-began)
         if budget<=0: raise ValueError('Controller deadline')
-        return subprocess.run([*docker,*args],env=env,capture_output=True,timeout=budget,check=True,**options)
+        return subprocess.run([*docker,*args],env=env,capture_output=True,timeout=budget,check=check,**options)
     def create(role,image,network,entry,args,mounts,dns=()):
         masks=('/var/log/squid','/var/spool/squid') if image==SQUID_IMAGE else ('/etc/searxng','/var/cache/searxng')
         mounts=[*mounts,*((attempt/'empty',target) for target in masks)]
@@ -325,8 +335,17 @@ def run(seal_sha, mode):
         create_worker(role)
         raw=json.dumps({'operation':operation,'value':value},allow_nan=False).encode()
         if len(raw)>BOUND: raise ValueError('Credential input limit')
-        output=command('start','-a','-i',names[role],input=raw).stdout
+        process=command('start','-a','-i',names[role],input=raw,check=False)
+        output=process.stdout
         if len(output)>BOUND: raise ValueError('Worker result limit')
+        if process.returncode:
+            error=strict_json(output) if output else {}
+            receipt['failed_operation']=operation
+            if set(error)=={'account_http_status'} and type(error['account_http_status']) is int and 100<=error['account_http_status']<=599:
+                receipt['account_http_status']=error['account_http_status']
+            elif set(error)=={'account_failure_kind'} and error['account_failure_kind'] in ('ValueError','ConnectError','ConnectTimeout','ReadTimeout','WriteTimeout','PoolTimeout','RemoteProtocolError'):
+                receipt['account_failure_kind']=error['account_failure_kind']
+            raise ValueError('Account worker refused')
         return strict_json(output)
     guard=subprocess.Popen([sys.executable,'-I','-S','-B',str(sealed/'code/gold_account.py'),'--seal-sha256',seal_sha,
         '--guard',str(attempt),'--parent',str(os.getpid())],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
