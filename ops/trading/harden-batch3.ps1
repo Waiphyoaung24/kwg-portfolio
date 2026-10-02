@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][ValidateSet('canary', 'credentials', 'seal', 'seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported')][string]$Phase)
+param([Parameter(Mandatory)][ValidateSet('canary', 'credentials', 'seal', 'seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported', 'seal-account')][string]$Phase)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $root = Join-Path $repo '.batch3-vibe'
@@ -101,8 +101,8 @@ if ($Phase -eq 'canary') {
     Set-Boundary (Join-Path $root 'profile/.vibe-trading')
     Write-Output 'PASS: auth directory and private config restricted to owner and SYSTEM; contents not read.'
 } else {
-    $current = $Phase -in @('seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported')
-    $committed = $Phase -in @('seal-readiness', 'seal-supported')
+    $current = $Phase -in @('seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported', 'seal-account')
+    $committed = $Phase -in @('seal-readiness', 'seal-supported', 'seal-account')
     if ($committed) {
         & git -C $repo diff --quiet HEAD -- ops/trading
         if ($LASTEXITCODE) { throw 'Commit reviewed trading sources before readiness sealing.' }
@@ -112,6 +112,7 @@ if ($Phase -eq 'canary') {
     $snapshotName = switch ($Phase) { 'seal-current' { 'sealed-trusted-transport-20261002' } 'seal-gateway' { 'sealed-gateway-20261002-r2' } default { 'sealed-credential-rehearsal' } }
     if ($Phase -eq 'seal-readiness') { $snapshotName = 'sealed-gateway-readiness-' + $commit.Substring(0, 12) }
     if ($Phase -eq 'seal-supported') { $snapshotName = 'sealed-supported-' + $commit.Substring(0, 12) }
+    if ($Phase -eq 'seal-account') { $snapshotName = 'sealed-account-' + $commit.Substring(0, 12) }
     $sealed = Join-Path $root $snapshotName
     Assert-NoReparse $root
     if (Test-Path -LiteralPath $sealed) { throw 'Snapshot already exists; preserve it.' }
@@ -135,14 +136,14 @@ if ($Phase -eq 'canary') {
             $seen += $sid.Value
         }
         if ($user.Value -notin $seen -or $system.Value -notin $seen) { throw 'Private registry access incomplete.' }
-        $reviewName = if ($Phase -eq 'seal-supported') { 'supported-readiness' } else { 'gateway-readiness' }
+        $reviewName = switch ($Phase) { 'seal-supported' { 'supported-readiness' } 'seal-account' { 'account-readiness' } default { 'gateway-readiness' } }
         $readiness = Join-Path $root $reviewName
         if (-not (Test-Path -LiteralPath $readiness)) {
             New-Item -ItemType Directory -Path $readiness | Out-Null
             Set-Boundary $readiness
         }
         Assert-NoReparse $readiness
-        if ($Phase -eq 'seal-supported') {
+        if ($Phase -in @('seal-supported', 'seal-account')) {
             $reviewAcl = Get-Acl -LiteralPath $readiness
             if (-not $reviewAcl.AreAccessRulesProtected -or $reviewAcl.GetOwner([Security.Principal.SecurityIdentifier]) -ne $user) { throw 'Supported registry owner/inheritance mismatch.' }
             $reviewSids = @()
@@ -160,6 +161,12 @@ if ($Phase -eq 'canary') {
             $metadata.mode = 'supported_fake_only'
             $policy = & python -I -S -B -c "import sys,json;sys.path.insert(0,sys.argv[1]);from supported_gateway import POLICY;print(json.dumps(POLICY))" $PSScriptRoot
             if ($LASTEXITCODE) { throw 'Supported runtime policy unavailable.' }
+            $metadata.policy = $policy | ConvertFrom-Json
+        }
+        if ($Phase -eq 'seal-account') {
+            $metadata.mode = 'gold_account_only'
+            $policy = & python -I -S -B -c "import sys,json;sys.path.insert(0,sys.argv[1]);from gold_account import POLICY;print(json.dumps(POLICY))" $PSScriptRoot
+            if ($LASTEXITCODE) { throw 'Account runtime policy unavailable.' }
             $metadata.policy = $policy | ConvertFrom-Json
         }
         $metadata | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $sealed 'readiness.json') -Encoding utf8
