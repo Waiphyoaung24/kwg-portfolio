@@ -41,3 +41,17 @@ task_plan.md
 
 # private Batch 3 application state, uploads and OAuth credentials
 .batch3-vibe/
+
+# Local dashboard build and private data
+.env.*
+!.env.example
+public/dashboard-assets/
+dashboard/node_modules/
+/vault/
+/dashboard/vault/
+/vault-parallel/
+/dashboard/vault-parallel/
+**/.obsidian/
+**/.history/
+**/*.sqlite*
+**/*.db
