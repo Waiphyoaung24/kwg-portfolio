@@ -297,9 +297,10 @@ def rehearse(sealed, seal_sha, registry, packet, case):
         state = create('server', SANDBOX_IMAGE, nets['outer'], PYTHON, server_args,
             [*code_mounts(CODE_FILES), (attempt/'fixture/cert.pem', '/fixture/cert.pem'),
              (attempt/'fixture/key.pem', '/fixture/key.pem'), (attempt/'fixture/tls.json', '/fixture/tls.json')])
-        addresses = state['NetworkSettings']['Networks'][nets['outer']]
-        server_ips = [addresses['IPAddress'], addresses['GlobalIPv6Address']]
         command('start', names['server'])
+        addresses = strict_json(command('inspect', names['server']).stdout)[0]['NetworkSettings']['Networks'][nets['outer']]
+        server_ips = [addresses['IPAddress'], addresses['GlobalIPv6Address']]
+        if any(not ip for ip in server_ips): raise ValueError('Fake server addresses unavailable')
         create('proxy', SQUID_IMAGE, nets['inner'], '/usr/bin/timeout',
             [str(DEADLINE), '/usr/sbin/squid', '-N', '-f', '/etc/squid/squid.conf'],
             [(attempt/'fixture/squid.conf', '/etc/squid/squid.conf')], hosts=['api.openai.com:'+server_ips[0]])
@@ -370,8 +371,8 @@ def rehearse(sealed, seal_sha, registry, packet, case):
         receipt.update(state='completed', proposal=proposal, usage=transported['usage'], parser_credential_free=True)
     except KeyboardInterrupt:
         receipt['state'] = 'interrupted'
-    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
-        pass  # Never persist arbitrary process stderr, exceptions or credential-bearing input.
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        receipt['failure_kind'] = type(error).__name__  # Class only; never exception text or process stderr.
     finally:
         if previous_handler is not None: signal.signal(signal.SIGINT, previous_handler)
         if service is not None: service.shutdown(); service.server_close()
