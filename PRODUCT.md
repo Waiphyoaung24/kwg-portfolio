@@ -101,3 +101,7 @@ Things this must never look like, in order of priority:
 **Keyboard navigation works end-to-end.** Every interactive element is reachable and operable without a pointer. The custom cursor and hover-driven affordances have keyboard equivalents.
 
 **Color is never the sole carrier of meaning.** The single filled white pill marks the primary action, and primary actions are also distinguishable by position and label.
+
+## Local dashboard
+
+`/vault/dashboard` edits explicitly selected local vault folders in supporting desktop browsers. Notes are not uploaded or stored in the site database. Personal and Parallel are independent folder bindings. Browser permission is origin-scoped; the existing client-side Vault gate is not an authentication boundary. The dashboard inherits DESIGN.md with an operate-mode heading scale recorded in dashboard/ui-spec.yaml.

@@ -1,0 +1,27 @@
+// Adapted from the inspected Wai-G Markdown templates. No Templater or Dataview execution.
+export const templateChoices=[['daily','Daily entry','journal'],['weekly','Weekly review','reviews'],['project','Project','projects'],['learning','Learning','knowledge'],['meeting','Meeting','knowledge'],['one-on-one','One-on-one','knowledge'],['person','Person','knowledge'],['money','Money ledger','founder'],['ideas','Ideas','inbox'],['blank','Blank note','knowledge']];
+export function properties(content){const m=content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);if(!m)return {};return Object.fromEntries(m[1].split(/\r?\n/).flatMap(line=>{const p=line.match(/^([a-z_]+):\s*(.*)$/i);return p?[[p[1],p[2].replace(/^['"]|['"]$/g,'')]]:[];}));}
+export const body=content=>content.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/,'');
+export function taskRows(notes){return notes.flatMap(note=>{let fenced=false;return body(note.content).split(/\r?\n/).flatMap(line=>{if(/^```/.test(line)){fenced=!fenced;return [];}if(fenced)return [];const m=line.match(/^- \[([ xX])\] (.+)$/);if(!m||!m[2].trim())return [];const due=m[2].match(/(?:\u{1F4C5}|\bdue:)\s*(\d{4}-\d{2}-\d{2})/u)?.[1];return [{done:m[1]!==' ',text:m[2],due:validDate(due)?due:null,note}];});});}
+export function validDate(value){return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T12:00:00Z'))&&new Date(value+'T12:00:00Z').toISOString().slice(0,10)===value;}
+export function reviewFindings(notes,today){const open=taskRows(notes).filter(t=>!t.done),day=86400000,now=Date.parse(today+'T12:00:00Z'),isType=(n,type)=>properties(n.content).tags?.split(/[\[\],\s]+/).includes(type);return {
+ overdue:open.filter(t=>t.due&&t.due<today).sort((a,b)=>a.due.localeCompare(b.due)),
+ dueToday:open.filter(t=>t.due===today),
+ dailyStrays:open.filter(t=>t.note.path.startsWith('journal/')&&validDate(t.note.path.split('/')[1].slice(0,10))&&t.note.path.split('/')[1].slice(0,10)<today),
+ stalled:notes.filter(n=>properties(n.content).status==='active'&&(n.path.startsWith('projects/')||isType(n,'project'))&&(!taskRows([n]).some(t=>!t.done)||Date.parse(n.modified)<now-14*day)),
+ payments:open.filter(t=>isType(t.note,'money')&&t.due&&Date.parse(t.due+'T12:00:00Z')<=now+14*day),
+ contacts:notes.filter(n=>isType(n,'people')&&validDate(properties(n.content).contacted)&&Date.parse(properties(n.content).contacted+'T12:00:00Z')<now-30*day)
+};}
+export function makeTemplate(type,name,date,area='personal'){
+ const safeArea=['personal','parallel','business-one','business-two'].includes(area)?area:'personal';
+ const front=lines=>`---\n${lines}\ntemplate_source: Wai-G\n---\n\n# ${name}\n\n`;
+ if(type==='daily'){const d=new Date((validDate(name)?name:date)+'T12:00:00Z'),previous=new Date(d),next=new Date(d);previous.setUTCDate(d.getUTCDate()-1);next.setUTCDate(d.getUTCDate()+1);return front(`tags: [daily, ${safeArea}]`)+`[[${previous.toISOString().slice(0,10)}|Yesterday]] | [[${next.toISOString().slice(0,10)}|Tomorrow]]\n\nDated commitments belong in project or money notes. Keep today's picks undated.\n\n## Today - business\n\n- [ ] \n\n## Today - personal\n\n- [ ] \n\n## Random thoughts\n\n- \n\n## Journal\n\n`;}
+ if(type==='weekly')return front('tags: [weekly]')+'## Daily tasks left unfinished\n\n## Overdue tasks\n\n## Stalled projects\n\n## Payments due within 14 days\n\n## People to contact\n\n## Ideas to review\n\n## Wins this week\n\n- \n\n## Top 3 for next week\n\n- [ ] \n- [ ] \n- [ ] \n';
+ if(type==='project')return front(`status: active\nbusiness: ${safeArea}\nclient: ""\ndeadline: \ntags: [project, ${safeArea}]`)+`## Goal\n\n\n## Next actions\n\n- [ ] \n\n## Waiting on / open loops\n\n- \n\n## Log\n\n- ${date} - Project created\n`;
+ if(type==='learning')return front('source: \nstatus: studying\ntags: [learning, personal]')+'## Key points\n\n- \n\n## Questions\n\n- \n\n## To try\n\n- [ ] \n';
+ if(type==='meeting'||type==='one-on-one')return front(`date: ${date}\npeople: []\nproject: ""\ntags: [meeting]`)+(type==='meeting'?'## Notes\n\n- \n\n## Decisions\n\n- \n\n':'## What went well\n\n## What is blocking progress\n\n## Support needed\n\n## Feedback in both directions\n\n## Career growth\n\n')+'## Actions\n\nMove dated commitments to the relevant project note.\n\n- [ ] \n';
+ if(type==='person')return front(`type: network\nbusiness: ${safeArea}\ncompany: \nrole: \ncontacted: \ntags: [people, ${safeArea}]`)+`## Who they are\n\n## Notes\n\n## Meetings\n\nLink meeting notes here with [[Note title]]. Record contacted as YYYY-MM-DD only when you actually speak.\n`;
+ if(type==='money')return front(`business: ${safeArea}\ntags: [money, ${safeArea}]`)+`## Invoices sent\n\n## Installment plans\n\n## Recurring income\n\nUse one checkbox per expected payment, preserve its currency, link the person, and add due: YYYY-MM-DD, replacing YYYY-MM-DD with the actual date. This app does not generate recurring payments automatically.\n`;
+ if(type==='ideas')return front('tags: [ideas]')+'## Business One\n\n- \n\n## Business Two\n\n- \n\n## Personal\n\n- \n\n## Someday / maybe\n\n- \n';
+ return `# ${name}\n\n`;
+}

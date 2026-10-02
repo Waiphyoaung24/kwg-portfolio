@@ -1,0 +1,23 @@
+surface: /vault/dashboard
+visual_authority: ../DESIGN.md and ../src/styles/_vars.scss
+mode: dark only; no shadows; weight 400; pill controls; existing six dashboard page layouts
+source_contract: Reuses Dot geometry, component states, keyboard controls, reduced motion, and graph behavior
+data:
+  storage: User-selected local directories only; no notes network endpoint
+  permissions: Explicit Choose folder or Reconnect click only; never automatic prompts
+  workspaces: personal and parallel; reject same or overlapping roots
+  browser_memory: Directory handles in IndexedDB only, never note contents
+  save: Explicit; content-hash conflict check; browser write lock; previous content in local .history
+  limits: Six flat folders; existing safe Markdown filenames; 1 MiB per note
+  errors: Unsupported browser, dismissed picker, denied/revoked permission, missing folder, conflict, write failure
+  navigation: /vault/dashboard with page and workspace query parameters
+  privacy: No seed notes, secrets, server credentials, remote migration, telemetry or note uploads
+acceptance:
+  - Isolated Personal and Parallel roots, tabs and saves
+  - Cancelled switch preserves draft; saving blocks workspace change
+  - Safe initial no-folder screen; no silent browser-storage fallback
+  - Six pages, nine Wai-G templates, graph and keyboard list
+  - Visible focus; readable neutral contrast; mobile no overflow
+
+operate_type: Dot token scale for app headings (h1 32, h2 20, h3 20 pixels); weight 400; inherited marketing headlines do not apply
+selected_navigation: White text on canvas-soft; avoid surface alias as foreground

@@ -7,9 +7,11 @@ FROM node:24-alpine AS build
 WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
+COPY dashboard/package.json dashboard/package-lock.json ./dashboard/
+RUN npm ci --prefix dashboard --ignore-scripts
 COPY . .
 # `astro build` (skip `astro check` — type-checking isn't needed just to deploy).
-RUN yarn astro build
+RUN node scripts/build-dashboard.mjs && yarn astro build
 
 # --- runtime stage ---
 FROM node:24-alpine AS runtime
