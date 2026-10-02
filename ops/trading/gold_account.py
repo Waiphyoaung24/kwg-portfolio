@@ -15,6 +15,7 @@ import sys
 import time
 import uuid
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from batch3_runner import DOCKER, SANDBOX_IMAGE, write_once
 from supported_gateway import PYTHON, SQUID_IMAGE, inspect_container, watchdog
 from trusted_gateway import no_reparse, verify_seal
