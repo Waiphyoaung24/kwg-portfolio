@@ -2,6 +2,71 @@
 
 Current trading handoff and task links: [ops/trading/HANDOFF.md](ops/trading/HANDOFF.md).
 
+## Resume checkpoint — 2026-10-03 Bangkok
+
+Owner requested saving this checkpoint and stopping for now. Resume from this
+section; trading notes dated September 27–28 below are historical checkpoints.
+
+**Completed:** Batch 3 gate A, gold research account acceptance. The owner
+authorized reviewed same-account renewal and explicitly selected `gpt-6-astra`
+because the renewed account's catalog lacked the previous `gpt-6.1-sol`.
+One renewal completed with signed identity validation, preserved account/client/
+host binding and atomic private token publication. The authenticated catalog
+confirms `gpt-6-astra`. Account-worker Internet isolation, forced controller
+termination and cleanup passed. Five catalog attempts across reviewed versions
+are preserved; there was no automatic HTTP retry or inference request.
+
+- Branch: `codex/batch3-supported-gateway`; work is locally committed, not pushed
+  or deployed. Final source: `ea5c7d5cd1f47bbe76a6d8256ad616bed5cf55f7`;
+  account results/handoff documentation: `5b04cef`.
+- Separate account and supported fake snapshots:
+  `.batch3-vibe/sealed-account-ea5c7d5cd1f4` and
+  `.batch3-vibe/sealed-supported-ea5c7d5cd1f4`. Exact manifest/receipt hashes,
+  commands and limitations are in the
+  [account acceptance results](docs/superpowers/plans/2026-10-03-batch3-account-acceptance-results.md).
+- Fresh checks passed: 185 workspace stdlib tests, 15 sealed focused tests,
+  four separate dependency tests and all 14 native fake gateway cases using
+  the selected model. Each snapshot has 76 verified files and 70 matching code
+  sources. Receipt hashes/replay refusal/private ACLs were verified; owned
+  resources are absent and the production attempt registry is empty.
+- **Real dispatch remains blocked; provider $0 spending enforcement is
+  unverified.** Account isolation acceptance covers authentication/catalog
+  operations, not an enabled real inference entry point. No strategy request,
+  credit/settings change, trade, deployment or push ran.
+- Batch 2 is development-complete and **unqualified**; qualification remains
+  deferred. No strategy promotion, order execution or scheduled follow-up is
+  authorized by this checkpoint.
+
+**Next session, in order:**
+
+1. Read the results above, `ops/trading/HANDOFF.md` and gates B–C in the
+   [supported gateway plan](docs/superpowers/plans/2026-10-03-batch3-supported-gateway-plan.md).
+   Continue using Ponytail, brainstorming and Context7; reuse the existing
+   runner, guards and installed dependencies.
+2. Gate B: inspect current official documentation and the exact gold
+   integration's saved provider usage/credit controls. Verify account/client
+   correspondence and enforceable **$0 additional spending**. Start read-only;
+   any needed settings change needs separate owner authorization. A zero credit
+   balance, subscription, local cost estimate or OAuth/catalog success is not
+   sufficient. Save redacted evidence; if enforcement cannot be established,
+   keep billing false and dispatch blocked.
+3. Only after gate B passes and the owner authorizes a concrete single proposal:
+   prepare a real-data development packet, finish/verify the real inference
+   boundary, freeze the final runner/input/model identity, recheck token freshness
+   and spending enforcement, and reserve one durable attempt. No retry, fallback,
+   tools, trade authority or automatic promotion. Run the existing validator,
+   simulator and baseline comparison; keep qualification limitations visible.
+
+**Preserve:** consumed attempts, historical seals and private renewal evidence.
+Do not rerun final consumed checks, delete registrations, repeat dynamic OAuth
+registration, print/copy tokens or overwrite the Vibe credential store.
+Private `.batch3-vibe` credentials/evidence stay on this Windows host and out of
+Git; a Git checkout elsewhere does not transfer them. Token freshness must be
+rechecked before any later credential request. Preserve unrelated working
+changes in the production-boundary review, `skills-lock.json`, installed skill
+directories, `.impeccable/` and the CLI proxy guide. Do not schedule background
+work while the owner is away.
+
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
