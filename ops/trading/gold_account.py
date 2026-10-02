@@ -19,6 +19,7 @@ import zlib
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from batch3_runner import DOCKER, SANDBOX_IMAGE, write_once
 from supported_gateway import PYTHON, SQUID_IMAGE, inspect_container, watchdog
+from supported_oauth_transport import MODEL
 from trusted_gateway import no_reparse, verify_seal
 from trusted_oauth_transport import strict_json
 
@@ -27,7 +28,6 @@ RESOURCE = 'https://api.openai.com/v1'
 TOKEN = ISSUER+'/api/accounts/oauth/token'
 JWKS = ISSUER+'/.well-known/jwks.json'
 MODELS = RESOURCE+'/models'
-MODEL = 'gpt-6.1-sol'
 SCOPES = set('openid profile email offline_access resource.invoke chatgpt.tokens.use.direct'.split())
 BOUND = 262144
 DEADLINE = 180
