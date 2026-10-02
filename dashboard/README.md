@@ -8,6 +8,8 @@ Open `/vault/dashboard?page=today&workspace=personal` or `?page=knowledge&worksp
 
 Directory handles, not note contents, are remembered in IndexedDB. Permission can expire or be revoked. Reconnect folder asks again only when clicked. Forget folder removes the saved handle, not files or browser permission; revoke permission in browser site settings. Changes to a workspace binding in another tab invalidate old bindings before the next file operation.
 
+Reconnect folder keeps the active draft and its original file version. After restoring permission, save the draft explicitly. If another editor changed the file, the normal conflict check still applies. A permission-denied save changes the connection status to Folder not connected and keeps the draft in the tab.
+
 The six flat folders are journal, knowledge, projects, reviews, founder, and inbox. Files must use supported Markdown names and be at most 1 MiB. Nested notes, attachments, and other filenames are skipped. Empty folders are created only when saving a new note. No sample content is created on connection.
 
 Save is explicit. The editor compares content hashes, serializes this origin's mutations with Web Locks, and writes the prior version to the chosen vault's `.history` before replacing a note. Browser writable streams commit on close. Native Obsidian cannot participate in browser locks: a very small race remains between the final comparison and commit. Avoid editing the same file simultaneously in both apps; local history is a recovery aid, not a complete backup system. A failed first save may leave an empty newly created file; the draft stays in the tab.
@@ -33,5 +35,7 @@ The dashboard bundle is generated into ignored `public/dashboard-assets`. `npm r
 - `node dashboard/browser-check.mjs`: requires a local production preview at port 4327, or DASHBOARD_ORIGIN. Uses Microsoft Edge, a new temporary browser profile, real OPFS directory handles, and deterministic chooser/permission substitutes. It checks persistence, cancellation, permission denial, stale writes, workspace isolation, drafts, templates, graph, dark styling, all six pages at four viewport sizes, and absence of note-upload requests.
 - Native Windows chooser was opened during verification, but desktop automation did not complete its confirmation. Manual check remains: choose an empty temporary folder, grant access, create/save a note, confirm the Markdown file on disk, reload and reconnect, then revoke permission and confirm a save retains the draft. Do not use a real private vault for this first check.
 - Automated checks do not constitute a screen-reader audit or native Firefox/WebKit folder-access certification.
+
+The browser check also exercises create, edit, save, reopen, search, wiki links, backlinks, graph opening, dated journal entries, weekly reviews, founder actions and project notes in both temporary workspaces. It reads saved OPFS content back through browser handles. This verifies browser storage operations, not native Windows folder permission or a visible Markdown file in a user-selected directory.
 
 No Personal/Parallel notes, history, credentials, business source documents, screenshots, or Obsidian settings are part of this integration. See THIRD_PARTY.md for code attribution.

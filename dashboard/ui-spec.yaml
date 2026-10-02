@@ -15,6 +15,7 @@ data:
 acceptance:
   - Isolated Personal and Parallel roots, tabs and saves
   - Cancelled switch preserves draft; saving blocks workspace change
+  - Reconnect permission preserves the active draft and original version without a discard prompt
   - Safe initial no-folder screen; no silent browser-storage fallback
   - Six pages, nine Wai-G templates, graph and keyboard list
   - Visible focus; readable neutral contrast; mobile no overflow
