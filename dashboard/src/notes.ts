@@ -1,0 +1,15 @@
+export const workspace=new URLSearchParams(location.search).get('workspace')||'personal';
+export const workspaceName=workspace==='parallel'?'Parallel':'Personal';
+export const scoped=(url:string)=>{const [path,query]=url.split('?');const params=new URLSearchParams(query);params.set('page',path.replace(/^\//,'')||'today');params.set('workspace',workspace);return '/vault/dashboard?'+params.toString();};
+import { wikiLinks } from '../shared/graph-model.js';
+import { body } from '../shared/vault-model.js';
+import type { Note } from './types';
+export const title=(n:Note)=>n.content.match(/^#\s+(.+)$/m)?.[1]||n.path.split('/').pop()!.slice(0,-3);
+export const excerpt=(n:Note)=>body(n.content).split('\n').find((l:string)=>l.trim()&&!/^#|^---|^- \[/.test(l))||'Open to read or edit this note.';
+export const linkTo=(n:Note)=>scoped(`/${({reviews:'review',inbox:'today'} as Record<string,string>)[n.path.split('/')[0]]||n.path.split('/')[0]}?note=${encodeURIComponent(n.path)}`);
+export const noteLinks=(n:Note)=>wikiLinks(n.content).map((link:{target:string})=>link.target);
+export const dateKey=(d:Date)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+export const now=new Date(),today=dateKey(now),monday=new Date(now);
+monday.setDate(now.getDate()-(now.getDay()+6)%7);
+export const week=dateKey(monday);
+export const pages:Record<string,[string,string,string,string]>={today:['Today','Set priorities and write a daily entry.','journal','sun'],founder:['Founder dashboard','Review priorities, decisions, and project progress.','founder','compass'],journal:['Journal','Record what happened and what you learned.','journal','book'],knowledge:['Knowledge','Save notes and connect them with [[Note title]].','knowledge','network'],projects:['Projects','Define outcomes and track next actions.','projects','layers'],review:['Weekly review',"Review this week and choose next week's priorities.",'reviews','check']};
