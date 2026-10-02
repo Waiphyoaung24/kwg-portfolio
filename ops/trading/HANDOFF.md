@@ -1,5 +1,24 @@
 # Gold trading handoff — 2026-09-28
 
+## Account-connection preflight blocked by expiry — 2026-10-03 Bangkok
+
+Owner authorized the next account-connection milestone. Fresh owner-context
+checks passed private ACLs, local issuer/subject/client/host consistency, scopes,
+prior registration signature receipt and source-seal identity. The saved access
+and identity tokens are expired. No authenticated model-catalog request, refresh
+or reauthorization ran; original registration bytes are unchanged. The coding
+sandbox remains denied reading the registration and new redacted receipt.
+
+See [account preflight and minimal renewal scope](../../docs/superpowers/plans/2026-10-03-batch3-account-preflight.md).
+Private receipt: `.batch3-vibe/gold-plan-auth/account-preflight-20261003.json`,
+SHA256 `658422c44e5fd746b226d0b9547bab13c52f50ed4b9a7badbcb3c69aa4099ca8`.
+Gate A remains incomplete: expiry invokes the plan's stop rule; renewal requires
+a reviewed authentication-only boundary and atomic protected persistence.
+Do not rerun dynamic registration, delete credentials or substitute another login.
+Real production isolation/account acceptance/$0 flags remain false, dispatch
+blocked and model requests zero. No credit/settings change or broker action ran.
+Batch 2 qualification remains deferred.
+
 ## Supported gateway fake-only milestone complete — 2026-10-03 Bangkok
 
 The practice connection is implemented, locally committed and sealed at source

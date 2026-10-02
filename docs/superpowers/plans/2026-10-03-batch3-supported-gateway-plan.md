@@ -2,10 +2,12 @@
 
 Date: 2026-10-03, Asia/Bangkok. Status: proposed implementation plan; no implementation or live dispatch authorized by this document.
 
-Continuation checkpoint: [runtime probes and fake public core](2026-10-03-batch3-supported-gateway-progress.md).
-The owner's subsequent continuation request started local fake-only work; this
-plan remains the scope/gate reference. Controller/isolation/registry/final-seal
-acceptance is unfinished, and real dispatch remains disabled.
+Continuation: the [fake-only milestone is complete](2026-10-03-batch3-supported-gateway-results.md).
+The owner subsequently authorized account acceptance. Its
+[local preflight](2026-10-03-batch3-account-preflight.md) found expired access and
+identity tokens; gate A remains incomplete pending reviewed renewal and the real
+credential/Internet boundary. Real dispatch remains disabled. Historical starting
+evidence below describes the earlier plan-writing checkpoint.
 
 ## Outcome and scope
 
