@@ -299,6 +299,7 @@ if __name__=='__main__':
     try:
         result=readiness(args.seal_sha256) if args.readiness else rehearse(args.registry,packet_fixture(),args.seal_sha256,args.case,args.deadline)
         print(json.dumps(result,sort_keys=True))
+        if args.readiness and not result['offline_checks_passed']: raise SystemExit(2)
     except Exception:
         print('Gateway rehearsal refused; preserve the reservation.',file=sys.stderr)
         raise SystemExit(2) from None

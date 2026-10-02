@@ -74,11 +74,21 @@ and prepares `.batch3-vibe/production-attempts` with owner/SYSTEM-only access.
 It never reads OAuth contents or reserves a production attempt.
 
 Hash the new seal's `manifest.json`, then run its `code/trusted_gateway.py`
-with `--readiness --seal-sha256 <manifest hash>`. The fixed fake registry is
+with `--readiness --seal-sha256 <manifest hash>`. For isolated host Python,
+explicitly load the sealed code directory (PowerShell, with `$sealed` set to
+the new snapshot's absolute path):
+
+```powershell
+$hash = (Get-FileHash (Join-Path $sealed 'manifest.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+python -I -S -B -c "import runpy,sys; p=sys.argv.pop(1); sys.path.insert(0,p); runpy.run_path(p+'/trusted_gateway.py',run_name='__main__')" (Join-Path $sealed 'code') --readiness --seal-sha256 $hash
+```
+
+The fixed fake registry is
 `.batch3-vibe/gateway-readiness/attempts`; no registry/case/deadline override
 is accepted in readiness mode. It exercises success, 401, account mismatch,
 bad usage and timeout, checks cleanup/replay refusal, and saves an exclusive
 private receipt. Repeating the same seal is refused; preserve failed attempts.
+Failed readiness checks return a nonzero exit status even when a receipt is saved.
 Readiness receipts always say model_requests=0, dispatch/promotion blocked,
 and production isolation, server account acceptance and billing unverified.
 The existing pinned Docker image must already be present; nothing is pulled.
