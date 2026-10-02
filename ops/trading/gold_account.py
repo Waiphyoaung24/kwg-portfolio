@@ -14,6 +14,7 @@ import subprocess
 import sys
 import time
 import uuid
+import zlib
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from batch3_runner import DOCKER, SANDBOX_IMAGE, write_once
@@ -55,13 +56,20 @@ POLICY = dict(mode='gold_account_only', worker_image=SANDBOX_IMAGE, proxy_image=
     proxy_sha256=hashlib.sha256(PROXY.encode()).hexdigest(), worker_python=PYTHON,
     httpx='0.28.1', httpcore='1.0.9', certifi='2026.5.20', logging='none',
     deadline_seconds=DEADLINE, endpoints=[JWKS, TOKEN, MODELS], max_refresh_posts=1,
-    max_catalog_gets=1, model=MODEL, inference_dispatch='blocked', billing_ceiling_verified=False)
+    max_catalog_gets=1, auth_max_bytes=BOUND, catalog_max_bytes=2097152,
+    response_encodings=['identity','gzip'], model=MODEL, inference_dispatch='blocked', billing_ceiling_verified=False)
 
 
 class AccountHTTPError(ValueError):
     def __init__(self,status):
         self.status=status
         super().__init__('Account HTTP refused')
+
+
+class AccountResponseError(ValueError):
+    def __init__(self,code):
+        self.code=code
+        super().__init__('Account response refused')
 
 
 def request(client, operation, value=None):
@@ -78,13 +86,20 @@ def request(client, operation, value=None):
     else: raise ValueError('Account operation required')
     with client.stream(method, url, headers={**options.pop('headers', {}), 'Accept-Encoding':'identity'}, **options) as response:
         if response.status_code != 200: raise AccountHTTPError(response.status_code)
-        if response.headers.get('content-encoding', 'identity') != 'identity': raise ValueError('Encoded response refused')
-        raw = bytearray()
+        encoding=response.headers.get('content-encoding','identity').lower()
+        if encoding not in ('identity','gzip'): raise AccountResponseError('unsupported_encoding')
+        limit=2097152 if operation=='catalog' else BOUND
+        decoder=zlib.decompressobj(16+zlib.MAX_WBITS) if encoding=='gzip' else None
+        raw=bytearray();wire=0
         for chunk in response.iter_raw(chunk_size=4096):
-            raw.extend(chunk)
-            if len(raw) > BOUND: raise ValueError('Account response limit')
-    result = strict_json(raw)
-    if not isinstance(result, dict): raise ValueError('Account object required')
+            wire+=len(chunk)
+            if wire>limit: raise AccountResponseError('wire_limit')
+            raw.extend(decoder.decompress(chunk,limit+1-len(raw)) if decoder else chunk)
+            if len(raw)>limit or decoder and decoder.unconsumed_tail: raise AccountResponseError('decoded_limit')
+        if decoder and (not decoder.eof or decoder.unused_data): raise AccountResponseError('invalid_gzip')
+    try: result=strict_json(raw)
+    except ValueError: raise AccountResponseError('invalid_json') from None
+    if not isinstance(result,dict): raise AccountResponseError('object_required')
     return result
 
 
@@ -220,8 +235,14 @@ def worker():
             try: result = request(client,value['operation'],value['value'])
             except AccountHTTPError as error:
                 print(json.dumps({'account_http_status':error.status}));raise SystemExit(2) from None
+            except AccountResponseError as error:
+                print(json.dumps({'account_response_failure':error.code,'account_http_status':200}));raise SystemExit(2) from None
             except Exception as error:
                 print(json.dumps({'account_failure_kind':type(error).__name__}));raise SystemExit(2) from None
+        if value['operation']=='catalog':
+            present=catalog_matches(result)
+            result={'required_model_present':present,'catalog_models_count':len(result['models']),
+                    'catalog_sha256':hashlib.sha256(json.dumps(result,sort_keys=True,separators=(',',':')).encode()).hexdigest()}
     raw = json.dumps(result,allow_nan=False).encode()
     if len(raw) > BOUND: raise ValueError('Worker result limit')
     sys.stdout.buffer.write(raw)
@@ -343,6 +364,8 @@ def run(seal_sha, mode):
             receipt['failed_operation']=operation
             if set(error)=={'account_http_status'} and type(error['account_http_status']) is int and 100<=error['account_http_status']<=599:
                 receipt['account_http_status']=error['account_http_status']
+            elif set(error)=={'account_response_failure','account_http_status'} and error['account_http_status']==200 and error['account_response_failure'] in ('unsupported_encoding','wire_limit','decoded_limit','invalid_gzip','invalid_json','object_required'):
+                receipt.update(account_http_status=200,account_response_failure=error['account_response_failure'])
             elif set(error)=={'account_failure_kind'} and error['account_failure_kind'] in ('ValueError','ConnectError','ConnectTimeout','ReadTimeout','WriteTimeout','PoolTimeout','RemoteProtocolError'):
                 receipt['account_failure_kind']=error['account_failure_kind']
             raise ValueError('Account worker refused')
@@ -432,7 +455,12 @@ def run(seal_sha, mode):
                 else: updated=previous; receipt['renewal_completed']=False
                 if updated['expires_at']<=time.time()+300: raise ValueError('Fresh access required')
                 catalog=exchange('catalog','catalog',updated['access_token'])
-                present=catalog_matches(catalog)
+                if (set(catalog)!= {'required_model_present','catalog_models_count','catalog_sha256'}
+                        or type(catalog['required_model_present']) is not bool or type(catalog['catalog_models_count']) is not int
+                        or not 0<=catalog['catalog_models_count']<=1000 or not isinstance(catalog['catalog_sha256'],str)
+                        or len(catalog['catalog_sha256'])!=64): raise ValueError('Catalog summary refused')
+                present=catalog['required_model_present']
+                receipt.update(catalog_models_count=catalog['catalog_models_count'],catalog_sha256=catalog['catalog_sha256'])
                 receipt.update(server_account_verified=True,required_model_present=present,production_isolation_verified=True,passed=present)
     except Exception as error:
         receipt['failure_kind']=type(error).__name__

@@ -1,4 +1,5 @@
 import copy
+import gzip
 import json
 from pathlib import Path
 import tempfile
@@ -43,8 +44,18 @@ class AccountTest(unittest.TestCase):
         with self.assertRaises(ValueError): account.request(client,'keys')
         response.iter_raw=lambda **kwargs: iter([b'{"keys":[],"keys":[]}'])
         with self.assertRaises(ValueError): account.request(client,'keys')
-        response.headers={'content-encoding':'gzip'}
+        response.headers={'content-encoding':'br'}
         with self.assertRaises(ValueError): account.request(client,'keys')
+        response.headers={'content-encoding':'gzip'}
+        response.iter_raw=lambda **kwargs: iter([gzip.compress(b'{"keys":[]}')])
+        self.assertEqual(account.request(client,'keys'),{'keys':[]})
+        response.iter_raw=lambda **kwargs: iter([gzip.compress(b'x'*(account.BOUND+1))])
+        with self.assertRaises(account.AccountResponseError): account.request(client,'keys')
+        response.iter_raw=lambda **kwargs: iter([gzip.compress(b'{"keys":[]}')[:-2]])
+        with self.assertRaises(account.AccountResponseError): account.request(client,'keys')
+        large=json.dumps({'models':[{'slug':account.MODEL,'metadata':'x'*(account.BOUND+1)}]}).encode()
+        response.iter_raw=lambda **kwargs: iter([gzip.compress(large)])
+        self.assertTrue(account.catalog_matches(account.request(client,'catalog','FAKE_CANARY_ACCESS')))
 
     def test_signed_identity_binding_and_nonce_validation_contract(self):
         previous=dict(client_id='oaiapp_test',subject='subject',issuer=account.ISSUER,
