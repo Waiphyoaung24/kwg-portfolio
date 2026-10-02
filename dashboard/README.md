@@ -14,7 +14,7 @@ Save is explicit. The editor compares content hashes, serializes this origin's m
 
 ## Browser support
 
-Use current desktop Microsoft Edge or Chrome on HTTPS (localhost works for development). The folder picker is not supported everywhere. Firefox and WebKit do not have supported directory-picker coverage for this integration. Unsupported browsers show a clear message and disabled connection action; there is no silent browser-database fallback. The page requires a network load initially; an already open page can edit a connected local folder offline. No service worker is installed.
+Use current desktop Microsoft Edge or Chrome on HTTPS (localhost works for development). The folder picker is not supported everywhere. Firefox and WebKit do not have supported directory-picker coverage for this integration. Brave disables folder access by default; enable `brave://flags/#file-system-access-api`, then relaunch Brave. Unsupported browsers show the failed requirement (secure page, Brave setting, or browser) and disable connection and create actions; there is no silent browser-database fallback. The page requires a network load initially; an already open page can edit a connected local folder offline. No service worker is installed.
 
 Official references:
 - https://developer.chrome.com/docs/capabilities/web-apis/file-system-access

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createVault,digest} from './src/local-vault.mjs';
+import {createVault,digest,unsupportedReason} from './src/local-vault.mjs';
 const missing=()=>Object.assign(Error('Missing'),{name:'NotFoundError'});
 class Directory{
  constructor(name){this.name=name;this.kind='directory';this.items=new Map();this.permission='granted';this.prompts=0;}
@@ -34,4 +34,16 @@ test('permission denial, cancellation, path boundaries, write failure and concur
  cancel=true;await assert.rejects(vault.connect(),{name:'AbortError'});assert.equal((await vault.list())[0].content,'# Original');
  const file=await(await root.getDirectoryHandle('knowledge')).getFileHandle('Test.md');file.fail=true;await assert.rejects(vault.save({...note,content:'Failed'}),/Disk write/);file.fail=false;assert.equal((await vault.list())[0].content,'# Original');
  const concurrent=await Promise.allSettled([vault.save({...note,content:'First'}),vault.save({...note,content:'Second'})]);assert.equal(concurrent.filter(r=>r.status==='fulfilled').length,1);assert.equal((await vault.list())[0].version,await digest('First'));
+});
+test('unsupported reason names the failed requirement',()=>{
+ const keys=['isSecureContext','showDirectoryPicker','indexedDB','navigator'],saved=keys.map(k=>Object.getOwnPropertyDescriptor(globalThis,k));
+ const env=(secure,picker,brave,locks=true)=>{for(const [k,value]of Object.entries({isSecureContext:secure,showDirectoryPicker:picker?()=>{}:undefined,indexedDB:{},navigator:{locks:locks?{}:undefined,...(brave?{brave:{}}:{})}}))Object.defineProperty(globalThis,k,{value,configurable:true,writable:true});return unsupportedReason();};
+ try{
+  assert.equal(env(true,true,false),null);
+  assert.equal(env(true,true,true),null);
+  assert.equal(env(false,false,true),'insecure');
+  assert.equal(env(true,false,true),'brave');
+  assert.equal(env(true,false,false),'browser');
+  assert.equal(env(true,true,false,false),'browser');
+ }finally{keys.forEach((k,i)=>saved[i]?Object.defineProperty(globalThis,k,saved[i]):delete globalThis[k]);}
 });

@@ -101,7 +101,7 @@ button:hover,.note:hover{background:var(--c-canvas-soft)}
 label,.eyebrow,.nav-label,.shortcut,.list-caption{font-family:var(--ff-mono);text-transform:uppercase;letter-spacing:var(--ls-mono);font-weight:400}
 h1,h2{letter-spacing:var(--ls-4)}
 .folder-panel{border:var(--stroke) solid var(--border);border-radius:var(--sp-sm);padding:var(--s6);margin-bottom:var(--s6);background:var(--c-canvas)}
-.folder-panel p{max-width:var(--reading-width);line-height:var(--lh-reading);color:var(--c-body);margin-block:var(--s3)}
+.folder-panel p{max-width:var(--reading-width);line-height:var(--lh-reading);color:var(--c-body);margin-block:var(--s3)}.folder-panel code{font-family:var(--ff-mono)}
 .folder-actions{display:flex;flex-wrap:wrap;gap:var(--s3)}
 .vault-return{display:block;padding:var(--s3);margin-block:var(--s3);color:var(--text)}
 ::selection{background:var(--c-body);color:var(--c-canvas)}
