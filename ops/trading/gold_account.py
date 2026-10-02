@@ -254,7 +254,8 @@ def private_acl(path):
     # Native ACL verification in owner context; never prints file contents or ACL identities.
     script = "$p=$args[0];$a=Get-Acl -LiteralPath $p;$o=[Security.Principal.NTAccount]::new('KWG-Beast','wai19').Translate([Security.Principal.SecurityIdentifier]);$s=[Security.Principal.SecurityIdentifier]::new('S-1-5-18');if($a.GetOwner([Security.Principal.SecurityIdentifier]) -ne $o -or ((Get-Item -LiteralPath $p).PSIsContainer -and -not $a.AreAccessRulesProtected)){exit 2};$seen=@();foreach($r in $a.Access){$sid=$r.IdentityReference.Translate([Security.Principal.SecurityIdentifier]);if($r.AccessControlType -ne 'Allow' -or $sid -notin @($o,$s) -or $r.FileSystemRights -ne 'FullControl'){exit 2};$seen+=$sid.Value};if($o.Value -notin $seen -or $s.Value -notin $seen){exit 2}"
     encoded = __import__('base64').b64encode((script.replace('$args[0]',"'"+str(path).replace("'","''")+"'")).encode('utf-16le')).decode()
-    checked = subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-EncodedCommand',encoded],capture_output=True,timeout=10)
+    env={k:v for k,v in os.environ.items() if k.upper() in {'SYSTEMROOT','WINDIR'}}
+    checked = subprocess.run(['C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe','-NoProfile','-NonInteractive','-EncodedCommand',encoded],env=env,capture_output=True,timeout=10)
     if checked.returncode: raise ValueError('Private ACL refused')
 
 
