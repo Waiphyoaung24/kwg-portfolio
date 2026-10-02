@@ -1,5 +1,6 @@
 ---
 import '../../styles/index.scss';
+import TradingNavigation from '../../components/TradingNavigation.astro';
 export const prerender = true;
 ---
 
@@ -11,7 +12,7 @@ export const prerender = true;
     <!-- Browser theme-color metadata cannot resolve a CSS variable. -->
     <meta name="theme-color" content="#0a0a0a" />
     <meta name="robots" content="noindex" />
-    <title>Trading — Vault — KWG</title>
+    <title>Supervised demo — Gold operations — KWG</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,12 +20,42 @@ export const prerender = true;
   </head>
   <body>
     <main class="page">
-      <a class="pill-btn" href="/vault">← Vault</a>
-      <a class="pill-btn" href="/vault/trading-bot">Gold operations</a>
-      <header class="page__intro">
-        <h1>Gold demo</h1>
-        <p>Check the feed, preview one protected trade, then watch its result.</p>
+      <TradingNavigation current="demo" />
+      <header class="page__intro" id="trading-content" tabindex="-1">
+        <h1>Supervised demo</h1>
+        <p>Check the demo feed, preview one protected order, then review its result. Use Overview to compare fictional strategy results.</p>
       </header>
+      <section class="card status" aria-labelledby="status-title">
+        <div class="status__head">
+          <h2 id="status-title">Price feed</h2>
+          <span class="status__state label" id="state" aria-live="polite">Checking</span>
+        </div>
+        <p class="status__symbol micro">XAUUSD-VIP · VT Markets demo</p>
+        <dl class="status__rows">
+          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M8 12h8M9 5H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3m6-14h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-3" /></svg>MT5 connection</dt><dd id="connection">Checking</dd></div>
+          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Gold price</dt><dd id="freshness">Checking</dd></div>
+          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 3 8-9m-6 0h6v6" /></svg>Strategy signal</dt><dd id="signal">Checking</dd></div>
+        </dl>
+        <p class="status__guidance" id="guidance" role="status">Connecting to the private status API.</p>
+        <details class="status__details">
+          <summary class="pill-btn">Technical details <span aria-hidden="true">⌄</span></summary>
+          <dl class="status__rows">
+            <div><dt class="label">Status delivery</dt><dd id="delivery">Checking</dd></div>
+            <div><dt class="label">Observer heartbeat</dt><dd id="heartbeat">Checking</dd></div>
+            <div><dt class="label">Last quote</dt><dd id="tick">—</dd></div>
+            <div><dt class="label">Quote age at check</dt><dd id="age">—</dd></div>
+            <div><dt class="label">15-minute history</dt><dd id="history">Checking</dd></div>
+            <div><dt class="label">Latest fetched candle · opened</dt><dd id="candle">—</dd></div>
+            <div><dt class="label">Strategy readiness</dt><dd id="strategy">Checking</dd></div>
+            <div><dt class="label">Last checked</dt><dd id="checked">—</dd></div>
+          </dl>
+          <p class="status__reason" id="reason">Checking</p>
+        </details>
+        <div class="status__actions">
+          <button class="pill-btn" id="refresh" type="button">Refresh status</button>
+          <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
+        </div>
+      </section>
       <section class="card status" aria-labelledby="control-title">
         <div class="status__head">
           <h2 id="control-title">One supervised trade</h2>
@@ -68,37 +99,6 @@ export const prerender = true;
             <div><dt class="label">Last report</dt><dd id="execution-updated">—</dd></div>
           </dl>
         </details>
-      </section>
-      <section class="card status" aria-labelledby="status-title">
-        <div class="status__head">
-          <h2 id="status-title">Price feed</h2>
-          <span class="status__state label" id="state" aria-live="polite">Checking</span>
-        </div>
-        <p class="status__symbol micro">XAUUSD-VIP · VT Markets demo</p>
-        <dl class="status__rows">
-          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M8 12h8M9 5H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3m6-14h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-3" /></svg>MT5 connection</dt><dd id="connection">Checking</dd></div>
-          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Gold price</dt><dd id="freshness">Checking</dd></div>
-          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 3 8-9m-6 0h6v6" /></svg>Strategy signal</dt><dd id="signal">Checking</dd></div>
-        </dl>
-        <p class="status__guidance" id="guidance" role="status">Connecting to the private status API.</p>
-        <details class="status__details">
-          <summary class="pill-btn">Technical details <span aria-hidden="true">⌄</span></summary>
-          <dl class="status__rows">
-            <div><dt class="label">Status delivery</dt><dd id="delivery">Checking</dd></div>
-            <div><dt class="label">Observer heartbeat</dt><dd id="heartbeat">Checking</dd></div>
-            <div><dt class="label">Last quote</dt><dd id="tick">—</dd></div>
-            <div><dt class="label">Quote age at check</dt><dd id="age">—</dd></div>
-            <div><dt class="label">15-minute history</dt><dd id="history">Checking</dd></div>
-            <div><dt class="label">Latest fetched candle · opened</dt><dd id="candle">—</dd></div>
-            <div><dt class="label">Strategy readiness</dt><dd id="strategy">Checking</dd></div>
-            <div><dt class="label">Last checked</dt><dd id="checked">—</dd></div>
-          </dl>
-          <p class="status__reason" id="reason">Checking</p>
-        </details>
-        <div class="status__actions">
-          <button class="pill-btn" id="refresh" type="button">Refresh status</button>
-          <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
-        </div>
       </section>
       <p class="page__note">Status updates every 10 seconds. This control starts only a reviewed, single demo attempt; it does not run the strategy continuously.</p>
     </main>
@@ -263,7 +263,7 @@ export const prerender = true;
     </script>
 
     <style lang="scss">
-      .page { display: grid; align-content: start; justify-items: start; gap: var(--sp-2xl); min-height: 100svh; max-width: var(--grid-max-width); margin-inline: auto; padding: var(--sp-3xl) var(--grid-margin); }
+      .page { display: grid; align-content: start; justify-items: start; gap: var(--sp-2xl); min-height: 100svh; width: min(100%, var(--container-max-width)); margin-inline: auto; padding: var(--sp-3xl) var(--grid-margin); }
       .page__intro { max-width: 65ch; }
       .page__intro h1 { margin: 0 0 var(--sp-lg); font-size: var(--fs-2); line-height: 1; letter-spacing: var(--ls-2); }
       .page__intro p { margin: 0; color: var(--c-body); line-height: 1.5; }

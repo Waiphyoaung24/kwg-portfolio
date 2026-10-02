@@ -239,6 +239,12 @@ node ops/trading/build-status-page.mjs
 
 Commit `ops/trading/trading.html` and `trading-bot.html` with source changes.
 
+Both trading pages share navigation with a current-page indicator and a
+keyboard skip link. **Overview** (`/vault/trading-bot`) contains the feed and
+practice comparison. **Supervised demo** (`/vault/trading`) shows feed health
+before the existing manual order preview. Leaving Overview clears its
+in-memory practice review.
+
 Gold operations now includes a local offline experiment review. Open
 `/vault/trading-bot`, choose **Choose three reports**, and select
 `comparison.json`, `baseline.json` and `candidate.json` together from one

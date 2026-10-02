@@ -1,5 +1,16 @@
 # Gold trading handoff — 2026-09-28
 
+## Shared trading navigation — 2026-10-02 (local preparation)
+
+Overview and Supervised demo now share navigation, current-page semantics,
+keyboard skip links and the same content width. The demo feed precedes the
+manual order form. Preview/arm handlers and risk controls are unchanged.
+Both standalone HTML files must be deployed to the VPS status service for
+these navigation changes to appear on production; no Worker change is needed.
+Astro build and trading status/review checks passed. Browser checks verified
+both navigation directions, keyboard skip focus and no horizontal overflow
+at the desktop viewport and 390px mobile width; navigation targets are 44px.
+
 ## Offline experiment review foundation — 2026-10-02
 
 Owner found the first review UI confusing. It now uses Practice comparison,

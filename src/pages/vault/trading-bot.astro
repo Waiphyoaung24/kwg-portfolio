@@ -1,5 +1,6 @@
 ---
 import '../../styles/index.scss';
+import TradingNavigation from '../../components/TradingNavigation.astro';
 export const prerender = true;
 const stages = [
   { number: '01', title: 'Observe', detail: 'Completed gold M15 candles. Feed health comes from the observer.', state: 'Feed below' },
@@ -23,11 +24,8 @@ const stages = [
   </head>
   <body>
     <main class="operations">
-      <nav class="actions" aria-label="Trading navigation">
-        <a class="pill-btn" href="/vault">← Vault</a>
-        <a class="pill-btn" href="/vault/trading">Supervised demo</a>
-      </nav>
-      <header class="intro">
+      <TradingNavigation current="overview" />
+      <header class="intro" id="trading-content" tabindex="-1">
         <p class="label">XAUUSD-VIP · M15 · demo</p>
         <h1>Gold operations</h1>
         <p>Check the demo connection and practice comparing strategy changes.</p>
@@ -77,6 +75,7 @@ const stages = [
               <div><dt>Closed</dt><dd id="attempt-closed">—</dd></div>
             </dl>
             <p class="note">One supervised attempt only. This is not an autonomous position inventory, trade history or strategy return.</p>
+            <a class="pill-btn" href="/vault/trading">Open supervised demo</a>
           </section>
           <section class="panel" aria-labelledby="workflow-title">
             <div class="section-head"><h2 id="workflow-title">What is ready?</h2></div>
@@ -98,7 +97,7 @@ const stages = [
               <button class="pill-btn" id="clear-reports" type="button" hidden>Clear review</button>
               <input id="report-files" type="file" accept=".json,application/json" multiple hidden />
             </div>
-            <p class="note">Files stay in this browser tab. No upload, model request or order. Up to 8 MiB per file. Clearing or reloading removes the review.</p>
+            <p class="note">Files stay in this browser tab. No upload, model request or order. Up to 8 MiB per file. Leaving this page, clearing or reloading removes the review.</p>
             <p id="review-message" role="status" aria-live="polite">Choose your three test reports to see the comparison.</p>
             <div id="review-result" hidden>
               <p id="review-explanation"></p>

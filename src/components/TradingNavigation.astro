@@ -1,0 +1,19 @@
+---
+interface Props { current: 'overview' | 'demo' }
+const { current } = Astro.props;
+---
+<a class="pill-btn trading-skip" href="#trading-content">Skip to content</a>
+<nav class="trading-nav" aria-label="Gold operations navigation">
+  <a class="pill-btn" href="/vault">← Vault</a>
+  <div class="trading-nav__views">
+    <a class="pill-btn" href="/vault/trading-bot" aria-current={current === 'overview' ? 'page' : undefined}>Overview</a>
+    <a class="pill-btn" href="/vault/trading" aria-current={current === 'demo' ? 'page' : undefined}>Supervised demo</a>
+  </div>
+</nav>
+<style>
+  .trading-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-lg); width: 100%; padding-bottom: var(--sp-lg); border-bottom: 1px solid var(--c-hairline); }
+  .trading-nav__views { display: flex; flex-wrap: wrap; gap: var(--sp-sm); }
+  [aria-current="page"] { border-color: var(--c-ink); text-decoration: underline; text-underline-offset: var(--sp-xs); }
+  .trading-skip { position: fixed; top: var(--sp-md); left: var(--sp-md); transform: translateY(calc(-100% - var(--sp-lg))); background: var(--c-canvas); }
+  .trading-skip:focus { transform: none; }
+</style>
