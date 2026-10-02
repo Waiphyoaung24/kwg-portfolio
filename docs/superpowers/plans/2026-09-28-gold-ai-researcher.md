@@ -1,13 +1,22 @@
 # Gold AI researcher and MT5 runner — selected 2026-09-28
 
-## Resume here — four delivery batches
+## Current delivery status — October 2
+
+Batch 2 is closed for development, unqualified, under the owner's deferred-sample
+decision. Batch 3 offline integration and sealed fake gateway checks are complete;
+real dispatch still requires real credential/network isolation and backend USD0
+enforcement. Follow the [final handoff](2026-10-02-batch2-batch3-handoff.md).
+The original batch sequence below remains historical design context; it does
+not reopen Batch 2 development or authorize trading.
+
+## Original four-batch delivery sequence
 
 Detailed execution plans (planning only; numeric policy awaits review):
 - [Batch 1 implementation](2026-09-28-gold-batch-1-implementation.md)
 - [Batch 2 implementation](2026-09-28-gold-batch-2-implementation.md)
 
 Owner approved this batch sequence on 2026-09-28 for continuation from a
-MacBook. This is the current delivery checklist; earlier milestone status
+MacBook. This records the original delivery checklist; earlier milestone status
 below records historical progress. No batch enables orders or auto-promotion.
 
 ### Batch 1 — qualify data and costs (next)

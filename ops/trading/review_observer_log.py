@@ -4,7 +4,7 @@ import math
 import re
 
 
-def observer_records(raw):
+def observer_frames(raw):
     text = raw.decode('utf-8', errors='replace')
     text = re.sub(r'\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)', '', text)
     text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', text)
@@ -13,15 +13,28 @@ def observer_records(raw):
     decoder = json.JSONDecoder()
     index = 0
     while True:
-        index = text.find('{', index)
-        if index < 0:
+        start = text.find('{', index)
+        if start < 0:
+            if text[index:].strip():
+                yield None, text[index:]
             return
+        if text[index:start].strip():
+            yield None, text[index:start]
         try:
-            item, end = decoder.raw_decode(text, index)
+            item, end = decoder.raw_decode(text, start)
         except ValueError:
-            index += 1
+            end = text.find('{', start + 1)
+            if end < 0:
+                end = len(text)
+            yield None, text[start:end]
+            index = end
             continue
+        yield item, text[start:end]
         index = end
+
+
+def observer_records(raw):
+    for item, _ in observer_frames(raw):
         if not isinstance(item, dict) or item.get('mode') != 'signal-only':
             continue
         health = item.get('health')

@@ -1,5 +1,85 @@
 # MT5 compatibility probe
 
+## Current development milestone — 2026-10-02
+
+Owner chose to close Batch 2 for development and defer the 60-day/trade-count
+qualification program. Batch 2 is **closed for development, unqualified**.
+Batch 3's existing synthetic offline integration and separate Vibe learning app
+are the next workflow; see the [current handoff](../../docs/superpowers/plans/2026-10-02-batch2-batch3-handoff.md).
+The qualification policy and risk limits stay fixed. Unknown OAuth cost still
+blocks gold dispatch; human approval remains required for promotion. Historical
+evidence checkpoints below do not override this current development scope.
+Real credential/network isolation and backend USD0 enforcement are remaining
+Batch 3 activation gates; they do not reopen Batch 2 development. Current
+close-out evidence and acceptance boundaries are in the linked handoff.
+
+### Batch 3 local readiness and fake-auth isolation
+
+Run the read-only readiness check as the owner:
+
+```powershell
+python -B ops/trading/batch3_runner.py --preflight
+```
+
+It checks the fixed local Linux Docker engine and cached pinned image without
+loading Docker credentials, starting services, pulling images or invoking AI.
+Exit 2 is intentional while production/billing gates remain blocked. Engine
+availability is separate from successful sandbox probes and real transport.
+
+After explicit Docker startup authorization, the existing credential-free
+rehearsal can run at a new exclusive output path:
+
+```powershell
+python -B ops/trading/rehearse-auth-isolation.py --output .superpowers/sdd/auth-isolation-UNIQUE
+```
+
+It checks fake refresh/401/deadline behavior and removal of only its own
+containers. No network or credentials are mounted; no broker or model called.
+First failure halts the rehearsal; preserve its artifacts rather than retrying
+at the same path. Timeout cleanup does not imply its configuration was inspected.
+Successful fixtures do not grant real OAuth or USD0 billing approval.
+
+### Trusted OAuth transport (dispatch disabled)
+
+`trusted_oauth_transport.py` reuses the pinned provider request/stream guards
+with account-bound headers, fixed gpt-6.1-sol/medium and validated proposal/usage.
+The internal core is tested with fake HTTP. Its public dispatch refuses before
+reading credentials or making requests; production containment, source sealing
+and backend USD0 billing enforcement remain pending.
+
+The owner can inspect local account consistency without a model request:
+
+```powershell
+python -E -S -B ops/trading/trusted_oauth_transport.py --check-binding --output .batch3-vibe/profile/.vibe-trading/auth/binding-UNIQUE.json
+```
+
+This reads only the fixed private Vibe store, checks the stored account against
+the unverified JWT claim and records a fingerprint plus freshness. It does not
+verify JWT signature, server authentication, subscription or billing. No token
+refresh, CLI-store import, raw account ID or token output. Keep the receipt private.
+
+The current transport code and recorded synthetic inputs are separately sealed
+at `.batch3-vibe/sealed-trusted-transport-20261002` (62 verified files).
+Sealed-core tests and Docker read-only/no-network/timeout cleanup checks passed;
+see the [seal checkpoint](../../docs/superpowers/plans/2026-10-02-current-transport-seal.md).
+This offline check does not verify a production credential process with network
+egress or backend billing, and cannot enable gold dispatch.
+
+### Durable gateway rehearsal
+
+The current synthetic-only controller is sealed at
+`.batch3-vibe/sealed-gateway-20261002-r2/code/trusted_gateway.py`.
+It reserves a manifest identity before starting work, inspects the container before
+sending stdin, and preserves failed attempts. The worker creates fake credentials
+internally; the controller has no live OAuth entry. Its parent deadline and explicit
+PID1 watchdog both have offline checks. Cleanup has a separate maximum 30s budget.
+
+Five Docker cases and same-registry replay refusal passed. See the
+[gateway checkpoint](../../docs/superpowers/plans/2026-10-02-trusted-gateway.md).
+Separate test registries allow independent fixtures only; they are not permission
+to retry a real proposal. Live dispatch remains blocked by production credential
+containment, permitted egress and backend billing enforcement.
+
 ## Batch 2 evidence checkpoint — 2026-09-30
 
 The owner reports the pending-entry update deployed and an existing gold pending
@@ -616,6 +696,203 @@ The CLI sets umask 077; native Windows still requires private directory ACLs.
 Keep captures and account-specific evidence outside Git.
 
 ### Prospective qualification protocol — external evidence pending
+
+#### Prepared diagnostic follower — not deployed
+
+`capture-observer.py` follows only `docker logs` from the fixed desktop container.
+It never attaches to MT5 or writes the observer journal. It retains selected
+numeric health fields, categorical states and received timestamps; arbitrary
+fields and free text are replaced by hashes. Wrapped JSON uses the existing
+log parser. Rejected frames and incomplete tails retain counts/hashes. Receipt
+includes code and output hashes, gaps, stop reason and zero qualification credit.
+This is selected-field evidence, not a claim that complete raw logs were saved.
+
+The Linux live mode has a 1–86400-second limit, 1 MiB frame limit and 64 MiB
+diagnostic-file limit per invocation. Each accepted event is flushed/fsynced.
+It creates a new 0700 directory and 0600 files under umask 077. Existing paths
+are refused. Disconnect, interrupted input, limits and silence require review;
+there are no automatic retries. A disk/write failure may leave partial files
+without a receipt: preserve them as a failed attempt. Docker client termination
+does not stop the container or observer. Fixture mode is local/offline only.
+
+**Future supervised trial, after transfer/source verification:** transfer only
+these two reviewed source files from a separate local PowerShell terminal:
+
+```powershell
+scp ops/trading/capture-observer.py ops/trading/review_observer_log.py root@187.52.117.116:/root/kwg-gold-research/
+Get-FileHash ops/trading/capture-observer.py,ops/trading/review_observer_log.py -Algorithm SHA256
+```
+
+The transfer is a separate deployment step and has not been executed. Check
+destination files first; do not overwrite any pre-existing version. Compare
+local hashes to `sha256sum` on the VPS. Confirm current reviewed desktop launcher
+identity and that its observer still emits signal-only JSON on stdout before
+using this follower. Do not print full container environment or raw mixed logs.
+Then a **new 60-second diagnostic trial**, distinct from the original smoke,
+can be run in the SSH terminal:
+
+```sh
+sha256sum /root/kwg-gold-research/capture-observer.py /root/kwg-gold-research/review_observer_log.py
+umask 077
+python3 -B /root/kwg-gold-research/capture-observer.py --seconds 60 --output /root/kwg-gold-research/evidence/diagnostic-trial-UNIQUE-UTC
+```
+
+Replace UNIQUE-UTC with a fresh run ID. `timeout` is the expected bounded stop,
+not a qualification pass. Review receipt, last received sample, rejected frames,
+tail count/hash and gaps. A nonzero sample count proves only that selected
+observer output arrived during that trial. Start/end live account/Algo-off/
+exposure checks remain separate. Zero samples, nonmonotonic times, unexplained
+silence or a failed receipt keep readiness blocked. Full prospective retention
+still requires a reviewed schedule, handoff between captures, independent
+writer-liveness/gap checks, disk monitoring and preserved journals/exports.
+No follower or recurring service has been installed or started by this work.
+
+For a single owner-authenticated transfer-and-trial invocation, use local
+PowerShell from the repository root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ops/trading/run-diagnostic-trial.ps1
+```
+
+ExecutionPolicy applies only to this new process; persistent policy is not
+changed. Enter your SSH key passphrase locally if prompted. This launcher checks
+the deployed desktop source hash, transfers reviewed files into an exclusive
+UTC/UUID run directory, runs 60 seconds, then verifies receipt bytes and container
+state. It prints only selected counts/status/hashes. A failed launch preserves
+partial evidence and never retries or restarts MT5. `-DryRun` compiles the
+generated remote script locally and performs no SSH connection.
+
+Read the saved 60-second trial without starting a new capture:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ops/trading/run-diagnostic-trial.ps1 -ReviewOnly
+```
+
+This review mode is pinned to diagnostic-trial-20261002T083518Z-840efc3b and its
+known diagnostic byte hash. It checks source identities, receipt counts and
+unqualified/zero-day/blocked-promotion metadata before printing selected timing,
+state and permission results. Sustained retention and the proposed observation
+schedule remain a [draft](../../docs/superpowers/specs/2026-10-02-sustained-observation.md).
+
+For the next bounded 110-second overlapping-follower handoff trial:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ops/trading/run-diagnostic-trial.ps1 -RetentionTrial
+```
+
+This transfers the three reviewed stdlib source files into a fresh private
+UTC/UUID directory, checks desktop/source identity, runs 60-second segments with
+a 10-second overlap and a 1 GiB disk reserve, then prints blockers, unique sample
+count, receipt hash and container-state comparison. It exits 2 on blockers or
+changed container state. ReviewOnly and RetentionTrial are mutually exclusive.
+This trial installs no service and grants no qualification or observed-day credit.
+
+Read-only verification of both completed October 2 handoff attempts:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ops/trading/run-diagnostic-trial.ps1 -RetentionReview
+```
+
+Enter the SSH key passphrase locally. This route reads the two pinned private
+directories, verifies their reported supervisor hashes and reviewed source bytes,
+reconciles actual segment bytes/overlaps/boundaries, and checks root ownership
+and private permissions. It creates no files or processes on the VPS beyond the
+read-only Python review. A mismatch exits unsuccessfully; preserve both attempts.
+The attempts remain separate, unqualified and earn zero observed-day credit.
+ReviewOnly, RetentionReview and RetentionTrial are mutually exclusive.
+
+#### Retention supervisor — local implementation only
+
+`retention_supervisor.py` reuses the fixed diagnostic capture CLI. It starts at
+most two overlapping owned follower process groups, checks every ten seconds,
+records stale writers/early exits/disk refusal and stops only its own processes.
+No retries, service installation, MT5 calls, journal changes or order tools.
+Run identity and outputs are exclusive; partial attempts stay intact. Final
+review verifies receipts, source/byte identities, sample/receive clocks,
+start/end boundaries, real overlap and conflicting source hashes. A gap or
+failed receipt remains a blocker. Original samples are never deleted to dedupe.
+All results retain unqualified status, zero observed days and blocked promotion.
+
+The CLI bounds a single supervision run to two days and at most four planned
+segments, each at most 24 hours/64 MiB diagnostic output. It requires an explicit
+disk reserve of at least twice the projected bounded diagnostic budget; include
+additional journal/export/storage needs. It does not provide calendar scheduling,
+off-host alerts, independent host-recovery proof or handoff between supervisor
+runs. Failed I/O can prevent a final receipt: preserve partial evidence.
+
+Future supervised Linux trial, after verifying transferred sources and reviewing
+current demo/Algo-off/exposure and disk readiness (not executed here):
+
+```sh
+python3 -B retention_supervisor.py --run --seconds 110 --segment-seconds 60 --overlap-seconds 10 --reserve-bytes 1073741824 --output /root/kwg-gold-research/evidence/retention-handoff-UNIQUE-UTC
+```
+
+This is a short two-follower handoff trial, not prospective qualification. For
+longer bounded segments the proposed defaults are 86400 seconds with a 300-second
+overlap; freeze total duration/reserve separately before starting. No sustained
+run starts just because its command is documented. Source transfer includes
+retention_supervisor.py, capture-observer.py and review_observer_log.py; verify exact versions
+in a new private tools directory rather than overwriting deployed source.
+Completed capture/receipt preservation and consistent SQLite exports remain
+operator tasks. Supervisor summary must report no blockers for software readiness;
+it still grants no strategy qualification. The CLI exits 2 on blockers.
+
+Read-only offline segment review, with explicit UTC epoch bounds and unique output:
+
+```sh
+python3 -B retention_supervisor.py --review SEGMENT_A SEGMENT_B --start START_UTC_EPOCH --end END_UTC_EPOCH --output REVIEW_UNIQUE.json
+```
+
+Fixture review additionally requires `--mode synthetic_fixture`. Local tests
+exercise overlap conflicts, clock/receive silence, missing boundaries/receipts,
+writer failure, disk refusal and owned-group cleanup without Docker/broker use.
+
+#### Offline report adapter preparation (2026-10-02)
+
+`batch2_adapter.py` reconciles the existing baseline simulator CLI report by
+recomputing it, including exact dataset/window/cost file hashes. This prepares
+real-format integration; it does not authenticate broker evidence or qualify
+Batch 2. It requires explicitly UTC data and a clock evidence object declaring
+`timestamp_basis: "utc"`, `status: "unreviewed"`; include mapping/source evidence
+in that object for later review. Its byte hash is retained without treating the
+declaration as proof. Raw broker epochs must be normalized and independently
+reviewed before this interface is used. Daily returns group existing equity
+marks by their UTC bar-open date, without another offset adjustment.
+
+Run locally from the repository root, with private existing directories and
+unique output names (PowerShell):
+
+```powershell
+python -B ops/trading/batch2_adapter.py --draft --output .batch3-vibe/protocol-UNIQUE.json
+python -B ops/trading/batch2_adapter.py --dataset .batch3-vibe/dataset.json --windows .batch3-vibe/windows.json --costs .batch3-vibe/costs.json --report .batch3-vibe/baseline.json --clock .batch3-vibe/clock.json --protocol .batch3-vibe/protocol-UNIQUE.json --output .batch3-vibe/adapted-UNIQUE.json
+```
+
+The baseline report must come from `simulate-gold.py` using explicit `--windows`
+and `--cost-profile`, without a candidate. Costs must structurally cover those
+windows; fictional profiles are only suitable for labelled offline rehearsals.
+All output creation is exclusive. The protocol must match current fixed source,
+risk and policy identities. This adapter accepts only `prepared_not_started`
+drafts and always emits unqualified evidence, zero verified observed days and
+blocked dispatch/promotion. It creates no Batch 3 dispatch packet.
+
+Before starting a separate prospective collection, review and record:
+
+1. A future UTC completed-bar start after manifest creation, an ordered future
+   development/validation schedule and three flat folds, plus a reserved
+   untouched holdout. Pre-register window selection rules before inspecting
+   results; do not choose successful days after collection.
+2. Dated exact-account commission, swap-rate and holiday rollover coverage,
+   settlement timezone, broker-to-UTC mapping and exact-symbol sessions.
+   Missing evidence remains a named blocker, including for demo accounts.
+3. Full diagnostics and data retention for the entire interval, saved byte
+   hashes, gaps and closure/reopening checks; existing artifacts stay intact.
+4. Independent provenance review and the unchanged 60-day/three-fold/100-trade
+   gates below. Confirm coverage after collection before assigning observed
+   days. Calendar marks alone earn no qualification credit.
+
+The prepared draft starts no collector. A collecting manifest requires separate
+review and is not accepted by this preparation adapter. Unknown OAuth monetary
+cost still blocks gold model dispatch; human promotion approval remains required.
 
 Record exact `XAUUSD-VIP` sessions from MT5 Specification with dated source
 references. Capture before documented closure and after documented reopening,

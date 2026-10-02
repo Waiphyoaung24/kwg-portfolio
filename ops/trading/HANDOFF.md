@@ -1,5 +1,450 @@
 # Gold trading handoff — 2026-09-28
 
+## Final Batch 2 development close-out — 2026-10-02
+
+**Batch 2: closed for development, unqualified. Batch 3: offline integration
+verified, real gold model dispatch blocked. Promotion blocked.**
+
+Use the [final handoff](../../docs/superpowers/plans/2026-10-02-batch2-batch3-handoff.md)
+and [current task plan](../../docs/superpowers/plans/task_plan.md). The owner deferred
+the qualifying observation/trade sample. Remaining real credential/network
+isolation and backend USD0 enforcement are Batch 3 gates, not unfinished Batch 2
+development. Historical checkpoint instructions below do not override this scope.
+
+Fixed baseline/risk/policy, adapter and simulator remain in place; captured smoke,
+retention receipts and journals are preserved. The latest implementation suite
+passed 175 tests, r2's five Docker cases passed with zero real model requests,
+and all 64 sealed files matched. No new service, capture, strategy, order or
+qualification claim is needed to close this delivery batch.
+
+Owner's Pro/no-paid-credits/top-ups-disabled facts and USD0/no-fallback approval
+are recorded. Official billing documentation and Context7 were consulted during
+close-out; no account-specific backend enforcement was established. Real dispatch
+remains hard-disabled. Continue separate synthetic Vibe learning as documented.
+
+Commit preparation removed whitespace in batch3_auth_fixture.py and
+test_capture_observer.py. Preserve the existing r2 seal as tested historical
+bytes; activation must seal the final committed source again, rather than
+asserting byte equality between a fresh checkout and that private snapshot.
+
+## Durable gateway rehearsal and independent watchdog — 2026-10-02 Bangkok
+
+trusted_gateway.py adds a synthetic-only controller around the trusted OAuth
+core. It reserves each manifest identity exclusively within its rehearsal registry
+before creating a container, retaining that reservation after failure/timeout.
+Packet changes or renaming the experiment cannot reuse that identity. Live
+dispatch remains unconditionally blocked; production needs a fixed private
+registry and verified credential/egress/billing controls, not a new registry per retry.
+
+Creates the fixed container and inspects image, entrypoint/command, exact mount
+sources/destinations, read-only flags, network-none, UID and resource limits before
+stdin. Parent execution budget is at most 180s, with up to 30s additional cleanup.
+The sealed worker generates fake credentials, invokes the bound core once and
+returns only validated proposal/usage/status. Unknown stdout/stderr is never saved.
+Output capture relies on the fixed sealed worker's own size guard; this is not
+a generic bounded-output executor for arbitrary code.
+
+Fresh review had no Critical/Important findings. A subsequent direct PID1 test
+found default SIGALRM ignored; explicit exit handler fixed it. Original failing
+snapshot and receipts preserved. Current seal: .batch3-vibe/sealed-gateway-20261002-r2.
+Manifest SHA256: 1fa75e9093140a8263cff5170bfc772a1e050a85fea31bc8498da4390103f4e6.
+Actual r2 Docker success/401/account-mismatch/bad-usage/timeout all passed with
+pre-input configuration checks and owned-container cleanup/absence verified.
+Replay refused, model_requests=0. Independent watchdog test exited2 at its scaled
+one-second deadline with no stdout; it does not depend on parent cleanup.
+
+Receipts: .superpowers/sdd/trusted-gateway-20261002-r2/summary.json and check.json;
+.superpowers/sdd/trusted-gateway-watchdog-20261002/before/receipt.json and after/receipt.json.
+Production credential process with permitted egress, server account acceptance
+and backend USD0 enforcement remain unverified. No real model/broker request,
+OAuth-store access, risk change or promotion. Batch2 remains unqualified.
+Plan: docs/superpowers/plans/2026-10-02-trusted-gateway.md.
+Final verification: 175 trading tests passed; five gateway tests passed from the
+sealed r2 snapshot. All 64 sealed file hashes/current sources match, sandbox write
+open denied, and git diff --check passed.
+
+## Current seal and trusted-core Docker check — 2026-10-02 Bangkok
+
+New separate .batch3-vibe/sealed-trusted-transport-20261002 snapshot verified:
+62 files, current source hashes match, coding-sandbox write-open denied. Three
+trusted transport tests passed from those exact sealed files with frozen fake
+provider input. Old sealed-credential-rehearsal and OAuth/config files unchanged.
+
+Fresh review found unsafe staging, source-copy races and missing frozen-input
+identity checks. Fixed: owner/SYSTEM-only staging before copying, full ancestor
+reparse checks, stable no-write/no-delete source handle with final path check,
+exclusive destination copy, pinned -03 input/upstream hashes and packet/request/
+worker cross-identities checked before granting sandbox RX. Harmless native
+canaries passed for source writers, junction rejection and no overwrite.
+
+Actual sealed-core Docker test passed using fake credentials only: UID65534,
+read-only mounts/root, network none, dropped capabilities, fixed CPU/memory/PID
+limits. Timeout case and cleanup/container absence verified. No real model or
+broker request. Receipts:
+.superpowers/sdd/current-transport-seal-20261002/check.json
+.superpowers/sdd/current-transport-seal-20261002/docker/receipt.json
+
+This verifies the sealed fake core and offline OS configuration, not a real
+credential-owning production route with permitted network egress. Production
+credential containment, request reservation/deadline, server authentication and
+backend USD0 billing enforcement remain unverified; dispatch still hard-blocked.
+Plan: docs/superpowers/plans/2026-10-02-current-transport-seal.md.
+All 170 trading tests and git diff --check passed; native copy canaries passed.
+
+## Trusted OAuth core and local account binding — 2026-10-02 Bangkok
+
+Dedicated trusted_oauth_transport.py core prepared; public live dispatch always
+refuses before token/HTTP access. Reuses pinned provider conversion and stream
+guards, supplies account-bound headers once, fixes gpt-6.1-sol/medium/no-tools,
+rejects bad model/usage/proposal, and makes no retry. No refresh or CLI-store import.
+Fresh review found upstream completion normalization accepted unknown statuses;
+failing fake regression fixed in the shared bounded loader: explicit completed only.
+
+Owner-context metadata-only check passed: stored account matches unverified JWT
+account claim and token was fresh. Private receipt:
+.batch3-vibe/trusted-binding-20261002-01.json. Only fingerprint/status recorded;
+JWT signature/server account authentication and backend billing remain unverified.
+This receipt is a local snapshot, not approval for a later request/account.
+OAuth store owner/SYSTEM-only ACL verified. Receipt initially inherited broader
+root permissions; restricted only the new receipt to owner/SYSTEM and reverified.
+No real model request, token-store write, broker contact or risk/promotion change.
+
+Shared-loader Docker fake-auth rehearsal passed, cleanup verified, model_requests=0:
+.superpowers/sdd/batch3-auth-docker-20261002-03/summary.json.
+Plan: docs/superpowers/plans/2026-10-02-trusted-oauth-transport.md.
+All 170 trading tests passed after the review fix; git diff --check passed.
+Next: production parent deadline/credential-process containment and current code
+seal; backend USD0/no-paid-fallback enforcement must be verified before dispatch.
+Existing 48-file sealed rehearsal snapshot was not changed and does not seal this code.
+
+## Docker gates strengthened; Pro billing facts received — 2026-10-02 Bangkok
+
+Owner reports the Vibe account is Pro, with no paid credits and automatic
+purchase/top-up disabled. Preserve as owner-reported budget evidence, not direct
+backend inspection; approved additional spend USD0/no paid fallback unchanged.
+Trusted transport/account binding and actual billing behavior remain untested.
+
+Fresh review found rehearsal checked inference count but omitted refresh/clear
+counts. Failing regression fixed; all expected auth counts now checked.
+Separate corrected Docker rehearsal passed at
+.superpowers/sdd/batch3-auth-docker-20261002-02/summary.json; -01 preserved.
+All 167 trading tests passed; all owned fixture containers removed. Production transport, real-account usage
+and per-request USD0 enforcement still not verified; no model or broker called.
+Next implementation is the dedicated trusted OAuth transport/account boundary;
+do not route gold proposals through normal learning Agent tools.
+
+## Local Docker fake-auth isolation passed — 2026-10-02 Bangkok
+
+Owner explicitly authorized Docker Desktop startup and offline isolation rerun.
+Started local Docker Desktop hidden; owner-context preflight verified Linux
+engine and existing pinned image. Coding sandbox's inability to use the engine
+does not mean the owner engine is stopped. No VPS/MT5 restart or image pull.
+Added read-only batch3_runner --preflight; it always keeps production dispatch
+blocked while transport/billing remain unverified. Added reproducible
+rehearse-auth-isolation.py using the existing fixed worker and fake inputs.
+
+Actual preserved rehearsal:
+.superpowers/sdd/batch3-auth-docker-20261002-01/summary.json.
+Refresh success: network/write probes denied, one fake inference. Permanent
+refresh failure: zero inference. HTTP401: one attempt, no refresh. Deadline:
+container removed; config not inspected before timeout (os_sandbox false).
+Each owned container cleanup verified; all model requests zero. No real
+credential/broker contact, order, risk change or promotion. Docker remains
+running after the authorized start; unrelated containers not managed here.
+Full trading suite 166 passed; runtime gate and stop-on-failure checks passed.
+Billing facts requested: Vibe account plan, paid-credit availability, automatic
+purchase/top-up or usage billing. USD0/no-paid-fallback approval stands, but
+account/provider enforcement and trusted real OAuth transport remain pending.
+Plan: docs/superpowers/plans/2026-10-02-batch3-docker-readiness.md.
+
+## Integrated fake-auth worker rehearsal — 2026-10-02 Bangkok
+
+Existing bounded worker now accepts strict optional memory-only auth fixtures.
+Reuses extracted fake OAuth state-machine helper, hash-pinned source and frozen
+auth-fixture inputs. Success/refresh failures/401 run through actual isolated
+child; audit records counts only. Existing one-post/no-tools/deadline/no-reuse
+limits remain. No real auth/storage/HTTP enabled; normal learning app unchanged.
+Fresh scoped review found no actionable issues; four original auth tests and
+six worker/rehearsal tests and all 164 trading tests passed. Input-freezing regression failed before fix,
+then passed. Private preserved rehearsal:
+.superpowers/sdd/batch3-integrated-auth-20261002-01/summary.json.
+Refresh success: one refresh/one fake inference; permanent failure: one refresh,
+cache-clear/zero inference; HTTP401: one inference/no refresh; delayed auth:
+parent deadline, counts unknown rather than invented. All model requests zero.
+Docker unavailable: extra readonly helper mount configuration reviewed but not
+live-tested. Actual OS isolation, trusted real credential transport and enforced
+USD0 included-only billing remain unverified; no real gold proposal sent.
+Plan: docs/superpowers/plans/2026-10-02-batch3-integrated-auth-rehearsal.md.
+
+## Production boundary review and USD 0 budget — 2026-10-02 Bangkok
+
+Owner approved included-subscription-only use, USD 0 additional spend and no
+paid fallback. Budget approval is resolved; account/provider enforcement and
+actual monetary cost remain unverified. Do not equate OAuth with zero cost.
+Read-only ACL metadata verified owner/SYSTEM-only OAuth/config paths; private
+sandbox access denied; 48 sealed snapshot hashes verified. Pinned provider guard,
+four fake-auth tests and five fixture-runner tests passed, zero model requests.
+Docker engine unavailable; no restart attempted. Runner remains synthetic-only,
+trusted production OAuth transport not implemented, endpoint token-cap/refresh
+lock behavior unverified. No real gold proposal sent, credential contents read,
+ACL changed, service restarted or broker touched.
+Review/next gates: docs/superpowers/plans/2026-10-02-batch3-production-boundary-review.md.
+Development qualification deferral stands; risk/human promotion unchanged.
+
+## Batch 2 development wrap-up; qualification deferred — 2026-10-02 Bangkok
+
+Owner explicitly elected to skip the 60 eligible validation days and required
+simulated trade counts to wrap up Batch 2 and integrate Batch 3 now. Batch 2 is
+completed for development, unqualified; no observation or trade credit is
+invented. Future qualification retains the original approved policy, fixed risk
+and human promotion approval. Do not launch prospective collection for this
+development milestone. Stage dates remain unset.
+
+Batch 3 proceeds via existing offline synthetic packet/proposal/simulator/report
+flow and separate Vibe learning app. No real gold model dispatch, order or
+promotion follows; unknown OAuth cost and production boundary gates remain.
+Real cost/clock/session coverage and report provenance are still incomplete.
+Current handoff: docs/superpowers/plans/2026-10-02-batch2-batch3-handoff.md.
+
+## Both retention trials verified read-only — 2026-10-02 UTC
+
+Owner supplied corrected -RetentionReview output: both pinned supervisor hashes
+matched; actual segment bytes/source hashes, overlaps and root-owned private
+permissions passed, blockers empty. First trial 09:28:09.755922–09:29:59.873127
+UTC (110.1172s); second 09:30:48.979761–09:32:39.045577 UTC (110.0658s).
+Each has two segments and 22 unique samples. Evidence is owner-authenticated
+review output, not direct agent SSH inspection. Preserve independent identities
+and the uncovered interval between attempts; no continuous-day credit implied.
+Read-only receipt-review gate is complete for these two short trials.
+
+Observed days and model requests remain zero; qualification unqualified.
+Next: sustained operations readiness and dated cost/clock/session coverage,
+then future start/deadline registration and qualifying prospective collection.
+Selected stage lengths remain 20 development / 3x20 validation / 20 holdout.
+Start/deadline unset by owner choice; no sustained run/service or model started.
+Gold dispatch blocked by unknown OAuth cost; risk/promotion approval unchanged.
+
+## Retention review serialization corrected — 2026-10-02
+
+App terminal confirms the refused path was "value", not either trial directory.
+Root cause: Windows PowerShell ConvertTo-Json wrapped nested pairs with value/
+Count keys, which Python unpacked as the directory/hash. Removed that unnecessary
+serialization; the two existing pinned identities now live directly in the
+review script. New regression invokes actual Windows PowerShell generation with
+an offline SSH stub and checks exact paths/hashes; failed before fix, then passed.
+Nine focused tests and all 163 trading tests pass; review DryRun compiles. Prior missing-path output
+does not establish any missing VPS artifact. Updated owner-local read-only run
+still required; no files recreated, collector changed or qualification granted.
+
+## Retention artifact review prepared; remote path mismatch — 2026-10-02
+
+Added read-only -RetentionReview to run-diagnostic-trial.ps1 for the two reported
+handoff attempts. Pinned receipt/source hashes, actual segment reconciliation,
+regular-file/symlink guards and private permissions are checked without writes
+or capture. Local fixture review rejects tampering and nonregular artifacts.
+Owner's first invocation refused a missing/symlinked required path before
+reading artifact bytes. Detailed required-path diagnostics now identify the
+component; updated owner-local review requested. Do not recreate missing files
+or assume prior launcher summaries constitute full receipt verification.
+Fresh review found nonregular-file handling; regression failed before its fix,
+then passed. Full trading suite: 162 passed; generated review script compiles.
+
+Owner selected 20 development / three 20-day validation folds / 20 untouched
+holdout days. Start and calendar deadline explicitly remain unset until evidence
+readiness. No prospective start, sustained service, model dispatch or promotion.
+Batch 2 remains unqualified; dated cost/clock/session coverage and actual
+qualifying observations remain required under the unchanged policy.
+
+## Two supervised retention handoff trials received — 2026-10-02 UTC
+
+Owner supplied final launcher summaries for two separate private attempts:
+
+- retention-handoff-20261002T092809Z-d1e5fda8; supervisor receipt SHA-256
+  e9f299d55b5c81f6d47456cac44a3a799c066bc946947277bd7e479eb1da7636.
+- retention-handoff-20261002T093048Z-df5db154; supervisor receipt SHA-256
+  6bb0dc77240f6e125c7e185f193147d034828b12d9b9960cb2646ee633c53772.
+
+Both under /root/kwg-gold-research/evidence/, each reports blockers=[], two
+segments, 22 unique samples, container state unchanged, zero observed days and
+model requests, qualification unqualified. Keep both attempts; do not merge their
+disjoint intervals into uninterrupted retention. Evidence is owner-pasted output
+from the reviewed launcher, not direct agent artifact inspection. The bounded
+trial invocation finished; no sustained service or prospective collection started.
+Short handoff path passed narrowly. Remaining gates: full-period retention and
+cross-run supervision, reviewed future start/deadline/stage rules, dated cost/
+clock/session coverage, qualifying observations and real provenance. Gold
+dispatch remains blocked by unknown OAuth cost; risk/human approval unchanged.
+
+## Supervised handoff trial launcher ready — 2026-10-02 Bangkok
+
+Owner requested next supervised VPS step. Added -RetentionTrial to the existing
+one-SSH owner launcher: fresh private directory, verified code/container identity,
+110s total with 60s segments/10s overlap/1GiB reserve. Prints reconciliation
+blockers, unique samples, supervisor receipt hash and container-state comparison;
+nonzero exit on blockers/change. No recurring service or collector modification.
+Dry run, seven focused launcher tests and fresh scoped review passed.
+Full trading regression suite passed: 161 tests. Owner invocation/output
+requested; actual trial result is pending, not presumed passed.
+Batch 2 unqualified, gold dispatch blocked; no model requests or risk changes.
+
+## Retention supervisor implemented offline — 2026-10-02 Bangkok
+
+Added stdlib-only retention_supervisor.py with bounded duration/segment count,
+overlapping fixed followers, explicit disk reserve and stale-writer/early-exit
+checks. Cleanup targets only owned follower process groups, including surviving
+Docker clients after leader exit. It never accesses MT5 or changes collector/
+journals. Final review checks actual bytes/source identities, typed receipts,
+monotonic source/receive clocks, each segment's boundaries, real overlaps and
+conflicts; all outputs unqualified with zero observed days/model requests.
+Final full trading suite: 161 passed; final scoped review found no blockers.
+Fresh review findings fixed via failing regressions then green; POSIX group
+cleanup is mocked, not a live VPS proof. Ten focused tests pass. Actual capture
+fixture rehearsal generated three overlapping segments and nine deduplicated
+samples; CLI reconciliation of those immutable fixtures passed. Initial fake
+attempt -01 preserved failed (fixture stream ended instead of timing out;
+cleanup stub incomplete), successful corrected fake attempt -02 preserved in
+.superpowers/sdd/2026-10-02-retention-supervisor/. No broker/Docker/model called.
+README contains a future supervised110s handoff trial, not executed here.
+No supervisor/service deployed, sustained capture or prospective run started.
+Dates/deadline and dated coverage remain gated; gold OAuth cost unknown.
+
+## Detailed diagnostic receipt reviewed — 2026-10-02 UTC
+
+Owner supplied -ReviewOnly result for the saved trial: 08:35:18.132023–
+08:36:18.138321 UTC, 60.0063 seconds, twelve fresh quotes, all duplicate polls.
+Max sample interval 5.0041s, max receive lag 0.0138s; no gaps/rejected frames/tail.
+Actual-byte/source-hash checks and root-owned 0600 artifact permissions passed.
+Receipt SHA-256 c5b8755bad5bac31c64ea77bf240e51c69cf779c0dfc05f2d7e00c06243fb8ff.
+Evidence is owner-authenticated read-only script output; no direct agent SSH
+artifact access claimed. Poll delivery passed; no new candle/day credit earned.
+Sustained retention/schedule draft saved, future dates/deadline remain unset.
+No watchdog, scheduled captures, qualification or gold dispatch started.
+Receipt-review regression verifies real fixture bytes and tamper refusal;
+fresh review metadata finding fixed/re-reviewed, all 151 trading tests passed.
+
+## Detailed receipt review / sustained schedule draft — 2026-10-02 Bangkok
+
+Added -ReviewOnly to run-diagnostic-trial.ps1: reads the fixed existing trial,
+verifies diagnostic bytes/source/counts and summarizes duration, sample times,
+lags, state/quote counts and file permissions without printing raw mixed logs.
+Dry-run compilation and six focused capture checks pass; no review SSH run here.
+Owner read-only review requested; detailed artifact verdict still pending output.
+Sustained design and proposed eligibility-based chronological schedule:
+docs/superpowers/specs/2026-10-02-sustained-observation.md. Overlapping bounded
+segments, independent watchdog and boundary/overlap reconciliation are planned,
+not implemented or installed. Start/deadline unset; development and holdout
+durations proposed, qualification minima unchanged. No prospective run started.
+Batch 2 unqualified, gold dispatch blocked, risk/human approval unchanged.
+
+## Supervised diagnostic follower trial passed narrowly — 2026-10-02 UTC
+
+Owner supplied launcher output from private VPS directory:
+/root/kwg-gold-research/evidence/diagnostic-trial-20261002T083518Z-840efc3b.
+Bounded docker_follow ended by expected timeout: 12 samples, 0 detected gaps,
+0 rejected frames, 0 trailing unparsed bytes. Launcher reported verified receipt
+bytes and unchanged container state. Diagnostics SHA-256:
+32b15c2054d491e217ebb5322f8e2029719414a8c960e08a5aa5fc2bfdac1b45.
+Evidence source is owner-pasted terminal summary; receipt/raw artifacts have not
+been independently read here. Zero model requests, qualification unqualified.
+The two reviewed sources were transferred into this new trial directory by the
+launcher; bounded follower has finished. No recurring capture was installed.
+This confirms selected-field delivery over a minute only, not complete future
+retention, current exposure checks, dated cost/clock coverage or observed days.
+Preserve this trial, original smoke and collector. Next: review source/receipt
+details and design supervised retention handoffs before freezing a future run.
+
+## Supervised diagnostic trial launcher ready — 2026-10-02 Bangkok
+
+Owner requested continuation to the 60-second VPS trial. Existing interactive
+SSH session had closed; independent SSH still rejected publickey. Prepared
+run-diagnostic-trial.ps1 for owner-local passphrase entry in one SSH invocation.
+It bundles only two reviewed sources, verifies deployed desktop launcher first,
+creates an exclusive UTC/UUID directory, verifies transferred hashes, runs the
+bounded follower and checks receipt bytes/container state afterward. No MT5
+restart, collector/journal change, model request or original smoke alteration.
+DryRun compiles generated remote script without connecting or executing it.
+Dry run passed; all 150 trading tests passed, including mismatch refusal before
+remote writes. Fresh scoped launcher review found no blockers.
+Trial has not run yet; owner must invoke the launcher from local PowerShell.
+
+## Bounded diagnostic follower prepared locally — 2026-10-02 Bangkok
+
+Added capture-observer.py and fake-input checks. Fixed Docker stdout route
+follows the existing observer only; no SDK or journal writes. Exclusive private
+run directory, fsynced selected-field JSONL, code/output hashes and stop receipt.
+No raw mixed logs or free text saved; rejected frames and exceptional-stop tails
+retain counts/hashes. Shared parser now exposes rejected frames without changing
+observer_records callers. Timeout, frame/output limits, gap and Docker-client
+cleanup exercised by fake sources; actual fixture CLI rehearsal passed.
+All 149 trading tests passed after the final fix; diff whitespace check passed.
+Fresh scoped review found dropped malformed/final buffered input; regressions
+failed before fixes and passed after, re-review found no remaining blockers.
+Not deployed or started on VPS. Future supervised 60-second trial instructions
+are in README.md, distinct from original smoke. Full-period retention, source/
+account readiness, dated coverage and prospective schedule remain gated.
+Unknown OAuth cost still blocks gold dispatch; no risk changes or promotion.
+
+## VPS preflight reviewed — 2026-10-02 08:11:35 UTC
+
+Owner-authenticated terminal checks: Etc/UTC, NTP enabled/synchronized;
+kwg-mt5-desktop running, started September 30 11:40:37 UTC, restarts=0;
+json-file logs remain 2m x 2; evidence filesystem 178G free (8% used).
+Saved current-contract SHA-256 matched e693d61fe075444ee9ed8d6ec0b9e839fd15bcf620396b07f33652ccf0ebe05f.
+Current status and saved-byte integrity passed; current MT5 connection/exposure,
+source identity and complete diagnostic retention are not established by these
+commands. No collector/artifact/service changes. Batch 2 remains blocked.
+Details: docs/superpowers/plans/2026-10-02-prospective-observation-preflight.md.
+
+## Prospective readiness preflight prepared — 2026-10-02 Bangkok
+
+Read current roadmap, Batch 2 wrap-up and collection runbook. Local compose
+still specifies 2m x 2 Docker logs; prior smoke retained only a late tail.
+No current deployed configuration verified: sandbox network check failed,
+owner-context read-only SSH then rejected publickey. App terminal is local
+PowerShell, not an authenticated VPS shell. Owner reconnect requested.
+Selected-field, credential-free VPS checks and retention/schedule decisions:
+docs/superpowers/plans/2026-10-02-prospective-observation-preflight.md.
+No collection started, artifacts altered, service restarted or qualification
+credit assigned. Next: authenticated read-only checks, complete diagnostic
+retention design, then reviewed future schedule and dated evidence coverage.
+
+## Real-format baseline adapter prepared — 2026-10-02 Bangkok
+
+Added offline batch2_adapter.py: reproduces the full explicit-window simulator
+CLI report and exact dataset/window/cost hashes, retains clock evidence bytes,
+checks fixed source/risk/policy identity, and aggregates UTC daily accounting.
+Strict JSON rejects duplicate keys, nonfinite values, wrong root shapes and
+boolean/number substitutions. Exclusive outputs preserve previous attempts.
+Fresh scoped review findings fixed and re-reviewed; all 144 trading tests passed.
+Private actual-CLI synthetic rehearsal: .batch3-vibe/batch2-adapter-rehearsal-20261002-01/.
+Baseline reproduced; zero verified observed days, unqualified, no holdout
+strategy evaluation, no model requests, dispatch/promotion blocked.
+Private draft: .batch3-vibe/prospective-protocol-20261002-01.json, status
+prepared_not_started; collection start/windows/holdout null. Runbook records
+prospective scheduling, evidence, retention and independent review requirements.
+This is numerical preparation, not real broker provenance or Batch 2 completion.
+Unknown OAuth monetary cost, qualifying observations and dated cost/clock/session
+coverage still gate integration. Risk limits and human promotion approval remain
+unchanged. No VPS, MT5, collector, journal, credential or service modifications.
+
+## Synthetic learning-app handoff ready — 2026-10-02 Bangkok
+
+Owner deferred broker confirmation for unqualified demo learning only. Existing
+rehearsal now exports comparison.csv from its baseline/comparison reports,
+with six rows, explicit synthetic/unqualified/blocked labels and byte hash in
+comparison.json. New regression first failed, then passed; all 138 tests passed.
+Private output: .batch3-vibe/batch3-learning-handoff-20261002-02/.
+No real broker data, credentials or model request used in this rehearsal.
+Docker attempt -01 preserved failed: local engine pipe absent. Fresh successful
+attempt -02 used fixed isolated worker without Docker; OS containment is not
+claimed. Previous successful Docker evidence is historical, not current.
+Existing local Vibe learning app started through reviewed launcher; owner
+loopback GET returned 200. Source pin checked; OAuth file presence only,
+no token read, authentication validation or live inference by this work.
+Upload/prompt and expected arithmetic are in ops/trading/VIBE-LEARNING.md.
+Batch 2 qualification, future sample, real provenance and bounded gold dispatch
+remain gated. No MT5/VPS/collector changes, orders or promotion.
+
 ## Current account category documented — 2026-10-02 Bangkok
 
 Private portal screenshot shows active MT5 Standard STP demo on VTMarkets-Demo;

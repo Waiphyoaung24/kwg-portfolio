@@ -1,5 +1,7 @@
 """Rehearse packet -> bounded fake request -> validator -> simulator -> report."""
 import argparse
+import csv
+import io
 import math
 import json
 import runpy
@@ -97,6 +99,21 @@ def rehearsal(output_dir, *, sandbox=False):
             for window in ('development', 'validation')} for name in SCENARIOS},
         'gates': ['synthetic_data', 'batch2_unqualified', 'unknown_oauth_cost',
                   'production_isolation_unverified', 'human_promotion_approval_required']}
+    # Learning-app upload only: these are fictional reports, never broker data.
+    table = io.StringIO(newline='')
+    writer = csv.writer(table, lineterminator='\n')
+    writer.writerow(['evidence_mode', 'qualification', 'promotion_status', 'scenario', 'window',
+                     'baseline_net_pnl_usd', 'candidate_net_pnl_usd', 'difference_usd'])
+    for name in SCENARIOS:
+        for window in ('development', 'validation'):
+            before = baseline['runs'][name]['windows'][window]['summary']['net_pnl_usd']
+            after = candidate['runs'][name]['windows'][window]['summary']['net_pnl_usd']
+            writer.writerow(['synthetic_fixture', 'unqualified', 'blocked', name, window,
+                             before, after, after - before])
+    csv_raw = table.getvalue().encode('utf-8')
+    with (output_dir / 'comparison.csv').open('xb') as output:
+        output.write(csv_raw)
+    comparison['comparison_csv_sha256'] = sha(csv_raw)
     for name, value in (('dataset.json', data), ('baseline.json', baseline), ('manifest.json', manifest),
                         ('adapter-audit.json', audit), ('candidate.json', candidate),
                         ('baseline-gate-input.json', baseline_gate), ('candidate-gate-input.json', candidate_gate),

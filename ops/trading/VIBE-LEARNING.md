@@ -101,6 +101,37 @@ our Batch 2 qualification verdict.
 
 ## 4. Learn the remaining product surfaces
 
+### Inspect the Batch 2 / Batch 3 synthetic comparison
+
+The existing `rehearse-batch3.py` now also exports `comparison.csv`: six rows
+from the actual synthetic baseline/comparison reports, with explicit
+synthetic/unqualified/blocked labels. Its byte hash is in `comparison.json`.
+No broker data, credentials, generated code or live model request is used to
+produce the file. The fixed fixture proposal is plumbing, not research.
+
+In a new Vibe-Trading learning chat, upload that CSV from your latest private
+rehearsal directory. Use this arithmetic-only prompt:
+
+> Use only the attached fictional CSV. For rows whose window is validation,
+> return one JSON object with row_count and a differences_by_scenario object
+> mapping each scenario to candidate_net_pnl_usd minus baseline_net_pnl_usd.
+> Also return qualification and promotion_status exactly as written in the
+> CSV. Do not fetch market data, resolve instruments, generate a proposal,
+> run backtests or place orders. These are synthetic arithmetic fixtures.
+
+Expect three validation rows, the saved per-scenario differences, qualification
+unqualified and promotion_status blocked. A correct reply verifies learning-app
+file reading/arithmetic only. This manual chat can make multiple model calls;
+it is separate from the bounded one-request gold experiment. Use the configured
+gpt-6.1-sol / medium settings and inspect Runtime for actual provider metadata.
+If a tool tries unrelated market-data recovery, preserve the trace and stop
+that learning test; do not relax tool permissions or feed it real broker data.
+
+Broker-support confirmation may be deferred for these learning demos as the
+owner requested. Batch 2 is closed for development with qualification deferred.
+Real report provenance, production credential/network isolation, backend USD0
+enforcement for gold dispatch and human promotion approval remain gated.
+
 - **Agent:** questions, attachments and session history. Begin with synthetic
   examples; retain failed runs and their trace.
 - **Reports / Runtime:** inspect generated evidence and progress. Product

@@ -1,8 +1,16 @@
 # Batch 2 wrap-up — 2026-09-30
 
-## Verdict
+## Current status — October 2 owner scope decision
 
-**Qualification: `prepared_but_blocked`. Batch 2 is not done.** The deployed
+Batch 2 is **closed for development, unqualified**. The owner deferred the
+qualifying sample; real OAuth isolation and backend billing are remaining
+Batch 3 activation work. See the [final development handoff](2026-10-02-batch2-batch3-handoff.md).
+The September 30 evidence record below is preserved as history, not the active
+development completion gate.
+
+## Historical verdict — September 30
+
+**Qualification: `prepared_but_blocked`. Development was still open at this checkpoint.** The deployed
 desktop-close fix and exclusive evidence capture are working. Their success
 does not qualify the baseline or unlock Batch 3 research.
 

@@ -10,6 +10,7 @@ import sys
 from dataclasses import dataclass, field
 from types import SimpleNamespace, ModuleType
 from urllib.parse import urlparse
+from contextlib import contextmanager
 
 
 def prepare_source(source: Path, patch: Path) -> bytes:
@@ -25,18 +26,37 @@ def prepare_source(source: Path, patch: Path) -> bytes:
         return copied.read_bytes()
 
 
-def invoke_fixture(source: bytes, request: dict, fixture: dict, *, fake_header_factory=None, audit=None) -> dict:
-    """Real pinned request/SSE definitions, fake HTTP only; no auth definitions."""
+@contextmanager
+def provider_namespace(source, http_module):
+    """Reuse pinned request/SSE definitions without storage, config or SDK imports."""
     names = {'CodexToolCall', 'CodexAIMessage', 'OpenAICodexLLM', 'validate_codex_base_url',
         '_strip_model_prefix', '_prompt_cache_key', '_convert_user_message', '_split_tool_call_id',
         '_convert_messages', '_convert_tools', '_decode_tool_args', '_map_finish_reason',
-        '_events_from_lines', '_message_chunks_from_events'}
+        '_events_from_lines', '_message_chunks_from_events', 'CodexStreamError',
+        'CodexAuthenticationError', '_build_headers', '_missing_codex_login_error'}
     tree = ast.parse(source.decode('utf-8'))
     definitions = [node for node in tree.body if isinstance(node, (ast.ClassDef, ast.FunctionDef)) and node.name in names]
     if {node.name for node in definitions} != names:
         raise ValueError('Provider definitions missing')
     module = ast.Module(body=[ast.ImportFrom(module='__future__',
         names=[ast.alias(name='annotations')], level=0), *definitions], type_ignores=[])
+    loaded = ModuleType('batch3_bound_provider')
+    namespace = loaded.__dict__
+    namespace.update(httpx=http_module, dataclass=dataclass, field=field, json=json,
+        hashlib=hashlib, urlparse=urlparse, DEFAULT_CODEX_URL='https://chatgpt.com/backend-api/codex/responses',
+        DEFAULT_ORIGINATOR='vibe-trading', _CODEX_LOGIN_COMMAND='vibe-trading provider login openai-codex')
+    sys.modules[loaded.__name__] = loaded
+    try:
+        exec(compile(ast.fix_missing_locations(module), '<pinned-bound-provider>', 'exec'), namespace)
+        # Bounded proposals require explicit completion; upstream defaults unknown status to stop.
+        namespace['_map_finish_reason'] = lambda status: 'stop' if status == 'completed' else 'error'
+        yield namespace
+    finally:
+        sys.modules.pop(loaded.__name__, None)
+
+
+def invoke_fixture(source: bytes, request: dict, fixture: dict, *, fake_header_factory=None, audit=None) -> dict:
+    """Real pinned request/SSE definitions, fake HTTP only; no auth definitions."""
     events = [{'type': 'response.output_text.delta', 'delta': fixture['response']},
         {'type': 'response.completed', 'response': {'status': 'completed', 'model': 'gpt-6.1-sol',
                                                   'usage': fixture['usage']}}]
@@ -74,14 +94,7 @@ def invoke_fixture(source: bytes, request: dict, fixture: dict, *, fake_header_f
                 audit.append({'kind': 'fake_inference', 'status': fixture.get('http_status', 200)})
             return Response()
 
-    # Register a private module for dataclass annotation resolution, not a provider import.
-    loaded = ModuleType('batch3_synthetic_provider')
-    namespace = loaded.__dict__
-    namespace.update(httpx=SimpleNamespace(Client=Client), dataclass=dataclass, field=field,
-        json=json, hashlib=hashlib, urlparse=urlparse, CodexStreamError=RuntimeError)
-    sys.modules[loaded.__name__] = loaded
-    try:
-        exec(compile(ast.fix_missing_locations(module), '<pinned-fake-provider>', 'exec'), namespace)
+    with provider_namespace(source, SimpleNamespace(Client=Client)) as namespace:
         adapter = namespace['OpenAICodexLLM'](model=request['model'], reasoning_effort='medium',
             timeout=120, codex_url='https://chatgpt.com/backend-api/codex/responses', max_requests=1)
         # Optional in-memory fake auth seam; never import a credential store here.
@@ -92,8 +105,6 @@ def invoke_fixture(source: bytes, request: dict, fixture: dict, *, fake_header_f
             raise ValueError('Invalid provider completion')
         return {'response': message.content, 'usage': message.usage_metadata,
                 'fake_requests': len(calls), 'model_requests': 0}
-    finally:
-        sys.modules.pop(loaded.__name__, None)
 
 
 def check(source: Path, patch: Path):
