@@ -16,6 +16,15 @@ variants and their assets. One-time activation requires the portfolio redeploy
 and updated Worker deployment; live activation must be verified separately.
 The earlier standalone copies remain available for Worker rollback.
 
+Worker activation succeeded in the existing Cloudflare account:
+`b61475b8-bbc3-46e3-b849-59721e0420d9`. Authenticated browser checks opened
+both production pages and followed their navigation; the private status API
+showed Connected to demo, Fresh at last check and 250 bars fetched on Overview.
+The portfolio origin still showed the earlier navigation at this check.
+Owner must redeploy the portfolio from current main in Dokploy to publish the
+shared Overview/Supervised demo navigation. Future UI-only redeploys need no
+sidecar upload or Worker deployment.
+
 ## Shared trading navigation — 2026-10-02 (local preparation)
 
 Overview and Supervised demo now share navigation, current-page semantics,
