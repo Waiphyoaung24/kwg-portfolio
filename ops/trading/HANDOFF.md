@@ -1,5 +1,44 @@
 # Gold trading handoff — 2026-09-28
 
+## Fake supported gateway implementation checkpoint — 2026-10-03 Bangkok
+
+Continuation added a fixed public Responses fake-only core and focused tests.
+Existing Docker image/HTTPX runtime was verified; initial isolated bridge and
+real Squid/fake TLS probes passed after automatic image volumes were masked
+read-only. Final fake endpoint observed one POST; forbidden CONNECT destinations,
+ports and untrusted TLS were refused, and owned resources were removed.
+Twenty focused stdlib checks and three separate registration tests passed.
+Full controller binding/watchdog, isolation/failure matrix, registry integration
+and the new committed-source seal remain unfinished. This is not production
+isolation acceptance. See the [implementation checkpoint](../../docs/superpowers/plans/2026-10-03-batch3-supported-gateway-progress.md)
+for commands, runtime identities, preserved failed probes and exact limitations.
+No real credential read, provider request, production reservation, credit change
+or broker action ran. Dispatch/account/billing verification remain blocked/false;
+Batch 2 qualification stays deferred. Historical seals and credentials are intact.
+
+## Current checkpoint and next milestone — 2026-10-03 Bangkok
+
+The owner selected the supported public ChatGPT plan-usage route and accepted
+local byte/time limits in place of the provider-enforced 2,048-token ceiling;
+USD0 additional spend remains mandatory. Separate KWG Gold Research OAuth
+registration completed with signed identity validation and owner/SYSTEM-only
+storage. The registration receipt records zero model requests, dispatch blocked
+and billing verification false. No credits or credit settings were changed.
+Registration does not establish current token freshness or server acceptance.
+Do not repeat registration or overwrite the existing Vibe credential store.
+
+The requested detailed next-milestone plan is
+[supported gateway and isolation](../../docs/superpowers/plans/2026-10-03-batch3-supported-gateway-plan.md).
+It proposes a fake-only public transport, actual runtime isolation probes,
+registry/cleanup verification and a new source/runtime seal. Later account
+acceptance, provider USD0 enforcement and one real proposal are separate gates.
+This checkpoint is planning only; no new gateway implementation, account
+setting change or model request was performed for the plan.
+
+Batch 2 remains development-complete and unqualified, with qualification
+deferred. The entries below are historical; statements that registration has
+not run or the output-cap decision is pending are superseded by this checkpoint.
+
 ## Supported OAuth route compatibility review
 
 Official ChatGPT plan-usage docs specify a separate OAuth registration/grant

@@ -41,6 +41,16 @@ Successful fixtures do not grant real OAuth or USD0 billing approval.
 
 ### Trusted OAuth transport (dispatch disabled)
 
+The supported public-route rehearsal has a separate committed-source seal.
+Run `harden-batch3.ps1 -Phase seal-supported` as the workspace owner, then use
+that snapshot's `code/supported_gateway.py --seal-sha256 <manifest hash>`.
+Load the sealed code directory explicitly with isolated Python, as in the
+readiness command below. It accepts no endpoint, model, credential or registry
+override. Its fixed registry is `.batch3-vibe/supported-readiness/attempts`;
+production reservations and dispatch remain disabled. The bundled TLS fixture
+is synthetic test material, never a production trust store. Repeating an
+attempt or the whole seal review is refused; preserve failed receipts.
+
 `trusted_oauth_transport.py` reuses the pinned provider request/stream guards
 with account-bound headers, fixed gpt-6.1-sol/medium and validated proposal/usage.
 The internal core is tested with fake HTTP. Its public dispatch refuses before

@@ -60,10 +60,16 @@ def verify_seal(root, expected):
         raise ValueError('Unexpected sealed files')
 
 
-def reserve(registry, packet, seal_sha, case):
+def reserve(registry, packet, seal_sha, case, *, supported=False):
     research=research_module()
     research.validate_packet(packet)
-    if packet['limitations']!=['synthetic_fixture'] or case not in CASES:
+    allowed=CASES
+    if supported is True:
+        from supported_gateway import CASES as allowed
+        from supported_gateway import BINDING, BINDING_SHA, MODEL as SUPPORTED_MODEL
+    elif supported is not False:
+        raise ValueError('Invalid rehearsal mode')
+    if packet['limitations']!=['synthetic_fixture'] or case not in allowed:
         raise ValueError('Synthetic rehearsal only')
     no_reparse(registry)
     registry.mkdir(parents=True,exist_ok=True)
@@ -74,6 +80,9 @@ def reserve(registry, packet, seal_sha, case):
         'packet_sha256':research.digest(packet),'seal_sha256':seal_sha,
         'account_sha256':FAKE_ACCOUNT_SHA,'model':MODEL,'reasoning_effort':'medium',
         'max_inference_posts':1,'retry':False,'additional_cost_usd':None,
+        **({'mode':'supported_fake_only','binding_sha256':BINDING_SHA,'model':SUPPORTED_MODEL,
+            'account_sha256':hashlib.sha256(BINDING['subject'].encode()).hexdigest(),
+            'client_sha256':hashlib.sha256(BINDING['client_id'].encode()).hexdigest()} if supported else {}),
         'production_dispatch':'blocked'})
     write_once(attempt/'packet.json',packet)
     return attempt

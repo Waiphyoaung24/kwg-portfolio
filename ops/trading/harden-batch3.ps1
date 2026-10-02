@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][ValidateSet('canary', 'credentials', 'seal', 'seal-current', 'seal-gateway', 'seal-readiness')][string]$Phase)
+param([Parameter(Mandatory)][ValidateSet('canary', 'credentials', 'seal', 'seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported')][string]$Phase)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $root = Join-Path $repo '.batch3-vibe'
@@ -101,8 +101,9 @@ if ($Phase -eq 'canary') {
     Set-Boundary (Join-Path $root 'profile/.vibe-trading')
     Write-Output 'PASS: auth directory and private config restricted to owner and SYSTEM; contents not read.'
 } else {
-    $current = $Phase -in @('seal-current', 'seal-gateway', 'seal-readiness')
-    if ($Phase -eq 'seal-readiness') {
+    $current = $Phase -in @('seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported')
+    $committed = $Phase -in @('seal-readiness', 'seal-supported')
+    if ($committed) {
         & git -C $repo diff --quiet HEAD -- ops/trading
         if ($LASTEXITCODE) { throw 'Commit reviewed trading sources before readiness sealing.' }
         $commit = (& git -C $repo rev-parse HEAD).Trim()
@@ -110,13 +111,14 @@ if ($Phase -eq 'canary') {
     }
     $snapshotName = switch ($Phase) { 'seal-current' { 'sealed-trusted-transport-20261002' } 'seal-gateway' { 'sealed-gateway-20261002-r2' } default { 'sealed-credential-rehearsal' } }
     if ($Phase -eq 'seal-readiness') { $snapshotName = 'sealed-gateway-readiness-' + $commit.Substring(0, 12) }
+    if ($Phase -eq 'seal-supported') { $snapshotName = 'sealed-supported-' + $commit.Substring(0, 12) }
     $sealed = Join-Path $root $snapshotName
     Assert-NoReparse $root
     if (Test-Path -LiteralPath $sealed) { throw 'Snapshot already exists; preserve it.' }
     New-Item -ItemType Directory -Path $sealed | Out-Null
     # Close sandbox access before any source bytes or manifest are copied.
     Set-Boundary $sealed
-    if ($Phase -eq 'seal-readiness') {
+    if ($committed) {
         $registry = Join-Path $root 'production-attempts'
         Assert-NoReparse $root
         if (-not (Test-Path -LiteralPath $registry)) {
@@ -133,21 +135,39 @@ if ($Phase -eq 'canary') {
             $seen += $sid.Value
         }
         if ($user.Value -notin $seen -or $system.Value -notin $seen) { throw 'Private registry access incomplete.' }
-        $readiness = Join-Path $root 'gateway-readiness'
+        $reviewName = if ($Phase -eq 'seal-supported') { 'supported-readiness' } else { 'gateway-readiness' }
+        $readiness = Join-Path $root $reviewName
         if (-not (Test-Path -LiteralPath $readiness)) {
             New-Item -ItemType Directory -Path $readiness | Out-Null
             Set-Boundary $readiness
         }
         Assert-NoReparse $readiness
-        @{ mode='fake_readiness_only'; git_commit=$commit; production_registry=$registry;
+        if ($Phase -eq 'seal-supported') {
+            $reviewAcl = Get-Acl -LiteralPath $readiness
+            if (-not $reviewAcl.AreAccessRulesProtected -or $reviewAcl.GetOwner([Security.Principal.SecurityIdentifier]) -ne $user) { throw 'Supported registry owner/inheritance mismatch.' }
+            $reviewSids = @()
+            foreach ($rule in $reviewAcl.Access) {
+                $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier])
+                if ($sid -notin @($user, $system) -or $rule.AccessControlType -ne 'Allow' -or $rule.FileSystemRights -ne 'FullControl') { throw 'Supported registry permissions mismatch.' }
+                $reviewSids += $sid.Value
+            }
+            if ($user.Value -notin $reviewSids -or $system.Value -notin $reviewSids) { throw 'Supported registry access incomplete.' }
+        }
+        $metadata = @{ mode='fake_readiness_only'; git_commit=$commit; production_registry=$registry;
             registry_acl_checked=$true; production_dispatch='blocked'; billing_ceiling_verified=$false;
-            server_account_verified=$false; production_isolation_verified=$false } |
-            ConvertTo-Json | Set-Content -LiteralPath (Join-Path $sealed 'readiness.json') -Encoding utf8
+            server_account_verified=$false; production_isolation_verified=$false }
+        if ($Phase -eq 'seal-supported') {
+            $metadata.mode = 'supported_fake_only'
+            $policy = & python -I -S -B -c "import sys,json;sys.path.insert(0,sys.argv[1]);from supported_gateway import POLICY;print(json.dumps(POLICY))" $PSScriptRoot
+            if ($LASTEXITCODE) { throw 'Supported runtime policy unavailable.' }
+            $metadata.policy = $policy | ConvertFrom-Json
+        }
+        $metadata | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $sealed 'readiness.json') -Encoding utf8
     }
     $code = New-Item -ItemType Directory -Path (Join-Path $sealed 'code')
     # Snapshot the offline tool chain, including test dependencies, not the upstream application.
     $sources = @(Get-ChildItem -LiteralPath $PSScriptRoot -File | Where-Object { $_.Extension -in @('.py', '.json', '.patch', '.ps1') })
-    if ($Phase -eq 'seal-readiness') {
+    if ($committed) {
         foreach ($file in $sources) {
             & git -C $repo ls-files --error-unmatch -- ('ops/trading/' + $file.Name) | Out-Null
             if ($LASTEXITCODE) { throw 'Uncommitted source in readiness seal.' }
