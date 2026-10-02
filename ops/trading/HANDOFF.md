@@ -1,5 +1,30 @@
 # Gold trading handoff — 2026-09-28
 
+## Account acceptance complete; next gate is $0 enforcement — 2026-10-03 Bangkok
+
+The owner authorized reviewed renewal and selected `gpt-6-astra` after the
+account catalog lacked the former model. Same-account/client/host renewal ran
+once, validated signed tokens and published them atomically under private ACLs.
+The final authenticated catalog confirms `gpt-6-astra` is present. Native account
+Internet isolation, forced controller termination and cleanup passed. These
+account-worker results do not enable real inference.
+
+See [account acceptance results](../../docs/superpowers/plans/2026-10-03-batch3-account-acceptance-results.md)
+for exact seals, receipt hashes, preserved failures and limitations. Source
+`ea5c7d5cd1f47bbe76a6d8256ad616bed5cf55f7` has separate account/supported seals;
+76 files per snapshot and 70 working code matches were verified. All 14 native
+fake cases with the selected model, 185 workspace stdlib tests, 15 sealed focused
+checks and four separate dependency checks passed. Replay is refused, receipts
+are preserved, owned resources absent and production registry empty.
+
+Gate A passed; gate B's provider-enforced $0 additional-spend control is next.
+Billing remains false and real dispatch blocked. One refresh and five catalog
+attempts ran across reviewed versions; inference requests remain zero. No credit
+or settings change, trade, deployment or push ran. Gate C requires its own
+authorized concrete proposal. Batch 2 qualification stays deferred. Earlier
+expiry/planning/fake-only status entries below are historical and superseded
+where this completed account milestone supplies newer evidence.
+
 ## Account-connection preflight blocked by expiry — 2026-10-03 Bangkok
 
 Owner authorized the next account-connection milestone. Fresh owner-context

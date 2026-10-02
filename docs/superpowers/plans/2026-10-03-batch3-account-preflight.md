@@ -1,5 +1,9 @@
 # Batch 3 account acceptance — local preflight
 
+Historical expired-login checkpoint. Subsequent owner-authorized renewal and
+account acceptance [passed with `gpt-6-astra`](2026-10-03-batch3-account-acceptance-results.md).
+The original preflight and its unchanged receipt remain recorded below.
+
 Date: 2026-10-03, Asia/Bangkok. Owner authorized the account-connection milestone
 after completion of the fake gateway. **Account acceptance is incomplete:**
 the saved gold access token is expired. The real model-catalog check did not run.

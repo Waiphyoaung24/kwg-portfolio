@@ -9,8 +9,9 @@ are the next workflow; see the [current handoff](../../docs/superpowers/plans/20
 The qualification policy and risk limits stay fixed. Unknown OAuth cost still
 blocks gold dispatch; human approval remains required for promotion. Historical
 evidence checkpoints below do not override this current development scope.
-Real credential/network isolation and backend USD0 enforcement are remaining
-Batch 3 activation gates; they do not reopen Batch 2 development. Current
+Account-worker credential/network isolation and catalog acceptance have now
+passed; provider USD0 enforcement and the final real inference boundary remain
+Batch 3 activation gates. They do not reopen Batch 2 development. Current
 close-out evidence and acceptance boundaries are in the linked handoff.
 
 ### Batch 3 local readiness and fake-auth isolation
@@ -38,6 +39,23 @@ containers. No network or credentials are mounted; no broker or model called.
 First failure halts the rehearsal; preserve its artifacts rather than retrying
 at the same path. Timeout cleanup does not imply its configuration was inspected.
 Successful fixtures do not grant real OAuth or USD0 billing approval.
+
+### Gold account acceptance (inference disabled)
+
+The owner-selected supported model is fixed to `gpt-6-astra`. Same-account
+renewal, signed binding, authenticated catalog access, isolated Internet worker
+and forced-controller-termination cleanup passed. See the
+[account results](../../docs/superpowers/plans/2026-10-03-batch3-account-acceptance-results.md)
+for source/receipt identities, commands and scope limits. Provider $0 enforcement
+remains unverified; real dispatch is blocked.
+
+The owner seals committed sources with `harden-batch3.ps1 -Phase seal-account`.
+Run that snapshot's `code/gold_account.py --seal-sha256 <manifest hash>` with
+`python -I -B`, first `--mode boundary`, then `--mode verify-termination`, and
+only after both pass `--mode accept`. These permit authentication/catalog checks,
+never inference. Attempts are exclusive and consumed; existing final attempts
+refuse repetition. Preserve failed/unknown attempts and private credential
+evidence. Do not rerun registration or overwrite the Vibe store.
 
 ### Trusted OAuth transport (dispatch disabled)
 

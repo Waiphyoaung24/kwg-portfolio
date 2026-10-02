@@ -3,11 +3,12 @@
 Date: 2026-10-03, Asia/Bangkok. Status: proposed implementation plan; no implementation or live dispatch authorized by this document.
 
 Continuation: the [fake-only milestone is complete](2026-10-03-batch3-supported-gateway-results.md).
-The owner subsequently authorized account acceptance. Its
-[local preflight](2026-10-03-batch3-account-preflight.md) found expired access and
-identity tokens; gate A remains incomplete pending reviewed renewal and the real
-credential/Internet boundary. Real dispatch remains disabled. Historical starting
-evidence below describes the earlier plan-writing checkpoint.
+The owner subsequently authorized account acceptance and reviewed renewal after
+the expired-token preflight. [Gate A has now passed](2026-10-03-batch3-account-acceptance-results.md),
+including the account-worker Internet boundary, forced-termination cleanup and
+catalog availability of owner-selected `gpt-6-astra`. Gate B's provider $0
+enforcement remains unverified; real dispatch remains disabled. Historical
+starting evidence below describes the earlier plan-writing checkpoint.
 
 ## Outcome and scope
 
@@ -140,6 +141,12 @@ The recommended topology is a design proposal, not a statement that the current 
 The implementation report must include exact commands, runtime versions and results. Separate stdlib-only checks from dependency-bearing checks. Do not label historical checks as fresh, or sum separate runs into a full-suite count. No frontend build is required unless frontend files actually change.
 
 ## Later gate A — account acceptance, without inference
+
+Completed under subsequent owner authorization; see the
+[account acceptance results](2026-10-03-batch3-account-acceptance-results.md).
+The expiry stop rule led to separately reviewed renewal, followed by the same
+account's catalog check and explicit owner model selection. No inference ran.
+The requirements below preserve the original gate definition.
 
 This is a separate execution scope after fake-only acceptance. Do not run it as part of this plan-writing task.
 
