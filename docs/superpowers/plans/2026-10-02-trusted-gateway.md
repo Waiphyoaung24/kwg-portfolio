@@ -1,5 +1,26 @@
 # Trusted gateway controller — fake transport rehearsal
 
+## Committed-code readiness increment — completed October 2
+
+The owner selected production gateway readiness. Reuse is complete: the owner
+hardening script has `seal-readiness`, binds clean committed sources, verifies
+the fixed private production registry ACL and preserves prior snapshots. The
+sealed gateway's `--readiness` uses a separate fixed synthetic registry, runs
+the existing five cases and records blocked live gates. Failed checks exit 2;
+replay of the entire sealed review and individual manifest identities is refused.
+
+Source commit f7bb8f0589038266f3ad11eb3f0fd8e66a816360 was sealed into
+`.batch3-vibe/sealed-gateway-readiness-f7bb8f058903`. All 65 manifest entries
+and current code copies matched. Five actual fake Docker cases, receipt hashes,
+replay refusal, empty production registry and sandbox boundary denial passed.
+Reproduction commands are in [the runbook](../../../ops/trading/README.md).
+
+This prepares registry/source identity; it does not verify real credential
+containment, permitted provider egress, server account acceptance or backend
+USD0 enforcement. Receipts leave those flags false, model_requests=0 and
+dispatch/promotion blocked. No production attempt was reserved. Preserve the
+historical rehearsal record below; it describes different sealed bytes.
+
 Implement a controller around the reviewed trusted OAuth core. The runnable
 entry is synthetic-only; real dispatch retains its unconditional billing gate.
 

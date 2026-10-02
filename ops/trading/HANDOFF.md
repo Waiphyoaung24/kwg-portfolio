@@ -1,5 +1,36 @@
 # Gold trading handoff — 2026-09-28
 
+## Production gateway readiness preparation — 2026-10-02 Bangkok
+
+Owner selected gateway readiness. Existing hardening/gateway code now prepares
+the fixed owner/SYSTEM-only `.batch3-vibe/production-attempts` registry and an
+exclusive seal of clean, tracked, committed trading sources. The new readiness
+mode uses only the separate fixed `.batch3-vibe/gateway-readiness/attempts`
+registry and existing fake cases. It cannot enable real dispatch or assert
+verified billing/account/production isolation; failed checks exit nonzero.
+
+Final source commit: `f7bb8f0589038266f3ad11eb3f0fd8e66a816360`.
+Final seal: `.batch3-vibe/sealed-gateway-readiness-f7bb8f058903` (65 files).
+Manifest SHA256: `6cbe4d5982d933fb6b90033829e09eeadf333b096d338369c0de89b1b15bfc88`.
+Private aggregate receipt SHA256:
+`ebaa348026d1bef7c8284683fc32a418c8d026bb0b7b1162bebfb77ddbce9356`.
+
+176 Python tests passed; the six gateway tests passed after the final CLI guard.
+All five final sealed Docker cases passed (success, 401, account mismatch,
+bad usage, timeout), with configuration and owned-container cleanup verified.
+Per-case and whole-review replay were refused; all case receipt hashes matched.
+Sandbox registry enumeration and fresh-seal write attempts were denied. Every
+sealed file matched and current code copies matched their manifest hashes.
+Production registry remains empty; real model requests=0. Existing r2 and
+intermediate b76327d readiness seals/receipts were preserved.
+
+Batch 2 remains development-complete/unqualified. Real credential/egress
+containment, server account acceptance and backend USD0 enforcement remain
+unverified, so gold dispatch and promotion stay blocked. No OAuth contents,
+VPS services, collectors, journals, risk limits or orders were changed.
+Next: review applicable read-only billing/account evidence and the actual
+credential-owning process/egress design before considering real activation.
+
 ## Automatic Dokploy trading UI deployment — 2026-10-02
 
 Owner requested trading pages update on every portfolio redeploy. Worker page
