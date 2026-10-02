@@ -397,6 +397,9 @@ def rehearse(sealed, seal_sha, registry, packet, case):
                 cleaned.append(absent.returncode == 0 and not absent.stdout.strip())
             except (OSError, subprocess.SubprocessError): cleaned.append(False)
         receipt['cleanup_verified'] = all(cleaned)
+        receipt['attempt_consumed'] = True
+        receipt['outcome'] = ('completed_synthetic' if receipt['state'] == 'completed' else
+            'outcome_unknown' if (attempt/'started.json').exists() else 'failed_before_transmission')
         receipt['elapsed_seconds'] = round(time.monotonic()-started, 3)
         write_once(attempt/'receipt.json', receipt)
     return receipt
@@ -429,7 +432,7 @@ def readiness(seal_sha):
                     else 'watchdog_exit' if case in ('timeout','trickle') else 'worker_failed' if case == 'crash' else 'interrupted' if case == 'interrupt' else 'transport_failed')
         try: reserve(review/'attempts', packet, seal_sha, case, supported=True); replay = False
         except FileExistsError: replay = True
-        passed = result['state'] == expected and result['cleanup_verified'] and replay
+        passed = result['state'] == expected and result['cleanup_verified'] and replay and result.get('attempt_consumed') is True
         if expected not in ('binding_refused',): passed = passed and result['configuration_verified']
         if case == 'success': passed = passed and result.get('fake_posts') == 1 and result.get('parser_credential_free') is True
         results.append({'case': case, 'passed': passed, 'state': result['state'], 'replay_refused': replay,

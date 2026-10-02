@@ -73,7 +73,8 @@ class SupportedGatewayTest(unittest.TestCase):
                 calls.append(case)
                 self.assertEqual(registry, review/'attempts')
                 attempt = reserve(registry, packet, sha, case, supported=True)
-                result = {'state': 'binding_refused', 'cleanup_verified': True, 'configuration_verified': False}
+                result = {'state': 'binding_refused', 'cleanup_verified': True, 'configuration_verified': False,
+                          'attempt_consumed': True, 'outcome': 'failed_before_transmission'}
                 gateway.write_once(attempt/'receipt.json', result)
                 return result
             with patch.object(gateway, '__file__', str(sealed/'code/supported_gateway.py')), \
