@@ -3,7 +3,79 @@
 Review date: October 2, 2026 Bangkok. No inference, token/config contents,
 broker access, service restart or ACL modification performed.
 
+## Follow-up after sealed gateway readiness — October 2
+
+The earlier checks table below is historical. Docker is now available and the
+committed-code fake readiness review passed, as recorded in HANDOFF.md. This
+does not turn its network-none, fake-credential worker into a live transport.
+
+The existing `check_binding` helper was run in owner context after comparing
+its source and runner bytes with the final f7bb8f058903 seal. It returned local
+account binding=true and token_fresh=true; signature verification, server
+account verification and billing verification remained false. Only sanitized
+metadata was printed. No token contents, refresh or network requests occurred.
+Freshness is a point-in-time check, not a guarantee for a future attempt.
+
+Current official [pricing](https://learn.chatgpt.com/docs/pricing) distinguishes
+included allowance, additional credits and API-key usage. The documented
+[app-server account methods](https://learn.chatgpt.com/docs/app-server#authentication-endpoints)
+include `account/read` with `refreshToken:false`, `account/rateLimits/read` and
+`account/usage/read`. These expose account/usage information; this review found
+no documented per-request USD0 or included-only enforcement for the pinned
+Vibe private inference endpoint. A balance snapshot is not an enforced ceiling.
+Context7's `/openai/codex` documentation confirms the separate account and
+rate-limit methods. No Codex CLI account was substituted for the Vibe account,
+and no externally managed token was supplied to an app-server process.
+
+### Remaining production acceptance checks
+
+- Bind any server-side read-only verification to the exact Vibe account hash;
+  reject a different account, missing evidence or expired token. Keep local JWT
+  claim consistency distinct from server acceptance.
+- Establish a provider-supported USD0 boundary for this route. Owner-reported
+  Pro/no paid credits/no top-ups and the approved budget remain recorded facts,
+  not backend enforcement. No API-key or paid/model fallback.
+- Review and seal the actual credential-owning transport separately from the
+  credential-free proposal worker. Its OS boundary must exclude unrelated
+  files and enforce only approved provider egress; Python isolation flags and
+  HTTP URL checks alone do not establish either boundary.
+- Before real credentials, verify denied filesystem/network access, fixed
+  request destination, no redirect/proxy/retry, one POST, deadline and owned
+  process cleanup using harmless credentials. The production attempt registry
+  must remain separate from the fake readiness registry.
+
+Do not enable `dispatch` or reserve a production attempt while these gates
+remain unresolved. Existing fake receipts and the production registry are
+unchanged; Batch 2 remains unqualified and human promotion approval required.
+
 ## Owner-approved budget
+
+### Supported plan-usage route compatibility review
+
+Official [models and inference documentation](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)
+specifies OAuth-authorized public Responses inference and a read-only model
+catalog for the same account. It explicitly excludes ChatGPT backend-api
+endpoints from that flow. This is a different integration from the pinned Vibe
+Codex provider, not evidence that its existing login authorizes the public API.
+
+The [registration documentation](https://developers.openai.com/siwc/token-sharing-open-source/sign-in)
+requires an issued client registration, plan-usage scopes, and signed ID-token
+validation. Reusing the existing account claim or changing the request URL is
+insufficient. A future migration needs separate reviewed OAuth handling and
+must preserve the current working learning workspace and credential store.
+
+The [preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)
+reject `max_output_tokens`. Therefore the documented route cannot currently
+prove the required provider-enforced 2048-token ceiling. A byte limit, streaming
+disconnect or timeout bounds local handling but does not prove stopped backend
+generation or zero additional billing. Do not silently replace the token cap
+with a prompt instruction or label a client cutoff as a provider guarantee.
+
+Result: supported-route migration is not an unblock under current requirements.
+Keep the existing dispatch guard. Before transport implementation, obtain a
+documented applicable USD0 control and provider output cap, or an explicit owner
+revision of the constraints with its practical limits recorded. No new OAuth
+registration, model catalog request, credential refresh or inference was run.
 
 Included ChatGPT subscription only; maximum additional spend USD 0; paid
 fallback forbidden. This is the owner's approved ceiling, not verified backend

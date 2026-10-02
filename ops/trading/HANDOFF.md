@@ -1,5 +1,32 @@
 # Gold trading handoff — 2026-09-28
 
+## Supported OAuth route compatibility review
+
+Official ChatGPT plan-usage docs specify a separate OAuth registration/grant
+and public Responses endpoint; switching the pinned Vibe backend-api URL alone
+is insufficient. The current preview rejects max_output_tokens, so migration
+does not establish our provider-enforced output cap or backend USD0 ceiling.
+Details and source links are in the boundary review below. Existing learning
+login/provider, sealed receipts and production registry remain unchanged.
+No account-network request, OAuth registration, model request or trade ran.
+Next transport work depends on applicable provider billing/output controls or
+an explicit recorded change to those requirements. Dispatch stays disabled.
+
+## Read-only account and billing follow-up — 2026-10-02 Bangkok
+
+Reviewed source bytes matched the final gateway seal. The existing Vibe binding
+helper returned local account binding=true and token_fresh=true. JWT signature,
+server account acceptance and backend USD0 billing verification remain false.
+Only sanitized metadata was printed; no refresh, network or model request ran.
+
+Official pricing and app-server docs, checked with Context7, provide account
+and usage reads but did not establish an included-only enforcement control for
+the pinned Vibe inference route. No other Codex account was substituted.
+The remaining actual credential-process/egress acceptance checks are recorded
+in [the boundary review](../../docs/superpowers/plans/2026-10-02-batch3-production-boundary-review.md).
+Gold dispatch and promotion remain blocked; Batch 2 is development-complete,
+unqualified. Existing seals, receipts and production registry are unchanged.
+
 ## Production gateway readiness preparation — 2026-10-02 Bangkok
 
 Owner selected gateway readiness. Existing hardening/gateway code now prepares
