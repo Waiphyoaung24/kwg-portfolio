@@ -7,6 +7,9 @@ const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const client = resolve(root, 'dist/client');
 for (const page of ['trading', 'trading-bot']) {
   const html = await readFile(resolve(client, `vault/${page}/index.html`), 'utf8');
+  if (/href=["']https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\]):8899(?=[/"'])/i.test(html)) {
+    throw new Error('Production trading page must not link to local Vibe');
+  }
   const stylesheets = [...html.matchAll(/<link rel="stylesheet" href="(\/_astro\/[^\"]+\.css)">/g)];
   if (!stylesheets.length) throw new Error('Trading page stylesheet not found');
   let standalone = html;

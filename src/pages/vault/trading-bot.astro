@@ -166,8 +166,10 @@ const stages = [
             <p class="label">AI research workspace</p>
             <h2 id="research-title">Vibe-Trading</h2>
             <p>OpenAI Codex through ChatGPT OAuth, gpt-6.1-sol with medium reasoning. Learning runs in the separate local app; this page does not verify its current login or availability.</p>
-            <a class="pill-btn" href="http://127.0.0.1:8899/" target="_blank" rel="noopener noreferrer" aria-describedby="local-workspace-note">Open local Vibe workspace ↗</a>
-            <p class="note" id="local-workspace-note">Opens the separate app on this computer. It must be running locally; OAuth login and research permissions are not verified by this link.</p>
+            {import.meta.env.DEV ? <>
+              <a class="pill-btn" href="http://127.0.0.1:8899/" target="_blank" rel="noopener noreferrer" aria-describedby="local-workspace-note">Open local Vibe workspace ↗</a>
+              <p class="note" id="local-workspace-note">Opens the separate app on this computer. It must be running locally; OAuth login and research permissions are not verified by this link.</p>
+            </> : <p class="note">Local workspace only. Vibe-Trading is not hosted on this website.</p>}
             <p class="note">Use Vibe for the separate learning exercises. Real gold AI requests still need verified credential isolation and a guaranteed $0 additional-spend boundary.</p>
           </section>
         </aside>
