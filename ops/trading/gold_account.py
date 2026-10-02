@@ -242,6 +242,7 @@ def worker():
         if value['operation']=='catalog':
             present=catalog_matches(result)
             result={'required_model_present':present,'catalog_models_count':len(result['models']),
+                    'available_models':[model['slug'] for model in result['models']],
                     'catalog_sha256':hashlib.sha256(json.dumps(result,sort_keys=True,separators=(',',':')).encode()).hexdigest()}
     raw = json.dumps(result,allow_nan=False).encode()
     if len(raw) > BOUND: raise ValueError('Worker result limit')
@@ -455,12 +456,15 @@ def run(seal_sha, mode):
                 else: updated=previous; receipt['renewal_completed']=False
                 if updated['expires_at']<=time.time()+300: raise ValueError('Fresh access required')
                 catalog=exchange('catalog','catalog',updated['access_token'])
-                if (set(catalog)!= {'required_model_present','catalog_models_count','catalog_sha256'}
+                if (set(catalog)!= {'required_model_present','catalog_models_count','catalog_sha256','available_models'}
                         or type(catalog['required_model_present']) is not bool or type(catalog['catalog_models_count']) is not int
                         or not 0<=catalog['catalog_models_count']<=1000 or not isinstance(catalog['catalog_sha256'],str)
-                        or len(catalog['catalog_sha256'])!=64): raise ValueError('Catalog summary refused')
+                        or len(catalog['catalog_sha256'])!=64
+                        or not isinstance(catalog['available_models'],list) or len(catalog['available_models'])!=catalog['catalog_models_count']
+                        or any(not isinstance(slug,str) or not 0<len(slug)<=256 for slug in catalog['available_models'])):
+                    raise ValueError('Catalog summary refused')
                 present=catalog['required_model_present']
-                receipt.update(catalog_models_count=catalog['catalog_models_count'],catalog_sha256=catalog['catalog_sha256'])
+                receipt.update(catalog_models_count=catalog['catalog_models_count'],catalog_sha256=catalog['catalog_sha256'],available_models=catalog['available_models'])
                 receipt.update(server_account_verified=True,required_model_present=present,production_isolation_verified=True,passed=present)
     except Exception as error:
         receipt['failure_kind']=type(error).__name__
