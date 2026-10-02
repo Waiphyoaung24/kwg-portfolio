@@ -1,5 +1,11 @@
 # Batch 3 supported gateway — implementation checkpoint
 
+**Historical initial checkpoint.** The fake-only controller, 14-case native
+matrix, private registry and committed source seal have since completed. See
+[final implementation results](2026-10-03-batch3-supported-gateway-results.md)
+for the current status, exact seal and fresh checks. The partial status and
+source hashes below describe the earlier checkpoint and are preserved as history.
+
 Date: 2026-10-03, Asia/Bangkok. Local fake-only continuation of the
 [milestone plan](2026-10-03-batch3-supported-gateway-plan.md).
 

@@ -1,5 +1,29 @@
 # Gold trading handoff — 2026-09-28
 
+## Supported gateway fake-only milestone complete — 2026-10-03 Bangkok
+
+The practice connection is implemented, locally committed and sealed at source
+commit `0e6db2bf3b2294f5defce57c5ce1371558229b7c`. All 14 actual Docker/Squid/fake-TLS
+cases passed, including binding failures, broken responses, watchdog exits,
+crash, cleanup and replay refusal. Fifteen sealed stdlib tests, three separate
+sealed registration tests and the 182-test workspace stdlib regression passed.
+All 73 sealed hashes, 67 working source matches and 14 case receipt hashes were
+verified; production registry remains empty. No owned containers/networks remain.
+
+See [final implementation results](../../docs/superpowers/plans/2026-10-03-batch3-supported-gateway-results.md)
+for exact identities, commands and limitations. Timeouts consume attempts and
+remain outcome-unknown. Caught interruption before transmission was tested;
+forced controller termination cleanup and a production Internet/credential
+boundary remain unverified. Fake TLS fixtures must never become production trust.
+
+No real OAuth store read, OpenAI model request, credit/settings change, broker
+action, deployment or push occurred during this continuation. Real dispatch is
+blocked; production isolation, server account acceptance and $0 billing flags
+remain false. Next work is the plan's separate production/account and provider
+$0 gates before any explicitly authorized single real proposal. Do not repeat
+registration or delete consumed attempts. Batch 2 qualification stays deferred.
+Earlier unfinished/planning-only entries below are historical checkpoints.
+
 ## Fake supported gateway implementation checkpoint — 2026-10-03 Bangkok
 
 Continuation added a fixed public Responses fake-only core and focused tests.

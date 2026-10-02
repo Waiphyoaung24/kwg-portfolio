@@ -185,14 +185,21 @@ This workstream stays deferred unless separately resumed. Gateway completion is 
 
 ## Definition of done and handoff
 
-- [ ] Public transport request/stream contract passes fake tests.
-- [ ] Real runtime credential/filesystem/network isolation probes pass with fake credentials.
-- [ ] Watchdog, cleanup, durable reservation and replay refusal pass.
-- [ ] New exact sources/configuration/runtime are reviewed and sealed; relevant regression checks pass.
-- [ ] Redacted evidence records what was tested and what remains unverified.
-- [ ] Real dispatch is still disabled; production registry unchanged; real model requests zero.
-- [ ] Account acceptance and $0 billing verification remain explicitly pending unless separately authorized and actually completed.
-- [ ] HANDOFF and task plan reference the new receipts and remaining gate, without altering historical receipts.
+- [x] Public transport request/stream contract passes fake tests.
+- [x] Real runtime credential/filesystem/network isolation probes pass with fake credentials.
+- [x] Watchdog, cleanup, durable reservation and replay refusal pass.
+- [x] New exact sources/configuration/runtime are reviewed and sealed; relevant regression checks pass.
+- [x] Redacted evidence records what was tested and what remains unverified.
+- [x] Real dispatch is still disabled; production registry unchanged; real model requests zero.
+- [x] Account acceptance and $0 billing verification remain explicitly pending unless separately authorized and actually completed.
+- [x] HANDOFF and task plan reference the new receipts and remaining gate, without altering historical receipts.
+
+Completed for the fake-only implementation scope on 2026-10-03. See
+[final results](2026-10-03-batch3-supported-gateway-results.md) for the exact seal,
+fresh checks and limits. Isolation checks used synthetic credentials and two
+internal fake-service networks. Caught SIGINT before transmission was tested;
+forced termination cleanup and production credential/Internet isolation remain
+unverified. Later gates A–C are not completed by this checklist.
 
 On failure, disable the new entry point, terminate owned transient resources and preserve all attempts/receipts. Do not roll back credential state automatically or delete failed attempts. The existing offline pipeline remains the usable baseline.
 
