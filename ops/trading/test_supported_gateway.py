@@ -44,7 +44,8 @@ class SupportedGatewayTest(unittest.TestCase):
         mount = {'Source': 'C:/fixture.py', 'Destination': '/snapshot/code/fixture.py', 'Type': 'bind', 'RW': False}
         host = {'NetworkMode': 'isolated', 'ReadonlyRootfs': True, 'Privileged': False, 'CapDrop': ['ALL'],
                 'SecurityOpt': ['no-new-privileges'], 'PidsLimit': 32, 'Memory': 134217728,
-                'NanoCpus': 1000000000, 'ExtraHosts': [], 'Dns': ['127.0.0.1'], 'PortBindings': {}}
+                'NanoCpus': 1000000000, 'ExtraHosts': [], 'Dns': ['127.0.0.1'], 'PortBindings': {},
+                'Mounts': [{'Source': mount['Source'], 'Target': mount['Destination'], 'Type': 'bind', 'ReadOnly': True}]}
         state = {'Image': gateway.SANDBOX_IMAGE, 'Config': {'User': '65534:65534', 'Entrypoint': [gateway.PYTHON],
                  'Cmd': ['-I', '-B']}, 'HostConfig': host, 'Mounts': [mount]}
         args = (gateway.SANDBOX_IMAGE, 'isolated', gateway.PYTHON, ['-I', '-B'], [(Path('C:/fixture.py'), mount['Destination'])], {'dns': ['127.0.0.1']})

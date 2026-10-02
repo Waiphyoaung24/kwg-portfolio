@@ -213,16 +213,18 @@ def probe_worker(value):
 def inspect_container(state, image, network, entry, args, mounts, extras):
     host = state['HostConfig']
     expected = {(os.path.normcase(os.path.normpath(str(source))), target) for source, target in mounts}
-    actual = {(os.path.normcase(os.path.normpath(m['Source'])), m['Destination']) for m in state['Mounts']}
+    actual = {(os.path.normcase(os.path.normpath(m['Source'])), m['Target']) for m in host['Mounts']}
     if (state['Image'] != image.split('@')[-1] or state['Config']['User'] != ('13:13' if image == SQUID_IMAGE else '65534:65534')
             or state['Config']['Entrypoint'] != [entry] or state['Config']['Cmd'] != args
             or host['NetworkMode'] != network or not host['ReadonlyRootfs'] or host['Privileged']
             or host['CapDrop'] != ['ALL'] or 'no-new-privileges' not in host['SecurityOpt']
             or host['PidsLimit'] != 32 or host['Memory'] != 134217728 or host['NanoCpus'] != 1000000000
-            or actual != expected or len(state['Mounts']) != len(mounts)
+            or actual != expected or len(host['Mounts']) != len(mounts) or len(state['Mounts']) != len(mounts)
+            or {m['Destination'] for m in state['Mounts']} != {target for _, target in mounts}
+            or any(m['Type'] != 'bind' or not m['ReadOnly'] for m in host['Mounts'])
             or any(m['Type'] != 'bind' or m['RW'] for m in state['Mounts'])
-            or host.get('PortBindings') or host.get('ExtraHosts', []) != extras.get('hosts', [])
-            or host.get('Dns', []) != extras.get('dns', [])):
+            or host.get('PortBindings') or (host.get('ExtraHosts') or []) != extras.get('hosts', [])
+            or (host.get('Dns') or []) != extras.get('dns', [])):
         raise ValueError('Supported container configuration mismatch')
     return {'image': state['Image'], 'user': state['Config']['User'], 'network': network,
             'entrypoint': entry, 'mounts': sorted(target for _, target in mounts),
