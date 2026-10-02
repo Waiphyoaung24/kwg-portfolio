@@ -1,5 +1,6 @@
 export const folders=['journal','knowledge','projects','reviews','founder','inbox'];
 export const supported=()=>globalThis.isSecureContext && typeof globalThis.showDirectoryPicker==='function' && !!globalThis.indexedDB && !!globalThis.navigator?.locks;
+export const unsupportedReason=()=>supported()?null:!globalThis.isSecureContext?'insecure':typeof globalThis.showDirectoryPicker!=='function'&&globalThis.navigator?.brave?'brave':'browser';
 export const digest=async content=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(content))),x=>x.toString(16).padStart(2,'0')).join('');
 const valid=path=>typeof path==='string' && /^(journal|knowledge|projects|reviews|founder|inbox)\/[a-zA-Z0-9][a-zA-Z0-9 _-]*\.md$/.test(path);
 const limit=1024*1024;
