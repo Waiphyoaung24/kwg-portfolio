@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][ValidateSet('canary', 'credentials', 'seal', 'seal-current', 'seal-gateway')][string]$Phase)
+param([Parameter(Mandatory)][ValidateSet('canary', 'credentials', 'seal', 'seal-current', 'seal-gateway', 'seal-readiness')][string]$Phase)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $root = Join-Path $repo '.batch3-vibe'
@@ -101,17 +101,58 @@ if ($Phase -eq 'canary') {
     Set-Boundary (Join-Path $root 'profile/.vibe-trading')
     Write-Output 'PASS: auth directory and private config restricted to owner and SYSTEM; contents not read.'
 } else {
-    $current = $Phase -in @('seal-current', 'seal-gateway')
+    $current = $Phase -in @('seal-current', 'seal-gateway', 'seal-readiness')
+    if ($Phase -eq 'seal-readiness') {
+        & git -C $repo diff --quiet HEAD -- ops/trading
+        if ($LASTEXITCODE) { throw 'Commit reviewed trading sources before readiness sealing.' }
+        $commit = (& git -C $repo rev-parse HEAD).Trim()
+        if ($LASTEXITCODE -or $commit -notmatch '^[a-f0-9]{40}$') { throw 'Committed source identity unavailable.' }
+    }
     $snapshotName = switch ($Phase) { 'seal-current' { 'sealed-trusted-transport-20261002' } 'seal-gateway' { 'sealed-gateway-20261002-r2' } default { 'sealed-credential-rehearsal' } }
+    if ($Phase -eq 'seal-readiness') { $snapshotName = 'sealed-gateway-readiness-' + $commit.Substring(0, 12) }
     $sealed = Join-Path $root $snapshotName
     Assert-NoReparse $root
     if (Test-Path -LiteralPath $sealed) { throw 'Snapshot already exists; preserve it.' }
     New-Item -ItemType Directory -Path $sealed | Out-Null
     # Close sandbox access before any source bytes or manifest are copied.
     Set-Boundary $sealed
+    if ($Phase -eq 'seal-readiness') {
+        $registry = Join-Path $root 'production-attempts'
+        Assert-NoReparse $root
+        if (-not (Test-Path -LiteralPath $registry)) {
+            New-Item -ItemType Directory -Path $registry | Out-Null
+            Set-Boundary $registry
+        }
+        Assert-NoReparse $registry
+        $acl = Get-Acl -LiteralPath $registry
+        if (-not $acl.AreAccessRulesProtected -or $acl.GetOwner([Security.Principal.SecurityIdentifier]) -ne $user) { throw 'Private registry owner/inheritance mismatch.' }
+        $seen = @()
+        foreach ($rule in $acl.Access) {
+            $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier])
+            if ($sid -notin @($user, $system) -or $rule.AccessControlType -ne 'Allow' -or $rule.FileSystemRights -ne 'FullControl') { throw 'Private registry permissions mismatch.' }
+            $seen += $sid.Value
+        }
+        if ($user.Value -notin $seen -or $system.Value -notin $seen) { throw 'Private registry access incomplete.' }
+        $readiness = Join-Path $root 'gateway-readiness'
+        if (-not (Test-Path -LiteralPath $readiness)) {
+            New-Item -ItemType Directory -Path $readiness | Out-Null
+            Set-Boundary $readiness
+        }
+        Assert-NoReparse $readiness
+        @{ mode='fake_readiness_only'; git_commit=$commit; production_registry=$registry;
+            registry_acl_checked=$true; production_dispatch='blocked'; billing_ceiling_verified=$false;
+            server_account_verified=$false; production_isolation_verified=$false } |
+            ConvertTo-Json | Set-Content -LiteralPath (Join-Path $sealed 'readiness.json') -Encoding utf8
+    }
     $code = New-Item -ItemType Directory -Path (Join-Path $sealed 'code')
     # Snapshot the offline tool chain, including test dependencies, not the upstream application.
     $sources = @(Get-ChildItem -LiteralPath $PSScriptRoot -File | Where-Object { $_.Extension -in @('.py', '.json', '.patch', '.ps1') })
+    if ($Phase -eq 'seal-readiness') {
+        foreach ($file in $sources) {
+            & git -C $repo ls-files --error-unmatch -- ('ops/trading/' + $file.Name) | Out-Null
+            if ($LASTEXITCODE) { throw 'Uncommitted source in readiness seal.' }
+        }
+    }
     foreach ($file in $sources) { Copy-Verified $file.FullName (Join-Path $code.FullName $file.Name) }
     Copy-Verified (Join-Path $root 'upstream/agent/src/providers/openai_codex.py') (Join-Path $sealed 'upstream-provider.py')
     $attempt = if ($current) { Join-Path $repo '.superpowers/sdd/batch3-auth-docker-20261002-03/refresh_success' } else { Join-Path $root 'sandbox-rehearsal-20261001-214001/attempt' }

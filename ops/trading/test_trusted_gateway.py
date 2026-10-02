@@ -10,6 +10,50 @@ from test_research_gold import packet_fixture
 
 
 class GatewayTest(unittest.TestCase):
+    def test_readiness_uses_fixed_fake_registry_and_cannot_claim_live_readiness(self):
+        import trusted_gateway as gateway
+        from batch3_runner import write_once
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)/'.batch3-vibe'
+            sealed=root/('sealed-gateway-readiness-'+'a'*12)
+            (sealed/'code').mkdir(parents=True)
+            production=root/'production-attempts'; production.mkdir()
+            metadata={'mode':'fake_readiness_only','git_commit':'a'*40,
+                'production_registry':str(production),'registry_acl_checked':True,
+                'production_dispatch':'blocked','billing_ceiling_verified':False,
+                'server_account_verified':False,'production_isolation_verified':False}
+            write_once(sealed/'readiness.json',metadata)
+            cases=[]
+            def fake(registry,packet,seal_sha,case,deadline):
+                cases.append(case)
+                self.assertEqual(registry,root/'gateway-readiness/attempts')
+                attempt=reserve(registry,packet,seal_sha,case)
+                result={'status':'parsed_synthetic' if case=='success' else 'deadline_exceeded' if case=='timeout' else 'provider_failed',
+                    'configuration_verified':True,'cleanup_verified':case!='bad_usage',
+                    'response':{'fake_requests':1},'model_requests':0}
+                write_once(attempt/'receipt.json',result)
+                return result
+            with patch.object(gateway,'__file__',str(sealed/'code/trusted_gateway.py')), \
+                    patch.object(gateway,'verify_seal'),patch.object(gateway,'rehearse',side_effect=fake):
+                result=gateway.readiness('b'*64)
+                self.assertEqual(cases,sorted(gateway.CASES))
+                self.assertFalse(result['offline_checks_passed'])
+                self.assertTrue(all(row['replay_refused'] for row in result['cases']))
+                self.assertEqual(result['model_requests'],0)
+                self.assertEqual(result['dispatch_status'],'blocked')
+                self.assertTrue(result['human_approval_required'])
+                for flag in ('production_isolation_verified','server_account_verified','billing_ceiling_verified'):
+                    self.assertFalse(result[flag])
+                self.assertEqual(list(production.iterdir()),[])
+                with self.assertRaises(FileExistsError): gateway.readiness('b'*64)
+                self.assertEqual(len(cases),5)
+                for key,value in [('production_registry',str(root/'replacement')),
+                    ('billing_ceiling_verified',True),('production_dispatch','enabled')]:
+                    changed={**metadata,key:value}
+                    (sealed/'readiness.json').write_text(json.dumps(changed))
+                    with self.assertRaises(ValueError): gateway.readiness('c'*64)
+                self.assertEqual(len(cases),5)
+
     def test_worker_refuses_oversized_frame_before_parsing(self):
         import io
         from types import SimpleNamespace

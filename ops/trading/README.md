@@ -67,6 +67,22 @@ egress or backend billing, and cannot enable gold dispatch.
 
 ### Durable gateway rehearsal
 
+For current committed-code readiness, run as the owning Windows user:
+`powershell -NoProfile -ExecutionPolicy Bypass -File ops/trading/harden-batch3.ps1 -Phase seal-readiness`.
+This requires clean, committed trading sources, creates a new commit-named seal,
+and prepares `.batch3-vibe/production-attempts` with owner/SYSTEM-only access.
+It never reads OAuth contents or reserves a production attempt.
+
+Hash the new seal's `manifest.json`, then run its `code/trusted_gateway.py`
+with `--readiness --seal-sha256 <manifest hash>`. The fixed fake registry is
+`.batch3-vibe/gateway-readiness/attempts`; no registry/case/deadline override
+is accepted in readiness mode. It exercises success, 401, account mismatch,
+bad usage and timeout, checks cleanup/replay refusal, and saves an exclusive
+private receipt. Repeating the same seal is refused; preserve failed attempts.
+Readiness receipts always say model_requests=0, dispatch/promotion blocked,
+and production isolation, server account acceptance and billing unverified.
+The existing pinned Docker image must already be present; nothing is pulled.
+
 The current synthetic-only controller is sealed at
 `.batch3-vibe/sealed-gateway-20261002-r2/code/trusted_gateway.py`.
 It reserves a manifest identity before starting work, inspects the container before

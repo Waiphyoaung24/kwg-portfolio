@@ -231,16 +231,74 @@ def rehearse(registry, packet, seal_sha, case, deadline=DEADLINE):
     return receipt
 
 
+def readiness(seal_sha):
+    """Review a committed seal with fake transport; never reserve a real attempt."""
+    from test_research_gold import packet_fixture
+    sealed=Path(__file__).resolve().parent.parent
+    if (Path(__file__).parent.name!='code' or sealed.parent.name!='.batch3-vibe'
+            or not sealed.name.startswith('sealed-gateway-readiness-')):
+        raise ValueError('Run the committed readiness seal')
+    verify_seal(sealed,seal_sha)
+    metadata=strict_json((sealed/'readiness.json').read_bytes())
+    production=sealed.parent/'production-attempts'
+    if (metadata.get('mode')!='fake_readiness_only' or metadata.get('production_registry')!=str(production)
+            or metadata.get('registry_acl_checked') is not True
+            or metadata.get('production_dispatch')!='blocked'
+            or any(metadata.get(k) is not False for k in ('billing_ceiling_verified',
+                'server_account_verified','production_isolation_verified'))
+            or not isinstance(metadata.get('git_commit'),str) or len(metadata['git_commit'])!=40
+            or sealed.name!='sealed-gateway-readiness-'+metadata['git_commit'][:12]):
+        raise ValueError('Invalid readiness binding')
+    no_reparse(production)
+    if not production.is_dir(): raise ValueError('Fixed production registry unavailable')
+    review=sealed.parent/'gateway-readiness'
+    no_reparse(review)
+    # Synthetic reservations are deliberately separate from the production registry.
+    review.mkdir(exist_ok=True)
+    reservation=review/(seal_sha+'.reserved.json')
+    write_once(reservation,{'seal_sha256':seal_sha,'git_commit':metadata['git_commit'],'model_requests':0})
+    results=[]
+    for case in sorted(CASES):
+        packet=packet_fixture()
+        packet['identity']['manifest_sha256']=hashlib.sha256(('fake-readiness:'+seal_sha+':'+case).encode()).hexdigest()
+        result=rehearse(review/'attempts',packet,seal_sha,case,10 if case=='timeout' else DEADLINE)
+        attempt=review/'attempts'/packet['identity']['manifest_sha256']
+        before=(attempt/'attempt.json').read_bytes()
+        try:
+            reserve(review/'attempts',packet,seal_sha,case)
+            replay_refused=False
+        except FileExistsError:
+            replay_refused=(attempt/'attempt.json').read_bytes()==before
+        expected='parsed_synthetic' if case=='success' else 'deadline_exceeded' if case=='timeout' else 'provider_failed'
+        results.append({'case':case,'passed':result['status']==expected and result['configuration_verified']
+            and result['cleanup_verified'] and replay_refused,'status':result['status'],
+            'replay_refused':replay_refused,'receipt_sha256':hashlib.sha256((attempt/'receipt.json').read_bytes()).hexdigest(),
+            'fake_requests':(result['response'] or {}).get('fake_requests',0)})
+    receipt={'mode':'fake_gateway_readiness','git_commit':metadata['git_commit'],'seal_sha256':seal_sha,
+        'offline_checks_passed':all(r['passed'] for r in results),'cases':results,'model_requests':0,
+        'production_isolation_verified':False,'server_account_verified':False,'billing_ceiling_verified':False,
+        'dispatch_status':'blocked','qualification':'unqualified','promotion_status':'blocked',
+        'human_approval_required':True}
+    write_once(review/(seal_sha+'.receipt.json'),receipt)
+    return receipt
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--registry',type=Path,required=True)
+    mode=parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--registry',type=Path)
+    mode.add_argument('--readiness',action='store_true')
     parser.add_argument('--seal-sha256',required=True)
-    parser.add_argument('--case',choices=sorted(CASES),required=True)
+    parser.add_argument('--case',choices=sorted(CASES))
     parser.add_argument('--deadline',type=float,default=DEADLINE)
     args=parser.parse_args()
+    if args.readiness and (args.case is not None or args.deadline!=DEADLINE):
+        parser.error('Readiness uses fixed cases and deadlines')
+    if not args.readiness and args.case is None: parser.error('--case is required for rehearsal')
     from test_research_gold import packet_fixture
     try:
-        print(json.dumps(rehearse(args.registry,packet_fixture(),args.seal_sha256,args.case,args.deadline),sort_keys=True))
+        result=readiness(args.seal_sha256) if args.readiness else rehearse(args.registry,packet_fixture(),args.seal_sha256,args.case,args.deadline)
+        print(json.dumps(result,sort_keys=True))
     except Exception:
         print('Gateway rehearsal refused; preserve the reservation.',file=sys.stderr)
         raise SystemExit(2) from None
