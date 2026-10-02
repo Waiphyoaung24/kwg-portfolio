@@ -1,5 +1,41 @@
 # Gold trading handoff — 2026-09-28
 
+## Offline experiment review foundation — 2026-10-02
+
+Owner found the first review UI confusing. It now uses Practice comparison,
+Original/Proposed and a plain-language interpretation, prominently stating
+fictional results are not MT5 account P&L. Less common engineering/qualification
+details are disclosed on demand. Local preview no longer polls the missing
+Worker API or implies the VPS observer is offline; it explicitly says Not
+connected here and links to the protected hosted dashboard. No proxy, secret,
+new broker connection or live deployment was added. Hosted status polling remains
+protected; generic API failures are distinguished from access failures.
+Parser/status checks, actual fixture import, no-local-API-request browser check,
+one primary action, desktop/mobile layout and Astro build/standalone packaging
+passed. Latest screenshots: .superpowers/trading-clarity-desktop.png and
+trading-clarity-mobile.png. Current deployment remains unchanged.
+
+Gold operations (`/vault/trading-bot`) now reads three owner-selected local
+synthetic rehearsal reports: comparison.json, baseline.json and candidate.json.
+It validates byte hashes, fixed risk/policy and numerical reconciliation before
+showing six baseline/candidate rows, identities and evidence gaps. Other source
+identities are declared, not independently verified. No upload, persistence,
+model dispatch, promotion or order control was added. Errors and Clear review
+remove previous results. October 1 preparation copy is updated to the current
+development close-out; qualification stays deferred/unqualified.
+
+Parser regression checks, actual saved rehearsal import, 1440/390 browser
+checks and Astro build passed. Standalone trading-bot.html regenerated;
+trading.html remains byte-unchanged. Repository-wide Astro check still fails
+on dashboard dependency/type errors outside this scope, with no trading target
+diagnostic. Independent UI review: ship, no material findings. Local preview
+has no Worker /api/trading/status route; its 404 is not evidence of a VPS issue.
+No deployment or push performed for this increment. Preserve all private
+snapshots and artifacts; production gates below remain blocked.
+
+Architecture mapping and next increments:
+[foundation checkpoint](../../docs/superpowers/plans/2026-10-02-gold-system-foundation.md).
+
 ## Final Batch 2 development close-out — 2026-10-02
 
 **Batch 2: closed for development, unqualified. Batch 3: offline integration

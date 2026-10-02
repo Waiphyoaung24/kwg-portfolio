@@ -3,8 +3,8 @@ import '../../styles/index.scss';
 export const prerender = true;
 const stages = [
   { number: '01', title: 'Observe', detail: 'Completed gold M15 candles. Feed health comes from the observer.', state: 'Feed below' },
-  { number: '02', title: 'Research', detail: 'Vibe-Trading + Codex OAuth. Separate app configuration prepared; research has not started.', state: 'Not connected' },
-  { number: '03', title: 'Qualify', detail: 'Compare one proposal with the fixed baseline using dated costs and covered evidence.', state: 'Batch 2 gated' },
+  { number: '02', title: 'Research', detail: 'Separate Vibe learning workspace. Bounded gold dispatch still needs production isolation and backend spend enforcement.', state: 'Gold dispatch blocked' },
+  { number: '03', title: 'Qualify', detail: 'Batch 2 development is closed. Qualifying observation and trade samples are deferred; evidence remains incomplete.', state: 'Unqualified' },
   { number: '04', title: 'Approve', detail: 'Human approval applies to the exact strategy and evidence before any promotion.', state: 'No candidate' },
   { number: '05', title: 'Run', detail: 'A future approved runner manages eligible trades within fixed limits.', state: 'Unavailable' },
 ];
@@ -30,23 +30,24 @@ const stages = [
       <header class="intro">
         <p class="label">XAUUSD-VIP · M15 · demo</p>
         <h1>Gold operations</h1>
-        <p>Observe the market. Review the research. Know what can run.</p>
+        <p>Check the demo connection and practice comparing strategy changes.</p>
       </header>
       <section class="operating" aria-labelledby="operating-title">
         <div>
-          <p class="label">Autonomous runner</p>
-          <h2 id="operating-title">Not enabled</h2>
-          <p>A continuous runner is not implemented. Strategy qualification and your approval are required before autonomous demo execution.</p>
+          <p class="label">Automatic trading</p>
+          <h2 id="operating-title">Not available yet</h2>
+          <p>The system does not trade automatically. You can check the feed and review fictional test results here.</p>
         </div>
         <div class="actions">
           <button class="pill-btn pill-btn--filled" id="refresh" type="button">Refresh feed</button>
           <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to feed</a>
+          <a class="pill-btn" id="hosted-feed" href="https://waiphyoaung.com/vault/trading" target="_blank" rel="noopener noreferrer" hidden>Open hosted MT5 dashboard ↗</a>
         </div>
       </section>
       <div class="workspace">
         <div class="primary">
           <section class="panel" aria-labelledby="feed-title">
-            <div class="section-head"><h2 id="feed-title">Market observation</h2><span class="label" id="feed-state">Checking</span></div>
+            <div class="section-head"><h2 id="feed-title">Live demo feed</h2><span class="label" id="feed-state">Checking</span></div>
             <dl class="readings">
               <div><dt>MT5 connection</dt><dd id="connection">Checking</dd></div>
               <div><dt>Quote freshness</dt><dd id="freshness">Checking</dd></div>
@@ -64,10 +65,10 @@ const stages = [
               </dl>
               <p id="reason">Waiting for a current report.</p>
             </details>
-            <p class="note">This feed provides health and signals, not chart prices. A market chart needs a verified candle-data API.</p>
+            <p class="note">The MT5 desktop tunnel and this status feed are separate connections. An unavailable feed here does not establish that MT5 disconnected.</p>
           </section>
           <section class="panel" aria-labelledby="attempt-title">
-            <div class="section-head"><h2 id="attempt-title">Latest supervised attempt</h2><span class="label" id="attempt-state">Unknown</span></div>
+            <div class="section-head"><h2 id="attempt-title">Last manually approved demo trade</h2><span class="label" id="attempt-state">Unknown</span></div>
             <p id="attempt-guidance">No execution report loaded.</p>
             <dl class="readings">
               <div><dt>Direction / size</dt><dd id="attempt-size">—</dd></div>
@@ -78,18 +79,65 @@ const stages = [
             <p class="note">One supervised attempt only. This is not an autonomous position inventory, trade history or strategy return.</p>
           </section>
           <section class="panel" aria-labelledby="workflow-title">
-            <div class="section-head"><h2 id="workflow-title">From evidence to execution</h2></div>
-            <p class="note">Preparation snapshot · October 1, 2026 · not a live qualification report</p>
+            <div class="section-head"><h2 id="workflow-title">What is ready?</h2></div>
+            <p>The comparison software works with fictional test data. Real gold AI requests, strategy approval and automatic trading remain unavailable.</p>
+            <details>
+              <summary class="pill-btn">Development stages</summary>
+              <p class="note">Development checkpoint · October 2, 2026 · not a live qualification report</p>
             <ol class="workflow">
               {stages.map(stage => <li><span class="micro">{stage.number}</span><div><h3>{stage.title}</h3><p>{stage.detail}</p></div><span class="micro stage-state">{stage.state}</span></li>)}
             </ol>
+            </details>
+          </section>
+          <section class="panel" aria-labelledby="review-title">
+            <div class="section-head"><h2 id="review-title">Practice comparison</h2><span class="label">Fictional results</span></div>
+            <p>This tests the software using made-up market data. The amounts below are not profits or losses on your MT5 account.</p>
+            <p class="note">Select comparison.json, baseline.json and candidate.json together from one test folder. The original strategy is compared with one proposed filter.</p>
+            <div class="actions">
+              <button class="pill-btn" id="choose-reports" type="button">Choose three reports</button>
+              <button class="pill-btn" id="clear-reports" type="button" hidden>Clear review</button>
+              <input id="report-files" type="file" accept=".json,application/json" multiple hidden />
+            </div>
+            <p class="note">Files stay in this browser tab. No upload, model request or order. Up to 8 MiB per file. Clearing or reloading removes the review.</p>
+            <p id="review-message" role="status" aria-live="polite">Choose your three test reports to see the comparison.</p>
+            <div id="review-result" hidden>
+              <p id="review-explanation"></p>
+              <details>
+                <summary class="pill-btn">How to read the results</summary>
+                <ul class="gates">
+                  <li>Original = the fixed EMA strategy. Proposed = the same strategy with one filter.</li>
+                  <li>Development = the first test portion. Validation = a separate portion used to check the change.</li>
+                  <li>Lower, middle and stress use increasingly demanding hypothetical trading costs.</li>
+                  <li>A negative difference means the proposed change earned less than the original in that test.</li>
+                </ul>
+              </details>
+              <div class="review-table" role="region" aria-label="Synthetic comparison results" tabindex="0">
+                <table>
+                  <caption>Fictional net profit in USD. Difference = proposed − original.</caption>
+                  <thead><tr><th scope="col">Cost / test portion</th><th scope="col">Original</th><th scope="col">Proposed</th><th scope="col">Difference</th><th scope="col">Trades<br />original / proposed</th></tr></thead>
+                  <tbody id="review-rows"></tbody>
+                </table>
+              </div>
+              <h3>What this test proves</h3>
+              <p>The selected report files match and their numbers reconcile. This checks the software, not whether a strategy is ready to trade. No AI request or order was sent.</p>
+              <details>
+              <summary class="pill-btn">What remains before trading</summary>
+              <ul class="gates" id="review-gates"></ul>
+              </details>
+              <details>
+                <summary class="pill-btn">Technical file checks</summary>
+                <p class="note">Baseline and candidate hashes checked against selected file bytes. Other identities are declarations in the comparison; their source files are not loaded or verified.</p>
+                <dl class="readings" id="review-identities"></dl>
+              </details>
+            </div>
           </section>
         </div>
         <aside class="secondary" aria-label="Strategy and qualification">
           <section class="panel" aria-labelledby="strategy-title">
-            <p class="label">Fixed baseline</p>
+            <p class="label">Original strategy</p>
             <h2 id="strategy-title">EMA20 / EMA50</h2>
-            <p>Completed M15 crossover with ATR14. Research can propose one bounded entry filter; risk rules stay fixed.</p>
+            <p>Uses the crossing of two moving averages on completed 15-minute candles. A proposed filter can change when it enters; the risk rules stay fixed.</p>
+            <details><summary class="pill-btn">Strategy and risk details</summary>
             <dl class="readings">
               <div><dt>Entry risk</dt><dd>0.1% equity</dd></div>
               <div><dt>Stop / target</dt><dd>2 ATR / 3 ATR</dd></div>
@@ -97,10 +145,13 @@ const stages = [
               <div><dt>Position limit</dt><dd>One gold position</dd></div>
             </dl>
             <p class="note">Approved strategy limits, not proof that an autonomous runner is enforcing them. No pyramiding, martingale or same-candle reversal.</p>
+            </details>
           </section>
           <section class="panel" aria-labelledby="gates-title">
-            <p class="label">Preparation snapshot · Oct 1</p>
-            <h2 id="gates-title">Qualification gates</h2>
+            <p class="label">Qualification deferred · Oct 2</p>
+            <h2 id="gates-title">Evidence still incomplete</h2>
+            <p>Batch 2's software preparation is finished. Real-market evidence is not sufficient to approve a strategy. You deferred the longer observation period; it was not marked as passed.</p>
+            <details><summary class="pill-btn">Qualification requirements</summary>
             <ul class="gates">
               <li>Dated costs and broker clock coverage</li>
               <li>Frozen prospective protocol</li>
@@ -109,26 +160,79 @@ const stages = [
               <li>Verified report provenance and repeatable baseline</li>
               <li>Performance and stress criteria, then human approval</li>
             </ul>
-            <p class="note">The one-day smoke test checks the pipeline. Its capture deadline is October 2, 00:15 Bangkok; it does not complete qualification.</p>
+            <p class="note">Batch 2 is closed for development, unqualified. The reviewed smoke has a partial pipeline verdict; it does not earn qualifying-day credit. These requirements remain unchanged.</p>
+            </details>
           </section>
           <section class="panel" aria-labelledby="research-title">
             <p class="label">AI research workspace</p>
             <h2 id="research-title">Vibe-Trading</h2>
-            <p>OpenAI Codex through ChatGPT OAuth. Local configuration is prepared; the app and authenticated inference route are not connected to this page.</p>
+            <p>OpenAI Codex through ChatGPT OAuth, gpt-6.1-sol with medium reasoning. Learning runs in the separate local app; this page does not verify its current login or availability.</p>
             <a class="pill-btn" href="http://127.0.0.1:8899/" target="_blank" rel="noopener noreferrer" aria-describedby="local-workspace-note">Open local Vibe workspace ↗</a>
             <p class="note" id="local-workspace-note">Opens the separate app on this computer. It must be running locally; OAuth login and research permissions are not verified by this link.</p>
-            <p class="note">No proposal, comparison or approval is available here. Model dispatch stays blocked while isolation and request limits are verified.</p>
+            <p class="note">Use Vibe for the separate learning exercises. Real gold AI requests still need verified credential isolation and a guaranteed $0 additional-spend boundary.</p>
           </section>
         </aside>
       </div>
-      <footer><p class="note">Feed refreshes every 10 seconds. Preparation notes are dated and do not update from the observer.</p></footer>
+      <footer><p class="note" id="page-note">Live feed refreshes every 10 seconds. Practice results come only from the selected files.</p></footer>
       <noscript><p>Enable JavaScript to load the feed. No current observation or execution data is shown without it.</p></noscript>
     </main>
     <script>
       import { statusFields, executionFields } from '../../scripts/trading-status.mjs';
+      import { reviewReports, comparisonExplanation } from '../../scripts/trading-review.mjs';
       const field = (id: string) => document.getElementById(id)!;
+      const files = field('report-files') as HTMLInputElement;
+      const choose = field('choose-reports') as HTMLButtonElement;
+      const clear = field('clear-reports') as HTMLButtonElement;
+      let reviewVersion = 0;
+      function resetReview() {
+        reviewVersion++;
+        field('review-result').hidden = true;
+        for (const id of ['review-rows', 'review-gates', 'review-identities', 'review-explanation']) field(id).replaceChildren();
+        clear.hidden = true;
+      }
+      choose.addEventListener('click', () => files.click());
+      clear.addEventListener('click', () => {
+        resetReview(); files.value = ''; field('review-message').textContent = 'Choose your three test reports to see the comparison.';
+      });
+      files.addEventListener('change', async () => {
+        resetReview();
+        const version = reviewVersion;
+        const selected = Array.from(files.files ?? []);
+        files.value = '';
+        if (!selected.length) { field('review-message').textContent = 'Choose your three test reports to see the comparison.'; return; }
+        choose.disabled = true;
+        field('review-message').textContent = 'Checking file hashes and report summaries…';
+        try {
+          const review = await reviewReports(selected);
+          if (version !== reviewVersion) return;
+          field('review-explanation').textContent = comparisonExplanation(review.rows);
+          const money = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          for (const row of review.rows) {
+            const tr = document.createElement('tr');
+            for (const [index, value] of [`${row.scenario} / ${row.window}`, money.format(row.baseline), money.format(row.candidate), money.format(row.difference), row.trades].entries()) {
+              const cell = document.createElement(index === 0 ? 'th' : 'td');
+              if (index === 0) cell.setAttribute('scope', 'row');
+              cell.textContent = value; tr.append(cell);
+            }
+            field('review-rows').append(tr);
+          }
+          for (const gap of review.gates) { const li = document.createElement('li'); li.textContent = gap; field('review-gates').append(li); }
+          for (const [name, hash] of review.identities) {
+            const row = document.createElement('div');
+            const dt = document.createElement('dt'); dt.textContent = name;
+            const dd = document.createElement('dd'); dd.textContent = hash;
+            row.append(dt, dd); field('review-identities').append(row);
+          }
+          field('review-result').hidden = false; clear.hidden = false;
+          field('review-message').textContent = 'Test reports loaded. These results cannot approve a strategy for trading.';
+        } catch (error) {
+          if (version === reviewVersion) field('review-message').textContent = error instanceof Error ? error.message : 'Review failed. Select the original rehearsal reports.';
+        } finally { choose.disabled = false; }
+      });
       const refresh = field('refresh') as HTMLButtonElement;
       const signIn = field('sign-in');
+      const localPreview = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+      choose.classList.toggle('pill-btn--filled', localPreview);
       const offline = { status: 'offline', checked_at: null };
       let latest: any = offline;
       function render(data: any) {
@@ -144,13 +248,27 @@ const stages = [
         field('attempt-result').textContent = execution.result;
         field('attempt-prices').textContent = `${execution.entry} / ${execution.sl} / ${execution.tp}`;
         field('attempt-closed').textContent = execution.closed;
+        if (localPreview) {
+          field('feed-state').textContent = 'Not connected here';
+          field('connection').textContent = 'Check hosted dashboard';
+          for (const id of ['freshness', 'signal', 'history', 'heartbeat']) field(id).textContent = 'Not checked here';
+          field('reason').textContent = 'The local preview does not request live broker status.';
+          field('attempt-state').textContent = 'Not loaded here';
+          field('page-note').textContent = 'Live status is available on the hosted dashboard. Practice reports stay in this tab.';
+          field('guidance').textContent = 'This local preview is for practice reports. Open the hosted MT5 dashboard to check the protected live feed. Your desktop tunnel does not connect this page to that API.';
+          field('attempt-guidance').textContent = 'The local preview has not loaded your broker trade report. Practice results below are separate.';
+          refresh.hidden = true; signIn.hidden = true; field('hosted-feed').hidden = false;
+        }
       }
       async function load() {
+        if (localPreview) { render(offline); return; }
         if (refresh.disabled) return;
         refresh.disabled = true;
         refresh.textContent = 'Refreshing…';
+        let responseNeedsAccess = false;
         try {
           const response = await fetch('/api/trading/status', { cache: 'no-store', redirect: 'manual', signal: AbortSignal.timeout(8000) });
+          responseNeedsAccess = response.type === 'opaqueredirect' || [401, 403].includes(response.status);
           if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('Unavailable');
           const data = await response.json();
           if (data.mode !== 'signal-only' || data.symbol !== 'XAUUSD-VIP') throw new Error('Invalid feed');
@@ -160,8 +278,9 @@ const stages = [
         } catch {
           latest = offline;
           render(latest);
-          field('guidance').textContent = 'Feed unavailable. Sign in to the protected feed, then refresh. Existing trading activity is unknown.';
-          signIn.hidden = false;
+          field('feed-state').textContent = 'Feed unavailable';
+          field('guidance').textContent = responseNeedsAccess ? 'Sign in to the protected feed, then refresh. MT5 connection cannot be checked until access is restored.' : 'This page could not load the status feed. MT5 connection is unknown; check the hosted dashboard or try again.';
+          signIn.hidden = !responseNeedsAccess;
         } finally {
           refresh.disabled = false;
           refresh.textContent = 'Refresh feed';
@@ -205,6 +324,16 @@ const stages = [
       .stage-state { text-align: right; }
       .gates { color: var(--c-body); padding-left: var(--sp-lg); line-height: 1.6; }
       .gates li { margin-block: var(--sp-md); }
+      #review-result[hidden] { display: none; }
+      .review-table { overflow-x: auto; margin-block: var(--sp-xl); }
+      table { width: 100%; border-collapse: collapse; font-size: var(--fs-body-sm); font-variant-numeric: tabular-nums; }
+      caption { text-align: left; color: var(--c-body); margin-bottom: var(--sp-md); }
+      .review-table :global(th), .review-table :global(td) { padding: var(--sp-md); border-bottom: 1px solid var(--c-hairline); text-align: right; font-weight: var(--fw-regular); }
+      .review-table :global(th:first-child) { text-align: left; }
+      thead th { color: var(--c-body); }
+      .review-table :global(td) { white-space: nowrap; }
+      #review-identities :global(div) { padding-block: var(--sp-md); border-bottom: 1px solid var(--c-hairline); }
+      #review-identities :global(dd) { margin: var(--sp-sm) 0 0; overflow-wrap: anywhere; font-family: var(--ff-mono); font-size: var(--fs-body-sm); text-align: left; }
       button:disabled { cursor: wait; opacity: .6; }
       @media (max-width: 60rem) { .workspace { grid-template-columns: minmax(0, 1fr); } .secondary { border-left: 0; padding-left: 0; } }
       @media (max-width: 40rem) { .operating { flex-direction: column; align-items: start; } .workflow li { grid-template-columns: auto minmax(0, 1fr); } .stage-state { grid-column: 2; text-align: left; } .readings > div { grid-template-columns: minmax(0, 1fr); gap: var(--sp-xs); } dd { text-align: left; } }

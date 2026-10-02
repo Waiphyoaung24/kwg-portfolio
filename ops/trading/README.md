@@ -238,6 +238,34 @@ node ops/trading/build-status-page.mjs
 ```
 
 Commit `ops/trading/trading.html` and `trading-bot.html` with source changes.
+
+Gold operations now includes a local offline experiment review. Open
+`/vault/trading-bot`, choose **Choose three reports**, and select
+`comparison.json`, `baseline.json` and `candidate.json` together from one
+synthetic `rehearse-batch3.py` output directory. The existing private example is
+`.superpowers/sdd/batch3-development-handoff-20261002-01/`. Files are read only
+in the browser tab; they are not uploaded or persisted. The review checks
+baseline/candidate byte hashes, fixed risk/policy and summary differences,
+then shows six scenario/window rows and blocked promotion. Other identities
+remain declarations, not verified provenance. Unsupported, mismatched or
+oversized reports are rejected and remove previous results. **Clear review**
+or reload removes the local review. This accepts only the current synthetic
+format, never qualification or a real model/order request.
+
+Runnable check: `node src/scripts/trading-review.test.mjs`.
+
+The interface calls this **Practice comparison** and labels the results
+fictional. **Original** means baseline; **Proposed** means candidate. The
+result explanation describes a validation shortfall without implying account
+losses. Development, cost scenarios, risk and qualification details remain
+available through disclosures. On localhost/127.0.0.1/IPv6 loopback, the page
+does not poll the absent Worker API or offer local status sign-in. It shows
+**Not connected here** and links to the protected hosted MT5 dashboard.
+This is an honest local preview state, not a newly implemented live proxy.
+Hosted pages continue to use the same protected status API. Only an access
+redirect or 401/403 offers sign-in; a generic API failure does not presume
+authentication is the cause.
+
 For a separately authorized deployment, copy both pages, `status_server.py`
 and the updated read-only HTML mount in `compose.yml` to the VPS Compose
 directory, then restart only the status
