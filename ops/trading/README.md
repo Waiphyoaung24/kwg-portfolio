@@ -197,12 +197,17 @@ after an uncertain response; inspect the journal and broker state first.
 ## Vault status and Access boundary
 
 The observer now publishes a small JSON snapshot to a **separate** Docker
-volume. `kwg-trading-status` serves that snapshot and the prebuilt trading page
-on `dokploy-network` with no host port; it cannot read MT5's home volume.
-Cloudflare routes `/vault/trading` and `/api/trading/status` to the same Worker,
+volume. `kwg-trading-status` serves that snapshot and legacy standalone page
+copies on `dokploy-network` with no host port; it cannot read MT5's home volume.
+Cloudflare routes `/vault/trading*` and `/api/trading/*` to the same Worker,
 without moving the rest of the portfolio from its current origin. The Worker requires
 Cloudflare Access identity, checks the exact approved viewer email, and fetches
-the status origin through the existing Cloudflare Tunnel. The status payload
+the status origin through the existing Cloudflare Tunnel. Approved page GETs
+are forwarded to the existing portfolio origin instead: the normal Dokploy
+Astro build owns both trading pages and their assets. Every portfolio redeploy
+therefore updates the trading UI without SCP or status-service restarts.
+The Worker remains deployed separately when its routing/API code changes.
+The status payload
 exposes no broker login, balance, password or order request. The prepared
 control POST path additionally requires the private shared secret. A missing heartbeat becomes
 `offline`; a stale gold quote remains `blocked`.
@@ -229,8 +234,12 @@ as secrets too. Protect the Worker itself with Access for that email across all
 routes, leave `workers.dev` disabled, then deploy from `ops/trading/worker` with
 Wrangler. No secret values belong in source, commands, logs, or chat.
 
-After changing `src/pages/vault/trading.astro` or `trading-bot.astro`, build
-Astro and regenerate both self-contained pages served by the private status service:
+After changing `src/pages/vault/trading.astro` or `trading-bot.astro`, commit and
+push the source, then redeploy the portfolio in Dokploy. Its existing Dockerfile
+builds both pages. No VPS file copy or Worker redeploy is needed for UI-only
+changes after activating the origin-forwarding Worker.
+
+For the legacy sidecar copies only, build Astro and regenerate the self-contained pages:
 
 ```sh
 npm run build
@@ -272,12 +281,20 @@ Hosted pages continue to use the same protected status API. Only an access
 redirect or 401/403 offers sign-in; a generic API failure does not presume
 authentication is the cause.
 
-For a separately authorized deployment, copy both pages, `status_server.py`
+For a separately authorized legacy sidecar deployment, copy both pages, `status_server.py`
 and the updated read-only HTML mount in `compose.yml` to the VPS Compose
 directory, then restart only the status
 sidecar. Deploy the Worker routes with Wrangler afterward. The page and API
 both require the one-email Worker Access policy; the origin accepts only its
 dedicated service token.
+
+One-time activation of automatic UI deployment: push the origin-forwarding
+Worker, redeploy the portfolio on that commit in Dokploy, then run
+`npx wrangler deploy` from `ops/trading/worker` using the existing account.
+Verify both protected pages show the current navigation and that the status
+API remains protected and returns sanitized observer data. Existing Access
+policies, Worker secrets, MT5 and collectors need no changes. To roll back,
+redeploy the previous Worker version; it reads the preserved sidecar copies.
 
 `/vault/trading-bot` is the read-only gold operations workspace. It reuses
 `/api/trading/status` and shows one-shot results separately from the unavailable

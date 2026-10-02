@@ -10,9 +10,12 @@ test('operations page requires exact Access identity and supports only fixed GET
   const original = globalThis.fetch;
   t.after(() => { globalThis.fetch = original; });
   let calls = 0;
-  globalThis.fetch = async (origin) => {
+  globalThis.fetch = async (origin, options) => {
     calls++;
-    assert.equal(new URL(origin).pathname, '/vault/trading-bot');
+    assert.ok(origin instanceof Request);
+    assert.equal(new URL(origin.url).hostname, 'waiphyoaung.com');
+    assert.ok(['/vault/trading-bot', '/vault/trading-bot/'].includes(new URL(origin.url).pathname));
+    assert.deepEqual(options.headers, { Accept: 'text/html' });
     return new Response('<h1>Gold operations</h1>', { headers: { 'Content-Type': 'text/html' } });
   };
   for (const path of ['/vault/trading-bot', '/vault/trading-bot/']) {
@@ -105,7 +108,7 @@ test('serves the trading page only to the approved Access viewer', async (t) => 
   let calls = 0;
   globalThis.fetch = async (origin) => {
     calls++;
-    assert.equal(new URL(origin).pathname, '/vault/trading');
+    assert.equal(new URL(origin.url).pathname, '/vault/trading');
     return new Response('<h1>Trading</h1>', { headers: { 'Content-Type': 'text/html' } });
   };
   const page = new Request('https://waiphyoaung.com/vault/trading');
@@ -116,6 +119,34 @@ test('serves the trading page only to the approved Access viewer', async (t) => 
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
   assert.equal(await response.text(), '<h1>Trading</h1>');
   assert.equal(calls, 1);
+});
+
+test('Dokploy pages do not depend on broker secrets and reject failed or redirected origins', async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  const viewerOnly = { ALLOWED_VIEWER_EMAIL: env.ALLOWED_VIEWER_EMAIL };
+  for (const path of ['/vault/trading', '/vault/trading/', '/vault/trading-bot', '/vault/trading-bot/']) {
+    const page = new Request(`https://waiphyoaung.com${path}`);
+    for (const failed of [new Response('missing', { status: 404 }),
+      new Response(null, { status: 302, headers: { Location: 'https://other.example' } }),
+      Response.json({ unexpected: true })]) {
+      globalThis.fetch = async () => failed;
+      assert.equal((await worker.fetch(page, viewerOnly, { access })).status, 503);
+    }
+    globalThis.fetch = async () => { throw new Error('timeout'); };
+    assert.equal((await worker.fetch(page, viewerOnly, { access })).status, 503);
+    globalThis.fetch = async (request, options) => {
+      assert.equal(request.url, page.url);
+      assert.equal(options.redirect, 'manual');
+      assert.equal(options.cache, 'no-store');
+      assert.ok(options.signal instanceof AbortSignal);
+      return new Response('current Dokploy page', { headers: { 'Content-Type': 'text/html', 'Set-Cookie': 'discard=1' } });
+    };
+    const response = await worker.fetch(page, viewerOnly, { access });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Set-Cookie'), null);
+    assert.equal(await response.text(), 'current Dokploy page');
+  }
 });
 
 test('demo control requires exact Access viewer and same-origin POST', async (t) => {

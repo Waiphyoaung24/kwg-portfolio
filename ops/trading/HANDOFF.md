@@ -1,12 +1,29 @@
 # Gold trading handoff — 2026-09-28
 
+## Automatic Dokploy trading UI deployment — 2026-10-02
+
+Owner requested trading pages update on every portfolio redeploy. Worker page
+GETs now pass the same exact-viewer Access check and fetch the existing
+Dokploy origin, with no broker service headers. The portfolio Dockerfile
+already builds both Astro pages and assets. No new mounts, host access,
+deployment hooks, credentials or MT5/status-service restarts are required.
+Status and preview/arm API branches remain private and unchanged.
+
+Ten Worker tests passed, including denied identity, all four page URL forms,
+origin failure/redirect/non-HTML rejection and private API boundaries. The
+production-mode local Astro server returned HTTP 200 for both pages, slash
+variants and their assets. One-time activation requires the portfolio redeploy
+and updated Worker deployment; live activation must be verified separately.
+The earlier standalone copies remain available for Worker rollback.
+
 ## Shared trading navigation — 2026-10-02 (local preparation)
 
 Overview and Supervised demo now share navigation, current-page semantics,
 keyboard skip links and the same content width. The demo feed precedes the
 manual order form. Preview/arm handlers and risk controls are unchanged.
-Both standalone HTML files must be deployed to the VPS status service for
-these navigation changes to appear on production; no Worker change is needed.
+Before the origin-forwarding Worker above is activated, both standalone HTML
+files must be deployed to the VPS status service for these navigation changes
+to appear on production. After activation, Dokploy deploys the Astro sources.
 Astro build and trading status/review checks passed. Browser checks verified
 both navigation directions, keyboard skip focus and no horizontal overflow
 at the desktop viewport and 390px mobile width; navigation targets are 44px.

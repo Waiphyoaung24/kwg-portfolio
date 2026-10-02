@@ -74,6 +74,22 @@ export default {
     if (identity?.email?.toLowerCase() !== env.ALLOWED_VIEWER_EMAIL.toLowerCase()) {
       return new Response('Access required', { status: 403 });
     }
+    if (isPage) {
+      try {
+        // A route Worker fetches the existing Dokploy origin, not itself.
+        const response = await fetch(request, {
+          headers: { Accept: 'text/html' }, redirect: 'manual', cache: 'no-store',
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!response.ok || !response.headers.get('content-type')?.includes('text/html')) return unavailable();
+        return new Response(response.body, { headers: {
+          'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
+          'X-Robots-Tag': 'noindex', 'X-Content-Type-Options': 'nosniff',
+        } });
+      } catch {
+        return unavailable();
+      }
+    }
     if (!env.STATUS_ORIGIN_URL || !env.STATUS_ACCESS_CLIENT_ID || !env.STATUS_ACCESS_CLIENT_SECRET) {
       return unavailable();
     }
@@ -144,7 +160,6 @@ export default {
     }
     try {
       const origin = new URL(env.STATUS_ORIGIN_URL);
-      if (isPage) origin.pathname = pagePath;
       const response = await fetch(origin, {
         headers: {
           'CF-Access-Client-ID': env.STATUS_ACCESS_CLIENT_ID,
@@ -153,13 +168,6 @@ export default {
         redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(5000),
       });
       if (!response.ok) return unavailable();
-      if (isPage) {
-        if (!response.headers.get('content-type')?.includes('text/html')) return unavailable();
-        return new Response(response.body, { headers: {
-          'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
-          'X-Robots-Tag': 'noindex', 'X-Content-Type-Options': 'nosniff',
-        } });
-      }
       if (!response.headers.get('content-type')?.includes('application/json')) return unavailable();
       return Response.json(normalizeStatus(await response.json()), { headers: noStore });
     } catch {
