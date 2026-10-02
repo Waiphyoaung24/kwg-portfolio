@@ -98,6 +98,10 @@ button.primary-press,.primary-press .face{background:var(--c-canvas);color:var(-
 button.primary-press{border:var(--stroke) solid var(--border)}
 #save,.dialog-actions button[type=submit],#save .face,.dialog-actions button[type=submit] .face{background:var(--c-ink);color:var(--c-canvas)}
 button:hover,.note:hover{background:var(--c-canvas-soft)}
+/* Note rows reuse Button, which adds the site .pill-btn (inline-flex, centred). Stack the lines instead, one line each,
+   with inline padding that clears the pill's curved ends. */
+#notes .note{display:block;height:auto;text-align:left;padding:var(--s3) var(--s6)}
+#notes .note :is(b,.note-excerpt,small){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 label,.eyebrow,.nav-label,.shortcut,.list-caption{font-family:var(--ff-mono);text-transform:uppercase;letter-spacing:var(--ls-mono);font-weight:400}
 h1,h2{letter-spacing:var(--ls-4)}
 .folder-panel{border:var(--stroke) solid var(--border);border-radius:var(--sp-sm);padding:var(--s6);margin-bottom:var(--s6);background:var(--c-canvas)}
