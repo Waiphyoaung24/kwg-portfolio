@@ -1,0 +1,9 @@
+# Coding commands cannot read or change the private trading runtime.
+default_permissions = "gold-research-coding"
+
+[permissions.gold-research-coding]
+extends = ":workspace"
+description = "Edit project code; deny the private gold trading runtime."
+
+[permissions.gold-research-coding.filesystem.":workspace_roots"]
+".batch3-vibe" = "deny"

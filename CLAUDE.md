@@ -2,6 +2,31 @@
 
 Current trading handoff and task links: [ops/trading/HANDOFF.md](ops/trading/HANDOFF.md).
 
+## Coding profile tested; restart/reselect required — 2026-10-05 Bangkok
+
+The project-only `.codex/config.toml` now selects `gold-research-coding`, extending
+`:workspace` with `.batch3-vibe="deny"`. A real native Codex 0.160.0 sandbox probe
+passed: restricted non-owner token, registration/canary open denied, public
+source open and workspace write allowed. It read no credential bytes. Existing
+owner/SYSTEM ACLs and the proposal source/input seal still verified.
+See [profile results and resume steps](docs/superpowers/plans/2026-10-05-batch3-coding-profile-results.md).
+
+**Required next action:** fully exit/reopen Codex and return to this chat so the
+project configuration can reload. Confirm/reselect `gold-research-coding` if the
+existing chat retains its previous permissions. Run the open-only probe via the
+ordinary command tool after reload; require actual denial before continuing.
+The current running chat still has an unrestricted owner token, so its check
+failed. The nested CLI success is profile validation only and does not satisfy
+the runner's active coding-token gate. No passing proof or approval was written.
+
+Private profile-validation receipt SHA256:
+`49ef28dd0244e80c17d51e2165a585f42793fd81bd301def15312efb5a8e210c`.
+The final proposal seal remains
+`b00ee5256e16883f9bdc7866cdba1fa58d709ee114599c1cda7d8608eb6e87a5`.
+No runtime source changed, model/renewal/catalog request ran, or provider/SSH
+settings changed. Production registry empty; account expired; concrete proposal
+authorization pending. Preserve unrelated working changes and historical receipts.
+
 ## Final proposal runner sealed; host isolation blocked — 2026-10-05 Bangkok
 
 The real development runner is implemented and sealed from source

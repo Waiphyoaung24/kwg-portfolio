@@ -1,5 +1,24 @@
 # Gold trading handoff — 2026-09-28
 
+## Native coding profile validated; active chat still needs reload — 2026-10-05 Bangkok
+
+Added project `.codex/config.toml`: `gold-research-coding` extends `:workspace`
+and denies `.batch3-vibe`. Native Codex 0.160.0 validation passed real restricted
+token and auth/canary open denial, with source access and workspace write positive
+controls. No credential bytes were read. The ordinary tool still uses an
+unrestricted owner token, so its fresh probe failed; do not treat the nested CLI
+check as passing production proof.
+
+[Profile results and resume instructions](../../docs/superpowers/plans/2026-10-05-batch3-coding-profile-results.md):
+fully exit/reopen Codex, confirm/reselect this profile for the active chat, and
+verify genuine denial through its ordinary command tool. Only then proceed to
+fresh account/$0 checks and concrete attempt review. Private validation receipt:
+`.batch3-vibe/proposal-readiness/<proposal seal>.profile-validation-20261005.json`,
+SHA256 `49ef28dd0244e80c17d51e2165a585f42793fd81bd301def15312efb5a8e210c`.
+No production passing proof, approval, renewal, model or authenticated catalog
+was created/run. Owner/SYSTEM ACLs and final runner seal unchanged; registry empty.
+Provider/SSH settings and runtime source unchanged; qualification remains deferred.
+
 ## Final runner sealed; real proposal blocked by coding token — 2026-10-05 Bangkok
 
 [Final runner results and resume order](../../docs/superpowers/plans/2026-10-05-batch3-final-runner-results.md)
