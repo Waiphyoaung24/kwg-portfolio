@@ -4,6 +4,23 @@ Current trading handoff and task links: [ops/trading/HANDOFF.md](ops/trading/HAN
 
 ## Current model: gpt-5.6-sol; new sealing pending — 2026-10-05 Bangkok
 
+Latest owner run committed the model switch as
+`0816548e872af0b7a4e507dc109a15375cccbd11`, then sealing stopped with
+`Unexpected access removal failed.` Native checks did not run. The shared
+hardener now removes ACL entries using `*<numeric SID>` rather than an identity
+display string; a harmless native regression reproduced the numeric-form
+failure and passed with the corrected shared command. The regression is
+`ops/trading/test-boundary-sid.ps1`. No private runtime was inspected by the agent.
+
+**Next command:** manually run
+`.superpowers/sdd/gold-56-sol-acl-20261005/prepare.ps1` in owner PowerShell. It
+verifies the reviewed hashes, commits only this correction/checkpoint from
+parent `0816548`, then creates fresh commit-named seals and runs the existing
+fake/native checks. Preserve the failed snapshot and every consumed artifact;
+do not rerun the old helper. See the updated
+[model-switch checkpoint](docs/superpowers/plans/2026-10-05-batch3-56-sol-switch.md).
+No account acceptance, token renewal or real model request is included.
+
 Owner selected `gpt-5.6-sol` and authorized continuing. This supersedes both
 the unavailable `gpt-6.1-sol` requirement and prior Astra selection. The shared
 runtime model constant now selects 5.6 Sol in the supported transport, gateway,

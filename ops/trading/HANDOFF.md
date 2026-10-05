@@ -2,6 +2,17 @@
 
 ## Current: 5.6 Sol selected; new seals and native checks next — 2026-10-05 Bangkok
 
+Latest owner run committed `0816548e872af0b7a4e507dc109a15375cccbd11`, then
+stopped in `Set-Boundary` with `Unexpected access removal failed.` No fake/native
+matrix ran. The shared hardener's removal command now uses `*<numeric SID>`;
+the actual shared command passed a new harmless native regression after the
+unprefixed numeric form failed. No private runtime was read by the agent.
+Use the superseding owner helper
+`.superpowers/sdd/gold-56-sol-acl-20261005/prepare.ps1`, which verifies/commits
+only this correction/checkpoint and creates new commit-named snapshots. Preserve
+the partial old snapshot; do not rerun the prior helper or delete any attempts.
+Full sealing/native results still pending. No acceptance, renewal or inference.
+
 Owner selected `gpt-5.6-sol` and said continue, superseding the unavailable
 6.1 Sol requirement and earlier Astra choice. Shared transport/account/gateway/
 proposal policies now target 5.6 Sol. Ten focused offline tests passed with fake

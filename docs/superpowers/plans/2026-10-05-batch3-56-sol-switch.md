@@ -1,5 +1,55 @@
 # 5.6 Sol switch and next owner check — 2026-10-05 Bangkok
 
+## Current: ACL removal correction ready for owner
+
+Owner ran the first helper. The scoped nine-file model-switch commit succeeded:
+`0816548e872af0b7a4e507dc109a15375cccbd11`. Sealing then stopped in the shared
+`Set-Boundary` helper with `Unexpected access removal failed.` The full native
+checks did not run, and the private partial snapshot has not been inspected by
+this denied coding session. Preserve it and all consumed artifacts.
+
+The source contained an ACL removal bug: it translated each identity to a SID
+for comparison but passed the identity display string to `icacls /remove`.
+Numeric identities require a leading `*` under the
+[Windows command contract](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/icacls).
+The one-line correction passes the already translated SID as `*<SID>` in the
+shared helper, covering all callers without weakening the owner/SYSTEM boundary.
+The discarded private command error does not establish the exact offending
+identity; native resealing is still required to confirm the original failure
+is resolved.
+
+A harmless public file check reproduced removal failure without the prefix,
+then removed the ACE with the prefix. The runnable regression
+`ops/trading/test-boundary-sid.ps1` extracts and executes the actual shared removal
+command against a numeric SID on a harmless canary and verifies the ACE is gone;
+it passed. Its initial AST traversal missed the function's nested script block;
+that test-only issue was corrected before the passing run. A preliminary
+unresolvable synthetic-account grant failed and was preserved; the successful
+regression uses the well-known Everyone SID on a credential-free canary only.
+No production ACLs, credential files, account/network requests or model requests
+were accessed by these checks. Full owner-only ACL hardening was not exercised
+by this narrow regression.
+
+**Superseding owner command:**
+
+```powershell
+& 'C:\Users\wai19\Desktop\kwg-portfolio\.superpowers\sdd\gold-56-sol-acl-20261005\prepare.ps1'
+```
+
+This helper pins parent `0816548` and the five reviewed correction/checkpoint
+file hashes. It requires an empty index, stages only those files and commits the
+correction, then reuses the existing sealing and fake/native checks at new
+commit-named paths. It never removes, overwrites or retries the failed snapshot.
+Public syntax/hash checks passed; full private execution remains owner-only and
+pending. Share final redacted JSON or the refusal. Stop on any failure. This
+stage still excludes account acceptance, token renewal, authenticated catalog
+and real inference. Arrange fresh $0/denial evidence and concrete approval only
+after the new native preparation passes.
+
+The original helper and instructions below describe the consumed first run.
+**Do not rerun that helper.** The line-ending warnings were advisory; the commit
+succeeded and the stop came from ACL removal.
+
 Owner selected `gpt-5.6-sol` and authorized continuing. It is present in the
 owner-reported seven-model authenticated catalog from Unix `1791197686`. This
 supersedes the unavailable `gpt-6.1-sol` requirement and earlier Astra choice.

@@ -20,7 +20,7 @@ function Set-Boundary([string]$Path, [string]$SandboxRights = '') {
     foreach ($rule in $old.Access) {
         $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier])
         if ($sid -ne $user -and $sid -ne $system) {
-            & icacls.exe $Path /remove "$($rule.IdentityReference)" | Out-Null
+            & icacls.exe $Path /remove "*$sid" | Out-Null
             if ($LASTEXITCODE) { throw 'Unexpected access removal failed.' }
         }
     }
