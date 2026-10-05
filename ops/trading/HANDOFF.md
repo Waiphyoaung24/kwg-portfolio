@@ -1,5 +1,29 @@
 # Gold trading handoff — 2026-09-28
 
+## $0 spending verification complete; next is real proposal preparation — 2026-10-05 Bangkok
+
+Gate B passed for the saved provider settings observed today. The unique gold
+connection allows included plan usage; global app credit use and automatic
+reload are disabled. A 100% app plan limit does not enable credits by itself.
+No settings changed or model requests ran; real dispatch remains blocked.
+
+See [spending verification and next milestone](../../docs/superpowers/plans/2026-10-05-batch3-zero-spend-results.md).
+Private receipt `.batch3-vibe/gold-plan-auth/billing-settings-20261005.json`,
+SHA256 `1c0fb6f0878bbef70425478832c4651a9f4caaa31d1dbe5d223370def63809fe`,
+records account/connection correlation and its limits. The UI supplies no numeric
+client ID or fresh signed identity attestation. Current access token expired;
+registration bytes are unchanged and the production registry remains empty.
+
+Next prepare a real development packet and final sealed inference boundary,
+then obtain authorization for one concrete `gpt-6-astra` proposal. Recheck saved
+credit controls, login freshness and actual restricted isolation before dispatch.
+Today's host command ran as the auth owner with an unrestricted token, so its
+open-only probe did not reproduce restricted-token denial. Private ACLs passed;
+the missing fresh denial proof is a gate C execution check.
+
+Batch 2 stays development-complete and unqualified, with qualification deferred.
+Earlier account/fake test totals and superseded billing status below are historical.
+
 ## Account acceptance complete; next gate is $0 enforcement — 2026-10-03 Bangkok
 
 The owner authorized reviewed renewal and selected `gpt-6-astra` after the

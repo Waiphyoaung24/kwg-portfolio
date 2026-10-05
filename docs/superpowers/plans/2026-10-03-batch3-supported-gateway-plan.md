@@ -6,8 +6,10 @@ Continuation: the [fake-only milestone is complete](2026-10-03-batch3-supported-
 The owner subsequently authorized account acceptance and reviewed renewal after
 the expired-token preflight. [Gate A has now passed](2026-10-03-batch3-account-acceptance-results.md),
 including the account-worker Internet boundary, forced-termination cleanup and
-catalog availability of owner-selected `gpt-6-astra`. Gate B's provider $0
-enforcement remains unverified; real dispatch remains disabled. Historical
+catalog availability of owner-selected `gpt-6-astra`.
+[Gate B passed on October 5](2026-10-05-batch3-zero-spend-results.md) for the
+observed saved included-usage-only controls. Gate C's real packet and final
+inference boundary remain to be prepared; real dispatch remains disabled. Historical
 starting evidence below describes the earlier plan-writing checkpoint.
 
 ## Outcome and scope
@@ -158,7 +160,13 @@ This is a separate execution scope after fake-only acceptance. Do not run it as 
 
 ## Later gate B — verify the $0 additional-spend control
 
-This remains deferred by the owner's “no credit for now” instruction. Reading applicable evidence can be planned; do not enable credits, purchase credits, add payment methods or change settings implicitly.
+Completed read-only on October 5; see the [results and evidence limits](2026-10-05-batch3-zero-spend-results.md).
+Disabled global app credit use enforces included-usage-only operation even with
+the observed 100% app plan limit. The proposed lower limit below was additional
+conservative configuration, not necessary to satisfy $0 with credit use disabled.
+Recheck saved controls before any authorized live attempt. The original gate
+requirements follow; do not enable credits, purchase credits, add payment methods
+or change settings implicitly.
 
 - Locate the exact new gold integration in the account's current app-usage controls and verify account/client correspondence.
 - Establish the provider's documented prevention of credit usage for this exact route. The proposed conservative configuration is app credit use disabled and a nonzero per-app limit below 100%, if those controls are available and applicable to this account.

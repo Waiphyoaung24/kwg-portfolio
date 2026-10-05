@@ -6,12 +6,13 @@ Owner chose to close Batch 2 for development and defer the 60-day/trade-count
 qualification program. Batch 2 is **closed for development, unqualified**.
 Batch 3's existing synthetic offline integration and separate Vibe learning app
 are the next workflow; see the [current handoff](../../docs/superpowers/plans/2026-10-02-batch2-batch3-handoff.md).
-The qualification policy and risk limits stay fixed. Unknown OAuth cost still
-blocks gold dispatch; human approval remains required for promotion. Historical
+The qualification policy and risk limits stay fixed. Real gold dispatch remains
+blocked; human approval remains required for promotion. Historical
 evidence checkpoints below do not override this current development scope.
 Account-worker credential/network isolation and catalog acceptance have now
-passed; provider USD0 enforcement and the final real inference boundary remain
-Batch 3 activation gates. They do not reopen Batch 2 development. Current
+passed. Provider USD0 controls were verified read-only on October 5; the real
+development packet and final inference boundary remain Batch 3 activation gates.
+They do not reopen Batch 2 development. Current
 close-out evidence and acceptance boundaries are in the linked handoff.
 
 ### Batch 3 local readiness and fake-auth isolation
@@ -46,8 +47,12 @@ The owner-selected supported model is fixed to `gpt-6-astra`. Same-account
 renewal, signed binding, authenticated catalog access, isolated Internet worker
 and forced-controller-termination cleanup passed. See the
 [account results](../../docs/superpowers/plans/2026-10-03-batch3-account-acceptance-results.md)
-for source/receipt identities, commands and scope limits. Provider $0 enforcement
-remains unverified; real dispatch is blocked.
+for source/receipt identities, commands and scope limits.
+[Provider $0 controls passed read-only verification on October 5](../../docs/superpowers/plans/2026-10-05-batch3-zero-spend-results.md).
+Recheck saved settings before dispatch. Real inference is blocked pending a
+concrete real packet, final sealed execution boundary and owner authorization.
+The token is now expired, and today's owner-context host probe did not reproduce
+restricted-token credential denial; both require checks before a real request.
 
 The owner seals committed sources with `harden-batch3.ps1 -Phase seal-account`.
 Run that snapshot's `code/gold_account.py --seal-sha256 <manifest hash>` with

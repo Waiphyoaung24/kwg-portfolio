@@ -2,6 +2,39 @@
 
 Current trading handoff and task links: [ops/trading/HANDOFF.md](ops/trading/HANDOFF.md).
 
+## Resume checkpoint — 2026-10-05 Bangkok
+
+**Completed:** Batch 3 gate B, provider $0 additional-spend verification.
+The existing gold connection's saved Usage controls allow included plan usage,
+disable app credit use and disable automatic reload. Its 100% plan limit does
+not enable credits when the global credit preference is off. No settings changed,
+credentials renewed or model requests ran. Real dispatch remains blocked.
+
+See the [spending verification and next milestone](docs/superpowers/plans/2026-10-05-batch3-zero-spend-results.md)
+for provider sources, observations, identity correlation and limitations.
+Owner-private receipt: `.batch3-vibe/gold-plan-auth/billing-settings-20261005.json`;
+SHA256 `1c0fb6f0878bbef70425478832c4651a9f4caaa31d1dbe5d223370def63809fe`.
+The receipt is evidence, not a dispatch switch. Saved controls must be rechecked
+immediately before any authorized request. The access token is now expired;
+the production attempt registry remains empty.
+
+**Next:** prepare gate C's real development packet and final sealed inference
+path using existing validation/simulation helpers. The current adapter is
+synthetic-only and the supported gateway is fake-only. Locate and verify the
+real export, preserve all unqualified/provenance limitations and exclude
+untouched holdout data. Freeze packet, baseline, limits and `gpt-6-astra` binding
+before seeking authorization for one concrete proposal. Then recheck login,
+spending settings and isolation before the single durable attempt. No inference,
+settings change, trade, deployment or push is authorized by this checkpoint.
+
+Today's command tool was the credential owner with an unrestricted token;
+an open-only probe therefore did not reproduce restricted-token file denial.
+Owner/SYSTEM ACL checks passed, but the actual restricted execution boundary
+must be verified before a real request. October 3 test totals below are historical.
+Batch 2 qualification remains deferred. Preserve unrelated dashboard, skill and
+boundary-review changes in the working tree. Earlier checkpoints are superseded
+only where this section supplies newer evidence.
+
 ## Resume checkpoint — 2026-10-03 Bangkok
 
 Owner requested saving this checkpoint and stopping for now. Resume from this
