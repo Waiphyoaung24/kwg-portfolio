@@ -14,7 +14,7 @@ import uuid
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from batch3_runner import DOCKER, MAX_BYTES, SANDBOX_IMAGE, research_module, write_once
 from gold_account import (BOUND, DEADLINE, FILES as ACCOUNT_FILES, MODELS,
-                          PROXY as ACCOUNT_PROXY, cleanup_guard, private_acl, probes)
+                          PROXY as ACCOUNT_PROXY, acceptance_name, cleanup_guard, private_acl, probes)
 from supported_gateway import PARSER_FILES, PYTHON, SQUID_IMAGE, inspect_container, watchdog
 from supported_oauth_transport import MODEL, URL, invoke_isolated
 from trusted_gateway import no_reparse, verify_seal
@@ -106,7 +106,8 @@ def verify_inputs(root, sealed):
 
 def approval_gate(value, seal_sha, intent_sha, now):
     if (not isinstance(value,dict) or set(value)!= {'mode','seal_sha256','intent_sha256',
-            'approved_at','expires_at','one_proposal_authorized','additional_spend_usd','account_seal_sha256'}
+            'approved_at','expires_at','one_proposal_authorized','additional_spend_usd','account_seal_sha256',
+            'account_verification_id','account_receipt_sha256'}
             or value['mode']!='one_real_development_proposal' or value['seal_sha256']!=seal_sha
             or value['intent_sha256']!=intent_sha or value['one_proposal_authorized'] is not True
             or type(value['additional_spend_usd']) is not int or value['additional_spend_usd']!=0
@@ -114,8 +115,11 @@ def approval_gate(value, seal_sha, intent_sha, now):
             or not now-1800<=value['approved_at']<=now+5
             or not now<value['expires_at']<=value['approved_at']+1800
             or not isinstance(value['account_seal_sha256'],str) or len(value['account_seal_sha256'])!=64
-            or any(c not in '0123456789abcdef' for c in value['account_seal_sha256'])):
+            or any(c not in '0123456789abcdef' for c in value['account_seal_sha256'])
+            or not isinstance(value['account_receipt_sha256'],str) or len(value['account_receipt_sha256'])!=64
+            or any(c not in '0123456789abcdef' for c in value['account_receipt_sha256'])):
         raise ValueError('Concrete fresh owner authorization required')
+    acceptance_name(value['account_seal_sha256'],value['account_verification_id'])
 
 
 def billing_gate(value, intent, now):
@@ -182,7 +186,11 @@ def dispatch_prerequisites(root, sealed, seal_sha, intent, intent_sha):
     for name in ACCOUNT_FILES:
         if (account_sealed/'code'/name).read_bytes()!=(sealed/'code'/name).read_bytes():
             raise ValueError('Shared account source differs')
-    receipt=strict_json(read_private(root/'account-readiness'/(approval['account_seal_sha256']+'.accept')/'receipt.json'))
+    name=acceptance_name(approval['account_seal_sha256'],approval['account_verification_id'])
+    raw=read_private(root/'account-readiness'/name/'receipt.json')
+    receipt=strict_json(raw)
+    if sha(raw)!=approval['account_receipt_sha256'] or receipt.get('verification_id')!=approval['account_verification_id']:
+        raise ValueError('Exact approved account verification receipt required')
     return approval['account_seal_sha256'],receipt
 
 

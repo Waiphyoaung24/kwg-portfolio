@@ -1,13 +1,36 @@
 # MT5 compatibility probe
 
+**Latest: current account acceptance failed and is consumed.** Owner reported
+`CalledProcessError`, cleanup unverified and zero model requests. Do not rerun
+the verification entry below. Corrected owner inspection confirms Linux Docker,
+both pinned images and absence of exact-owned containers/networks. Owner chose
+durable recovery; implementation and 15 offline tests pass. Next is manual
+native preparation at .superpowers/sdd/gold-account-recovery-20261005/prepare.ps1;
+no acceptance or inference in that entry. See the
+[recovery task plan](../../docs/superpowers/plans/2026-10-05-batch3-account-recovery/task_plan.md) and
+[current handoff](HANDOFF.md). No approval or model dispatch has run.
+
+Current live-verification handoff:
+[account and provider $0 workflow](../../docs/superpowers/plans/2026-10-05-batch3-live-verification-handoff.md).
+Read-only saved controls and actual-chat open-only isolation passed. Signed
+owner account acceptance remains pending; the tested verification-only helper
+is `.superpowers/sdd/gold-live-verification-20261005/verify.ps1`. Keep existing
+seals and consumed checks. Evidence is time-limited; real inference requires
+separate explicit authorization after verification.
+
 ## Current model checkpoint — 2026-10-05 Bangkok
 
 Owner selected `gpt-5.6-sol`. Shared supported transport, account, gateway and
-proposal policies now target it; ten focused offline tests passed. The prior
-Astra seals and account acceptance are historical and cannot certify the new
-source. Next create new committed-source seals and repeat the fake/native checks
-using the [prepared owner-terminal helper](../../docs/superpowers/plans/2026-10-05-batch3-56-sol-switch.md).
-It stops before account acceptance, renewal or inference. This coding chat cannot
+proposal policies now target it; ten focused offline tests, all 14 fake cases
+and all four account/proposal native boundary/forced-cleanup checks passed.
+Source `a6eecea` and its current seals/intent completed preparation; see the
+[completed model-switch checkpoint](../../docs/superpowers/plans/2026-10-05-batch3-56-sol-switch.md).
+Native results are owner-reported and include cleanup, matching seals, zero
+model requests and an empty production registry. Preserve consumed artifacts;
+do not repeat checks or reseal unchanged sources. The prior Astra seals/account
+receipt are historical. Next coordinate fresh current-seal account acceptance,
+account-bound $0 controls, actual coding-denial evidence and concrete one-proposal
+approval within the runner's time windows. This coding chat cannot
 execute private runtime actions because `.batch3-vibe` is denied non-escalatably.
 Fresh account-bound $0/denial evidence and concrete approval remain required.
 No model request has run. Earlier seal results below describe the Astra runner.

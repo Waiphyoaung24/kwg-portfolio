@@ -1,6 +1,180 @@
 # Gold trading handoff — 2026-09-28
 
-## Current: 5.6 Sol selected; new seals and native checks next — 2026-10-05 Bangkok
+## Current: durable recovery offline implementation complete; native proof pending
+
+Owner selected durable account-only verification IDs. Implemented canonical,
+exclusive per-round reservation after Docker/image/current predecessor absence
+checks, exact guardian scope and preserved renewal ledger. Proposal approval
+binds the round ID and exact receipt SHA. Fifteen focused account/crypto/proposal
+offline tests pass, with fake inputs and public workspace temp files. No private
+runtime reads, Docker/provider calls, acceptance or model request by agent tools.
+
+Next owner entry: .superpowers/sdd/gold-account-recovery-20261005/prepare.ps1.
+Reviewed scope includes changed runtime/tests and checkpoint docs only. It
+checks original parent/index/file hashes, public tests, owner-only read-only
+preflight, then scoped commit, fresh account/proposal seals and their native
+boundary/forced cleanup proofs. Prior supported matrix is reused only after
+exact old seal/matrix hashes and unchanged runtime/parser/fixture bytes pass;
+no fake matrix repeat. Old failed attempt metadata hashes must remain unchanged,
+production registry empty. No accept, renewal, catalog, approval writer or
+inference in preparation. Actual owner/native outcome pending. Share summary
+and preserve partial attempts on failure; do not repeat after commit. Old
+verify.ps1 is obsolete. Fresh account round/$0/denial evidence and separate
+proposal approval follow the new native proof. Earlier design-pending entries
+below are historical; private denial and one-proposal guard remain intact.
+
+## Latest: current infrastructure checks passed; recovery contract choice pending
+
+Owner's corrected inspector confirms Linux Docker, worker ID and proxy
+repository digest, and absence of all exact-owned failed-attempt containers/
+networks with zero unexpected matches. Read-only check: no credential contents,
+resources changed, acceptance repeated or model requests. Keep the historical
+cleanup false and failed consumed acceptance intact. No image pull required.
+
+The remaining blocker is one account acceptance per code seal. Replaying the
+old command or resealing unchanged code cannot fix it. Proposed alternatives
+and implementation/verification criteria are in
+[account recovery task plan](../../docs/superpowers/plans/2026-10-05-batch3-account-recovery/task_plan.md).
+Owner choice pending: separately logged account verification rounds with exact
+approval-bound receipt identity (recommended), or smaller one-shot preflight.
+Runtime is unchanged while brainstorming; no fresh acceptance, provider or
+model request. Both paths retain credential denial, same account/client/host,
+renewal replay ledger, $0 controls and experiment-wide one-proposal guard.
+Do not begin new live verification before actual changed-source/native proofs.
+
+## Latest: owner Docker recovery passed; image diagnostic corrected — 2026-10-05
+
+Owner recovery confirms the Linux engine is available and exact-owned failed
+attempt containers/networks are absent, with zero unexpected prefix matches.
+No acceptance repeated, credentials read, resource cleanup mutations or model
+requests. Keep the saved cleanup false and failed consumed receipt; current
+absence is separate evidence. Both image lookups exited zero and worker pin
+passed. Proxy false was a diagnostic comparison bug, not established missing
+image: SQUID_IMAGE is ubuntu/squid@sha256 while image inspect Id is a different
+configuration digest. Inspector now compares that proxy reference to exact
+RepoDigests (with docker.io prefix normalization) and worker ID to Id. Synthetic
+match/mismatch/malformed ID tests plus redaction/ownership pass. Only ignored
+helpers and public handoffs changed; runtime/seals/images remain unchanged.
+Next read-only manual entry: gold-accept-failure-20261005/inspect.ps1 for corrected
+proxy identity confirmation. Account acceptance remains failed/consumed; no
+reset, replay or reseal workaround. Account/$0 and separate proposal approval
+are pending; inference blocked, Batch 2 deferred. Earlier recovery-pending
+entries below are historical.
+
+## Current: consumed account acceptance failed — 2026-10-05 Bangkok
+
+Owner inspector now confirms the Linux engine could not be reached (exit 1;
+stderr SHA `e9133cf10b02b0b91c8b119848513db0ac541e7c3c19681266939e4b9952f7cc`).
+Pinned-image and owned-resource queries were skipped, not proven absent.
+Guard-ready/finished exist; neither credential-renewal snapshot marker exists.
+Metadata/presence checks read no credential contents. Historical cleanup stays
+false. Authorized hidden Desktop startup was attempted from the agent; its
+public empty-config Docker info check returned permission denied. This is not
+proof of owner readiness. Next manual owner command is
+`.superpowers/sdd/gold-accept-failure-20261005/recover.ps1`: start Desktop hidden
+only if no Desktop/backend process exists, then inspect current engine/images/
+exact-owned resources. Inspector now emits bounded safe error categories;
+synthetic classification/redaction/ownership tests pass. No restart/reset,
+pull/removal, acceptance retry or model request. Owner recovery still pending.
+
+Owner's `91322fb3...` current-seal acceptance failed with `CalledProcessError`,
+cleanup false, no accepted timestamp/catalog, account/isolation false and zero
+model requests. Wrapper phase `one_unused_sealed_account_acceptance`. This
+attempt is consumed; do not rerun verification, delete/reset it or reseal as a
+workaround. No proposal approval/dispatch. Earlier pre-acceptance helper fix
+and unused-acceptance instructions below are superseded by this result.
+
+The checked child commands in this controller are Docker operations; the receipt
+does not retain the exact command/stderr. The initial owner engine check failed;
+image/resource state remains unknown, and cleanup false does not prove presence.
+Read-only inspector: `.superpowers/sdd/gold-accept-failure-20261005/inspect.ps1`.
+It reads bounded allowlisted metadata, checks marker presence without opening
+credential snapshots, and queries only Docker info, pinned images and exact
+owned resource presence. No acceptance, credentials, provider requests, Docker
+start/pull/remove or permission changes. Redaction/ownership and wrapper syntax
+tests passed; initial owner diagnosis completed as recorded above. Share recovery JSON.
+Private policy deny and $0/one-proposal approval gates stay intact; Batch 2 deferred.
+
+## Current: live verification handoff prepared — 2026-10-05 Bangkok
+
+Owner helper refused in pre-acceptance source/seal checks. Corrected an ignored
+helper mistake: account code/fake-input snapshots intentionally allow sandbox
+RX, so their owner-only ACL test was inapplicable. Both pinned seals/source
+checks remain, and proposal/credential/receipt/registry privacy checks remain.
+Regression failed before and passed after the fix; invalid account seal and
+private proposal ACL still refuse. Wrapper pin and phase diagnostics updated.
+No runtime/permission/seal changes; this run did not consume account acceptance.
+Resume the corrected verification-only entry with genuinely fresh observations.
+
+Fresh read-only KWG connection/linked Manage usage controls passed: included
+plan use allowed, credit use off, auto reload off, Save disabled. Actual-chat
+open-only credential/canary denial and public-source/workspace positive controls
+passed, no credential contents read. Windows token restriction remains false;
+effective file isolation passed. Current signed account/client correlation and
+catalog acceptance are still owner-only and pending. No inference authorized.
+
+Owner entry: `.superpowers/sdd/gold-live-verification-20261005/verify.ps1`.
+[Workflow, evidence and timing](../../docs/superpowers/plans/2026-10-05-batch3-live-verification-handoff.md).
+The tested helper verifies current existing seals/intent, refuses stale evidence
+before acceptance, then runs only the unused sealed account acceptance and saves
+a private audit. It writes no approval/dispatch gates in verification mode.
+Share output promptly: any separately approved dispatch still requires account,
+billing and coding evidence within five minutes. Do not retime old observations,
+repeat acceptance/production attempts or reseal unchanged code. The prepared
+dispatch mode requires separate exact authorization and was not executed.
+No settings, runtime changes, commits or replacement seals here; Batch 2 deferred.
+
+## Current: 5.6 Sol sealed preparation complete — 2026-10-05 Bangkok
+
+Owner final continuation passed all four account/proposal boundary and forced-
+cleanup checks for source `a6eecea6c3f0fb19bd68ff9a436a47947ce81538`: exit 0,
+cleanup true, seal matches true, zero model requests; both forced-termination
+checks verified forced cleanup. The 14 passed fake cases were reused without
+repetition, production registry empty, account acceptance not run, dispatch
+blocked. Ordinary boundary checks correctly have null forced-termination fields.
+Evidence is owner-reported; private receipts were not independently reread.
+
+Prepared intent SHA256:
+`19de161c8f04a83d9ba66150274df268d1b3f66942deec087fca5a2ea5d01e4c`.
+[Completed results and exact one-proposal scope](../../docs/superpowers/plans/2026-10-05-batch3-56-sol-switch.md).
+Keep these exact seals and every consumed/failed artifact; do not rerun helpers,
+native checks or matrix or reseal unchanged source.
+
+Next prepare fresh owner-side account-bound $0 and actual coding-denial evidence
+and concrete intent review/approval, then coordinate current-seal account
+acceptance and any separately approved single dispatch within the five-minute
+receipt window. Do not prematurely consume acceptance or reuse the old Astra
+receipt. No account renewal/acceptance, approval or real inference is authorized
+by this preparation success. The coding deny stays non-escalatable; Batch 2
+qualification deferred. Earlier native-pending entries are historical.
+
+**Current: 14-case fake matrix passed.** Owner review of `a6eecea` reports all
+14 cases passed with cleanup, production registry unchanged/empty, Docker and
+pinned image available, zero model requests. All four account/proposal boundary/
+termination receipts were absent. The completed matrix is preserved; no engine
+startup, new seals, repeat matrix or runtime code correction is needed now.
+
+Next owner helper: `.superpowers/sdd/gold-native-resume-20261005/continue.ps1`.
+It verifies the existing seal/matrix identities, refuses any existing native
+attempt directories and runs only the four unused boundary/forced-cleanup checks
+via the existing sealed CLIs. Redacted results are visible even on failure.
+Five synthetic wrapper checks passed; actual private native work is pending.
+No account acceptance, token renewal or inference is included. Share final JSON
+or error, preserve all attempts. The coding deny remains non-escalatable.
+
+**Latest owner result:** source `a6eecea6c3f0fb19bd68ff9a436a47947ce81538`
+committed; sealing progressed past the ACL failure. A later native command
+returned nonzero and its captured JSON was hidden by `Invoke-CheckedJson`.
+Specific stage/case is not established from the supplied error. Do not rerun
+the consumed helper or delete attempts.
+
+Next read-only owner command:
+`.superpowers/sdd/gold-native-diagnostic-20261005/inspect.ps1`. It summarizes
+existing seals/fake-case/native receipts and the existing read-only Docker
+preflight, without credentials, permission changes or repeated checks. Public
+syntax/redaction tests passed; private review is pending. Agent-context preflight
+could not reach Docker; owner-context status remains unknown. Share only the
+redacted diagnostic JSON/error. No account acceptance, renewal or model request.
 
 **Current: stale ACL list corrected and regression passed.** Owner diagnostics
 showed the `d053116` partial snapshot was already owner/SYSTEM-only, protected

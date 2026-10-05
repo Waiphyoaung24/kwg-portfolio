@@ -7,6 +7,7 @@ import importlib.metadata
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import ssl
 import struct
@@ -58,6 +59,7 @@ POLICY = dict(mode='gold_account_only', worker_image=SANDBOX_IMAGE, proxy_image=
     deadline_seconds=DEADLINE, endpoints=[JWKS, TOKEN, MODELS], max_refresh_posts=1,
     max_catalog_gets=1, auth_max_bytes=BOUND, catalog_max_bytes=2097152,
     response_encodings=['identity','gzip'], model=MODEL, inference_dispatch='blocked', billing_ceiling_verified=False)
+POLICY['verification_rounds'] = 'explicit_id_no_retry'
 
 
 class AccountHTTPError(ValueError):
@@ -292,6 +294,102 @@ def private_acl(path):
     if checked.returncode: raise ValueError('Private ACL refused')
 
 
+def acceptance_name(seal_sha, verification_id):
+    if (not isinstance(seal_sha,str) or not re.fullmatch(r'[a-f0-9]{64}',seal_sha)
+            or not isinstance(verification_id,str) or not re.fullmatch(r'[a-f0-9]{32}',verification_id)):
+        raise ValueError('Explicit canonical account verification ID required')
+    return seal_sha+'.accept-'+verification_id
+
+
+def validate_guard_path(root, path, seal_sha, verification_id):
+    native={seal_sha+'.'+mode for mode in ('boundary','termination')}
+    if path.parent!=root/'account-readiness': raise ValueError('Fixed guardian parent required')
+    if path.name in native and verification_id is None: return
+    if path.name!=acceptance_name(seal_sha,verification_id): raise ValueError('Fixed guardian attempt required')
+
+
+def unconsumed_renewal(auth, raw):
+    identity=hashlib.sha256(raw).hexdigest()
+    marker=auth/('renewal-'+identity+'.started.json')
+    if marker.exists(): raise ValueError('Consumed renewal must not repeat')
+    return identity,marker
+
+
+def read_metadata(path):
+    private_acl(path)
+    with path.open('rb') as source: raw=source.read(BOUND+1)
+    if len(raw)>BOUND: raise ValueError('Account metadata limit')
+    return strict_json(raw)
+
+
+def owned_account_names(owned):
+    roles={'proxy','probe','keys','refresh','catalog','control','peer','peer-control'}
+    if (set(owned)!= {'containers','networks','policy'} or set(owned['containers'])!=roles
+            or set(owned['networks'])!= {'inner','outer'}):
+        raise ValueError('Exact account ownership required')
+    prefixes=set()
+    for group in ('containers','networks'):
+        for role,name in owned[group].items():
+            if not isinstance(name,str) or not re.fullmatch(r'kwg-account-[a-f0-9]{32}-'+re.escape(role),name):
+                raise ValueError('Account resource name refused')
+            prefixes.add(name[:45])
+    if len(prefixes)!=1: raise ValueError('One account resource prefix required')
+    return prefixes.pop()
+
+
+def account_preflight(root):
+    """Read-only readiness and historical resource absence; no auth or reservation."""
+    review=root/'account-readiness';private_acl(review)
+    # Empty non-secret child directories inherit the already-verified private parent.
+    config=review/'docker-preflight';no_reparse(config);config.mkdir(exist_ok=True)
+    if any(config.iterdir()): raise ValueError('Empty Docker preflight configuration required')
+    docker=[str(DOCKER),'--config',str(config),'-H','npipe:////./pipe/dockerDesktopLinuxEngine']
+    env={k:v for k,v in os.environ.items() if k.upper() in {'SYSTEMROOT','WINDIR'}}
+    began=time.monotonic()
+    def query(*args):
+        budget=min(10,30-(time.monotonic()-began))
+        if budget<=0: raise ValueError('Account preflight deadline')
+        result=subprocess.run([*docker,*args],env=env,capture_output=True,timeout=budget)
+        if result.returncode or len(result.stdout)>BOUND: raise ValueError('Account Docker preflight refused')
+        return result.stdout
+    if query('info','--format','{{.OSType}}').strip()!=b'linux': raise ValueError('Linux engine required')
+    for reference in (SANDBOX_IMAGE,SQUID_IMAGE):
+        image=strict_json(query('image','inspect','--format','{"Id":{{json .Id}},"RepoDigests":{{json .RepoDigests}}}',reference))
+        if (not isinstance(image.get('Id'),str) or not re.fullmatch(r'sha256:[a-f0-9]{64}',image['Id'])
+                or (image['Id']!=reference if reference.startswith('sha256:') else
+                    not isinstance(image.get('RepoDigests'),list) or not any(ref in image['RepoDigests'] for ref in (reference,'docker.io/'+reference)))):
+            raise ValueError('Pinned account image required')
+    predecessors=[]
+    for attempt in sorted(review.iterdir()):
+        if '.accept' not in attempt.name: continue
+        if not re.fullmatch(r'[a-f0-9]{64}\.accept(?:-[a-f0-9]{32})?',attempt.name):
+            raise ValueError('Historical account attempt name refused')
+        no_reparse(attempt)
+        receipt=read_metadata(attempt/'receipt.json');owned=read_metadata(attempt/'owned.json')
+        old_sha=attempt.name[:64]
+        if (receipt.get('mode')!='accept' or receipt.get('seal_sha256')!=old_sha
+                or type(receipt.get('model_requests')) is not int or receipt['model_requests']!=0
+                or receipt.get('dispatch_status')!='blocked' or read_metadata(attempt/'finished.json').get('finished') is not True):
+            raise ValueError('Completed historical account record required')
+        if '-' in attempt.name[64:] and receipt.get('verification_id')!=attempt.name[-32:]:
+            raise ValueError('Historical verification ID differs')
+        matches=[]
+        for snapshot in root.glob('sealed-account-*'):
+            no_reparse(snapshot/'manifest.json')
+            with (snapshot/'manifest.json').open('rb') as source: manifest=source.read(65537)
+            if len(manifest)<=65536 and hashlib.sha256(manifest).hexdigest()==old_sha: matches.append(snapshot)
+        if len(matches)!=1: raise ValueError('Historical account seal required')
+        verify_seal(matches[0],old_sha)
+        metadata=strict_json((matches[0]/'readiness.json').read_bytes())
+        if metadata.get('policy')!=owned['policy']: raise ValueError('Historical ownership policy differs')
+        prefix=owned_account_names(owned)
+        for args,field,slash in ((('ps','-a'),'{{.Names}}','/'),(('network','ls'),'{{.Name}}','')):
+            if query(*args,'--filter','name=^'+slash+prefix,'--format',field).strip():
+                raise ValueError('Historical account resources remain')
+        predecessors.append(dict(attempt=attempt.name,resources_absent=True))
+    return dict(linux_engine_available=True,pinned_images_verified=True,predecessors=predecessors,model_requests=0)
+
+
 def atomic_publish(path, expected, record):
     no_reparse(path)
     if path.read_bytes()!=expected: raise ValueError('Concurrent registration change')
@@ -303,7 +401,7 @@ def atomic_publish(path, expected, record):
     private_acl(path)
 
 
-def run(seal_sha, mode):
+def run(seal_sha, mode, verification_id=None):
     sealed=Path(__file__).resolve().parent.parent
     if Path(__file__).parent.name!='code' or not sealed.name.startswith('sealed-account-') or sealed.parent.name!='.batch3-vibe':
         raise ValueError('Sealed account entry required')
@@ -316,11 +414,20 @@ def run(seal_sha, mode):
             or any(metadata.get(k) is not False for k in ('production_isolation_verified','server_account_verified','billing_ceiling_verified'))):
         raise ValueError('Account policy refused')
     review=sealed.parent/'account-readiness'; no_reparse(review); private_acl(review)
+    name=acceptance_name(seal_sha,verification_id) if mode=='accept' else seal_sha+'.'+mode
+    if mode!='accept' and verification_id is not None: raise ValueError('Verification ID is account-only')
+    preflight=None
     if mode=='accept':
         for check in ('boundary','termination'):
             result=strict_json((review/(seal_sha+'.'+check)/'receipt.json').read_bytes())
-            if not result.get('passed') or result.get('seal_sha256')!=seal_sha: raise ValueError('Boundary acceptance required')
-    attempt=review/(seal_sha+'.'+mode); attempt.mkdir()
+            if (result.get('passed') is not True or result.get('cleanup_verified') is not True
+                    or result.get('seal_sha256')!=seal_sha or result.get('model_requests')!=0
+                    or check=='termination' and result.get('forced_termination_verified') is not True):
+                raise ValueError('Boundary acceptance required')
+        if (review/name).exists(): raise FileExistsError('Preserve consumed account verification')
+        preflight=account_preflight(sealed.parent)
+    attempt=review/name; attempt.mkdir()
+    if preflight is not None: write_once(attempt/'preflight.json',preflight)
     for folder in ('docker-config','empty'): (attempt/folder).mkdir()
     (attempt/'squid.conf').write_text(PROXY)
     prefix='kwg-account-'+uuid.uuid4().hex
@@ -330,7 +437,10 @@ def run(seal_sha, mode):
     docker=[str(DOCKER),'--config',str(attempt/'docker-config'),'-H','npipe:////./pipe/dockerDesktopLinuxEngine']
     env={k:v for k,v in os.environ.items() if k.upper() in {'SYSTEMROOT','WINDIR'}}
     began=time.monotonic()
+    docker_operation=None
     def command(*args,check=True,**options):
+        nonlocal docker_operation
+        docker_operation=args[0]+('.'+args[1] if args[0]=='network' else '')
         budget=DEADLINE-(time.monotonic()-began)
         if budget<=0: raise ValueError('Controller deadline')
         return subprocess.run([*docker,*args],env=env,capture_output=True,timeout=budget,check=check,**options)
@@ -372,10 +482,12 @@ def run(seal_sha, mode):
             raise ValueError('Account worker refused')
         return strict_json(output)
     guard=subprocess.Popen([sys.executable,'-I','-S','-B',str(sealed/'code/gold_account.py'),'--seal-sha256',seal_sha,
-        '--guard',str(attempt),'--parent',str(os.getpid())],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+        '--guard',str(attempt),'--parent',str(os.getpid()),
+        *(['--verification-id',verification_id] if mode=='accept' else [])],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
         creationflags=subprocess.CREATE_NO_WINDOW|subprocess.DETACHED_PROCESS,close_fds=True)
     receipt=dict(mode=mode,seal_sha256=seal_sha,passed=False,model_requests=0,dispatch_status='blocked',
         production_isolation_verified=False,server_account_verified=False,billing_ceiling_verified=False)
+    if mode=='accept': receipt['verification_id']=verification_id
     service=None
     try:
         for _ in range(100):
@@ -438,10 +550,8 @@ def run(seal_sha, mode):
                 lock.seek(0);msvcrt.locking(lock.fileno(),msvcrt.LK_NBLCK,1)
                 old=(auth/'registration.json').read_bytes(); previous=strict_json(old)
                 if len(old)>BOUND: raise ValueError('Private input limit')
-                identity=hashlib.sha256(old).hexdigest()
                 # This marker survives controller death and consumes a potentially rotating grant.
-                marker=auth/('renewal-'+identity+'.started.json')
-                if marker.exists(): raise ValueError('Consumed renewal must not repeat')
+                identity,marker=unconsumed_renewal(auth,old)
                 keys=exchange('keys','keys')
                 prior=validate_saved(previous,keys,strict_json((auth/'issued-client.json').read_bytes()),strict_json((auth/'host.json').read_bytes()))
                 if previous['expires_at']<=time.time()+300:
@@ -473,6 +583,7 @@ def run(seal_sha, mode):
                     host_id_sha256=hashlib.sha256(updated['ext_agent_host_id'].encode()).hexdigest())
     except Exception as error:
         receipt['failure_kind']=type(error).__name__
+        if isinstance(error,subprocess.CalledProcessError): receipt['failed_docker_operation']=docker_operation
     finally:
         if service is not None: service.shutdown();service.server_close()
         write_once(attempt/'finished.json',{'finished':True})
@@ -519,18 +630,19 @@ if __name__=='__main__':
     parser.add_argument('--seal-sha256',required=True)
     parser.add_argument('--mode',choices=('boundary','termination','verify-termination','accept'))
     parser.add_argument('--guard');parser.add_argument('--parent',type=int)
+    parser.add_argument('--verification-id')
     args=parser.parse_args()
     try:
         if args.guard:
             sealed=Path(__file__).resolve().parent.parent
             verify_seal(sealed,args.seal_sha256)
             path=Path(args.guard)
-            if path.parent!=sealed.parent/'account-readiness' or path.name not in {args.seal_sha256+'.'+mode for mode in ('boundary','termination','accept')}:
-                raise ValueError('Fixed guardian attempt required')
+            validate_guard_path(sealed.parent,path,args.seal_sha256,args.verification_id)
             cleanup_guard(path,args.parent)
         else:
             if args.mode is None: raise ValueError('Account mode required')
-            result=termination_check(args.seal_sha256) if args.mode=='verify-termination' else run(args.seal_sha256,args.mode)
+            if args.mode=='verify-termination' and args.verification_id is not None: raise ValueError('Verification ID is account-only')
+            result=termination_check(args.seal_sha256) if args.mode=='verify-termination' else run(args.seal_sha256,args.mode,args.verification_id)
             print(json.dumps(result,sort_keys=True))
             if not result['passed']: raise SystemExit(2)
     except Exception:
