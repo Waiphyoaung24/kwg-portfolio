@@ -7,7 +7,7 @@ from batch3_runner import MAX_BYTES
 from trusted_oauth_transport import strict_json
 
 URL = 'https://api.openai.com/v1/responses'
-MODEL = 'gpt-6-astra'
+MODEL = 'gpt-5.6-sol'
 MAX_STREAM = 262144
 MAX_EVENT = 65536
 

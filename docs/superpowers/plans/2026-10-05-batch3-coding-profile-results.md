@@ -1,5 +1,45 @@
 # Coding-session profile prepared — 2026-10-05 Bangkok
 
+## Current result: actual chat file denial passed at 17:34 Bangkok
+
+After the owner's permissions selection, the active managed policy explicitly
+denies `.batch3-vibe` under both workspace roots. The same open-only probe ran
+through the ordinary command tool, without a nested CLI or escalation, and
+exited 0 at Unix `1791196453` (2026-10-05 17:34:13 Bangkok):
+
+```json
+{"mode":"coding-boundary-open-only","dispatch_status":"blocked","credential_contents_read":false,"registration_open_denied":true,"canary_open_denied":true,"source_open_allowed":true,"workspace_write_allowed":true,"token_restricted":false,"executing_owner":true,"checked_at":1791196453,"model_requests":0}
+```
+
+This is genuine file-access denial in the actual coding command context. The
+Windows token remains unrestricted and executes as owner, so this result does
+not establish the separate restricted-token property seen in the native CLI
+validation. No credential bytes were read. Project config still names
+`gold-research-coding`; the owner's reported UI label was `gold-research-config`.
+The verified effective policy and probe, rather than that label, establish
+the observed boundary. Prior ordinary-tool probes failed until this selection;
+restart alone had not resolved it. No further restart is required by this check.
+
+The deny is non-escalatable. Do not request exceptions to read private runtime
+data, authorizations or credentials. This step changed documentation only and
+did not reread private seals, ACLs or registries after selection. Their last
+owner-context verification remains historical. No private production proof or
+approval was written, and no renewal, authenticated catalog or model request
+ran. This public diagnostic is not a private gate receipt and must not be
+presented as fresh dispatch evidence later.
+
+Next review the unchanged sealed intent, obtain applicable account-renewal and
+one-proposal authorization, and establish legitimate owner-side execution
+outside this coding profile. Before any real dispatch, that execution must
+verify the sealed source/inputs and same account, refresh saved provider $0
+controls, and record a fresh actual-chat denial bound to the proposal seal.
+The runner's denial, billing and account evidence must be within five minutes;
+its concrete approval has a separate maximum thirty-minute lifetime. Keep
+dispatch blocked until all gates pass. See the
+[final runner intent](2026-10-05-batch3-final-runner-results.md).
+
+## Historical validation before the active permissions selection
+
 The stronger project-only profile is implemented and passed a real native
 Windows sandbox check. **This running chat has not adopted it:** its ordinary
 command tool still runs as the owner and can open both private files. Real

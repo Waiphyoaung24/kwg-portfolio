@@ -1,5 +1,17 @@
 # MT5 compatibility probe
 
+## Current model checkpoint — 2026-10-05 Bangkok
+
+Owner selected `gpt-5.6-sol`. Shared supported transport, account, gateway and
+proposal policies now target it; ten focused offline tests passed. The prior
+Astra seals and account acceptance are historical and cannot certify the new
+source. Next create new committed-source seals and repeat the fake/native checks
+using the [prepared owner-terminal helper](../../docs/superpowers/plans/2026-10-05-batch3-56-sol-switch.md).
+It stops before account acceptance, renewal or inference. This coding chat cannot
+execute private runtime actions because `.batch3-vibe` is denied non-escalatably.
+Fresh account-bound $0/denial evidence and concrete approval remain required.
+No model request has run. Earlier seal results below describe the Astra runner.
+
 ## Current development milestone — 2026-10-02
 
 Owner chose to close Batch 2 for development and defer the 60-day/trade-count
@@ -11,8 +23,9 @@ blocked; human approval remains required for promotion. Historical
 evidence checkpoints below do not override this current development scope.
 Account-worker credential/network isolation and catalog acceptance have now
 passed. Provider USD0 controls were verified read-only on October 5 and the real
-development packet and final runner are prepared. The actual unrestricted coding
-token remains an activation blocker; see the final runner checkpoint below.
+development packet and final runner are prepared. Active coding file denial
+passed after custom permissions were selected; fresh account/billing evidence
+and concrete proposal approval remain pending. See the final runner checkpoint below.
 They do not reopen Batch 2 development. Current
 close-out evidence and acceptance boundaries are in the linked handoff.
 
@@ -25,12 +38,13 @@ zero retries, tools or trade authority, and requires fresh provider $0 controls.
 Native Docker boundary and forced controller cleanup checks passed, along with
 the 14-case fake transport matrix and regression checks. No real request ran.
 
-The actual coding command currently has an unrestricted owner token and can
-open private auth files; an open-only probe read no contents. Restore/use a
-restricted coding session and verify genuine denial before account renewal or
-request review. Approval, fresh passing host evidence, billing evidence and
-final-source account acceptance are absent. The production registry is empty.
-Do not change owner ACLs or treat container proofs as coding-token isolation.
+The actual coding command's open-only probe now denies registration and private
+canary access, with source/write positive controls passing. Its Windows token
+still reports owner/unrestricted identity; effective file denial is the observed
+property. Keep the non-escalatable private-tree deny. See the
+[owner-only fresh account command](../../docs/superpowers/plans/2026-10-05-batch3-owner-account-handoff.md).
+Private dispatch evidence and approval remain pending; registry-empty status is
+from the last owner verification. Do not replace this boundary with container proof.
 
 `harden-batch3.ps1 -Phase seal-proposal` seals committed sources and the existing
 verified private inputs without granting sandbox access to real input copies.
@@ -67,7 +81,7 @@ Successful fixtures do not grant real OAuth or USD0 billing approval.
 
 ### Gold account acceptance (inference disabled)
 
-The owner-selected supported model is fixed to `gpt-6-astra`. Same-account
+The historical owner-selected supported model was `gpt-6-astra`. Same-account
 renewal, signed binding, authenticated catalog access, isolated Internet worker
 and forced-controller-termination cleanup passed. See the
 [account results](../../docs/superpowers/plans/2026-10-03-batch3-account-acceptance-results.md)
@@ -75,8 +89,9 @@ for source/receipt identities, commands and scope limits.
 [Provider $0 controls passed read-only verification on October 5](../../docs/superpowers/plans/2026-10-05-batch3-zero-spend-results.md).
 Recheck saved settings before dispatch. Real inference is blocked pending the
 final sealed execution boundary and owner authorization; the real packet is prepared.
-The token is now expired, and today's owner-context host probe did not reproduce
-restricted-token credential denial; both require checks before a real request.
+The token was expired at the last owner check; fresh final-source acceptance
+requires the owner terminal command. Actual file denial now passes, while the
+Windows restricted-token property is not established by this chat's probe.
 
 The owner seals committed sources with `harden-batch3.ps1 -Phase seal-account`.
 Run that snapshot's `code/gold_account.py --seal-sha256 <manifest hash>` with

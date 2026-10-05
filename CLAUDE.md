@@ -2,6 +2,110 @@
 
 Current trading handoff and task links: [ops/trading/HANDOFF.md](ops/trading/HANDOFF.md).
 
+## Current model: gpt-5.6-sol; new sealing pending — 2026-10-05 Bangkok
+
+Owner selected `gpt-5.6-sol` and authorized continuing. This supersedes both
+the unavailable `gpt-6.1-sol` requirement and prior Astra selection. The shared
+runtime model constant now selects 5.6 Sol in the supported transport, gateway,
+account checker and proposal runner. Ten focused offline tests passed, including
+shared policy/catalog assertions and fake transport, approval, billing and
+account-binding checks. No real HTTP or credential access occurred.
+
+Next run the prepared owner-terminal helper to create new supported/account/
+proposal seals and repeat the 14 fake cases plus native boundary/forced-cleanup
+checks. It first verifies reviewed file hashes and creates a scoped local commit:
+agent Git index writes failed even after the approved retry. See
+[model switch and owner command](docs/superpowers/plans/2026-10-05-batch3-56-sol-switch.md).
+The helper stops before account acceptance, login renewal or inference. This
+chat's non-escalatable `.batch3-vibe` denial prevents agent execution; the owner
+must run it manually. Stop on failure and preserve partial/consumed artifacts.
+
+Historical Astra seals, intent and account receipt remain unchanged. The owner-
+reported catalog includes 5.6 Sol, but that old receipt does not satisfy fresh
+acceptance for the new seal. Arrange fresh account-bound $0 controls, actual-chat
+denial evidence and concrete proposal approval before timing the new account
+acceptance and any single dispatch; receipts expire after five minutes. Never
+rerun the consumed historical acceptance command. No support message was sent;
+the owner declined contact. No model request, provider setting change, trade,
+push or deployment ran. Batch 2 qualification remains deferred.
+
+## Historical gpt-6.1-sol availability review — superseded
+
+Latest steering: owner declined sending the support question and asked about
+using another model, then selected `gpt-5.6-sol` as recorded above. Do not send
+support messages or infer model-call approval from model selection.
+
+Availability follow-up completed: the parser preserves all server slugs and
+does not hide Sol. Official plan-usage examples name Sol, but do not establish
+this app's entitlement. Focused synthetic catalog and two existing fake tests
+passed; the broader atomic-publication test hit a preserved Windows temporary-
+file permission failure, including an approved rerun. No runtime changes or
+new credential requests. See [findings and prepared support question](docs/superpowers/plans/2026-10-05-batch3-sol-availability-review.md).
+The support question is drafted only, not sent. Provider clarification or a
+new supported catalog result is needed before Sol activation; exact cause unknown.
+
+Owner supplied the final account check's redacted result: acceptance passed at
+Unix `1791197686` (17:54:46 Bangkok), same-account renewal completed, cleanup
+verified, seven catalog models, and zero model requests. Required Astra was
+present. This is owner-reported command evidence; private receipt bytes were
+not independently reread because the coding deny remains active.
+
+Owner now requires `gpt-6.1-sol`, superseding the prior Astra selection. The
+returned catalog contains `gpt-6-astra`, `gpt-reserve`, `gpt-5.6-sol`,
+`gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `codex-auto-review`; it does not
+contain `gpt-6.1-sol`. Keep the existing Astra intent blocked; do not substitute
+another model or dispatch against an unavailable catalog slug. Existing runtime
+source and private seals still target Astra and were not rewritten in place.
+
+**Next blocker:** establish supported Sol availability for this same gold app
+before retargeting source, preparing a new exact intent/seals and repeating
+affected checks. Sol in the Codex chat picker does not prove availability in
+the separate gold app's OAuth catalog. Do not rerun the consumed account
+acceptance command, repeat registration, switch accounts, change credits or
+request exceptions to private-tree denial. No real proposal is authorized.
+The pasted result reports `billing_ceiling_verified=false`, `dispatch_status=blocked`.
+Fresh account-bound billing/denial evidence and explicit concrete model-call
+approval remain required; old receipts must not be relabelled fresh.
+
+## Fresh account command prepared for owner — 2026-10-05 Bangkok
+
+Owner said "ok go" for the next account/$0 checks. Current saved usage controls
+were inspected read-only: KWG Gold Research included-plan usage allowed, credits
+off, auto reload off, Save disabled. Browser-to-signed-account correlation and
+private billing evidence remain pending. The private-tree deny stays active.
+[Owner terminal handoff and exact sealed account command](docs/superpowers/plans/2026-10-05-batch3-owner-account-handoff.md)
+reuses final account seal `72da287687cdbd950a86c2b2c6442efb15d5c67ea74b36a7ec21ececab8591c3`.
+Run once manually as owner with the verified existing Python, `-I -B` (not
+`-S`), then share only the redacted result. No agent tool may execute this
+private command or escalate around the deny. Do not rerun a failed/consumed
+attempt. Account renewal/catalog have not run in this step; no inference or
+provider setting change. After account results, refresh seal-bound private
+evidence and obtain the concrete model-call approval before dispatch.
+
+## Active coding file denial verified — 2026-10-05 17:34 Bangkok
+
+After the owner selected custom permissions, this chat's active policy explicitly
+denies `.batch3-vibe` under both workspace roots. The ordinary command tool's
+open-only probe passed at Unix `1791196453`: registration and private canary
+open denied, public source open and workspace write allowed, no credential
+contents read and zero model requests. Windows `token_restricted=false` and
+`executing_owner=true` remain; this proves effective file denial in the actual
+chat, not a restricted Windows token. See the updated
+[profile results](docs/superpowers/plans/2026-10-05-batch3-coding-profile-results.md).
+
+**Next:** review the existing sealed one-proposal intent and arrange legitimate
+owner-side account acceptance/evidence execution outside this coding profile.
+The private runtime is now denied to this chat; do not request escalation to
+read it or write private approval/evidence here. Obtain applicable authorization
+before renewal or one real proposal, then refresh saved provider $0 controls,
+same-account acceptance and actual coding denial within the runner's time limits.
+The public checkpoint is diagnostic, not the private production gate receipt.
+No private gate receipt, approval or model request was created in this step.
+Runtime source unchanged; private seals/registry were not reread after denial.
+The last owner verification recorded an empty production registry. Account
+acceptance and concrete proposal approval remain pending; Batch 2 is deferred.
+Earlier reload/blocker entries below describe historical checks.
+
 ## Coding profile tested; restart/reselect required — 2026-10-05 Bangkok
 
 The project-only `.codex/config.toml` now selects `gold-research-coding`, extending

@@ -1,11 +1,24 @@
 # Final real-development runner preparation — 2026-10-05 Bangkok
 
+**Latest owner choice:** `gpt-5.6-sol`, superseding unavailable `gpt-6.1-sol` and
+prior Astra. The owner-run account check passed at 17:54:46 Bangkok, renewed the
+same login and reported zero model requests; its seven-model catalog includes
+5.6 Sol. Shared runtime source now targets it and ten focused offline tests
+passed. Preserve the Astra artifacts below as historical preparation, without
+dispatch approval. New seals and native checks are pending; see the
+[current model-switch checkpoint](2026-10-05-batch3-56-sol-switch.md) and
+[historical owner-reported account result](2026-10-05-batch3-owner-account-handoff.md).
+
 The distinct proposal runner is implemented, tested and sealed around the
 verified real development packet. Native container isolation and independent
-cleanup passed. **Activation remains blocked:** the actual coding command
-currently runs with an unrestricted owner token and can open the private login
-file. No credential contents were read during that diagnostic. Gate C is not
-complete and one real proposal is not yet authorized.
+cleanup passed. **Activation remains blocked:** account acceptance, fresh
+provider evidence and concrete one-proposal authorization are pending. At
+17:34 Bangkok the actual chat's file-denial probe passed after the owner selected
+custom permissions; registration/canary opens were denied and public source/
+workspace write controls passed. The Windows token still reports unrestricted
+owner identity. See [current file-denial evidence](2026-10-05-batch3-coding-profile-results.md).
+No private production gate receipt was written. Gate C is not complete and
+one real proposal is not yet authorized.
 
 ## What is ready
 
@@ -118,7 +131,7 @@ layout limitation is preserved; the full suite is verified in its intended
 workspace layout and focused runner checks use the sealed source. No legacy
 test/runner paths were refactored to hide it.
 
-The fresh default-tool open-only probe found `token_restricted=false`,
+Before the active permission selection, the default-tool open-only probe found `token_restricted=false`,
 `registration_open_denied=false` and `canary_open_denied=false`. Handles were
 closed without reading bytes. The failed diagnostic is retained separately;
 the passing coding-denial evidence path is absent. Owner/SYSTEM ACLs passed,
@@ -151,9 +164,11 @@ full-suite failure separately in `<proposal seal>.relocated-suite.failed.json`.
 
 ## Resume order
 
-1. Restore/use an actual restricted coding session and run the open-only canary
-   and registration probes there. Capture fresh real denial evidence; do not
-   read or paste credentials. This environment is currently the blocker.
+1. Keep the now-verified active private-tree deny. Recheck the actual chat's
+   open-only canary/registration denial when fresh dispatch evidence is needed.
+   Establish legitimate owner-side execution outside this coding profile for
+   private gate receipts and account actions; do not escalate to read denied
+   paths from this chat. The public passing diagnostic is not a production receipt.
 2. Keep this source/input seal and the evidence above. If executable sources
    change, commit and create new snapshots, then rerun affected native checks;
    do not overwrite consumed attempts or seals.

@@ -1,5 +1,94 @@
 # Gold trading handoff — 2026-09-28
 
+## Current: 5.6 Sol selected; new seals and native checks next — 2026-10-05 Bangkok
+
+Owner selected `gpt-5.6-sol` and said continue, superseding the unavailable
+6.1 Sol requirement and earlier Astra choice. Shared transport/account/gateway/
+proposal policies now target 5.6 Sol. Ten focused offline tests passed with fake
+credentials and no real HTTP. Historical Astra snapshots and consumed acceptance
+remain unchanged; their results do not certify the new source/model.
+
+[Model-switch checkpoint and prepared owner command](../../docs/superpowers/plans/2026-10-05-batch3-56-sol-switch.md)
+records the next stage: hash-verified scoped owner commit (agent Git index writes
+failed even after the approved retry), new seals, all 14 fake cases, and native
+account/proposal boundary and forced-cleanup checks. The helper does not run
+account acceptance, renewal or inference. Agent tools cannot run it because the
+private runtime is denied non-escalatably. Owner runs it manually and shares
+only its redacted summary; stop on failure and preserve partial attempts.
+
+After preparation, arrange fresh account-bound $0 controls, actual coding-denial
+evidence and concrete one-proposal approval before the new account acceptance/
+dispatch window. Five-minute receipts must be fresh; do not prematurely consume
+new acceptance or repeat the old command. Support contact was declined and no
+message sent. No model request or provider setting change ran; Batch 2 remains
+unqualified and qualification deferred. Earlier sections are historical where
+superseded by this checkpoint.
+
+## Historical account/model preference change — superseded
+
+Owner declined contacting support and asked about another model. Astra is the
+previously recommended available option because the old sealed runner targets it;
+owner subsequently selected 5.6 Sol above. No support message was sent or model
+call authorized. Keep the $0 and private-tree-denial constraints.
+
+[Sol availability investigation and unsent support draft](../../docs/superpowers/plans/2026-10-05-batch3-sol-availability-review.md):
+the parser returns every provider slug, including hidden entries; synthetic
+Sol absence/presence checks and two fake-only account tests passed. Official
+plan-usage examples use Sol, but the current app catalog still lacks it.
+No documented force-enable step was found; provider-side cause is unknown.
+The broader synthetic atomic-file test failed with Windows temporary-file
+permissions, including its approved rerun; preserve that limitation. No runtime
+source, credentials, provider settings or model dispatch changed in this review.
+
+Owner pasted final account acceptance at Unix `1791197686` (17:54:46 Bangkok):
+passed, renewal completed, same-account verification and cleanup true, seven
+models, zero model requests. Evidence is owner-reported; the coding agent did
+not reread the private receipt. Account seal remains
+`72da287687cdbd950a86c2b2c6442efb15d5c67ea74b36a7ec21ececab8591c3`.
+
+Owner now requires `gpt-6.1-sol`. The returned catalog lacks it; Astra's presence
+no longer meets the owner's model choice. Preserve the existing Astra source,
+seals and intent as historical prepared artifacts; keep dispatch blocked.
+Establish supported same-app Sol availability before any source retarget/new
+intent/seals and affected validation. No alternative model, account switch,
+re-registration, credit change or repeated consumed account command is authorized.
+Private-tree denial stays active. Fresh account-bound $0/denial evidence and
+concrete Sol proposal authorization remain pending. No model request ran.
+
+## Fresh account/$0 handoff ready — 2026-10-05 Bangkok
+
+The owner's "ok go" continued account/$0 checks. Saved UI controls were
+rechecked without changes: one KWG Gold Research app, included usage allowed,
+100% cap, credits off, auto reload off, Save disabled, displayed balance zero.
+This observation is not a current private account-bound billing receipt.
+[Exact owner-only account command](../../docs/superpowers/plans/2026-10-05-batch3-owner-account-handoff.md)
+uses the existing final account seal and verified installed signature packages.
+Owner runs it once manually with `-I -B`, then shares only the redacted result.
+The coding agent cannot execute private runtime actions or escalate around
+the active deny. No fresh acceptance/renewal/catalog has run yet. Preserve
+consumed attempts. Fresh private evidence and concrete one-proposal approval
+remain required before model dispatch; no runtime source or settings changed.
+
+## Active chat file denial passed — 2026-10-05 17:34 Bangkok
+
+The owner selected custom permissions and the active policy now denies the
+private `.batch3-vibe` tree. The ordinary command tool's open-only probe passed
+at Unix `1791196453`: registration/canary denied, public source and workspace
+write allowed, no credential contents read, zero model requests. The process
+still reports owner identity and `token_restricted=false`; record effective
+file-access denial accurately, not a restricted Windows-token claim.
+[Current evidence and next steps](../../docs/superpowers/plans/2026-10-05-batch3-coding-profile-results.md).
+
+Next review the sealed intent, obtain applicable renewal/proposal authorization,
+and establish legitimate owner-side execution for fresh account/$0 evidence.
+This chat must respect the private-tree deny and cannot escalate to read it.
+No private production gate receipt or approval was written; this public diagnostic
+does not satisfy the runner's private, seal-bound, five-minute evidence check.
+Refresh actual coding denial at dispatch time. Runtime source unchanged, no
+renewal/catalog/model request or provider/SSH setting change. Private state
+was not reread; registry-empty status is from the last owner verification.
+Batch 2 qualification deferred. Earlier active-chat failures below are historical.
+
 ## Native coding profile validated; active chat still needs reload — 2026-10-05 Bangkok
 
 Added project `.codex/config.toml`: `gold-research-coding` extends `:workspace`
