@@ -25,6 +25,19 @@ Official references:
 
 ## Development
 
+The dashboard uses stock shadcn neutral dark styling as the dashboard-only
+exception recorded in DESIGN.md. Theme variables live in `src/styles.css`;
+`shared/tokens.css` owns layout geometry. The Astro route does not import the
+marketing stylesheet. Dark mode is permanent, including body-portaled overlays.
+
+Run shadcn commands from `dashboard/`. `components.json` uses the existing
+New York/Radix component family, Lucide, Tailwind v4, and the `@/` alias.
+The workspace dropdown is a deliberate custom Base UI component: retain its
+`render` trigger and radio-group APIs when editing it. Other existing primitives
+use Radix APIs such as `asChild`. Inspect `npx shadcn@latest info --json` and
+component documentation before adding or changing components; do not overwrite
+local files to switch primitive families.
+
 Use Node 24 or later. Install the portfolio's locked dependencies with `yarn install --frozen-lockfile`, and the isolated dashboard dependencies with `npm ci --prefix dashboard --ignore-scripts`. Then run `node scripts/build-dashboard.mjs` and `node node_modules/astro/bin/astro.mjs dev --host 127.0.0.1 --port 4327`.
 
 The dashboard bundle is generated into ignored `public/dashboard-assets`. `npm run build` builds the dashboard, checks Astro, and builds the site. Docker builds the same browser bundle before Astro; no database or credentials are needed by the dashboard. This change does not deploy or migrate any data.
@@ -35,6 +48,17 @@ The dashboard bundle is generated into ignored `public/dashboard-assets`. `npm r
 - `node dashboard/browser-check.mjs`: requires a local production preview at port 4327, or DASHBOARD_ORIGIN. Uses Microsoft Edge, a new temporary browser profile, real OPFS directory handles, and deterministic chooser/permission substitutes. It checks persistence, cancellation, permission denial, stale writes, workspace isolation, drafts, templates, graph, dark styling, all seven pages at six viewport sizes, centered desktop content, and the compact mobile Pages menu with keyboard and Escape checks, and absence of note-upload requests.
 - Native Windows chooser was opened during verification, but desktop automation did not complete its confirmation. Manual check remains: choose an empty temporary folder, grant access, create/save a note, confirm the Markdown file on disk, reload and reconnect, then revoke permission and confirm a save retains the draft. Do not use a real private vault for this first check.
 - Automated checks do not constitute a screen-reader audit or native Firefox/WebKit folder-access certification.
+
+The neutral dark migration also checks rendered text contrast (4.5:1), rounded
+rectangular actions, keyboard workspace-menu navigation, dialog focus entry and
+restoration, search-icon clearance, selected-editor height, long titles at
+320 pixels, reachable Save controls at a 200% zoom equivalent, reduced motion,
+and JavaScript-disabled guidance in the first viewport. Production screenshots
+use synthetic notes in temporary browser storage.
+
+The graph regression checks confirm that titles and paths stack inside each
+control without horizontal overflow, and remain readable at rest, on keyboard
+focus, and on pointer hover.
 
 The browser check also exercises create, edit, save, reopen, search, wiki links, backlinks, graph opening, dated journal entries, weekly reviews, founder actions and project notes in both temporary workspaces. It reads saved OPFS content back through browser handles. This verifies browser storage operations, not native Windows folder permission or a visible Markdown file in a user-selected directory.
 

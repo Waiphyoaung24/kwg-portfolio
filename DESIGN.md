@@ -450,6 +450,51 @@ The brand uses no shadows. Hairline borders carry all elevation cues.
 
 ## Do's and Don'ts
 
+### Dashboard exception
+
+The owner approved stock shadcn neutral dark styling for `/vault/dashboard` on
+2026-10-05. This route owns its theme in `dashboard/src/styles.css` and geometry
+in `dashboard/shared/tokens.css`; it does not import the marketing stylesheet.
+Its controls use shadcn component radii, body weight 400, action weight 500,
+heading weight 600, sentence-case labels, system sans, and standard overlay
+elevation. It stays dark-only and preserves WCAG 2.2 AA, visible focus, reduced
+motion, and 44-pixel touch targets. Existing Radix components and the Base UI
+workspace menu share semantic colors. Other routes follow the rules below.
+
+**The Dashboard Boundary Rule.** The exception applies only to this route,
+including its body-portaled dialogs and menus. Public KWG chrome keeps the
+incumbent palette, type, pills, and flat elevation. Dashboard semantic tokens
+are normative in `dashboard/src/styles.css`; do not copy their values into the
+public frontmatter or map foreground aliases to shadcn background roles.
+
+- **Palette:** achromatic background, card/popover/sidebar surfaces, bright
+  foreground and primary actions, muted supporting text, translucent border
+  and input strokes. Destructive red accompanies error text. Selected and
+  hovered rows pair accent backgrounds with accent foregrounds. Native buttons
+  reset their background to transparent; component variants supply the fill.
+- **Type:** system sans with no marketing tracking. Body uses the 16-pixel
+  base and 1.4 line height; reading copy uses 1.6. Headings use the compact
+  32-pixel h1 and 20-pixel h2/h3 scale. Actions use 14-pixel medium labels.
+- **Shapes and depth:** the base radius is 0.625rem; small, medium, large,
+  and extra-large corners derive from it. Buttons and inputs use medium
+  corners; panels use large corners. Border and tonal layers separate resting
+  surfaces; stock component shadows and elevated menus/dialogs are permitted.
+- **Components:** retain existing button variants. Outline actions use the
+  dark input surface and stroke; default actions use primary with its
+  contrasting foreground. Inputs use semantic input borders and muted
+  placeholders. Radix focus rings and the custom workspace menu's visible
+  focus outline remain intact.
+- **Graph:** node titles and paths stack within their rectangular controls.
+  Missing/ambiguous nodes retain dashed outlines and selected nodes retain a
+  stroke distinction, so color is not the only signal. Graph geometry remains
+  separate from reusable button variants.
+
+**The Foreground Pair Rule.** Background roles (`muted`, `accent`, `primary`)
+must use their matching foreground roles; supporting text uses
+`muted-foreground`. Preserve visible focus and reduced-motion suppression.
+Dashboard-only extensions and representative component snippets are recorded
+in `dashboard/.impeccable/design.json`.
+
 ### Do
 - Reserve `{colors.canvas}` (`#0a0a0a`) as the only page surface. The brand is dark-canvas only.
 - Set hero headlines in `{typography.display-xl}` Universal Sans weight 400 with `-2.4 px` tracking. The precision IS the voice.

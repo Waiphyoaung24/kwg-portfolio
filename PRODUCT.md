@@ -104,4 +104,4 @@ Things this must never look like, in order of priority:
 
 ## Local dashboard
 
-`/vault/dashboard` edits explicitly selected local vault folders in supporting desktop browsers. Notes are not uploaded or stored in the site database. Personal and Parallel are independent folder bindings. Browser permission is origin-scoped; the existing client-side Vault gate is not an authentication boundary. The dashboard inherits DESIGN.md with an operate-mode heading scale recorded in dashboard/ui-spec.yaml.
+`/vault/dashboard` edits explicitly selected local vault folders in supporting desktop browsers. Notes are not uploaded or stored in the site database. Personal and Parallel are independent folder bindings. Browser permission is origin-scoped; the existing client-side Vault gate is not an authentication boundary. The dashboard uses the owner-approved shadcn neutral dark exception in DESIGN.md, with its own semantic theme and operate-mode heading scale recorded in dashboard/ui-spec.yaml.

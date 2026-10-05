@@ -1,6 +1,6 @@
 surface: /vault/dashboard
-visual_authority: ../DESIGN.md and ../src/styles/_vars.scss
-mode: dark only; no shadows; weight 400; pill controls; six note page layouts and Settings
+visual_authority: Dashboard exception in ../DESIGN.md; src/styles.css theme; shared/tokens.css geometry
+mode: shadcn neutral dark only; component radii and overlay elevation; six note page layouts and Settings
 source_contract: Reuses Dot geometry, component states, keyboard controls, reduced motion, and graph behavior
 data:
   storage: User-selected local directories only; no notes network endpoint
@@ -24,5 +24,7 @@ acceptance:
   - Tablet and phone Pages disclosure supports touch, keyboard and Escape
   - Visible focus; readable neutral contrast; mobile no overflow
 
-operate_type: Dot token scale for app headings (h1 32, h2 20, h3 20 pixels); weight 400; inherited marketing headlines do not apply
-selected_navigation: White text on canvas-soft; avoid surface alias as foreground
+operate_type: App headings (h1 32, h2 20, h3 20 pixels) at weight 600; body 400; actions 500; system sans; sentence-case labels
+selected_navigation: sidebar-accent-foreground on sidebar-accent; avoid background aliases as foreground
+components: Radix shadcn new-york; custom Base UI workspace menu retains its API
+theme_boundary: html.dark owns semantic variables for the root and body portals; no marketing SCSS import
