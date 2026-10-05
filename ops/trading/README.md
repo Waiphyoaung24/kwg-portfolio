@@ -11,9 +11,33 @@ blocked; human approval remains required for promotion. Historical
 evidence checkpoints below do not override this current development scope.
 Account-worker credential/network isolation and catalog acceptance have now
 passed. Provider USD0 controls were verified read-only on October 5 and the real
-development packet is prepared; the final inference boundary remains an activation gate.
+development packet and final runner are prepared. The actual unrestricted coding
+token remains an activation blocker; see the final runner checkpoint below.
 They do not reopen Batch 2 development. Current
 close-out evidence and acceptance boundaries are in the linked handoff.
+
+### Final development proposal runner (activation blocked)
+
+[Final runner results](../../docs/superpowers/plans/2026-10-05-batch3-final-runner-results.md)
+identify the sealed `gold_proposal.py` source and real packet/prompt. The
+owner/SYSTEM-only snapshot fixes one `gpt-6-astra` request, medium reasoning,
+zero retries, tools or trade authority, and requires fresh provider $0 controls.
+Native Docker boundary and forced controller cleanup checks passed, along with
+the 14-case fake transport matrix and regression checks. No real request ran.
+
+The actual coding command currently has an unrestricted owner token and can
+open private auth files; an open-only probe read no contents. Restore/use a
+restricted coding session and verify genuine denial before account renewal or
+request review. Approval, fresh passing host evidence, billing evidence and
+final-source account acceptance are absent. The production registry is empty.
+Do not change owner ACLs or treat container proofs as coding-token isolation.
+
+`harden-batch3.ps1 -Phase seal-proposal` seals committed sources and the existing
+verified private inputs without granting sandbox access to real input copies.
+Run only the sealed `code/gold_proposal.py` with the manifest hash, first
+`--mode boundary`, then `--mode verify-termination`. Preserve completed attempts;
+they refuse reuse. No approval writer, renewal mode or gate override is exposed.
+The checkpoint's resume order governs any later real activation.
 
 ### Batch 3 local readiness and fake-auth isolation
 

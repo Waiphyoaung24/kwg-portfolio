@@ -182,13 +182,15 @@ or change settings implicitly.
 
 Preparation checkpoint October 5: [the offline real adapter is implemented and tested](2026-10-05-batch3-real-development-preparation.md).
 Owner-assisted SSH subsequently resolved access and [the real packet is now
-prepared](2026-10-05-batch3-real-packet-results.md). The final inference runner,
-its source/input seal and concrete production authorization remain pending;
-packet preparation does not complete gate C or authorize inference.
+prepared](2026-10-05-batch3-real-packet-results.md). The [final runner and input
+seal are now prepared and native checks passed](2026-10-05-batch3-final-runner-results.md).
+The actual unrestricted coding token still prevents fresh credential denial
+proof. Concrete authorization and fresh account/$0 checks remain pending;
+preparation does not complete gate C or authorize inference.
 
 Only consider this after gates A and B pass and the owner explicitly authorizes the concrete attempt.
 
-1. Prepare a real-data development packet using existing Batch 2 reconciliation/provenance helpers where possible. The current Batch 3 adapter is synthetic-only; do not relabel a synthetic fixture as real. Add only the minimum real-data adapter path needed at that time.
+1. Preserve the implemented real adapter and verified development packet, which reuse existing Batch 2 validation/simulation helpers. Never relabel a synthetic fixture as real or remove the unqualified/prior-exposure limitations.
 2. Freeze packet, baseline, allowed proposal schema, limits, account/model binding and final runner seal. Exclude untouched holdout data and preserve all unqualified/provenance limitation labels.
 3. Recheck freshness, isolation and provider credit prevention. Reserve exactly one durable production attempt immediately before the approved request, using the final sealed identity.
 4. Make one request with no retries, fallback, tools or trade authority. Failed or unknown outcomes stay consumed.

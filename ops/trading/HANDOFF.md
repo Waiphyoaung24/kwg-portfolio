@@ -1,5 +1,39 @@
 # Gold trading handoff — 2026-09-28
 
+## Final runner sealed; real proposal blocked by coding token — 2026-10-05 Bangkok
+
+[Final runner results and resume order](../../docs/superpowers/plans/2026-10-05-batch3-final-runner-results.md)
+record source `dfb9454a81e9a301c80561de4371ffaefae25f78`, exact real inputs and
+one-request `gpt-6-astra` intent. Proposal seal SHA256
+`b00ee5256e16883f9bdc7866cdba1fa58d709ee114599c1cda7d8608eb6e87a5`;
+intent SHA256 `6f41f118325687093072eb72989d370d03c2dfdf25106d7dd2973207125750e1`.
+The 84-file/73-code proposal snapshot is owner/SYSTEM-only; all three final
+snapshots and working source matches verified. Private preparation receipt SHA:
+`5ac92694ab4e555e929984318c9ff05c66c562a574f37116d9feac1d32df738b`.
+
+The 197-test workspace suite, 15 focused tests, four fake signature/registration
+checks and 14 native fake cases passed. Final proposal/account native boundaries
+and forced termination cleanup passed; missing approval stopped the actual
+sealed CLI before credentials, networking or production reservation. Older
+full-suite fixtures failed when relocated into the source-only seal; retain that
+diagnostic and run the full suite in its intended layout. No sources were
+changed to mask it.
+
+**Remaining blocker:** the actual default-tool token is unrestricted and can
+open the private registration/canary. The fresh probe read no bytes; its failed
+receipt is preserved and the passing coding-denial path is absent. Restore a
+restricted coding session and verify genuine file denial before proceeding.
+Do not substitute Docker isolation, change owner ACLs or invent a passing flag.
+Then review the sealed intent, refresh provider $0 evidence and obtain fresh
+same-account acceptance only under the applicable owner authorization. Current
+access expired; concrete one-proposal approval remains pending. Source changes
+require new snapshots and affected checks; never reuse consumed attempts.
+
+No real model request, renewal, authenticated catalog, credit/provider/SSH setting
+change, trade, deployment or push ran. Production registry empty and activation
+flags false; Batch 2 qualification stays deferred. Earlier runner-pending
+checkpoints below are historical where this evidence supersedes them.
+
 ## Real development packet complete; final inference runner remains — 2026-10-05 Bangkok
 
 Owner entered the SSH key passphrase directly in a terminal. One read-only

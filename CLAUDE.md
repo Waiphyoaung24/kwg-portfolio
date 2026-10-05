@@ -2,6 +2,43 @@
 
 Current trading handoff and task links: [ops/trading/HANDOFF.md](ops/trading/HANDOFF.md).
 
+## Final proposal runner sealed; host isolation blocked — 2026-10-05 Bangkok
+
+The real development runner is implemented and sealed from source
+`dfb9454a81e9a301c80561de4371ffaefae25f78`. Its exact packet/prompt, model,
+account fingerprints and one-request/$0/no-tools/no-trades limits are reviewable
+in [final runner results and resume order](docs/superpowers/plans/2026-10-05-batch3-final-runner-results.md).
+Proposal manifest SHA256:
+`b00ee5256e16883f9bdc7866cdba1fa58d709ee114599c1cda7d8608eb6e87a5`.
+Intent SHA256: `6f41f118325687093072eb72989d370d03c2dfdf25106d7dd2973207125750e1`.
+All 84 files/73 source matches and owner/SYSTEM-only proposal snapshot ACLs
+verified; large dataset/baseline stay private and their hashes are bound.
+
+The 197-test workspace regression, 15 focused tests, four signature/registration
+checks and all 14 native fake cases passed. Final proposal and account container
+boundaries and forced-controller-termination cleanup passed. Missing concrete
+approval refused the sealed dispatch CLI before credential access, network setup
+or production reservation. Failed relocated full-suite tests are disclosed:
+older tests assume repository-relative fixtures; use their intended workspace
+layout, with focused checks from the seal. Preserve all artifacts and receipts.
+
+**Next is the actual coding-process boundary:** the fresh default-tool open-only
+probe found an unrestricted owner token that could open registration and canary
+files. No contents were read. This is not passing restricted-token denial, and
+container isolation does not replace it. Restore/use an actual restricted coding
+session and capture fresh denial there. Do not deny the legitimate owner's ACL
+or enable dispatch using fabricated evidence. The passing proof path and owner
+approval are absent; production flags stay false.
+
+After resolving that blocker, review this concrete intent and recheck provider
+$0 saved controls and the same account before any separately authorized renewal
+or single proposal. The access token is expired; final-source account acceptance
+has not run. Do not renew, change settings or call a model merely to resume this
+checkpoint. No real requests, renewals, authenticated catalog calls, provider/
+SSH changes, trades, push or deployment ran in this milestone. Production
+registry empty; Batch 2 qualification deferred. Earlier runner-pending entries
+are historical where superseded. Preserve unrelated dashboard/skill changes.
+
 ## Real development packet ready — 2026-10-05 Bangkok
 
 The owner unlocked the existing SSH key in a separate terminal. The read-only
