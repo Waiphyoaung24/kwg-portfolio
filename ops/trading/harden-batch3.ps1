@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][ValidateSet('canary', 'credentials', 'seal', 'seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported', 'seal-account')][string]$Phase)
+param([Parameter(Mandatory)][ValidateSet('canary', 'credentials', 'seal', 'seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported', 'seal-account', 'seal-proposal')][string]$Phase)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $root = Join-Path $repo '.batch3-vibe'
@@ -101,8 +101,8 @@ if ($Phase -eq 'canary') {
     Set-Boundary (Join-Path $root 'profile/.vibe-trading')
     Write-Output 'PASS: auth directory and private config restricted to owner and SYSTEM; contents not read.'
 } else {
-    $current = $Phase -in @('seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported', 'seal-account')
-    $committed = $Phase -in @('seal-readiness', 'seal-supported', 'seal-account')
+    $current = $Phase -in @('seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported', 'seal-account', 'seal-proposal')
+    $committed = $Phase -in @('seal-readiness', 'seal-supported', 'seal-account', 'seal-proposal')
     if ($committed) {
         & git -C $repo diff --quiet HEAD -- ops/trading
         if ($LASTEXITCODE) { throw 'Commit reviewed trading sources before readiness sealing.' }
@@ -113,6 +113,7 @@ if ($Phase -eq 'canary') {
     if ($Phase -eq 'seal-readiness') { $snapshotName = 'sealed-gateway-readiness-' + $commit.Substring(0, 12) }
     if ($Phase -eq 'seal-supported') { $snapshotName = 'sealed-supported-' + $commit.Substring(0, 12) }
     if ($Phase -eq 'seal-account') { $snapshotName = 'sealed-account-' + $commit.Substring(0, 12) }
+    if ($Phase -eq 'seal-proposal') { $snapshotName = 'sealed-proposal-' + $commit.Substring(0, 12) }
     $sealed = Join-Path $root $snapshotName
     Assert-NoReparse $root
     if (Test-Path -LiteralPath $sealed) { throw 'Snapshot already exists; preserve it.' }
@@ -136,14 +137,14 @@ if ($Phase -eq 'canary') {
             $seen += $sid.Value
         }
         if ($user.Value -notin $seen -or $system.Value -notin $seen) { throw 'Private registry access incomplete.' }
-        $reviewName = switch ($Phase) { 'seal-supported' { 'supported-readiness' } 'seal-account' { 'account-readiness' } default { 'gateway-readiness' } }
+        $reviewName = switch ($Phase) { 'seal-supported' { 'supported-readiness' } 'seal-account' { 'account-readiness' } 'seal-proposal' { 'proposal-readiness' } default { 'gateway-readiness' } }
         $readiness = Join-Path $root $reviewName
         if (-not (Test-Path -LiteralPath $readiness)) {
             New-Item -ItemType Directory -Path $readiness | Out-Null
             Set-Boundary $readiness
         }
         Assert-NoReparse $readiness
-        if ($Phase -in @('seal-supported', 'seal-account')) {
+        if ($Phase -in @('seal-supported', 'seal-account', 'seal-proposal')) {
             $reviewAcl = Get-Acl -LiteralPath $readiness
             if (-not $reviewAcl.AreAccessRulesProtected -or $reviewAcl.GetOwner([Security.Principal.SecurityIdentifier]) -ne $user) { throw 'Supported registry owner/inheritance mismatch.' }
             $reviewSids = @()
@@ -167,6 +168,12 @@ if ($Phase -eq 'canary') {
             $metadata.mode = 'gold_account_only'
             $policy = & python -I -S -B -c "import sys,json;sys.path.insert(0,sys.argv[1]);from gold_account import POLICY;print(json.dumps(POLICY))" $PSScriptRoot
             if ($LASTEXITCODE) { throw 'Account runtime policy unavailable.' }
+            $metadata.policy = $policy | ConvertFrom-Json
+        }
+        if ($Phase -eq 'seal-proposal') {
+            $metadata.mode = 'gold_proposal_preparation'
+            $policy = & python -I -S -B -c "import sys,json;sys.path.insert(0,sys.argv[1]);from gold_proposal import POLICY;print(json.dumps(POLICY))" $PSScriptRoot
+            if ($LASTEXITCODE) { throw 'Proposal runtime policy unavailable.' }
             $metadata.policy = $policy | ConvertFrom-Json
         }
         $metadata | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $sealed 'readiness.json') -Encoding utf8
@@ -216,14 +223,20 @@ assert attempt['worker_source_sha256']==hashlib.sha256((p/'code/batch3_runner.py
             if ((Get-FileHash -LiteralPath $file.FullName).Hash -ne (Get-FileHash -LiteralPath (Join-Path $code.FullName $file.Name)).Hash) { throw 'Source changed during snapshot; preserve partial snapshot.' }
         }
     }
+    if ($Phase -eq 'seal-proposal') {
+        & python -I -S -B -c "import sys,pathlib;sys.path.insert(0,sys.argv[1]);from gold_proposal import prepare_inputs;prepare_inputs(pathlib.Path(sys.argv[2]),pathlib.Path(sys.argv[3]))" $code.FullName $root $sealed
+        if ($LASTEXITCODE) { throw 'Real proposal input identity refused; preserve partial snapshot.' }
+    }
     $manifest = @(Get-ChildItem -LiteralPath $sealed -Recurse -File | ForEach-Object {
         @{ path=$_.FullName.Substring($sealed.Length + 1); sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
     })
     $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $sealed 'manifest.json') -Encoding utf8
-    Set-Boundary $sealed 'ReadAndExecute'
-    foreach ($item in Get-ChildItem -LiteralPath $sealed -Recurse -Force) { Set-Boundary $item.FullName 'ReadAndExecute' }
+    $snapshotRights = if ($Phase -eq 'seal-proposal') { '' } else { 'ReadAndExecute' }
+    Set-Boundary $sealed $snapshotRights
+    foreach ($item in Get-ChildItem -LiteralPath $sealed -Recurse -Force) { Set-Boundary $item.FullName $snapshotRights }
     foreach ($entry in $manifest) {
         if ((Get-FileHash -LiteralPath (Join-Path $sealed $entry.path)).Hash.ToLowerInvariant() -ne $entry.sha256) { throw 'Sealed snapshot hash mismatch.' }
     }
-    Write-Output 'PASS: code and frozen input copies sealed; owner/SYSTEM full, sandbox read/execute only.'
+    if ($Phase -eq 'seal-proposal') { Write-Output 'PASS: source and real proposal input copies sealed; owner/SYSTEM only; approval pending.' }
+    else { Write-Output 'PASS: code and frozen input copies sealed; owner/SYSTEM full, sandbox read/execute only.' }
 }

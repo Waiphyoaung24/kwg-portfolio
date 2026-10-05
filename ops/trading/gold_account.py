@@ -167,7 +167,7 @@ def catalog_matches(value):
     return MODEL in slugs
 
 
-def probes(value):
+def probes(value, url=JWKS):
     def denied(ip, port):
         try:
             with socket.create_connection((ip, port), timeout=.5): pass
@@ -187,7 +187,7 @@ def probes(value):
     import httpx
     try:
         with httpx.Client(proxy='http://kwg-egress:3128',trust_env=False,verify=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT),timeout=10) as client:
-            client.get(JWKS)
+            client.get(url)
         result['untrusted_tls_denied']=False
     except httpx.ConnectError: result['untrusted_tls_denied']=True
     for name in ('example.com','auth.openai.com','api.openai.com','host.docker.internal'):
@@ -249,9 +249,9 @@ def worker():
     sys.stdout.buffer.write(raw)
 
 
-def cleanup_guard(attempt, parent):
+def cleanup_guard(attempt, parent, policy=None):
     owned = strict_json((attempt/'owned.json').read_bytes())
-    if owned.get('policy')!=POLICY or set(owned)!= {'containers','networks','policy'}:
+    if owned.get('policy')!=(POLICY if policy is None else policy) or set(owned)!= {'containers','networks','policy'}:
         raise ValueError('Guardian ownership policy refused')
     docker = [str(DOCKER),'--config',str(attempt/'docker-config'),'-H','npipe:////./pipe/dockerDesktopLinuxEngine']
     env = {k:v for k,v in os.environ.items() if k.upper() in {'SYSTEMROOT','WINDIR'}}
@@ -466,6 +466,11 @@ def run(seal_sha, mode):
                 present=catalog['required_model_present']
                 receipt.update(catalog_models_count=catalog['catalog_models_count'],catalog_sha256=catalog['catalog_sha256'],available_models=catalog['available_models'])
                 receipt.update(server_account_verified=True,required_model_present=present,production_isolation_verified=True,passed=present)
+                receipt.update(registration_sha256=hashlib.sha256((auth/'registration.json').read_bytes()).hexdigest(),
+                    accepted_at=int(time.time()),
+                    client_id_sha256=hashlib.sha256(updated['client_id'].encode()).hexdigest(),
+                    subject_sha256=hashlib.sha256(updated['subject'].encode()).hexdigest(),
+                    host_id_sha256=hashlib.sha256(updated['ext_agent_host_id'].encode()).hexdigest())
     except Exception as error:
         receipt['failure_kind']=type(error).__name__
     finally:

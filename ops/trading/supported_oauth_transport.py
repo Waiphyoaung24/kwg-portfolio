@@ -1,5 +1,7 @@
-"""Fixed public Responses core. Fake HTTP only; production dispatch is disabled."""
+"""Fixed Responses core; fake harness and separately gated isolated worker entry."""
 import time
+import os
+import sys
 
 from batch3_runner import MAX_BYTES
 from trusted_oauth_transport import strict_json
@@ -140,6 +142,21 @@ def invoke_fake(prompt, access_token, http_module, proxy):
             or not isinstance(access_token, str) or not access_token.startswith('FAKE_CANARY_')
             or any(c in access_token for c in '\r\n')):
         raise ValueError('Fake credential and bounded prompt required')
+    return _invoke(prompt, access_token, http_module, proxy)
+
+
+def invoke_isolated(prompt, access_token):
+    """Fixed worker entry; only the separately sealed controller transfers auth."""
+    if (os.name != 'posix' or not sys.flags.isolated or os.getuid() != 65534
+            or not isinstance(prompt, str) or not 0 < len(prompt.encode()) <= MAX_BYTES
+            or not isinstance(access_token, str) or not 0 < len(access_token) <= 16384
+            or any(c in access_token for c in '\r\n')):
+        raise ValueError('Isolated worker and bounded access input required')
+    import httpx
+    return _invoke(prompt, access_token, httpx, 'http://kwg-egress:3128')
+
+
+def _invoke(prompt, access_token, http_module, proxy):
     try:
         with http_module.Client(timeout=http_module.Timeout(connect=10, read=30, write=10, pool=10),
                 trust_env=False, follow_redirects=False, verify=True, proxy=proxy) as client:
@@ -153,7 +170,7 @@ def invoke_fake(prompt, access_token, http_module, proxy):
                     raise ValueError('Invalid HTTP response')
                 return parse_stream(response.iter_raw(chunk_size=4096))
     except Exception:
-        raise ValueError('Supported fake request failed; no retry or sensitive details recorded') from None
+        raise ValueError('Supported request failed; no retry or sensitive details recorded') from None
 
 
 def dispatch(*args, **kwargs):
