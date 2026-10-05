@@ -1,5 +1,52 @@
 # Current-seal account and provider $0 verification
 
+## Current: recovered old cleanup; guardian fix native preparation next
+
+Owner recovery removed both empty owned networks, confirmed all owned resources
+absent/saved guardian PID absent, and preserved historical metadata. Old native
+proof stays failed; account acceptance/model requests zero, production empty.
+Historical exact cause unknown. Public regression found an unhandled guardian
+wait/handle failure path. Shared cleanup now publishes redacted class/phase
+failure evidence, fails closed and batches exact names under the same budget;
+both controllers expose exit/cleanup diagnostics. Seventeen tests and both
+callers' real-self-handle/fake-Docker publication checks pass.
+
+Manual next: gold-guardian-fix-20261005/prepare.ps1. Scoped functional commit,
+old-evidence/current-absence preflight, new account/proposal seals and four native
+fake-input/public-TLS proofs. No acceptance, renewal/catalog, approval or inference;
+reuse the old supported matrix after exact source/evidence checks. Preserve old
+failure and new consumed attempts; stop on failure, never repeat preparation.
+Fresh account round and provider-enforced $0 checks remain next after actual
+native success, then separate proposal approval. Old verify.ps1 remains obsolete.
+
+## Current: scoped failed-native network recovery pending
+
+Owner inspection: public TLS true, no false probe categories or saved exception
+kind; cleanup receipt absent. All exact-owned containers absent, inner/outer
+networks present with no unexpected matches. Engine/images healthy, production
+registry empty, no acceptance/remaining native checks/model requests.
+Do not run live verification or repeat consumed preparation/boundary.
+
+Next manual owner entry is gold-native-failure-20261005/recover.ps1. It validates
+source/seals/markers, saved guardian PID absent/exited, exact network ownership
+and zero attachments, removes only inspected IDs and rechecks absence. Active
+or unknown PID/attachments/unexpected resources refuse mutation. Historical
+receipt/ownership/markers remain byte-identical; manual cleanup does not replace
+native proof. Public synthetic recovery/guardian tests and 15 focused tests pass.
+Runtime/seals unchanged; actual owner recovery and guardian cause are pending.
+Fresh native proof, account/$0 gates and separate proposal approval follow.
+
+## Current: native preparation failure blocks live verification
+
+Source e93578e was committed/sealed by the owner preparation command. Its first
+account.boundary failed with exit 2 and cleanup false, consuming that native
+attempt. No account acceptance or model request ran. The remaining new native
+checks were not reached. Do not run preparation again or any live verification.
+Read-only owner diagnosis is gold-native-failure-20261005/inspect.ps1; preserve
+failed attempts and seals, and share its redacted receipt/resource result.
+No runtime changes are made before the saved failure is inspected. See the
+[recovery task plan](2026-10-05-batch3-account-recovery/task_plan.md).
+
 ## Current: owner-selected durable recovery implemented offline
 
 Durable round IDs and exact approved account receipt binding are implemented

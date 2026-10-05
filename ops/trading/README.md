@@ -1,5 +1,31 @@
 # MT5 compatibility probe
 
+**Current: owner cleanup passed; guardian fix ready for new native proof.**
+Both leftover networks are gone and historical failure metadata is unchanged.
+Shared cleanup now handles wait/setup errors, publishes redacted failures and
+batches exact-owned Docker operations. Seventeen focused tests and synthetic
+publication checks pass. Manual owner next:
+.superpowers/sdd/gold-guardian-fix-20261005/prepare.ps1; scoped commit, new seals
+and native fake-input proofs only. No account/model requests. See [handoff](HANDOFF.md).
+Do not repeat old preparation or the consumed boundary. Actual new native proof,
+account/$0 verification and separate proposal approval remain pending.
+
+**Current: native cleanup receipt missing; two test networks need review.**
+Owner inspection confirms all containers absent, inner/outer networks present,
+healthy Docker/images, public TLS true and zero model requests. Exact guardian
+failure is unknown. Manual next: .superpowers/sdd/gold-native-failure-20261005/recover.ps1.
+It refuses an active/unknown saved guardian PID or attached/unexpected resources;
+only inspected empty owned network IDs may be removed. Historical failed proof
+and runtime/seals are preserved. Do not repeat preparation/native checks. See
+[handoff](HANDOFF.md); account/$0 verification and inference remain blocked.
+
+**Current: recovery source committed/sealed, but first native boundary failed.**
+Owner preparation reached commit e93578e and fresh seals, then account.boundary
+failed with cleanup unverified and zero model requests. Do not rerun preparation
+or delete the consumed check. Next is read-only owner diagnosis at
+.superpowers/sdd/gold-native-failure-20261005/inspect.ps1; see [handoff](HANDOFF.md).
+No account acceptance/inference or remaining new native checks ran.
+
 **Latest: current account acceptance failed and is consumed.** Owner reported
 `CalledProcessError`, cleanup unverified and zero model requests. Do not rerun
 the verification entry below. Corrected owner inspection confirms Linux Docker,

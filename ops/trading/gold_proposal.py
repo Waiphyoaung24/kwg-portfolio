@@ -375,8 +375,12 @@ def run(seal_sha, mode):
         if service is not None: service.shutdown();service.server_close()
         write_once(attempt/'finished.json',{'finished':True})
         limit=time.monotonic()+35
-        while not (attempt/'cleanup.json').exists() and time.monotonic()<limit: time.sleep(.1)
-        receipt['cleanup_verified']=(attempt/'cleanup.json').exists() and strict_json((attempt/'cleanup.json').read_bytes()).get('cleanup_verified') is True
+        while not (attempt/'cleanup.json').exists() and guard.poll() is None and time.monotonic()<limit: time.sleep(.1)
+        cleanup=strict_json((attempt/'cleanup.json').read_bytes()) if (attempt/'cleanup.json').exists() else {}
+        receipt['cleanup_verified']=cleanup.get('cleanup_verified') is True
+        for field in ('failure_kind','failed_phase'):
+            if field in cleanup: receipt['cleanup_'+field]=cleanup[field]
+        receipt['cleanup_guard_exit']=guard.poll()
         receipt['passed']=receipt['passed'] and receipt['cleanup_verified']
         write_once(attempt/'receipt.json',receipt)
     return receipt
@@ -402,6 +406,8 @@ def termination_check(seal_sha):
         cleanup=strict_json((attempt/'cleanup.json').read_bytes())
         result={**before,'forced_termination_verified':True,'cleanup_verified':cleanup['cleanup_verified'],
             'passed':cleanup['cleanup_verified'] is True,'controller_exit':process.returncode}
+        for field in ('failure_kind','failed_phase'):
+            if field in cleanup: result['cleanup_'+field]=cleanup[field]
         write_once(attempt/'receipt.json',result)
         return result
     finally:

@@ -1,5 +1,52 @@
 # Account verification recovery after Docker failure
 
+## Current: old resources recovered; tested guardian fix awaits native proof
+
+Owner recovery removed both exact empty owned networks, verified all resource
+absence and saved PID absent, and preserved all historical metadata. Old boundary
+remains failed with no cleanup receipt; production registry empty, zero account
+acceptance/model requests. Historical exact cause cannot be recovered from it.
+
+Reproduced a public code defect: unexpected wait/handle errors bypass cleanup and
+receipt publication; invalid Windows wait results were ignored. Shared guardian
+now attempts exact-name cleanup after these errors, records class/phase only,
+keeps verification false on guardian errors and refuses consumed guard markers.
+Batch removals/listings reduce twenty CLI calls to four under the same budget.
+Both account/proposal controller and termination summaries surface diagnostics.
+Seventeen focused tests pass (wait/handle errors, timeout, residual resources,
+replay, redaction and slow CLI simulation), plus native-self-process-handle/fake
+Docker publication for both callers. Real native isolation remains untested.
+
+Next owner preparation: gold-guardian-fix-20261005/prepare.ps1. Pin reviewed source
+scope/parent/index, validate old seals/metadata/resources and unchanged supported
+matrix, commit functional changes, create new account/proposal seals and run four
+new fake-input boundary/forced cleanup checks. Preserve old metadata on all native
+outcomes; stop on failure. No account acceptance, auth contents, renewal/catalog,
+approval or model dispatch. Fresh account/$0 gates and separate one-proposal
+approval follow actual native success. Old preparation/verification is obsolete.
+
+## Latest owner preparation result: first native check failed
+
+Owner preparation passed 15 tests and read-only Docker/image/predecessor checks,
+committed e93578ebb2b375d9be5fad47f380e5078f0eb2d4 and created new account/proposal
+seals. It then stopped on account.boundary: exit 2, passed false, cleanup false,
+seal matches and model requests zero. This boundary is consumed; preparation
+did not reach the other three native checks or save preparation.json. No account
+acceptance, renewal/catalog or inference occurred. Existing native proof remains
+historical evidence for old source, not proof of this changed controller.
+
+Do not rerun prepare.ps1, reset/delete attempts or reseal unchanged code. The
+summary omitted the saved failure kind/operation, so inspect before fixing.
+Next manual owner read-only entry is gold-native-failure-20261005/inspect.ps1.
+It verifies existing sealed/committed bytes, reads only bounded failed-native
+metadata, checks marker presence and queries current exact-owned resources and
+image identities. It also reports remaining attempt presence, production registry
+emptiness and new seal/intent hashes. No native test, credential contents,
+Docker startup/removal, provider request or model call. Redaction/category and
+wrapper syntax checks pass; actual owner diagnosis is pending. The source
+remains e93578e while diagnostics are prepared; earlier preparation-next
+instructions below are historical.
+
 Status: owner selected durable recovery; implementation and 15 focused offline
 tests complete. Changed-source sealing and native proof are pending manual
 owner preparation. No live account/provider request has run. The owner already
@@ -157,3 +204,27 @@ fresh signed account verification includes gpt-5.6-sol, cleanup succeeds, and
 fresh same-account provider $0 controls and coding isolation pass. A concrete
 proposal is ready for separate approval; dispatch is still blocked until that
 approval. Batch 2 qualification remains deferred.
+
+## Latest owner native diagnosis and scoped recovery — 2026-10-05
+
+Source e93578e account seal 4bea08d18fa6588512c9a74381e9d929ad4be2aa846a35c2001a4e4ddd5b6ffe,
+proposal seal 9c39ace0e2e016db2ca50715dc9eedb584110982349ad004611de0f5d77d7536.
+The failed account boundary reached public TLS and recorded no false probe
+categories or exception kind. Its cleanup receipt is missing, finished/guard
+ready markers exist, all containers are absent and inner/outer networks remain.
+Engine/pinned images pass; unexpected matches zero and production registry empty.
+No account acceptance, remaining native checks or model requests occurred.
+
+Hash-pinned owner recover.ps1 in gold-native-failure-20261005 checks exact source
+and seals, completed controller, absent/exited saved guardian PID, scoped empty
+container inventory, expected network names/IDs and zero attachments. Only those
+inspected IDs may be removed; no process kill, prune/restart or receipt mutation.
+It rechecks resource absence and historical metadata hashes, while retaining
+native_proof_passed=false. Refusals cover active/unknown PID, attachments,
+malformed IDs, unexpected prefix matches and Docker errors. Fifteen existing
+tests plus public synthetic cleanup/refusal and Windows guardian publication
+checks pass; synthetic Docker is mocked and no private state is accessed.
+
+Owner recovery outcome and actual guardian cause remain pending. Runtime/seals
+unchanged. Do not repeat preparation/boundary or reseal unchanged source. Manual
+absence evidence cannot substitute for successful automatic native cleanup.

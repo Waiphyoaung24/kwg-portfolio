@@ -1,5 +1,76 @@
 # Gold trading handoff — 2026-09-28
 
+## Current: cleanup recovered; functional guardian fix awaits native proof
+
+Owner recovery confirms saved guardian PID absent, both exact empty owned
+networks removed, all owned resources absent and historical metadata unchanged.
+Production registry empty; account acceptance/model requests zero. Failed native
+receipt remains failed, with no cleanup receipt. Actual old cause is unknown.
+
+Reproduced public error path: unexpected parent wait/handle errors previously
+prevented cleanup/publication. Shared guardian now cleans exact owned names after
+these errors, publishes class/phase diagnostics, rejects invalid wait results,
+and keeps success false on any guardian error. Batch removal/absence checks cut
+twenty CLI calls to four under the same cleanup command budget. Both controllers
+surface guardian exit and cleanup failure fields; termination results do too.
+No changes to account rounds, refresh/proposal reservations, model or $0 gates.
+Seventeen focused tests and native-self-handle/mocked-Docker checks for both
+callers pass; actual new isolation/forced termination proof remains pending.
+
+Manual next entry: .superpowers/sdd/gold-guardian-fix-20261005/prepare.ps1.
+Reviewed scoped commit, old evidence/current absence preflight, new seals and
+four native fake-input/public-TLS checks only. Reuses the old supported matrix
+after source/receipt identity checks, with historical metadata rechecked on
+failure. No account acceptance, credentials, renewal/catalog, approval or model
+request. Do not repeat preparation after commit/failure. Private helper execution
+remains owner-only; fresh account/$0 milestone and separate concrete proposal
+approval follow actual native success. Earlier cleanup instructions superseded.
+
+## Current: missing native cleanup receipt and two owned networks — 2026-10-05
+
+Owner diagnosis: e93578e account.boundary reached public TLS, no false probe
+categories or saved exception kind. cleanup.json absent; finished and guardian
+ready markers present. Both image pins and Linux engine pass. Containers absent,
+inner/outer networks present, unexpected matches zero; production registry empty.
+Account acceptance and other native checks never ran. Model requests zero.
+Guardian process state and exact cause remain unknown; native proof is failed.
+
+Manual owner next: .superpowers/sdd/gold-native-failure-20261005/recover.ps1.
+Hash-pinned helper verifies exact failed seals/source, completed controller,
+saved PID absent/exited, empty container inventory and exact empty owned networks
+before removing only their inspected immutable IDs. Active/unknown PID, attached
+networks or unexpected names refuse mutation. Rechecks absence and historical
+metadata hashes; retains failed receipt and never fabricates cleanup proof.
+No restart/prune, credential/provider access, native retry or model request.
+Public synthetic refusal/cleanup/guardian publication tests and 15 focused tests
+pass. Owner recovery pending. Runtime and seals unchanged; account/$0 milestone
+and separate proposal approval remain blocked. Private reads stay denied;
+Batch 2 deferred. Do not repeat preparation or the consumed boundary.
+
+## Current: e93578e native preparation failed at account boundary — 2026-10-05
+
+Owner ran reviewed preparation: 15 offline tests passed, engine/images passed,
+all seven historical account attempt resource inventories absent, previous
+14-case fake matrix reusable. Scoped commit e93578ebb2b375d9be5fad47f380e5078f0eb2d4
+and fresh account/proposal sealing succeeded. First account.boundary returned
+exit 2, passed false, cleanup false, seal matches, model requests zero. The
+workflow stopped; no account acceptance or model dispatch, and no new account
+termination/proposal native tests reached. No final preparation summary exists.
+
+Preserve the failed consumed boundary and all seals/old attempts. Do not rerun
+prepare.ps1 or reseal/reset to bypass it. The wrapper left saved failure fields
+out of its summary; root cause and current resource state are unverified.
+Next manual owner read-only diagnosis:
+.superpowers/sdd/gold-native-failure-20261005/inspect.ps1. Hash-pinned inspector
+checks committed/sealed runtime, bounded receipt/cleanup/ownership and marker
+presence, then only Docker info/image/exact-owned container/network listings.
+It reports existing remaining native attempts, production registry emptiness
+and current seal/intent hashes without credential contents. No startup/removal,
+retry, native test, account/provider request, approval or model call. Diagnostic
+redaction/category checks and wrapper syntax pass; actual owner outcome pending.
+Runtime remains unchanged after e93578e. Private denial and all $0/one-proposal
+gates stay intact; Batch 2 deferred. Earlier preparation-next entries superseded.
+
 ## Current: durable recovery offline implementation complete; native proof pending
 
 Owner selected durable account-only verification IDs. Implemented canonical,

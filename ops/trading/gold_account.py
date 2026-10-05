@@ -252,36 +252,64 @@ def worker():
 
 
 def cleanup_guard(attempt, parent, policy=None):
+    if (attempt/'guard-ready.json').exists() or (attempt/'cleanup.json').exists():
+        raise FileExistsError('Preserve consumed guardian')
     owned = strict_json((attempt/'owned.json').read_bytes())
     if owned.get('policy')!=(POLICY if policy is None else policy) or set(owned)!= {'containers','networks','policy'}:
         raise ValueError('Guardian ownership policy refused')
     docker = [str(DOCKER),'--config',str(attempt/'docker-config'),'-H','npipe:////./pipe/dockerDesktopLinuxEngine']
     env = {k:v for k,v in os.environ.items() if k.upper() in {'SYSTEMROOT','WINDIR'}}
-    kernel = ctypes.WinDLL('kernel32',use_last_error=True)
-    kernel.OpenProcess.restype = ctypes.c_void_p
-    handle = kernel.OpenProcess(0x100000,False,parent)
-    if not handle: raise ValueError('Controller handle unavailable')
-    kernel.WaitForSingleObject.argtypes = [ctypes.c_void_p,ctypes.c_ulong]
-    kernel.CloseHandle.argtypes = [ctypes.c_void_p]
-    deadline = time.monotonic()+DEADLINE
-    write_once(attempt/'guard-ready.json',{'pid':os.getpid()})
+    result=dict(cleanup_verified=False,guard_independent=True,resources_absent=False)
+    kernel=None;handle=None;phase='parent_handle'
     try:
+        kernel = ctypes.WinDLL('kernel32',use_last_error=True)
+        kernel.OpenProcess.argtypes = [ctypes.c_ulong,ctypes.c_int,ctypes.c_ulong]
+        kernel.OpenProcess.restype = ctypes.c_void_p
+        kernel.WaitForSingleObject.argtypes = [ctypes.c_void_p,ctypes.c_ulong]
+        kernel.WaitForSingleObject.restype = ctypes.c_ulong
+        kernel.CloseHandle.argtypes = [ctypes.c_void_p]
+        handle = kernel.OpenProcess(0x100000,False,parent)
+        if not handle: raise ValueError('Controller handle unavailable')
+        deadline = time.monotonic()+DEADLINE
+        write_once(attempt/'guard-ready.json',{'pid':os.getpid()})
+        phase='parent_wait'
         while time.monotonic()<deadline and not (attempt/'finished.json').exists():
-            if kernel.WaitForSingleObject(handle,250)==0: break
-        remaining = time.monotonic()+30
-        clean = []
-        for group,remove,listing in (('containers',['rm','-f','-v'],['ps','-a']),('networks',['network','rm'],['network','ls'])):
-            for name in owned[group].values():
-                try:
-                    budget=min(5,remaining-time.monotonic())
-                    if budget<=0: raise ValueError('Cleanup deadline')
-                    subprocess.run([*docker,*remove,name],env=env,capture_output=True,timeout=budget)
-                    exact=('^'+name+'$') if group=='networks' else ('^/'+name+'$')
-                    absent=subprocess.run([*docker,*listing,'--filter','name='+exact,'--format','{{.Name}}' if group=='networks' else '{{.Names}}'],env=env,capture_output=True,timeout=max(.1,min(5,remaining-time.monotonic())))
-                    clean.append(absent.returncode==0 and not absent.stdout.strip())
-                except (OSError,ValueError,subprocess.SubprocessError): clean.append(False)
-        write_once(attempt/'cleanup.json',{'cleanup_verified':all(clean),'guard_independent':True})
-    finally: kernel.CloseHandle(handle)
+            state=kernel.WaitForSingleObject(handle,250)
+            if state==0: break
+            if state!=258: raise OSError('Controller wait refused')
+    except FileExistsError:
+        if handle: kernel.CloseHandle(handle)
+        raise  # Never clean or publish into another guardian's consumed attempt.
+    except Exception as error:
+        result.update(failure_kind=type(error).__name__,failed_phase=phase)
+    remaining=time.monotonic()+30
+    clean=[]
+    def command(*args):
+        budget=min(5,remaining-time.monotonic())
+        if budget<=0: raise ValueError('Cleanup deadline')
+        return subprocess.run([*docker,*args],env=env,capture_output=True,timeout=budget)
+    # Batch only saved exact names so CLI startup does not consume the cleanup budget.
+    for group,remove,listing in (('containers',['rm','-f','-v'],['ps','-a']),('networks',['network','rm'],['network','ls'])):
+        phase=group+'_cleanup'
+        try:
+            names=list(owned[group].values())
+            command(*remove,*names)
+            exact='^'+('/' if group=='containers' else '')+'('+'|'.join(re.escape(name) for name in names)+')$'
+            absent=command(*listing,'--filter','name='+exact,'--format','{{.Name}}' if group=='networks' else '{{.Names}}')
+            clean.append(absent.returncode==0 and not absent.stdout.strip())
+        except Exception as error:
+            clean.append(False)
+            if 'failure_kind' not in result:
+                result.update(failure_kind=type(error).__name__,failed_phase=phase)
+    if handle:
+        try:
+            if not kernel.CloseHandle(handle): raise OSError('Controller handle close refused')
+        except Exception as error:
+            if 'failure_kind' not in result:
+                result.update(failure_kind=type(error).__name__,failed_phase='parent_close')
+    result['resources_absent']=all(clean)
+    result['cleanup_verified']=result['resources_absent'] and 'failure_kind' not in result
+    write_once(attempt/'cleanup.json',result)
 
 
 def private_acl(path):
@@ -588,8 +616,12 @@ def run(seal_sha, mode, verification_id=None):
         if service is not None: service.shutdown();service.server_close()
         write_once(attempt/'finished.json',{'finished':True})
         limit=time.monotonic()+35
-        while not (attempt/'cleanup.json').exists() and time.monotonic()<limit: time.sleep(.1)
-        receipt['cleanup_verified']=(attempt/'cleanup.json').exists() and strict_json((attempt/'cleanup.json').read_bytes()).get('cleanup_verified') is True
+        while not (attempt/'cleanup.json').exists() and guard.poll() is None and time.monotonic()<limit: time.sleep(.1)
+        cleanup=strict_json((attempt/'cleanup.json').read_bytes()) if (attempt/'cleanup.json').exists() else {}
+        receipt['cleanup_verified']=cleanup.get('cleanup_verified') is True
+        for field in ('failure_kind','failed_phase'):
+            if field in cleanup: receipt['cleanup_'+field]=cleanup[field]
+        receipt['cleanup_guard_exit']=guard.poll()
         receipt['passed']=receipt['passed'] and receipt['cleanup_verified']
         write_once(attempt/'receipt.json',receipt)
     return receipt
@@ -619,6 +651,8 @@ def termination_check(seal_sha):
         cleanup=strict_json((attempt/'cleanup.json').read_bytes())
         result={**before,'forced_termination_verified':True,'cleanup_verified':cleanup['cleanup_verified'],
                 'passed':cleanup['cleanup_verified'] is True,'controller_exit':process.returncode}
+        for field in ('failure_kind','failed_phase'):
+            if field in cleanup: result['cleanup_'+field]=cleanup[field]
         write_once(attempt/'receipt.json',result)
         return result
     finally:

@@ -2,6 +2,88 @@
 
 Current trading handoff and task links: [ops/trading/HANDOFF.md](ops/trading/HANDOFF.md).
 
+## Current: owner cleanup succeeded; guardian fix ready for native preparation
+
+Owner recover.ps1 removed only inner/outer empty owned network IDs, rechecked all
+owned resources absent, confirmed saved guardian PID absent and historical
+metadata unchanged. Old boundary remains failed, cleanup.json absent, production
+registry empty, acceptance/model requests zero. Do not repeat the old check.
+
+Historical guardian cause remains unknown. Public regression reproduces a real
+gap: parent-handle/wait exceptions exit before cleanup and publication, while
+stderr is discarded. The shared guardian now attempts exact-owned cleanup after
+these errors, records only exception class/phase, fails closed, recognizes
+invalid Windows wait results and refuses consumed guard markers. Containers and
+networks are each removed/listed in batches (four CLI calls rather than twenty)
+within the unchanged 30-second command budget. Account/proposal controllers
+record guardian exit and redacted cleanup failure fields, including termination
+results. Replay/renewal/production guards and gpt-5.6-sol selection are unchanged.
+Seventeen focused tests and both callers' synthetic publication with real Windows
+self-process handles and mocked Docker pass. No private reads or live calls.
+
+Manual owner next: .superpowers/sdd/gold-guardian-fix-20261005/prepare.ps1. It checks
+reviewed scope/parent/index, runs public checks and owner preflight, preserves
+old evidence, commits the functional fix, creates new account/proposal seals,
+and runs new boundary/forced-termination proofs with fake input/public TLS only.
+Historical metadata is rechecked even on native failure. No authenticated account
+verification, renewal/catalog request, approval or inference. Previous 14-case
+supported matrix is reused only after exact source/receipt checks. Share its
+redacted summary and stop on failure; never reset/replay/reseal unchanged code.
+Actual new native proof is pending. Account/$0 verification and separate proposal
+approval follow it. Agent tools cannot execute private owner helpers. Earlier
+recovery-next entries below are historical; Batch 2 remains deferred.
+
+## Current: failed native cleanup left two networks; scoped owner recovery next
+
+Owner inspection of e93578e confirms public TLS true, no failed probe categories,
+no saved failure kind, cleanup.json absent, finished/guard-ready present. Docker
+and both image pins pass. All exact-owned containers are absent; inner/outer
+networks remain with no unexpected prefix matches. Production registry is empty;
+account acceptance and remaining native checks never ran. Model requests zero.
+This establishes missing cleanup evidence, not the guardian's exact failure.
+
+Next manual owner command: .superpowers/sdd/gold-native-failure-20261005/recover.ps1.
+It checks source/seals/finished marker, saved guardian PID state, historical
+metadata hashes and exact-owned inventories. It refuses an active/unknown saved
+PID, any container/unexpected resource, or attached/malformed network. Only the
+two inspected empty owned network IDs may be removed, with absence rechecked.
+No process termination, prune, Docker restart, native retry, credential read,
+provider call, approval or inference. Historical failure is not rewritten;
+manual absence does not establish native cleanup proof. Runtime/seals unchanged.
+
+Synthetic tests cover cleanup/refusals and guardian publication using real
+Windows handles for the public test process with mocked Docker; 15 focused
+account/crypto/proposal tests also pass. Actual owner recovery is pending.
+Agent tools cannot run this helper because .batch3-vibe reads are denied.
+Share its redacted output; do not rerun prepare.ps1 or the consumed boundary.
+Fresh native proof, account/$0 verification and separate proposal approval
+remain outstanding. Earlier diagnostic-next instructions below are historical.
+
+## Current: recovery committed/sealed; first native boundary failed — diagnose only
+
+Owner preparation committed e93578ebb2b375d9be5fad47f380e5078f0eb2d4, created fresh
+account/proposal seals and stopped on account.boundary: native exit 2, passed
+false, cleanup false, seal matches, model requests zero. Fifteen offline tests
+and owner Docker/image/predecessor preflight passed; all seven historical account
+attempt resource inventories were absent. No account acceptance or inference
+ran. Account termination and both proposal native checks were not reached.
+Sealing success is not native isolation proof. The failed boundary is consumed;
+do not repeat prepare.ps1, delete attempts, rewrite receipts or reseal unchanged
+source. preparation.json was not produced by this failed workflow.
+
+The wrapper omitted the saved failure kind/operation, so root cause and current
+resource absence are unknown. No runtime fix is justified from summary alone.
+Manual read-only next entry:
+.superpowers/sdd/gold-native-failure-20261005/inspect.ps1. It verifies current
+committed/sealed runtime, reads bounded failed-native receipt/cleanup/ownership,
+checks markers and current exact-owned Docker resources/images, and reports the
+remaining native attempt presence and empty production registry. It never reads
+credentials, runs a native check, removes/starts resources or calls a provider.
+Synthetic redaction/category checks and wrapper syntax pass. Owner diagnosis
+pending. Private reads remain denied to agent tools; $0/account verification,
+separate proposal approval and Batch 2 qualification remain pending/deferred.
+Earlier owner-preparation-next instructions below are historical.
+
 ## Current: durable account recovery implemented; owner native preparation next
 
 Owner chose separately logged account verification rounds. Runtime changes are

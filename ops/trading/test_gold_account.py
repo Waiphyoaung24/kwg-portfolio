@@ -5,12 +5,77 @@ from pathlib import Path
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import gold_account as account
 
 
 class AccountTest(unittest.TestCase):
+    def test_guardian_records_wait_failure_and_still_cleans_exact_owned_resources(self):
+        with tempfile.TemporaryDirectory() as folder:
+            attempt=Path(folder);prefix='kwg-account-'+'a'*32+'-'
+            owned=dict(policy=account.POLICY,containers={role:prefix+role for role in (
+                'proxy','probe','keys','refresh','catalog','control','peer','peer-control')},
+                networks={role:prefix+role for role in ('inner','outer')})
+            (attempt/'owned.json').write_text(json.dumps(owned))
+            kernel=MagicMock();kernel.OpenProcess.return_value=123
+            commands=[]
+            def command(argv,**options):
+                action=argv[5:];commands.append(action)
+                self.assertGreater(options['timeout'],0);self.assertLessEqual(options['timeout'],5)
+                self.assertNotIn('SECRET',str(argv));self.assertNotIn('prune',argv)
+                if action[0]=='rm': self.assertEqual(action,['rm','-f','-v',*owned['containers'].values()])
+                elif action[:2]==['network','rm']: self.assertEqual(action,['network','rm',*owned['networks'].values()])
+                else:
+                    self.assertIn(action[:2],(['ps','-a'],['network','ls']))
+                    self.assertIn('--filter',action)
+                    for name in owned['containers' if action[0]=='ps' else 'networks'].values():
+                        exact=action[action.index('--filter')+1].removeprefix('name=')
+                        self.assertIsNotNone(account.re.fullmatch(exact,('/' if action[0]=='ps' else '')+name))
+                    self.assertIsNone(account.re.fullmatch(exact,prefix+'unrelated'))
+                return account.subprocess.CompletedProcess(argv,1 if 'rm' in action else 0,b'',b'SECRET')
+            with patch.object(account.ctypes,'WinDLL',return_value=kernel,create=True), \
+                    patch.object(account.subprocess,'run',side_effect=command):
+                kernel.WaitForSingleObject.side_effect=OSError('SECRET')
+                account.cleanup_guard(attempt,456)
+                result=json.loads((attempt/'cleanup.json').read_bytes())
+                self.assertFalse(result['cleanup_verified']);self.assertTrue(result['resources_absent'])
+                self.assertEqual(result['failure_kind'],'OSError');self.assertEqual(result['failed_phase'],'parent_wait')
+                self.assertNotIn('SECRET',str(result));self.assertEqual(len(commands),4)
+                kernel.CloseHandle.assert_called_with(123)
+                saved=(attempt/'cleanup.json').read_bytes()
+                with self.assertRaises(FileExistsError): account.cleanup_guard(attempt,456)
+                self.assertEqual((attempt/'cleanup.json').read_bytes(),saved)
+
+    def test_guardian_cleanup_budget_errors_and_missing_resources_fail_closed(self):
+        for fault in (None,'slow','timeout','present','wait_failed','handle','close'):
+            with self.subTest(fault=fault),tempfile.TemporaryDirectory() as folder:
+                attempt=Path(folder);prefix='kwg-account-'+'a'*32+'-'
+                owned=dict(policy=account.POLICY,containers={role:prefix+role for role in (
+                    'proxy','probe','keys','refresh','catalog','control','peer','peer-control')},
+                    networks={role:prefix+role for role in ('inner','outer')})
+                (attempt/'owned.json').write_text(json.dumps(owned))
+                if fault!='wait_failed': (attempt/'finished.json').write_text('{"finished":true}')
+                kernel=MagicMock();kernel.OpenProcess.return_value=0 if fault=='handle' else 123
+                kernel.CloseHandle.return_value=0 if fault=='close' else 1
+                kernel.WaitForSingleObject.return_value=0xffffffff
+                calls=[];clock=[0.0]
+                def command(argv,**options):
+                    calls.append(argv)
+                    if fault=='slow': clock[0]+=4  # Old 20 CLI calls exhaust the same 30-second budget.
+                    if fault=='timeout': raise account.subprocess.TimeoutExpired(argv,5,stderr=b'SECRET')
+                    return account.subprocess.CompletedProcess(argv,0,
+                        b'owned-still-present' if fault=='present' and 'ls' in argv else b'',b'')
+                with patch.object(account.ctypes,'WinDLL',return_value=kernel,create=True), \
+                        patch.object(account.subprocess,'run',side_effect=command),patch.object(account,'DEADLINE',.01), \
+                        patch.object(account.time,'monotonic',side_effect=lambda:clock[0]):
+                    account.cleanup_guard(attempt,456)
+                result=json.loads((attempt/'cleanup.json').read_bytes())
+                self.assertEqual(result['cleanup_verified'],fault in (None,'slow'))
+                self.assertTrue(result['guard_independent']);self.assertNotIn('SECRET',str(result))
+                self.assertLessEqual(len(calls),4)
+                self.assertLessEqual(clock[0],30)
+
     def test_controller_preflight_failure_and_round_replay_precede_reservation_or_auth(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)/'.batch3-vibe';root.mkdir()
