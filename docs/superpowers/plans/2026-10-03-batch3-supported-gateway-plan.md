@@ -8,8 +8,10 @@ the expired-token preflight. [Gate A has now passed](2026-10-03-batch3-account-a
 including the account-worker Internet boundary, forced-termination cleanup and
 catalog availability of owner-selected `gpt-6-astra`.
 [Gate B passed on October 5](2026-10-05-batch3-zero-spend-results.md) for the
-observed saved included-usage-only controls. Gate C's real packet and final
-inference boundary remain to be prepared; real dispatch remains disabled. Historical
+observed saved included-usage-only controls.
+[Gate C's real development packet is prepared](2026-10-05-batch3-real-packet-results.md);
+the final inference implementation, isolation acceptance and concrete attempt
+authorization remain pending. Real dispatch remains disabled. Historical
 starting evidence below describes the earlier plan-writing checkpoint.
 
 ## Outcome and scope
@@ -179,9 +181,10 @@ or change settings implicitly.
 ## Later gate C — one real development-only proposal
 
 Preparation checkpoint October 5: [the offline real adapter is implemented and tested](2026-10-05-batch3-real-development-preparation.md).
-Actual dataset access is pending after read-only SSH key rejection. No real
-packet, final inference seal or concrete production attempt exists yet; this
-does not complete gate C or authorize inference.
+Owner-assisted SSH subsequently resolved access and [the real packet is now
+prepared](2026-10-05-batch3-real-packet-results.md). The final inference runner,
+its source/input seal and concrete production authorization remain pending;
+packet preparation does not complete gate C or authorize inference.
 
 Only consider this after gates A and B pass and the owner explicitly authorizes the concrete attempt.
 

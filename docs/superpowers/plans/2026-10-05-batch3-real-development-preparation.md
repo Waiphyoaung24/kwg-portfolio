@@ -1,5 +1,12 @@
 # Batch 3 — real development preparation checkpoint
 
+Continuation: [the real packet is now prepared](2026-10-05-batch3-real-packet-results.md).
+Owner-assisted interactive SSH read resolved dataset access; the exact export,
+current frozen manifest, reproducible baseline and development prompt verified.
+The blocked status below describes the earlier adapter-only checkpoint. Final
+real inference implementation, isolation acceptance and concrete authorization
+remain pending.
+
 Date: 2026-10-05, Asia/Bangkok. Offline adapter implemented and tested.
 **Gate C remains incomplete:** the real dataset is not accessible here, no real
 packet has been produced and no real inference entry has been enabled or sealed.

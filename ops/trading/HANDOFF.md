@@ -1,5 +1,28 @@
 # Gold trading handoff — 2026-09-28
 
+## Real development packet complete; final inference runner remains — 2026-10-05 Bangkok
+
+Owner entered the SSH key passphrase directly in a terminal. One read-only
+export copy succeeded and matched the original frozen checksum; no SSH/agent
+configuration or VPS state changed. The local dataset-access blocker is resolved.
+
+[Real packet results](../../docs/superpowers/plans/2026-10-05-batch3-real-packet-results.md)
+record the current frozen manifest, two byte-identical baselines and real packet
+generated with the existing sealed tools from source `e75e515e09a6…`. The adapter
+independently reproduced the baseline again. Packet/prompt remain private under
+`.batch3-vibe/gold-development/real-packet-e75e515e09a6`; inputs/receipt are under
+`real-inputs-e75e515e09a6`. Receipt SHA256
+`1c93fc050b0de511e6fa635b157720c3be74a1832c7585cec90296bc6ee7f046`.
+
+All 77 source-seal files, 71 code matches, file ACLs, artifact hashes and rebuilt
+prompt verified. The packet contains development summaries for 6,000 bars with
+unqualified costs/clock/prior-exposure labels. Reserved bars were not trade-simulated.
+This source snapshot remains fake-only; a final real inference runner and its
+isolation/cleanup acceptance plus source/input seal are still required before
+concrete attempt authorization. Recheck $0 settings and expired login before a
+request. No model request, renewal, settings change, trade, deployment or push
+ran; production registry empty and Batch 2 qualification deferred.
+
 ## Real packet adapter prepared; dataset access pending — 2026-10-05 Bangkok
 
 `batch3_adapter.adapt_real` and its offline CLI reuse the frozen experiment,

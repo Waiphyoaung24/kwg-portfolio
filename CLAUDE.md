@@ -2,6 +2,36 @@
 
 Current trading handoff and task links: [ops/trading/HANDOFF.md](ops/trading/HANDOFF.md).
 
+## Real development packet ready — 2026-10-05 Bangkok
+
+The owner unlocked the existing SSH key in a separate terminal. The read-only
+VPS export copy succeeded and matched the original checksum
+`ba4f246746d861c9f61d82c7a09d17931cd74e9dea604ea2897853369dcf8614`.
+The dataset-access blocker below is resolved. No SSH/agent configuration or
+remote state changed; interactive success does not provide unattended SSH access.
+
+Existing sealed tools from `e75e515e09a6bfa115d7e593173262d9e0deacac` froze a
+current manifest, produced two byte-identical baseline reports and independently
+reproduced the baseline in the adapter. A real development packet/prompt is now
+private under `.batch3-vibe/gold-development/real-packet-e75e515e09a6`, with inputs
+and receipt under `real-inputs-e75e515e09a6`. The first 6,000 bars supply development
+summaries only; costs/clock/prior-inspection limitations and unqualified status
+remain. Reserved bars were not trade-simulated and no candidate was registered.
+
+See [real packet results and exact hashes](docs/superpowers/plans/2026-10-05-batch3-real-packet-results.md).
+The 77-file source snapshot and 71 code matches, private file ACLs, byte-identical
+baselines, rebuilt prompt and receipt readback verified. Preparation receipt
+SHA256: `1c93fc050b0de511e6fa635b157720c3be74a1832c7585cec90296bc6ee7f046`.
+This supported-fake source snapshot is not the final real inference seal.
+
+**Next:** finish and verify the distinct isolated real proposal runner and freeze
+its final source/input identity. Restricted credential denial, final inference
+network/cleanup proof and concrete one-attempt authorization remain. Recheck
+provider $0 controls and expired login immediately before an authorized request.
+No model request, OAuth renewal, credit/settings change, trade, deployment or push
+ran. Production registry stays empty; Batch 2 qualification remains deferred.
+Earlier data-access and packet-pending entries below are superseded.
+
 ## Real proposal preparation checkpoint — 2026-10-05 Bangkok
 
 The owner continued after gate B. The offline real-development adapter is now

@@ -10,8 +10,8 @@ The qualification policy and risk limits stay fixed. Real gold dispatch remains
 blocked; human approval remains required for promotion. Historical
 evidence checkpoints below do not override this current development scope.
 Account-worker credential/network isolation and catalog acceptance have now
-passed. Provider USD0 controls were verified read-only on October 5; the real
-development packet and final inference boundary remain Batch 3 activation gates.
+passed. Provider USD0 controls were verified read-only on October 5 and the real
+development packet is prepared; the final inference boundary remains an activation gate.
 They do not reopen Batch 2 development. Current
 close-out evidence and acceptance boundaries are in the linked handoff.
 
@@ -49,8 +49,8 @@ and forced-controller-termination cleanup passed. See the
 [account results](../../docs/superpowers/plans/2026-10-03-batch3-account-acceptance-results.md)
 for source/receipt identities, commands and scope limits.
 [Provider $0 controls passed read-only verification on October 5](../../docs/superpowers/plans/2026-10-05-batch3-zero-spend-results.md).
-Recheck saved settings before dispatch. Real inference is blocked pending a
-concrete real packet, final sealed execution boundary and owner authorization.
+Recheck saved settings before dispatch. Real inference is blocked pending the
+final sealed execution boundary and owner authorization; the real packet is prepared.
 The token is now expired, and today's owner-context host probe did not reproduce
 restricted-token credential denial; both require checks before a real request.
 
@@ -69,8 +69,10 @@ adds `batch3_adapter.py --dataset <file> --baseline <file> --manifest <file>
 --output <new-directory>` for the exact existing frozen real export. It requires
 a current frozen manifest, reproduced baseline and protected owner/SYSTEM output
 parent. The packet contains development summaries and unqualified limitations;
-no credentials or model calls are involved. Data access is pending after SSH
-key rejection, so no actual real packet or final inference seal exists yet.
+no credentials or model calls are involved. Owner-assisted read-only SSH resolved
+data access; [the actual real packet and reproduced baseline are prepared](../../docs/superpowers/plans/2026-10-05-batch3-real-packet-results.md).
+The final real inference runner, isolation acceptance and source/input seal
+remain pending. Do not treat the fake-only source snapshot as live authorization.
 
 ### Trusted OAuth transport (dispatch disabled)
 
