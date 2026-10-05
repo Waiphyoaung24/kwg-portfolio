@@ -1,5 +1,25 @@
 # Gold trading handoff — 2026-09-28
 
+## Real packet adapter prepared; dataset access pending — 2026-10-05 Bangkok
+
+`batch3_adapter.adapt_real` and its offline CLI reuse the frozen experiment,
+baseline simulator and development-summary validator. Exact recorded dataset
+checksum, current frozen manifest, full baseline reproduction and policy/risk
+identity are required. All unqualified/prior-exposure labels stay in the prompt.
+Six new tests, 191 owner-context stdlib tests and native synthetic private-output
+ACL/replay checks passed; synthetic evidence is explicitly not a real packet.
+
+[Preparation results and resume steps](../../docs/superpowers/plans/2026-10-05-batch3-real-development-preparation.md)
+record the native receipt, failed checks and current isolation limitation.
+Read-only SSH rejected the available key; Desktop/Downloads search found no
+frozen export copy. Owner was asked for an existing path or working SSH alias.
+No actual real packet or final inference seal has been created. Gate C remains
+incomplete and dispatch blocked. Obtain the exact data, freeze/reproduce inputs,
+then prepare the distinct final real execution boundary and concrete authorization.
+Gate B settings and expired login need checks immediately before any request.
+No model request, renewal, settings change, trade, deployment or push ran;
+production registry empty and Batch 2 qualification deferred.
+
 ## $0 spending verification complete; next is real proposal preparation — 2026-10-05 Bangkok
 
 Gate B passed for the saved provider settings observed today. The unique gold

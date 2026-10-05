@@ -1,4 +1,5 @@
-"""Synthetic report adapter; real Batch 2 qualification is deliberately refused."""
+"""Offline development packet adapters; never qualify or dispatch research."""
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -8,7 +9,13 @@ from datetime import datetime, timezone
 
 from batch3_runner import research_module
 from gold_costs import validate_profile
-from gold_experiment import RISK, SCENARIOS, digest, source_hashes
+from gold_experiment import (RISK, SCENARIOS, digest, experiment_identity,
+                             prepare_experiment, research_input, source_hashes)
+from trusted_oauth_transport import strict_json
+
+
+FROZEN_DATASET_SHA256 = 'ba4f246746d861c9f61d82c7a09d17931cd74e9dea604ea2897853369dcf8614'
+MAX_INPUT_BYTES = 32 * 1024 * 1024
 
 
 def simulator():
@@ -21,6 +28,50 @@ def sha(raw):
 
 def encode(value):
     return (json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n').encode()
+
+
+def adapt_real(dataset_raw, baseline_raw, manifest_raw):
+    """Accept only the existing frozen export and a reproduced current baseline."""
+    try:
+        if (any(not isinstance(raw, bytes) or len(raw) > MAX_INPUT_BYTES
+                for raw in (dataset_raw, baseline_raw, manifest_raw))
+                or sha(dataset_raw) != FROZEN_DATASET_SHA256):
+            raise ValueError('Frozen dataset required')
+        data, baseline, manifest = map(strict_json, (dataset_raw, baseline_raw, manifest_raw))
+        sources = source_hashes()
+        expected_manifest = {**prepare_experiment(data, FROZEN_DATASET_SHA256, sources),
+                             'status': 'frozen'}
+        research = research_module()
+        policy = strict_json(Path(__file__).with_name('evaluation-policy.json').read_bytes())
+        if (encode(manifest) != encode(expected_manifest)
+                or digest(RISK) != research.RISK_SHA256 or digest(policy) != research.POLICY_SHA256):
+            raise ValueError('Frozen experiment identity mismatch')
+        expected = simulator()(data, windows=manifest['windows'])
+        expected.update(dataset_sha256=FROZEN_DATASET_SHA256, code_sha256=sources,
+            cost_profile_sha256=None, windows_sha256=digest(manifest['windows']),
+            identity=experiment_identity(manifest))
+        if encode(baseline) != encode(expected) or source_hashes() != sources:
+            raise ValueError('Baseline is not reproducible')
+        development = research_input(data, manifest, baseline)
+        packet = {'schema_version': 1, 'experiment_id': 'gold-development-20260928',
+            'identity': {'manifest_sha256': digest(manifest), 'source_sha256': digest(sources),
+                'development_input_sha256': digest(data['bars'][:6000]),
+                'risk_sha256': research.RISK_SHA256, 'policy_sha256': research.POLICY_SHA256},
+            'development': development['development'],
+            'baseline_development': development['baseline_development'],
+            'proposal_schema': research.PROPOSAL_SCHEMA,
+            'limitations': ['validation_previously_inspected', 'reserved_bars_signal_replayed',
+                'historical_costs_unverified', 'broker_timestamps_unqualified', 'slippage_assumed']}
+        research.validate_packet(packet)
+        return packet, {'mode': 'real-development-adapter-audit', 'qualification': 'unqualified',
+            'dataset_sha256': FROZEN_DATASET_SHA256, 'manifest_sha256': sha(manifest_raw),
+            'baseline_sha256': sha(baseline_raw), 'packet_sha256': digest(packet),
+            'baseline_reproduced': True, 'provenance_verified_for_real_data': False,
+            'research_input_bars': 6000, 'validation_in_prompt': False, 'reserved_in_prompt': False,
+            'limitations': packet['limitations'], 'model_requests': 0,
+            'dispatch_status': 'blocked', 'promotion_status': 'blocked'}
+    except (ValueError, TypeError, KeyError, UnicodeError, OverflowError, IndexError, RecursionError):
+        raise ValueError('Invalid or unreconciled real development input') from None
 
 
 def adapt_synthetic(dataset_raw, baseline_raw, manifest, costs, clock):
@@ -117,3 +168,37 @@ def synthetic_gate_input(report, manifest, clock):
             'folds': [{'start': utc_day(fold['first_bar']), 'end': utc_day(fold['last_bar']),
                        'days': len(daily(fold)), 'return_pct': fold['summary']['return_pct']}
                       for fold in lower['folds']]}}
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Prepare the frozen real-data packet offline; no inference.')
+    for name in ('dataset', 'baseline', 'manifest', 'output'):
+        parser.add_argument('--' + name, type=Path, required=True)
+    args = parser.parse_args()
+    try:
+        from gold_account import private_acl
+        from batch3_runner import write_once
+        private_acl(args.output.parent)
+        if args.output.exists():
+            raise FileExistsError('Preserve existing packet preparation')
+        inputs = []
+        for path in (args.dataset, args.baseline, args.manifest):
+            with path.open('rb') as source:
+                inputs.append(source.read(MAX_INPUT_BYTES + 1))
+        packet, audit = adapt_real(*inputs)
+        args.output.mkdir()
+        write_once(args.output/'packet.json', packet)
+        private_acl(args.output/'packet.json')
+        prepared = research_module().prepare_prompt(encode(packet), args.output/'prompt')
+        for name in ('packet.json', 'prompt.txt', 'result.json'):
+            private_acl(args.output/'prompt'/name)
+        audit['prompt_sha256'] = prepared['prompt_sha256']
+        write_once(args.output/'audit.json', audit)
+        private_acl(args.output/'audit.json')
+    except (ValueError, OSError, UnicodeError, RecursionError):
+        parser.exit(2, 'Real packet preparation refused input, private boundary or exclusive output.\n')
+    print('Real development packet prepared offline; unqualified; model_requests=0; dispatch=blocked.')
+
+
+if __name__ == '__main__':
+    main()

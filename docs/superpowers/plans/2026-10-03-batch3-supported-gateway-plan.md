@@ -178,6 +178,11 @@ or change settings implicitly.
 
 ## Later gate C — one real development-only proposal
 
+Preparation checkpoint October 5: [the offline real adapter is implemented and tested](2026-10-05-batch3-real-development-preparation.md).
+Actual dataset access is pending after read-only SSH key rejection. No real
+packet, final inference seal or concrete production attempt exists yet; this
+does not complete gate C or authorize inference.
+
 Only consider this after gates A and B pass and the owner explicitly authorizes the concrete attempt.
 
 1. Prepare a real-data development packet using existing Batch 2 reconciliation/provenance helpers where possible. The current Batch 3 adapter is synthetic-only; do not relabel a synthetic fixture as real. Add only the minimum real-data adapter path needed at that time.

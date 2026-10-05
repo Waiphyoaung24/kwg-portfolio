@@ -62,6 +62,16 @@ never inference. Attempts are exclusive and consumed; existing final attempts
 refuse repetition. Preserve failed/unknown attempts and private credential
 evidence. Do not rerun registration or overwrite the Vibe store.
 
+### Real development packet preparation (offline only)
+
+The [October 5 preparation checkpoint](../../docs/superpowers/plans/2026-10-05-batch3-real-development-preparation.md)
+adds `batch3_adapter.py --dataset <file> --baseline <file> --manifest <file>
+--output <new-directory>` for the exact existing frozen real export. It requires
+a current frozen manifest, reproduced baseline and protected owner/SYSTEM output
+parent. The packet contains development summaries and unqualified limitations;
+no credentials or model calls are involved. Data access is pending after SSH
+key rejection, so no actual real packet or final inference seal exists yet.
+
 ### Trusted OAuth transport (dispatch disabled)
 
 The supported public-route rehearsal has a separate committed-source seal.

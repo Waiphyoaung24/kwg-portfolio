@@ -2,6 +2,37 @@
 
 Current trading handoff and task links: [ops/trading/HANDOFF.md](ops/trading/HANDOFF.md).
 
+## Real proposal preparation checkpoint — 2026-10-05 Bangkok
+
+The owner continued after gate B. The offline real-development adapter is now
+implemented and tested, reusing existing manifest, simulator, summary and prompt
+helpers. It accepts only the frozen export's recorded byte checksum, verifies
+the current-source frozen manifest and reproduces the full baseline. It emits
+development-only summaries with all unqualified cost/clock/prior-exposure labels.
+Its CLI requires a protected private parent and refuses existing outputs.
+
+**Blocked on data access:** the frozen export remains recorded on the VPS at
+`/opt/kwg-gold-research/datasets/gold-history-20260928.json`; read-only SSH rejected
+the available public key. No local copy was found in Desktop/Downloads. Owner
+was asked for an existing file path or working SSH alias, never credentials.
+No actual real-data packet or final inference seal exists yet.
+
+See [preparation results and resume steps](docs/superpowers/plans/2026-10-05-batch3-real-development-preparation.md).
+Six new tests and the 191-test owner-context stdlib regression passed. Native
+synthetic output ACL/replay checks passed; that fixture used a test-only hash
+override and is not a real packet. Its private receipt SHA256 is
+`25ff962ab6630f4aa74bb16d56bcf24ecc1e7afd366dfae7852cdd127d147ee3`.
+Failed sandbox/native checks are disclosed and preserved. The host command can
+still open the auth-owner files; restricted credential denial is not proved.
+
+**Next:** obtain the exact data bytes, create a current frozen manifest and
+reproducible baseline, then run the adapter under the private development root.
+Prepare and verify the final real inference boundary and seal before reviewing
+one concrete attempt. Recheck gate B settings and expired login before any
+authorized dispatch. Production registry remains empty; no model request,
+renewal, credit/settings change, trade, deployment or push ran. Qualification
+stays deferred. Older checkpoint instructions are historical where superseded.
+
 ## Resume checkpoint — 2026-10-05 Bangkok
 
 **Completed:** Batch 3 gate B, provider $0 additional-spend verification.
