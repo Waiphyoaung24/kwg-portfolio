@@ -1,6 +1,6 @@
 surface: /vault/dashboard
 visual_authority: ../DESIGN.md and ../src/styles/_vars.scss
-mode: dark only; no shadows; weight 400; pill controls; existing six dashboard page layouts
+mode: dark only; no shadows; weight 400; pill controls; six note page layouts and Settings
 source_contract: Reuses Dot geometry, component states, keyboard controls, reduced motion, and graph behavior
 data:
   storage: User-selected local directories only; no notes network endpoint
@@ -17,7 +17,11 @@ acceptance:
   - Cancelled switch preserves draft; saving blocks workspace change
   - Reconnect permission preserves the active draft and original version without a discard prompt
   - Safe initial no-folder screen; no silent browser-storage fallback
-  - Six pages, nine Wai-G templates, graph and keyboard list
+  - Six note pages, nine Wai-G templates, graph and keyboard list
+  - Settings tab owns folder selection; disconnected note pages link to Settings
+  - Back to vault is the first sidebar control
+  - Centered desktop content beside the rail; compact connection and editor empty states
+  - Tablet and phone Pages disclosure supports touch, keyboard and Escape
   - Visible focus; readable neutral contrast; mobile no overflow
 
 operate_type: Dot token scale for app headings (h1 32, h2 20, h3 20 pixels); weight 400; inherited marketing headlines do not apply

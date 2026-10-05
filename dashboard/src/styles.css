@@ -104,10 +104,19 @@ button:hover,.note:hover{background:var(--c-canvas-soft)}
 #notes .note :is(b,.note-excerpt,small){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 label,.eyebrow,.nav-label,.shortcut,.list-caption{font-family:var(--ff-mono);text-transform:uppercase;letter-spacing:var(--ls-mono);font-weight:400}
 h1,h2{letter-spacing:var(--ls-4)}
-.folder-panel{border:var(--stroke) solid var(--border);border-radius:var(--sp-sm);padding:var(--s6);margin-bottom:var(--s6);background:var(--c-canvas)}
+.folder-panel{max-width:calc(var(--reading-width) + var(--s12));border:var(--stroke) solid var(--border);border-radius:var(--sp-sm);padding:var(--s6);margin-bottom:var(--s6);background:var(--c-canvas)}
 .folder-panel p{max-width:var(--reading-width);line-height:var(--lh-reading);color:var(--c-body);margin-block:var(--s3)}.folder-panel code{font-family:var(--ff-mono)}
-.folder-actions{display:flex;flex-wrap:wrap;gap:var(--s3)}
-.vault-return{display:block;padding:var(--s3);margin-block:var(--s3);color:var(--text)}
+.folder-actions{display:flex;flex-wrap:wrap;gap:var(--s3);margin-top:var(--s6)}
+.folder-panel h2{overflow-wrap:anywhere}
+.loading-panel .pill-btn{font-weight:400}
+.sidebar .nav-label{margin-top:var(--s6)}
+.sidebar .rail-bottom{padding-block:var(--s3)}
+.sidebar .rail-bottom h3{margin-block:var(--s2)}
+.sidebar .rail-bottom p{margin-bottom:var(--s2)}
+.folder-privacy{border-top:var(--stroke) solid var(--border);padding-top:var(--s6);margin-top:var(--s6)}
+.folder-privacy h3{margin-bottom:var(--s2)}
+.folder-privacy p{margin-bottom:0}
+.vault-return{justify-content:flex-start;min-height:var(--touch);padding:var(--s3);margin-bottom:var(--s4);color:var(--text);font-weight:400;text-decoration:none}
 ::selection{background:var(--c-body);color:var(--c-canvas)}
 @media(max-width:767px){.sidebar{overflow:visible}.folder-panel{padding:var(--s4)}}
 
@@ -119,3 +128,74 @@ a.quick-card,a.project-card,a.secondary,.text-link,.graph-list summary{border-ra
 #root h2{font-size:var(--t-xl);line-height:var(--lh-normal)}
 #root h3{font-size:var(--t-lg);line-height:var(--lh-normal)}
 #root .sidebar nav a[aria-current=page],#root .rail-bottom h3{color:var(--c-ink)}
+
+/* Operate layout: center the workspace in the column beside the fixed rail. */
+#root{display:grid;grid-template-columns:var(--rail-width) minmax(0,1fr);min-height:100dvh}
+#root main{grid-column:2;justify-self:center;align-self:start;width:100%;min-width:0;margin-left:0}
+#root .topbar{min-height:calc(var(--s16) + var(--s4))}
+#root .intro>div,.connection-copy{min-width:0}
+#root .primary-press{min-height:var(--touch);padding:var(--s3) var(--s6)}
+#root .primary-press .face{display:contents;font-size:inherit}
+#root .pages-toggle{display:none}
+#root .sidebar nav a{justify-content:flex-start}
+#root .sidebar nav a::after{display:none}
+#root .sidebar nav a:hover{background:var(--c-canvas-soft)}
+#root .loading-panel{display:flex;align-items:center;justify-content:space-between;gap:var(--s6);min-height:0;padding:var(--s6)}
+.connection-copy h2{margin:0 0 var(--s2)}
+.connection-copy p{margin:0;max-width:var(--reading-width);font-size:var(--t-sm);line-height:var(--lh-reading)}
+#root .section-heading{margin:var(--s6) 0 var(--s4);align-items:flex-end}
+#root .section-heading h2{margin-bottom:var(--s2)}
+#root .workspace{grid-template-columns:calc(var(--list-width) + var(--s8)) minmax(0,1fr)}
+#root .library{min-width:0;padding:var(--s6)}
+#root .search-field>span{top:50%;transform:translateY(-50%);display:flex;pointer-events:none}
+#root #search{font-size:var(--t-base)}
+#root #empty{min-height:var(--editor-height);padding:var(--s4);gap:var(--s3)}
+#root #empty h2,#root #empty p{margin:0}
+#root .empty-illustration{margin:0 0 var(--s2);width:var(--s12);height:var(--s12)}
+#root .empty-illustration svg{width:var(--s6);height:var(--s6)}
+#root .writing-tips{margin-top:var(--s4);gap:var(--s3) var(--s4)}
+#root .writing-tips span{min-width:0}
+#root .list-empty{margin:0;padding:var(--s3) 0}
+#root .editor-buttons{flex-wrap:wrap}
+#root .workspace-trigger{font-weight:400;justify-content:space-between}
+
+/* The Pages disclosure keeps tablet and phone navigation out of the reading path.
+   These breakpoints match the existing dashboard's tablet and phone geometry. */
+@media(max-width:1023px){
+ #root{grid-template-columns:minmax(0,1fr)}
+ #root main{grid-column:1}
+ #root .sidebar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--s3);border-right:0;border-bottom:var(--stroke) solid var(--border);overflow:visible}
+ #root .vault-return{grid-column:1/-1;justify-self:start;margin:0}
+ #root .brand{padding:0;align-self:center;font-size:var(--t-xl)}
+ #root .pages-toggle{display:inline-flex;gap:var(--s2);min-height:var(--touch);padding:var(--s2) var(--s4)}
+ #root .pages-toggle svg{width:var(--s4);height:var(--s4)}
+ #root .sidebar nav{grid-column:1/-1;margin:0}
+ #root .sidebar[data-menu-open=false] #workspace-navigation{display:none}
+ #root [data-slot="navigation-menu-list"]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2)}
+ #root .sidebar nav a{font-size:var(--t-sm);min-height:var(--touch);padding:var(--s3);height:100%}
+ #root .workspace-switch{grid-column:1/-1;display:flex;align-items:center;gap:var(--s3);padding:0;margin:0;border:0}
+ #root .workspace-switch-label{margin:0;font-size:var(--t-xs);font-weight:400}
+ #root .workspace-trigger{width:auto;min-width:var(--s24);margin-left:auto;padding:var(--s2) var(--s4)}
+ #root .workspace{grid-template-columns:var(--list-width) minmax(0,1fr)}
+}
+@media(max-width:767px){
+ #root .sidebar{padding:var(--s4)}
+ #root .topbar{flex-wrap:wrap;gap:var(--s3);padding:var(--s4) 0}
+ #root .breadcrumb{font-size:var(--t-sm)}
+ #root .top-actions{width:100%;justify-content:space-between;flex-wrap:wrap;gap:var(--s3)}
+ #root #capture{width:auto;font-size:var(--t-sm);padding:var(--s2) var(--s4)}
+ #root .intro{flex-direction:column;align-items:stretch;gap:var(--s4);padding:var(--s6) 0}
+ #root .intro #create{align-self:flex-start}
+ #root .intro .face svg{display:block}
+ #root #subtitle,#root .connection-copy p,#root #empty p{font-size:var(--t-base)}
+ #root .loading-panel{flex-direction:column;align-items:flex-start;padding:var(--s4);gap:var(--s4)}
+ #root .workspace{grid-template-columns:minmax(0,1fr)}
+ #root .library,#root .writing{padding:var(--s4)}
+ #root #empty{min-height:0;padding:var(--s6) 0}
+ #root .writing-tips{flex-direction:column;align-items:center}
+ #root .folder-actions{flex-direction:column;align-items:stretch}
+ #root .editor-footer{gap:var(--s4)}
+ #root .editor-buttons{width:100%;margin-left:0}
+ #root .editor-buttons button{flex:1}
+ #root .page-footer{gap:var(--s2);line-height:var(--lh-reading)}
+}

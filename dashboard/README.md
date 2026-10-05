@@ -4,7 +4,7 @@ The public page at `/vault/dashboard` runs the editor in the browser. It has no 
 
 ## Use
 
-Open `/vault/dashboard?page=today&workspace=personal` or `?page=knowledge&workspace=parallel`. Choose a folder explicitly for each workspace. Use separate non-nested vault folders. The browser asks for read/write access. Choose only folders you trust this website to access: permissions and IndexedDB storage are origin-scoped, not route-scoped. Other trusted code on this origin shares that security boundary.
+Open `/vault/dashboard?page=today&workspace=personal` or `?page=knowledge&workspace=parallel`. Open the Settings tab to choose, reconnect, or forget a folder for the selected workspace. Back to vault is at the top of the sidebar. On phones and tablets, use Pages to expand navigation; Escape closes it and returns focus to Pages. Choose a folder explicitly for each workspace. Use separate non-nested vault folders. The browser asks for read/write access. Choose only folders you trust this website to access: permissions and IndexedDB storage are origin-scoped, not route-scoped. Other trusted code on this origin shares that security boundary.
 
 Directory handles, not note contents, are remembered in IndexedDB. Permission can expire or be revoked. Reconnect folder asks again only when clicked. Forget folder removes the saved handle, not files or browser permission; revoke permission in browser site settings. Changes to a workspace binding in another tab invalidate old bindings before the next file operation.
 
@@ -32,7 +32,7 @@ The dashboard bundle is generated into ignored `public/dashboard-assets`. `npm r
 ## Verification
 
 - `node --test dashboard/*.test.mjs`: isolated adapter tests, graph, and Wai-G templates.
-- `node dashboard/browser-check.mjs`: requires a local production preview at port 4327, or DASHBOARD_ORIGIN. Uses Microsoft Edge, a new temporary browser profile, real OPFS directory handles, and deterministic chooser/permission substitutes. It checks persistence, cancellation, permission denial, stale writes, workspace isolation, drafts, templates, graph, dark styling, all six pages at four viewport sizes, and absence of note-upload requests.
+- `node dashboard/browser-check.mjs`: requires a local production preview at port 4327, or DASHBOARD_ORIGIN. Uses Microsoft Edge, a new temporary browser profile, real OPFS directory handles, and deterministic chooser/permission substitutes. It checks persistence, cancellation, permission denial, stale writes, workspace isolation, drafts, templates, graph, dark styling, all seven pages at six viewport sizes, centered desktop content, and the compact mobile Pages menu with keyboard and Escape checks, and absence of note-upload requests.
 - Native Windows chooser was opened during verification, but desktop automation did not complete its confirmation. Manual check remains: choose an empty temporary folder, grant access, create/save a note, confirm the Markdown file on disk, reload and reconnect, then revoke permission and confirm a save retains the draft. Do not use a real private vault for this first check.
 - Automated checks do not constitute a screen-reader audit or native Firefox/WebKit folder-access certification.
 
