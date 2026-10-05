@@ -2,6 +2,39 @@
 
 ## Current: 5.6 Sol selected; new seals and native checks next — 2026-10-05 Bangkok
 
+**Current: stale ACL list corrected and regression passed.** Owner diagnostics
+showed the `d053116` partial snapshot was already owner/SYSTEM-only, protected
+and empty. A vanished inherited SID returned native lookup code 1332. The shared
+hardener used a list captured before inheritance cleanup; it now reads the ACL
+after cleanup/grants before removing remaining unexpected entries. Parent ACLs
+and the non-escalatable private-tree deny stay intact.
+
+The full-function sequence regression failed before this correction and passed
+afterward, including refusal when an explicit entry cannot be removed. That
+sequence uses mocked ACL reads/writes; numeric SID removal also passed on a real
+harmless file. Full owner sealing/native checks remain pending. Agent tools read
+only the user-supplied diagnostic attachment, never private runtime metadata.
+
+Next owner helper: `.superpowers/sdd/gold-56-sol-current-acl-20261005/prepare.ps1`.
+It verifies/commits only five reviewed correction/checkpoint files from parent
+`d053116`, then creates new seals and runs existing fake/native checks. Preserve
+both earlier snapshots and never rerun their consumed helpers. No account
+acceptance, token renewal or inference. Share redacted final JSON or refusal.
+
+**Current blocker:** owner committed the SID-prefix correction as
+`d053116e6ad8b3509829725741f277587a867e13`, but sealing failed again at ACL
+removal. Do not treat the canary success as resolving this private native
+failure. Both preparation helpers are consumed; preserve both partial snapshots
+and run neither helper again. No new runtime correction has been guessed.
+
+Next owner-only command: `.superpowers/sdd/gold-acl-diagnostic-20261005/inspect.ps1`.
+This read-only metadata/SID-lookup diagnostic prints hashed identities and native
+exit codes without changing permissions or reading private file contents. Its
+syntax/public formatter passed; actual private execution is pending. The agent
+cannot execute it under the non-escalatable runtime deny. Share redacted JSON or
+error before choosing the next correction. No account acceptance, renewal or
+model request; native sealing and qualification remain blocked/deferred.
+
 Latest owner run committed `0816548e872af0b7a4e507dc109a15375cccbd11`, then
 stopped in `Set-Boundary` with `Unexpected access removal failed.` No fake/native
 matrix ran. The shared hardener's removal command now uses `*<numeric SID>`;

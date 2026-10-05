@@ -1,5 +1,87 @@
 # 5.6 Sol switch and next owner check — 2026-10-05 Bangkok
 
+## Current: stale ACL list diagnosed and corrected
+
+The owner supplied the read-only diagnostic for source
+`d053116e6ad8b3509829725741f277587a867e13`. The partial supported snapshot had
+protected inheritance, correct owner, exactly owner/SYSTEM Allow FullControl
+entries and zero descendants. Parent entries included an unmapped inherited
+identity (hash `69a62ea31572fd3651d0594947c4ce89fce10151b8570d760d279b0368ca0bba`)
+whose read-only native lookup returned 1332 even though the snapshot no longer
+contained it. All observations are owner-reported; the agent read only the
+supplied attachment, not the denied private tree. One final duplicate known-SID
+lookup omitted its exit-code field; it is not counted as new native proof.
+
+`Set-Boundary` read its removal list before calling `/inheritance:r`, which
+removes inherited entries under the
+[Windows command contract](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/icacls).
+It then tried to remove a disappeared, unmapped SID from that stale list and
+failed. The minimal correction moves the ACL read after inheritance cleanup and
+owner/SYSTEM grants. Remaining explicit entries are still removed, and any
+removal failure still stops sealing. Parent permissions and the coding deny are
+not modified by this correction; no access exceptions are requested.
+
+The expanded `ops/trading/test-boundary-sid.ps1` executed the complete shared
+function against a mocked ACL/native-write sequence matching this diagnostic.
+It reproduced `Unexpected access removal failed.` before the move and passed
+afterward. It also verifies a remaining unmapped explicit entry still refuses,
+and runs the existing real numeric-SID removal on a harmless public canary.
+This is not full native owner-only ACL sealing; that remains pending. Both
+before/after fixtures were preserved. No private contents or runtime metadata
+were read by agent tools and no model/network/account request ran.
+
+**New owner preparation command:**
+
+```powershell
+& 'C:\Users\wai19\Desktop\kwg-portfolio\.superpowers\sdd\gold-56-sol-current-acl-20261005\prepare.ps1'
+```
+
+The helper verifies parent `d053116` and five reviewed correction/checkpoint
+file hashes, commits only those files, then creates new commit-named snapshots
+and runs the existing 14 fake cases plus account/proposal boundary and forced-
+cleanup checks. Syntax/public file pins were checked; complete private execution
+is owner-only and pending. It preserves both old partial snapshots and all
+consumed attempts. No acceptance, renewal, authenticated catalog or real model
+request is included. Share only final redacted JSON/error; stop on failure.
+Do not rerun either prior preparation helper. The historical steps below explain
+the earlier narrow correction and diagnosis; they are superseded here.
+
+## Latest: second native failure; read-only diagnosis next
+
+The owner ran the second helper. Correction commit
+`d053116e6ad8b3509829725741f277587a867e13` succeeded, but native sealing again
+stopped with `Unexpected access removal failed.` The prefix correction's narrow
+public canary passed but did not resolve the original private failure. No new
+runtime change has been made following that result. Both preparation helpers
+are consumed; preserve their partial snapshots and do not rerun either helper.
+
+Run this read-only owner diagnostic instead:
+
+```powershell
+& 'C:\Users\wai19\Desktop\kwg-portfolio\.superpowers\sdd\gold-acl-diagnostic-20261005\inspect.ps1'
+```
+
+It requires owner identity and exact HEAD `d053116`, reads only ACL metadata for
+the private runtime parent and partial supported snapshot, summarizes descendant
+ACLs and captures native `icacls /findsid` results for non-owner/SYSTEM parent
+entries. Output contains identity hashes/categories and permission flags, not
+friendly names, raw SIDs or private file contents. It changes no permissions or
+files, commits nothing and runs no acceptance, renewal, catalog or inference.
+The agent must not execute the private diagnostic under the active deny.
+
+Public helper syntax and ACL formatter checks passed on a harmless canary.
+A separate read-only synthetic unresolved-SID lookup returned native exit 1332
+even with the numeric prefix; this demonstrates why a known Everyone-SID canary
+does not establish behavior for all identities. It does not identify the actual
+private failing SID. Its English-message classifier did not match the captured
+native output, so the helper also classifies native code 1332 directly. Actual
+owner diagnostic remains pending. Share only final redacted JSON or refusal;
+use those results before selecting another shared hardener correction.
+
+Earlier correction/preparation steps below are historical. No private state
+was inspected by agent tools, no fresh native matrix passed and no model request
+ran. The runtime target remains `gpt-5.6-sol`.
+
 ## Current: ACL removal correction ready for owner
 
 Owner ran the first helper. The scoped nine-file model-switch commit succeeded:

@@ -4,6 +4,43 @@ Current trading handoff and task links: [ops/trading/HANDOFF.md](ops/trading/HAN
 
 ## Current model: gpt-5.6-sol; new sealing pending — 2026-10-05 Bangkok
 
+**Current: owner diagnostic identified stale ACL reads; correction tested.**
+Owner supplied read-only diagnostics for `d053116`: the partial supported
+snapshot has protected inheritance, only owner/SYSTEM FullControl and no child
+files. A now-absent inherited identity fails native SID lookup with code 1332.
+`Set-Boundary` captured its removal list before `/inheritance:r` had already
+removed inherited entries. It now reads the ACL after inheritance removal and
+owner/SYSTEM grants. Parent ACLs and the active private-tree deny are untouched.
+
+The extended `test-boundary-sid.ps1` reproduced the stale-list failure before
+the change and passed afterward. It combines a real harmless-file numeric SID
+check with the full shared function using mocked ACL reads/writes for the
+observed sequence; explicit removal failures still refuse. Full private sealing
+is not yet revalidated. No agent tool read private runtime contents or metadata.
+
+Next manually run `.superpowers/sdd/gold-56-sol-current-acl-20261005/prepare.ps1`.
+It pins parent `d053116` and five correction/checkpoint file hashes, commits only
+those files, creates new commit-named seals and runs the existing fake/native
+checks. Preserve both failed snapshots and consumed helpers. This stage includes
+no acceptance, renewal or real model request. Share final redacted JSON/error.
+The entries below record earlier diagnosis and failures where superseded.
+
+**Latest: second sealing failure; diagnosis required.** Owner committed the
+numeric-SID correction as `d053116e6ad8b3509829725741f277587a867e13`, but sealing
+again stopped with `Unexpected access removal failed.` The prior correction
+passed its narrow canary yet did not resolve the native private failure. No
+further runtime changes should be made without diagnostic evidence. Both
+preparation helpers below are consumed; do not rerun them or delete snapshots.
+
+Next owner command is the read-only diagnostic
+`.superpowers/sdd/gold-acl-diagnostic-20261005/inspect.ps1`. It pins current HEAD,
+reads only parent/partial-snapshot ACL metadata, hashes identities and captures
+read-only `icacls /findsid` exit codes. No permission mutation, private file
+content read, commit, acceptance, renewal or model request. Syntax and formatter
+were checked on a harmless public canary. Agent tools must not execute the
+private diagnostic because this chat's deny remains non-escalatable. Share only
+its redacted JSON/error, then decide the smallest evidenced correction.
+
 Latest owner run committed the model switch as
 `0816548e872af0b7a4e507dc109a15375cccbd11`, then sealing stopped with
 `Unexpected access removal failed.` Native checks did not run. The shared

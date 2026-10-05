@@ -11,12 +11,12 @@ function Set-Boundary([string]$Path, [string]$SandboxRights = '') {
     $item = Get-Item -LiteralPath $Path -Force
     if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse point rejected.' }
     if (-not $item.FullName.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase) -and $item.FullName -ne $root) { throw 'Outside workspace boundary.' }
-    $old = Get-Acl -LiteralPath $Path
     $inherit = if ($item.PSIsContainer) { '(OI)(CI)' } else { '' }
     & icacls.exe $Path /setowner "*$user" | Out-Null
     if ($LASTEXITCODE) { throw 'Owner change failed.' }
     & icacls.exe $Path /inheritance:r /grant:r "*${user}:${inherit}F" "*${system}:${inherit}F" | Out-Null
     if ($LASTEXITCODE) { throw 'Owner/SYSTEM boundary failed.' }
+    $old = Get-Acl -LiteralPath $Path
     foreach ($rule in $old.Access) {
         $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier])
         if ($sid -ne $user -and $sid -ne $system) {
