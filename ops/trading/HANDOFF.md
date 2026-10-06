@@ -1,5 +1,12 @@
 # Gold trading handoff — 2026-09-28
 
+## Current: public-source diagnostics applied; sealed runtime unchanged
+
+The owner-authorized pinned patch and in-memory future approval candidate are
+prepared on `codex/batch3-public-diagnostics`. The consumed experiment remains
+blocked. Read the [source review, fake checks and next approval scope](../../docs/superpowers/plans/2026-10-06-batch3-public-source-integration.md).
+
+
 ## Current: cleanup recovered; functional guardian fix awaits native proof
 
 Owner recovery confirms saved guardian PID absent, both exact empty owned
