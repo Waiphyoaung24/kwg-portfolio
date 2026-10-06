@@ -31,10 +31,15 @@ def offline(event, args):
 
 
 sys.addaudithook(offline)
-suite = unittest.defaultTestLoader.loadTestsFromNames([
+modules = [
     'test_supported_oauth_transport', 'test_gold_proposal', 'test_proposal_diagnostics',
     'test_supported_gateway', 'test_gold_account', 'test_gold_account_crypto',
-    'test_real_development', 'test_proposal_approval_candidate'])
+    'test_real_development', 'test_proposal_approval_candidate']
+if sys.argv[1:] == ['--legacy-only']:
+    modules = ['test_legacy_synthetic_logic']
+elif sys.argv[1:]:
+    raise SystemExit('Use no arguments or --legacy-only')
+suite = unittest.defaultTestLoader.loadTestsFromNames(modules)
 result = unittest.TextTestRunner(verbosity=1).run(suite)
 tempfile.tempdir = old_tempdir
 fixtures.cleanup()

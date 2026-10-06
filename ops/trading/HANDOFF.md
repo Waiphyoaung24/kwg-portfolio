@@ -7,6 +7,11 @@ prepared on `codex/batch3-public-diagnostics`. The consumed experiment remains
 blocked. Read the [source review, fake checks and next approval scope](../../docs/superpowers/plans/2026-10-06-batch3-public-source-integration.md).
 
 
+The [matched-snapshot plan and synthetic legacy coverage](../../docs/superpowers/plans/2026-10-06-batch3-matched-private-snapshots.md)
+pin future snapshots to a separate clean f2ae1a2 worktree. Logic coverage does
+not establish provider identity, native isolation or permission to use a new registry.
+
+
 ## Current: cleanup recovered; functional guardian fix awaits native proof
 
 Owner recovery confirms saved guardian PID absent, both exact empty owned
