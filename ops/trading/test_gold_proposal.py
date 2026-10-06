@@ -15,7 +15,8 @@ class ProposalTest(unittest.TestCase):
         value=dict(mode='one_real_development_proposal',seal_sha256='a'*64,intent_sha256='b'*64,
             approved_at=1000,expires_at=2000,one_proposal_authorized=True,
             additional_spend_usd=0,account_seal_sha256='c'*64,
-            account_verification_id='d'*32,account_receipt_sha256='e'*64)
+            account_verification_id='d'*32,account_receipt_sha256='e'*64,
+            request_review_sha256=proposal.sha(proposal.request_review().encode()))
         proposal.approval_gate(value,'a'*64,'b'*64,1100)
         for update in ({'additional_spend_usd':1},{'additional_spend_usd':False},
                 {'one_proposal_authorized':1},{'expires_at':1100},{'expires_at':3000},
@@ -84,7 +85,8 @@ class ProposalTest(unittest.TestCase):
             approval=dict(mode='one_real_development_proposal',seal_sha256='a'*64,intent_sha256='b'*64,
                 approved_at=int(now),expires_at=int(now)+300,one_proposal_authorized=True,
                 additional_spend_usd=0,account_seal_sha256='c'*64,account_verification_id='d'*32,
-                account_receipt_sha256=proposal.sha(raw))
+                account_receipt_sha256=proposal.sha(raw),
+                request_review_sha256=proposal.sha(proposal.request_review().encode()))
             seen=[]
             def read(path):
                 seen.append(path)

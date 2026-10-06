@@ -16,7 +16,8 @@ from batch3_runner import DOCKER, MAX_BYTES, SANDBOX_IMAGE, research_module, wri
 from gold_account import (BOUND, DEADLINE, FILES as ACCOUNT_FILES, MODELS,
                           PROXY as ACCOUNT_PROXY, acceptance_name, cleanup_guard, private_acl, probes)
 from supported_gateway import PARSER_FILES, PYTHON, SQUID_IMAGE, inspect_container, watchdog
-from supported_oauth_transport import MODEL, URL, invoke_isolated
+from supported_oauth_transport import (MAX_EVENT, MAX_STREAM, MODEL, STREAM_SECONDS, URL,
+    ProposalFailure, checked_failure, invoke_isolated, request_body)
 from trusted_gateway import no_reparse, verify_seal
 from trusted_oauth_transport import strict_json
 
@@ -104,12 +105,23 @@ def verify_inputs(root, sealed):
     return intent, sha(intent_raw)
 
 
+def request_review():
+    """Future approval text, derived from the actual wire request; no prompt or auth."""
+    request = request_body('')
+    del request['input']
+    return json.dumps(dict(method='POST', url=URL, request=request, max_posts=1, retries=0,
+        tools=False, trade_authority=False, additional_spend_usd=0,
+        local_bounds=dict(proposal_bytes=MAX_BYTES, stream_bytes=MAX_STREAM, event_bytes=MAX_EVENT,
+            stream_seconds=STREAM_SECONDS, controller_seconds=DEADLINE)), sort_keys=True, indent=2)+'\n'
+
+
 def approval_gate(value, seal_sha, intent_sha, now):
     if (not isinstance(value,dict) or set(value)!= {'mode','seal_sha256','intent_sha256',
             'approved_at','expires_at','one_proposal_authorized','additional_spend_usd','account_seal_sha256',
-            'account_verification_id','account_receipt_sha256'}
+            'account_verification_id','account_receipt_sha256','request_review_sha256'}
             or value['mode']!='one_real_development_proposal' or value['seal_sha256']!=seal_sha
             or value['intent_sha256']!=intent_sha or value['one_proposal_authorized'] is not True
+            or value['request_review_sha256']!=sha(request_review().encode())
             or type(value['additional_spend_usd']) is not int or value['additional_spend_usd']!=0
             or any(type(value[k]) is not int for k in ('approved_at','expires_at'))
             or not now-1800<=value['approved_at']<=now+5
@@ -195,6 +207,33 @@ def dispatch_prerequisites(root, sealed, seal_sha, intent, intent_sha):
 
 
 def worker():
+    try:
+        _worker()
+    except Exception as error:
+        failure = error.diagnostic if isinstance(error, ProposalFailure) else dict(stage='worker', code='initialization')
+        sys.stdout.buffer.write(json.dumps({'failure': checked_failure(failure)}).encode())
+        sys.stdout.buffer.flush()
+        raise SystemExit(2) from None
+
+
+def decode_worker_response(returncode, raw):
+    try:
+        if len(raw)>BOUND: raise ValueError('Worker output limit')
+        value = strict_json(raw)
+        if not isinstance(value, dict): raise ValueError('Worker object required')
+        if returncode:
+            if set(value)!={'failure'}: raise ValueError('Worker failure required')
+            failure = checked_failure(value['failure'])
+        elif 'failure' in value:
+            raise ValueError('Failure cannot be success')
+        else:
+            return value
+    except Exception:
+        raise ProposalFailure('worker', 'reply') from None
+    raise ProposalFailure(**failure)
+
+
+def _worker():
     watchdog(DEADLINE);os.environ.clear()
     raw=sys.stdin.buffer.read(BOUND+1)
     if len(raw)>BOUND: raise ValueError('Worker input limit')
@@ -290,8 +329,7 @@ def run(seal_sha, mode):
         raw=json.dumps({'operation':operation,'value':value},allow_nan=False).encode()
         if len(raw)>BOUND: raise ValueError('Worker input limit')
         process=command('start','-a','-i',names[role],input=raw,check=False)
-        if process.returncode or len(process.stdout)>BOUND: raise ValueError('Proposal worker refused')
-        return strict_json(process.stdout)
+        return decode_worker_response(process.returncode, process.stdout)
     guard=subprocess.Popen([sys.executable,'-I','-S','-B',str(sealed/'code/gold_proposal.py'),'--seal-sha256',seal_sha,
         '--guard',str(attempt),'--parent',str(os.getpid())],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
         creationflags=subprocess.CREATE_NO_WINDOW|subprocess.DETACHED_PROCESS,close_fds=True)
@@ -370,16 +408,21 @@ def run(seal_sha, mode):
             receipt.update(passed=True,dispatch_status='completed_one_request',provider_credit_ceiling_usd=0)
     except Exception as error:
         receipt['failure_kind']=type(error).__name__
+        receipt['failure']=error.diagnostic if isinstance(error, ProposalFailure) else dict(stage='controller',code='exception')
         if mode=='dispatch': receipt['dispatch_status']='consumed_outcome_unknown'
     finally:
         if service is not None: service.shutdown();service.server_close()
         write_once(attempt/'finished.json',{'finished':True})
         limit=time.monotonic()+35
         while not (attempt/'cleanup.json').exists() and guard.poll() is None and time.monotonic()<limit: time.sleep(.1)
-        cleanup=strict_json((attempt/'cleanup.json').read_bytes()) if (attempt/'cleanup.json').exists() else {}
+        try:
+            cleanup=strict_json((attempt/'cleanup.json').read_bytes())
+            if not isinstance(cleanup,dict): cleanup={}
+        except (OSError,ValueError):
+            cleanup={}
         receipt['cleanup_verified']=cleanup.get('cleanup_verified') is True
-        for field in ('failure_kind','failed_phase'):
-            if field in cleanup: receipt['cleanup_'+field]=cleanup[field]
+        if not receipt['cleanup_verified']:
+            receipt['cleanup_failure']=dict(stage='cleanup',code='unverified')
         receipt['cleanup_guard_exit']=guard.poll()
         receipt['passed']=receipt['passed'] and receipt['cleanup_verified']
         write_once(attempt/'receipt.json',receipt)

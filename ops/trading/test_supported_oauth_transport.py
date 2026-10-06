@@ -64,7 +64,7 @@ class SupportedTransportTest(unittest.TestCase):
         for raw in failures:
             with self.subTest(raw=raw[:80]), self.assertRaises((ValueError, UnicodeError)):
                 transport.parse_stream([raw])
-        with self.assertRaisesRegex(ValueError, 'Stream limit'):
+        with self.assertRaisesRegex(ValueError, 'stream/limit'):
             transport.parse_stream([b': heartbeat\n\n']*(transport.MAX_STREAM//13+1))
         with patch.object(transport.time, 'monotonic', side_effect=[0, 121]):
             with self.assertRaises(ValueError): transport.parse_stream([wire(events())])
