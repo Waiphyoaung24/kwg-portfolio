@@ -24,6 +24,10 @@ approval/request contract checks against a pinned public source snapshot.
 The [diagnostic review](../plans/2026-10-06-batch3-diagnostic-review.md) records
 14 passing fake tests and the unapplied patch; runtime integration remains gated. A later development
 proposal requires a separately reviewed plan and explicit fresh approval.
+The [runtime integration plan](../plans/2026-10-06-batch3-runtime-integration.md)
+records exact source changes, matching account/proposal dependencies and rollback;
+19 fake checks pass without any runtime application. New seals and any live step
+remain separately gated.
 A qualified comparison additionally requires the deferred Batch 2 evidence.
 A successful comparison still requires separate human observation approval;
 execution promotion is another decision and implementation.

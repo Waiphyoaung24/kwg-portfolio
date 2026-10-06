@@ -19,6 +19,10 @@ checks and 14 focused fake tests pass; fixed risk/policy hashes match.
 Codex legacy_notify failed to spawn with Windows error 206; hooks are unchanged.
 Future approval text is bound to the exact tested request. Runtime integration,
 any new live plan and explicit fresh approval remain separate gates.
+[Runtime integration and rollback plan](../../docs/superpowers/plans/2026-10-06-batch3-runtime-integration.md)
+is prepared: 19 fake checks pass, including matched account/proposal source gates
+and exact reverse restoration. The pinned patch is unchanged. New snapshot
+creation, future approval-writer review and native/live evidence remain gated.
 The smoke capture is already reviewed as partial; preserve collector/artifacts.
 Do not follow older setup, capture or launch steps below as current instructions.
 No model retry, scheduler, trade, journal reset or VPS service change is part of
@@ -161,7 +165,7 @@ Architecture mapping and next increments:
 verified, real gold model dispatch blocked. Promotion blocked.**
 
 Use the [final handoff](../../docs/superpowers/plans/2026-10-02-batch2-batch3-handoff.md)
-and [current task plan](../../docs/superpowers/plans/task_plan.md). The owner deferred
+and [Batch 3 preparation plan](../../docs/superpowers/plans/2026-10-01-gold-batch3-vibe-integration.md). The owner deferred
 the qualifying observation/trade sample. Remaining real credential/network
 isolation and backend USD0 enforcement are Batch 3 gates, not unfinished Batch 2
 development. Historical checkpoint instructions below do not override this scope.
