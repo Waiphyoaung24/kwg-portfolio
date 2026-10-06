@@ -1,16 +1,32 @@
 # Batch 3 Vibe-Trading integration specification
 
-Status: specification prepared; offline parser/replay preparation started after
-the owner's subsequent “start”. This document does not authorize research.
-The implemented replay is for synthetic fixtures only until packet/controller
-review and credential quarantine are implemented. All replay output remains
-explicitly unreviewed and unqualified; parsing provides no sensitive-content clearance.
-Development-packet validation and deterministic prompt construction are now
-implemented and tested with synthetic input. Model dispatch, real-report
-provenance and credential quarantine remain pending.
-Batch 2 remains `prepared_but_blocked`. Owner selected a structured proposal in
-this preparation session. Work was performed on `main`, starting at
-`0f31e35011b664627390386fa7c0bf24ceb139d3`.
+## Current status — reconciled 2026-10-06
+
+Batch 3 preparation is verified only to the extent recorded in the
+[reconciliation checkpoint](../plans/2026-10-06-batch3-preparation-reconciliation.md).
+Batch 2 is **closed for development, unqualified** under the October 2 owner
+decision. Qualification remains deferred; its policy and risk limits are unchanged.
+
+The newer supported-gateway branch records one separately approved development
+proposal attempt as **consumed_outcome_unknown**: request count unknown, cleanup
+verified, no proposal or usage artifact. Do not retry, reset, rename, reseal or
+retime it, rerun its inspectors, or reuse its expired authorization/evidence.
+The saved failure type is ValueError; the precise cause was not retained.
+This preparation and diagnostic review authorizes no new model request.
+
+The separate main-based checkout contains the earlier offline integration.
+Newer gateway implementation and uncommitted operational records are not merged
+by this update. Public source records, their hashes and evidence limits are in
+the checkpoint; private receipts were not reopened.
+
+Current work: reconciled documents and a fake-only diagnostic patch with
+approval/request contract checks against a pinned public source snapshot.
+The [diagnostic review](../plans/2026-10-06-batch3-diagnostic-review.md) records
+14 passing fake tests and the unapplied patch; runtime integration remains gated. A later development
+proposal requires a separately reviewed plan and explicit fresh approval.
+A qualified comparison additionally requires the deferred Batch 2 evidence.
+A successful comparison still requires separate human observation approval;
+execution promotion is another decision and implementation.
 
 ## Milestone and decision
 
@@ -30,7 +46,7 @@ Alternatives considered with the owner:
 This preserves the roadmap's separate researcher architecture. No proposal or
 lookback value was selected during preparation.
 
-## Owner-selected product architecture — 2026-10-01
+## Historical product architecture — 2026-10-01
 
 Owner selected the existing Vibe-Trading app as a separate research workspace,
 rather than chat-only tools or a full trading terminal. Reuse its application;
@@ -60,7 +76,7 @@ provider framework, reporting system or evaluator is planned.
 Primary product reference: [Vibe-Trading](https://github.com/HKUDS/Vibe-Trading).
 Batch 2 gates, fixed risk hashes and human promotion approval remain unchanged.
 
-### Selected inference provider: OpenAI Codex with ChatGPT OAuth
+### Historical learning-app provider selection
 
 Owner selected `LANGCHAIN_PROVIDER=openai-codex` and the product's
 `vibe-trading provider login openai-codex` browser login flow. This replaces the
@@ -83,14 +99,12 @@ Synthetic transport checks must cover this recovery path as well as outer
 provider retries. Do not claim ordinary app configuration enforces one request
 without proof. Any budget revision requires explicit owner approval.
 
-For later local setup, set the provider in the isolated app's configuration
-and run its login command in an interactive terminal. Complete browser login
-locally; never paste callback URLs, codes or tokens into chat or Git. Login is
-not evidence of inference connectivity, tool isolation or Batch 2 qualification.
-OAuth usage accounting must record observable usage and unavailable cost data
-explicitly rather than inventing API-key billing values.
+This describes the earlier learning-app setup, not a current login instruction.
+The later gold route uses a separate supported OAuth registration and sealed
+controller; do not repeat login or registration from this historical section.
+Neither learning-app connectivity nor OAuth identity qualifies the strategy.
 
-## Read-only verification evidence
+## Historical read-only verification evidence — October 1
 
 Document date is the client date, 2026-10-01 Asia/Bangkok. The tool clock during
 inspection reported 2026-09-30 17:01:49 UTC; retain raw observation timestamps
@@ -129,8 +143,39 @@ loop default of 50 iterations, and `VIBE_TRADING_HOME` support. These defaults
 do not satisfy this experiment's bounds. No agent, provider doctor, inference
 request or research command was run. MCP credentials are not model credentials.
 
+## Current gold transport contract from newer records
+
+The recorded supported route is one POST to the public Responses endpoint with
+`gpt-5.6-sol`, medium reasoning, `stream=true`, `store=false`, no tools,
+retries, redirects or fallback. Gold registration remains separate from the
+learning app and read-only MCP. The owner's additional-spend ceiling is USD0;
+included usage only, app credit usage and automatic reload off.
+
+The October 3 owner decision replaced the original provider-enforced 2,048-token
+cap with local byte/time bounds: proposal 16,384 bytes, stream 262,144 bytes,
+event 65,536 bytes, stream processing 120 seconds, controller 180 seconds.
+These local bounds do not prove backend cancellation or bound billed usage.
+Unknown usage remains unknown. Historical account/billing/isolation successes
+are not fresh dispatch gates. No transport is added or enabled on main here.
+
+The consumed attempt's review text incorrectly said stream/store were both
+false. Actual source and its fake request fixture use stream=true/store=false.
+Preserve the original approval; do not retroactively rewrite consent or infer
+that this discrepancy caused the failure. Any future review must match the
+actual tested request, including these fields. The candidate patch generates
+review text from the actual request builder and requires its SHA-256 in future
+approval records; it does not rewrite or reauthorize existing approvals.
+
 ## Existing code and missing integration
 
+- `research-gold.py`: strict packet/prompt construction, response parsing and
+  exclusive offline replay; synthetic attempt tests, not a live controller.
+- `batch3_adapter.py` and `batch3_runner.py`: synthetic packet/transport
+  preparation. Main does not contain the newer real-development adapter or
+  supported gold proposal controller.
+- `batch2_adapter.py`: real-format baseline reconciliation is implemented and
+  fixture-tested; it deliberately reports unqualified, zero qualifying observed
+  days, unverified real provenance and blocked promotion.
 - `gold_experiment.py`: `validate_candidate`, `entry_allowed`, canonical
   `digest`, registration, research-input and provisional comparison helpers.
 - `replay-gold.py`: candidate filter changes entry eligibility only. Opposite
@@ -142,8 +187,9 @@ request or research command was run. MCP credentials are not model credentials.
   Its contract is fixed to the old 10,000-bar diagnostic, hypothetical costs,
   development indices and prior exposure. Do not relabel it as qualified.
 - `evaluate-gold.py`: approved numeric gates, paired bootstrap and an explicit
-  CLI cap `simulator_provenance_unverified`. Leave that cap until the separate
-  Batch 2 adapter is specified, tested and reviewed against real evidence.
+  CLI cap `simulator_provenance_unverified`. Keep it until a separately reviewed
+  qualifying adapter and covered real evidence support qualification; the
+  existing preparation adapter does not remove it.
 
 A prospective manifest/registration path must bind dated costs, qualified clock
 mapping, windows/folds, policy, simulator source and immutable raw outputs.
@@ -198,17 +244,17 @@ than baseline. Paired 95% bootstrap lower bound must exceed zero, using seed
    validation results/bars and all holdout contents. Record prior exposure:
    original validation was inspected and reserved bars were signal-replayed.
    Preserve the old reserved 2,000 bars; new holdout stays separately uninspected.
-3. Use one isolated Vibe-Trading 0.1.15 controller invocation through the owner's
-   existing route, only after a bounded route check. No default trading profile,
+3. For any separately authorized future attempt, reuse a reviewed, pinned
+   isolated gold controller rather than the general Vibe app agent loop.
+   The original installed 0.1.15 observation is not a production runtime pin. No default trading profile,
    global home, broker secrets, MT5 volume, Docker socket, shell tools, order
    tools or write access to evaluator/risk/runtime strategy. Mount sanitized
    input read-only; only a new private experiment directory is writable.
-4. Draft run bounds: one model request, zero retries/fallbacks/tool calls,
-   120-second request deadline, 180-second controller deadline, at most 2,048
-   output tokens and 16 KiB response. Enforce at transport/process boundaries;
-   an agent iteration setting alone is insufficient. Unknown route, pricing,
-   usage accounting or unenforceable bounds blocks launch. Freeze the owner's
-   approved cost ceiling before the route check; none is assumed here.
+4. Enforce the current gold transport contract above: one request, zero
+   retries/fallbacks/tool calls, local byte/time limits and USD0 additional spend.
+   An agent iteration setting or client-side token setting is insufficient.
+   Missing applicable billing enforcement, runtime isolation or fresh route
+   evidence blocks dispatch. Never run a live probe under this document.
 5. Model egress is limited to the verified provider; evaluation has no network.
    Inspect pinned runtime with synthetic input to prove limits, import and
    artifact output. Do not introduce a custom market loader when a development
@@ -312,9 +358,9 @@ or error bodies in public summaries. A credential-bearing response is
 quarantined privately and cannot become a proposal. Offline replay consumes
 saved response bytes and does not rewrite original artifacts.
 
-## Launch-readiness record
+## Qualification-comparison readiness record
 
-Before a future launch, save one private readiness record listing every gate
+Before a future qualified comparison, save one private readiness record listing every gate
 below, its evidence path and SHA-256, outcome, reviewer and review UTC time.
 Only verified evidence may receive `passed`; missing evidence stays `blocked`.
 This record does not replace the source artifacts or the owner's run approval.
@@ -328,7 +374,7 @@ This record does not replace the source artifacts or the owner's run approval.
 | Adapter | Raw hashes, real daily returns/folds, cost/date identity and accounting independently reproduced; CLI provenance cap lifted only through its reviewed implementation |
 | Candidate contract | Prospective manifest accepts qualified costs/windows and rejects mismatches; registration precedes candidate execution |
 | Runtime | Pinned package/dependencies, isolated home, no broker/tool access, synthetic import/output checks pass |
-| Model route | Owner's existing route, bounded synthetic probe, request accounting and approved cost ceiling verified |
+| Model route | Reviewed supported route, fake request-contract checks, fresh applicable account/billing/isolation evidence and USD0 ceiling; any live probe requires its own authorization |
 | Launch authorization | Owner explicitly authorizes this single experiment ID and frozen bounds |
 
 Candidate trade/day minimums and performance gates are outcomes of the single
@@ -339,30 +385,40 @@ another proposal. Human observation approval is a subsequent separate gate.
 
 ## Prepare now versus gated work
 
-| Work | Gate |
+| Work | Status / gate |
 | --- | --- |
-| This specification, plan, source review and read-only MCP checks | Completed now |
-| Synthetic adapter/controller design and tests, local dependency repair, isolated package pin | Preparation implementation requested; offline parser/replay implemented, full controller and route still pending |
-| Dated commission/swap/rollover and historical offset/DST coverage | Outstanding Batch 2 evidence |
-| Frozen future protocol, 60 covered days, three 20-day folds, 100 trades per strategy | Outstanding; candidate sufficiency is checked after its one gated run |
-| Verified real-report adapter, prospective candidate contract and repeatable fixed baseline | Required before research launch; numeric profitability of baseline is not a launch requirement |
-| Bounded existing model route, owner cost ceiling, synthetic import/artifact isolation checks | Required before research launch; no inference verified here |
-| Real Vibe proposal, registration and candidate evaluation | Only after Batch 2 prerequisites are signed off and owner authorizes the bounded run |
-| Batch 4 observation / promotion | Passing comparison plus explicit human approval; separate implementation |
+| Documentation reconciliation and credential-free offline checks | Authorized now; see checkpoint for fresh results |
+| Existing synthetic packet/parser/simulator/comparison path | Implemented; reuse it, keep synthetic and unqualified |
+| Safe failure classification and exact approval/request tests | Implemented as an unapplied patch against a pinned snapshot; 14 fake tests pass, runtime integration not authorized |
+| Additional real development proposal | Not authorized; consumed attempt is final. Requires a new reviewed plan, current route/isolation/account/billing evidence and explicit new approval |
+| Dated commission, swap, rollover, clock and exact-symbol sessions | Deferred Batch 2 qualification evidence |
+| Prospective protocol, covered baseline sample, real provenance and candidate registration support | Required for qualified comparison; preparation adapter is insufficient |
+| Candidate sufficiency | At least 100 closed trades, 60 covered validation days and three folds of at least 20 days; checked on the single frozen candidate, without tuning after results |
+| Batch 4 no-order observation | Passing qualified comparison plus hash-bound human approval |
+| Execution promotion | Separate explicit human approval and implementation; no automatic activation |
 
-## Running smoke test: preserve
+The October 2 development close-out permits unqualified offline learning without
+the 60-day qualification program. It does not waive that program for eligibility,
+authorize another real proposal, or require reopening Batch 2 development now.
 
-Owner reports active collector directory
+## Smoke evidence: preserve completed capture
+
+The original interval was 2026-09-30 17:00 UTC through 2026-10-01 17:00 UTC,
+with finish capture after 2026-10-01 17:15 UTC, at
 `/root/kwg-gold-research/evidence/smoke-20260930T164651Z`.
-Interval: 2026-09-30 17:00 UTC through 2026-10-01 17:00 UTC.
-Finish capture only after 2026-10-01 17:15 UTC (2026-10-02 00:15 Bangkok).
-Owner-reported start checks: Algo Trading off; no gold positions or pending
-orders. Cost status remains incomplete. This session did not independently
-inspect collector files or change any VPS state. Preserve collector, raw OHLC,
-journals and all artifacts. No finish capture or follow-up was scheduled.
-Pipeline success does not satisfy Batch 2 or unlock Batch 3.
+The [October 2 smoke review](../plans/2026-10-02-gold-smoke-review.md)
+supersedes the earlier running-test status: capture and preservation completed,
+pipeline result partial, continuous observation not established. It records
+two raw candles without observations and diagnostics retained only near the end.
+Start/end checks recorded Algo Trading off and no gold exposure; these are
+historical checks, not a fresh exposure claim. Costs remain incomplete.
+
+No recapture, collector change, restart, reset, backfill or scheduled follow-up
+is authorized. Preserve the collector, raw exports, journals, backups and all
+original reports. Smoke evidence earns no qualifying-day credit.
 
 References: [roadmap](../plans/2026-09-28-gold-ai-researcher.md),
 [Batch 2 wrap-up](../plans/2026-09-30-gold-batch2-wrap-up.md),
+[development close-out](../plans/2026-10-02-batch2-batch3-handoff.md),
 [implementation plan](../plans/2026-10-01-gold-batch3-vibe-integration.md),
 [MCP setup](../../../ops/trading/research-mcp/README.md).

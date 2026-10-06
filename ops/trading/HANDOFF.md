@@ -1,5 +1,29 @@
 # Gold trading handoff — 2026-09-28
 
+## Current preparation reconciliation — 2026-10-06
+
+[Reconciled specification, plan and evidence](../../docs/superpowers/plans/2026-10-06-batch3-preparation-reconciliation.md).
+Batch 2 is closed for development, unqualified; its evidence program is deferred.
+Newer supported-gateway records report one consumed proposal attempt with unknown
+request outcome, verified cleanup, and no proposal/usage artifact. No retry,
+reset, rename, reseal, retiming or rerunning either inspector is authorized.
+Historical account/provider/CLI successes are expired evidence, not current gates.
+Actual request was stream=true/store=false; preserve the inaccurate original
+approval and its correction without retroactively rewriting consent.
+
+This separate main-based worktree contains reconciled documentation and an
+unapplied fake-only diagnostic patch against a pinned supported-gateway snapshot.
+Original branch/uncommitted work and sealed runtimes remain intact. 39 baseline
+checks and 14 focused fake tests pass; fixed risk/policy hashes match.
+[Diagnostic and hook review](../../docs/superpowers/plans/2026-10-06-batch3-diagnostic-review.md):
+Codex legacy_notify failed to spawn with Windows error 206; hooks are unchanged.
+Future approval text is bound to the exact tested request. Runtime integration,
+any new live plan and explicit fresh approval remain separate gates.
+The smoke capture is already reviewed as partial; preserve collector/artifacts.
+Do not follow older setup, capture or launch steps below as current instructions.
+No model retry, scheduler, trade, journal reset or VPS service change is part of
+this reconciliation. See the linked checkpoint for exact remaining gates.
+
 ## Supported OAuth route compatibility review
 
 Official ChatGPT plan-usage docs specify a separate OAuth registration/grant
