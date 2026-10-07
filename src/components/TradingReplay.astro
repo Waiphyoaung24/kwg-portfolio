@@ -1,0 +1,106 @@
+<section class="card replay" aria-labelledby="replay-title">
+  <div class="replay__head">
+    <h2 id="replay-title">Watch a paper trade</h2>
+    <span class="label">Synthetic replay · no orders</span>
+  </div>
+  <p class="replay__intro">Play saved artificial candles to see a signal, entry and exit in about 25 seconds.</p>
+  <div class="replay__workspace">
+    <figure>
+      <div class="replay__quote"><span class="label">Simulated gold price</span><output id="replay-price">—</output></div>
+      <!-- SVG coordinates are chart geometry, not layout spacing. -->
+      <svg viewBox="0 0 640 230" role="img" aria-labelledby="replay-chart-title">
+        <title id="replay-chart-title">Saved synthetic closing prices</title>
+        <line x1="12" y1="210" x2="628" y2="210" class="replay__axis" />
+        <polyline id="replay-line" fill="none" />
+        <circle id="replay-dot" r="4" />
+      </svg>
+      <figcaption><span id="replay-progress">Candle 1 of 26</span> · each candle represents 15 minutes</figcaption>
+    </figure>
+    <div class="replay__activity">
+      <h3 id="replay-state" role="status">Waiting for a signal</h3>
+      <ol id="replay-events"><li>Watching completed M15 candles.</li></ol>
+      <p class="replay__result"><span class="label">Simulated net result</span><output id="replay-result">—</output></p>
+    </div>
+  </div>
+  <div class="replay__actions">
+    <button type="button" class="pill-btn pill-btn--filled" id="replay-play">Play replay</button>
+    <button type="button" class="pill-btn" id="replay-step">Next candle</button>
+    <button type="button" class="pill-btn" id="replay-reset">Reset replay</button>
+  </div>
+  <p class="replay__note">Illustrative target exit from the saved baseline simulation, with assumed costs. This is not your account, a live signal or evidence of profitability.</p>
+</section>
+
+<script>
+  import fixture from '../data/trading-replay.json';
+  import { replayFrame } from '../scripts/trading-replay.mjs';
+  const el = (id: string) => document.getElementById(id)!;
+  const play = el('replay-play') as HTMLButtonElement;
+  const step = el('replay-step') as HTMLButtonElement;
+  let index = 0;
+  let timer: ReturnType<typeof setInterval> | undefined;
+  function pause() {
+    clearInterval(timer);
+    timer = undefined;
+    play.textContent = index === fixture.bars.length - 1 ? 'Replay again' : 'Play replay';
+    step.disabled = index === fixture.bars.length - 1;
+  }
+  function render() {
+    const frame = replayFrame(fixture, index);
+    el('replay-price').textContent = frame.price;
+    el('replay-progress').textContent = frame.progress;
+    el('replay-result').textContent = frame.result;
+    el('replay-state').textContent = frame.state;
+    el('replay-events').replaceChildren(...frame.events.map((text: string) => {
+      const item = document.createElement('li'); item.textContent = text; return item;
+    }));
+    const prices = frame.bars.map((bar: { close: number }) => bar.close);
+    const low = Math.min(...prices) - 1;
+    const high = Math.max(...prices) + 1;
+    const points = prices.map((price: number, i: number) => [12 + i / (fixture.bars.length - 1) * 616, 200 - (price - low) / (high - low) * 180]);
+    el('replay-line').setAttribute('points', points.map((point: number[]) => point.join(',')).join(' '));
+    el('replay-dot').setAttribute('cx', String(points.at(-1)![0]));
+    el('replay-dot').setAttribute('cy', String(points.at(-1)![1]));
+    el('replay-chart-title').textContent = `${frame.progress}. Synthetic closing price ${frame.price}. ${frame.state}.`;
+  }
+  function advance() {
+    index = Math.min(index + 1, fixture.bars.length - 1);
+    render();
+    if (index === fixture.bars.length - 1) pause();
+  }
+  play.addEventListener('click', () => {
+    if (timer) { pause(); return; }
+    if (index === fixture.bars.length - 1) { index = 0; render(); }
+    play.textContent = 'Pause replay';
+    step.disabled = true;
+    timer = setInterval(advance, 1000);
+  });
+  step.addEventListener('click', () => { pause(); advance(); });
+  el('replay-reset').addEventListener('click', () => { index = 0; pause(); render(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+  render();
+</script>
+
+<style>
+  .replay { width: 100%; box-shadow: none; }
+  .replay__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--sp-md); }
+  h2 { margin: 0; font-size: var(--fs-4); letter-spacing: var(--ls-4); }
+  h3 { margin: 0 0 var(--sp-lg); font-size: var(--fs-5); }
+  .replay__intro, .replay__note, figcaption, li { color: var(--c-body); line-height: 1.6; }
+  .replay__intro { max-width: 65ch; margin: var(--sp-md) 0 var(--sp-xl); }
+  .replay__workspace { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-2xl); border-block: 1px solid var(--c-hairline); padding-block: var(--sp-xl); }
+  figure { margin: 0; min-width: 0; }
+  .replay__quote, .replay__result { display: grid; gap: var(--sp-sm); }
+  output { font-variant-numeric: tabular-nums; font-size: var(--fs-4); }
+  svg { width: 100%; display: block; }
+  polyline { stroke: var(--c-ink); stroke-width: 2; stroke-linejoin: round; }
+  circle { fill: var(--c-ink); }
+  .replay__axis { stroke: var(--c-hairline-bright); }
+  ol { padding-left: var(--sp-xl); margin: 0; }
+  li + li { margin-top: var(--sp-md); }
+  .replay__result { margin: var(--sp-xl) 0 0; }
+  .replay__actions { display: flex; flex-wrap: wrap; gap: var(--sp-md); margin-top: var(--sp-xl); }
+  .replay__note, figcaption { font-size: var(--fs-body-sm); }
+  .replay__note { margin: var(--sp-lg) 0 0; max-width: 75ch; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  @media (max-width: 48rem) { .replay__workspace { grid-template-columns: 1fr; } }
+</style>
