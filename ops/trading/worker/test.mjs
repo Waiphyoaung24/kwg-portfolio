@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import worker, { normalizeStatus } from './src/index.js';
@@ -211,4 +212,12 @@ test('reviewed preview and one arm reach only the private control route', async 
   assert.equal(armed.status, 202);
   assert.deepEqual(await armed.json(), { status: 'starting' });
   assert.equal(calls, 2);
+});
+
+
+test('shared status contract survives Worker normalization unchanged', () => {
+  const contract = JSON.parse(readFileSync(new URL('../fixtures/status-contract.json', import.meta.url)));
+  for (const item of contract.cases) {
+    assert.deepEqual(normalizeStatus(item.payload, contract.now), item.payload, item.name);
+  }
 });

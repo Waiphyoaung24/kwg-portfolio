@@ -1,0 +1,158 @@
+{
+  "now": 1000,
+  "cases": [
+    {
+      "name": "fresh priced observation, no execution",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "long",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "execution": null,
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "long",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "ui": {
+        "state": "Observing",
+        "price": "4100.25 / 4100.50",
+        "signal": "Long setup"
+      }
+    },
+    {
+      "name": "stale weekend quote is blocked and unpriced",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "blocked",
+        "signal": "long",
+        "reason": "Gold quote is old",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "stale",
+          "sampled_at": 995,
+          "tick_time": 10,
+          "tick_time_msc": 10000,
+          "quote_age_seconds": 985,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "execution": null,
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "blocked",
+        "signal": "none",
+        "reason": "Gold quote is old",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "stale",
+          "sampled_at": 995,
+          "tick_time": 10,
+          "tick_time_msc": 10000,
+          "quote_age_seconds": 985,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "ui": {
+        "state": "Waiting for price",
+        "price": "\u2014",
+        "signal": "Paused"
+      }
+    },
+    {
+      "name": "inverted bid/ask is dropped in every layer",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.5,
+          "ask": 4100.25
+        }
+      },
+      "execution": null,
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": null,
+          "ask": null
+        }
+      },
+      "ui": {
+        "state": "Observing",
+        "price": "\u2014",
+        "signal": "No setup yet"
+      }
+    }
+  ]
+}

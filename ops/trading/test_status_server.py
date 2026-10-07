@@ -12,6 +12,19 @@ from status_server import Handler, read_status, sanitize_health
 
 
 class StatusServerTest(unittest.TestCase):
+    def test_shared_status_contract(self):
+        contract = json.loads((Path(__file__).parent / "fixtures" / "status-contract.json").read_text())
+        for case in contract["cases"]:
+            with self.subTest(case["name"]), tempfile.TemporaryDirectory() as root:
+                observer = Path(root) / "latest.json"
+                observer.write_text(json.dumps(case["observer"]))
+                execution = Path(root) / "execution.json"
+                if case["execution"] is not None:
+                    execution.write_text(json.dumps(case["execution"]))
+                status, payload = read_status(observer, contract["now"], execution_path=execution)
+                self.assertEqual(status, 200)
+                self.assertEqual(payload, case["payload"])
+
     def test_operations_page_uses_fixed_file_and_rejects_unknown_path(self):
         with tempfile.TemporaryDirectory() as root:
             page = Path(root) / "trading-bot.html"
