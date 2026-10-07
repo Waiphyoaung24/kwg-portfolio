@@ -38,6 +38,25 @@
 
 ---
 
+## Implementation status — 2026-10-08
+
+- Task 1: pending Windows evidence; not merged or rejected.
+- Tasks 2–5: implemented locally; shared fixture, six active execution states,
+  browser success/401/302/pending cases, production fixture exclusion verified.
+- Task 6: source and fake-process test prepared; password provisioning, deployment
+  and live noVNC verification pending owner.
+- Tasks 7–9: owner operations/host decision pending; historical freshness preserved.
+- Task 10: local grid and tests implemented. Actual API is `grid(data, manifest)`
+  with a fixed 6,000-bar boundary; CLI requires `--manifest`. The original
+  configurable-boundary snippet below is superseded by the checked-in source.
+  Private dataset run and selection are pending.
+- Task 11: pending selection, host isolation and prospective registration; no
+  candidate, start date or access guarantee has been fabricated.
+
+The [README foundation section](../../../ops/trading/README.md#foundation-verification--prepared-locally-not-deployed)
+contains current commands. Task 5's original route snippet is superseded by the
+explicit dev-test opt-in and full timestamp rebasing in checked-in source.
+
 ## Phase A — Truth and housekeeping
 
 ### Task 1: Decide the unmerged receipt reliability fix
