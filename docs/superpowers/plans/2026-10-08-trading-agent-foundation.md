@@ -546,20 +546,27 @@ The collector already exists: `verify-demo.py --collect-seconds` feeds `gold_qua
 - Modify: `ops/trading/HANDOFF.md` ("Now" block only)
 
 **Interfaces:**
-- Consumes: deployed `verify-demo.py`, `gold_qualification.py`, `mt5_data.py` (check they match `main` first).
+- Consumes: deployed `verify-demo.py`, `gold_qualification.py`, `mt5_data.py`, `gold_signal.py` (check they match `main` first).
 - Produces: a private JSON on the VPS with `data_status: passed`, and its SHA-256 in `HANDOFF.md`.
 
 - [ ] **Step 1: Confirm the deployed files match `main`**
 
-Run on the VPS: `docker exec kwg-mt5-desktop sha256sum /opt/trading/verify-demo.py /opt/trading/gold_qualification.py /opt/trading/mt5_data.py`
-Run locally: `cd ops/trading && shasum -a 256 verify-demo.py gold_qualification.py mt5_data.py`
+Run on the VPS: `docker exec kwg-mt5-desktop sha256sum /opt/trading/verify-demo.py /opt/trading/gold_qualification.py /opt/trading/mt5_data.py /opt/trading/gold_signal.py`
+Run locally: `cd ops/trading && shasum -a 256 verify-demo.py gold_qualification.py mt5_data.py gold_signal.py`
 Expected: identical. If not, copy the `main` versions with `docker cp` as the README describes, without restarting MT5.
 
 - [ ] **Step 2: Run during a liquid open session**
 
-Pick a weekday between 08:00 and 16:00 UTC (London/New York overlap). Algo Trading off. On the VPS:
+Pick an open weekday session, for example within 08:00–16:00 UTC. Algo Trading off.
+First compare MT5 Market Watch with synchronized VPS UTC and confirm the current
+observer's configured offset. Replace `CONFIRMED_OFFSET_SECONDS` below with that
+explicitly evidenced value (0, 7200 or 10800). The September 28 evidence supported
+10800; it is not a current measurement. `verify-demo.py` defaults to zero and does
+not inherit `MT5_SERVER_OFFSET_SECONDS`. If the clocks disagree with the configured
+offset, stop and record the discrepancy; do not guess or modify the offset.
+Run a one-shot verifier with the same explicit offset before collection. On the VPS:
 ```bash
-docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/verify-demo.py --login YOUR_DEMO_ACCOUNT_NUMBER --collect-seconds 3600 --output 'C:\users\mt5\gold-qualification-YYYYMMDD.json'
+docker exec -it kwg-mt5-desktop wine /opt/python/python.exe /opt/trading/verify-demo.py --login YOUR_DEMO_ACCOUNT_NUMBER --server-offset-seconds CONFIRMED_OFFSET_SECONDS --collect-seconds 3600 --output 'C:\users\mt5\gold-qualification-YYYYMMDD.json'
 ```
 Expected: exits after `data_status: passed` or at 3,600 s.
 
@@ -570,8 +577,8 @@ Expected: `passed [<bar1>, <bar2>, ...] []`. If `inconclusive`, record the block
 
 - [ ] **Step 4: Rerun after the daylight-saving switch**
 
-European clocks change on 2026-10-25 and US clocks on 2026-11-01. Repeat Step 2 on a weekday after 2026-11-01.
-Expected: passes again with the same `MT5_SERVER_OFFSET_SECONDS`. If it fails with `future` or a bar-time mismatch, the broker offset changed: stop and record it; changing the offset is a separate reviewed decision.
+European clocks change on 2026-10-25 and US clocks on 2026-11-01. Repeat Step 2 on a weekday after 2026-11-01, first obtaining new Market Watch/UTC evidence. Pass the independently confirmed offset explicitly again; do not assume a broker follows either DST calendar.
+Expected: current clock evidence agrees with the configured observer offset and collection passes. If it disagrees or reports `future`/bar-time mismatch, stop and record the evidence; an offset change requires a separate reviewed decision.
 
 - [ ] **Step 5: Record**
 
