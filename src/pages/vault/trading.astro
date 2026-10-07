@@ -1,6 +1,7 @@
 ---
 import '../../styles/index.scss';
 import TradingNavigation from '../../components/TradingNavigation.astro';
+import TradingReplay from '../../components/TradingReplay.astro';
 export const prerender = true;
 ---
 
@@ -12,7 +13,7 @@ export const prerender = true;
     <!-- Browser theme-color metadata cannot resolve a CSS variable. -->
     <meta name="theme-color" content="#0a0a0a" />
     <meta name="robots" content="noindex" />
-    <title>Supervised demo — Gold operations — KWG</title>
+    <title>Demo account monitor — Gold operations — KWG</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -22,21 +23,29 @@ export const prerender = true;
     <main class="page">
       <TradingNavigation current="demo" />
       <header class="page__intro" id="trading-content" tabindex="-1">
-        <h1>Supervised demo</h1>
-        <p>Preview one protected gold order. You choose the prices and approve each demo attempt.</p>
+        <h1>Demo account monitor</h1>
+        <p>Watch the gold feed and strategy checks, or play a saved paper trade below.</p>
+        <a class="pill-btn page__replay-link" href="#replay-title">Watch the replay</a>
       </header>
       <section class="card status" aria-labelledby="status-title">
         <div class="status__head">
-          <h2 id="status-title">Demo feed</h2>
+          <h2 id="status-title">Live demo feed</h2>
           <span class="status__state label" id="state" aria-live="polite">Checking</span>
         </div>
         <p class="status__symbol micro">XAUUSD-VIP · VT Markets demo</p>
+        <p class="status__price"><span class="label">Bid / ask · USD</span><span id="price">—</span></p>
         <dl class="status__rows status__checks">
           <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M8 12h8M9 5H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3m6-14h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-3" /></svg>MT5 connection</dt><dd id="connection">Checking</dd></div>
           <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Gold price</dt><dd id="freshness">Checking</dd></div>
           <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 3 8-9m-6 0h6v6" /></svg>Strategy signal</dt><dd id="signal">Checking</dd></div>
         </dl>
         <p class="status__guidance" id="guidance" role="status">Connecting to the private status API.</p>
+        <p class="page__note">Live observation only. Signals do not place orders. Keep Algo Trading off for observation.</p>
+        <details class="status__activity">
+          <summary class="pill-btn">Recent checks</summary>
+          <p class="page__note">Up to six checks from this page session.</p>
+          <ol id="monitor-activity"><li>Waiting for the first status report.</li></ol>
+        </details>
         <details class="status__details">
           <summary class="pill-btn">Technical details <span aria-hidden="true">⌄</span></summary>
           <dl class="status__rows">
@@ -56,6 +65,9 @@ export const prerender = true;
           <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
         </div>
       </section>
+      <TradingReplay />
+      <details class="manual-controls">
+      <summary class="pill-btn">Manual demo order controls</summary>
       <section class="card status" aria-labelledby="control-title">
         <div class="status__head">
           <h2 id="control-title">Prepare one trade</h2>
@@ -78,7 +90,7 @@ export const prerender = true;
           </div>
           <p class="page__note">Choose prices from MT5. Buy: stop below entry, target above. Sell: target below entry, stop above.</p>
           <div class="trade__actions">
-            <button class="pill-btn pill-btn--filled" id="prepare-trade" type="submit" disabled>Preview pending order</button>
+            <button class="pill-btn" id="prepare-trade" type="submit" disabled>Preview pending order</button>
             <a class="pill-btn" href="http://127.0.0.1:6081/vnc.html?autoconnect=1&amp;resize=scale" target="_blank" rel="noopener noreferrer">Open MT5 desktop ↗</a>
           </div>
         </form>
@@ -89,7 +101,7 @@ export const prerender = true;
           <p id="preview-protection"></p>
           <p>This preview expires after 10 minutes. Enable Algo Trading in MT5, then place this one pending order. Prices, account and broker conditions are checked again first.</p>
           <p>The pending order stays until you cancel it in MT5.</p>
-          <button class="pill-btn pill-btn--filled" id="start-trade" type="button">Place one pending order</button>
+          <button class="pill-btn" id="start-trade" type="button">Place one pending order</button>
         </div>
         <p id="control-message" role="status" aria-live="polite"></p>
         </div>
@@ -128,6 +140,7 @@ export const prerender = true;
         </div>
       </section>
       <p class="page__note">Status updates every 10 seconds. This control starts only a reviewed, single demo attempt; it does not run the strategy continuously.</p>
+      </details>
     </main>
 
     <script>
@@ -144,10 +157,13 @@ export const prerender = true;
       const sl = field('trade-sl') as HTMLInputElement;
       const tp = field('trade-tp') as HTMLInputElement;
       const previewBox = field('trade-preview');
+      const localPreview = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname) || location.protocol === 'file:';
       let latest: Parameters<typeof statusFields>[0] | null = null;
       let receivedAt = 0;
       let previewToken: string | null = null;
       let startedAt = 0;
+      let lastCheck: number | null = null;
+      const checks: string[] = [];
       function renderLevels() {
         const draft = [entry, sl, tp].some(input => input.value !== '' || input.validity.badInput);
         const execution = latest ? executionFields(latest.execution) : null;
@@ -274,6 +290,7 @@ export const prerender = true;
         if (refresh.disabled) return;
         refresh.disabled = true;
         try {
+          if (localPreview) throw new Error('local-preview');
           const response = await fetch('/api/trading/status', { cache: 'no-store', credentials: 'same-origin', redirect: 'manual', signal: AbortSignal.timeout(8000) });
           if (response.type === 'opaqueredirect' || [401, 403].includes(response.status)) throw new Error('access');
           if (!response.ok) throw new Error('unavailable');
@@ -283,6 +300,15 @@ export const prerender = true;
           signIn.hidden = true;
           latest = data;
           receivedAt = Date.now();
+          if (data.checked_at !== lastCheck) {
+            lastCheck = data.checked_at;
+            const fields = statusFields(data);
+            checks.unshift(`${fields.checked} · ${fields.signal} · ${fields.reason}`);
+            checks.length = Math.min(checks.length, 6);
+            field('monitor-activity').replaceChildren(...checks.map(text => {
+              const item = document.createElement('li'); item.textContent = text; return item;
+            }));
+          }
           render();
         } catch (error) {
           latest = null;
@@ -294,11 +320,18 @@ export const prerender = true;
           field('heartbeat').textContent = 'Unknown';
           field('connection').textContent = 'Unknown — status unavailable';
           field('freshness').textContent = 'Unknown';
+          field('price').textContent = '—';
           for (const id of ['tick', 'age', 'history', 'strategy']) field(id).textContent = '—';
           field('candle').textContent = '—';
           field('signal').textContent = '—';
           field('checked').textContent = '—';
-          field('reason').textContent = needsAccess ? 'Sign in through Cloudflare Access to view this status.' : 'The private status API is unavailable. Try again shortly.';
+          field('reason').textContent = localPreview ? 'Live MT5 status is available on the hosted page. You can play the synthetic replay here.'
+            : needsAccess ? 'Sign in through Cloudflare Access to view this status.' : 'The private status API is unavailable. Try again shortly.';
+          if (localPreview) {
+            field('state').textContent = 'Local preview';
+            field('connection').textContent = 'Not connected here';
+            refresh.hidden = true;
+          }
           field('guidance').textContent = field('reason').textContent;
           const execution = executionFields(null);
           for (const id of ['state', 'entry', 'sl', 'tp', 'opened', 'closed', 'updated', 'guidance'] as const) field(`execution-${id}`).textContent = execution[id];
@@ -322,6 +355,7 @@ export const prerender = true;
       .page__intro { max-width: 65ch; }
       .page__intro h1 { margin: 0 0 var(--sp-lg); font-size: var(--fs-3); line-height: 1; letter-spacing: var(--ls-3); }
       .page__intro p { margin: 0; color: var(--c-body); line-height: 1.5; }
+      .page__replay-link { margin-top: var(--sp-lg); }
       .page__note { margin: 0; color: var(--c-body); font-size: var(--fs-body-sm); }
       .status { width: min(100%, var(--container-max-width)); box-shadow: none; }
       .status__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-md); }
@@ -332,6 +366,15 @@ export const prerender = true;
       .status__rows dt { display: flex; align-items: center; gap: var(--sp-sm); color: var(--c-body); }
       .status__rows svg { width: var(--sp-xl); height: var(--sp-xl); flex-shrink: 0; }
       .status__symbol { margin: var(--sp-md) 0 0; color: var(--c-body); }
+      .status__price { display: grid; gap: var(--sp-sm); margin: var(--sp-xl) 0; }
+      #price { font-size: var(--fs-4); font-variant-numeric: tabular-nums; }
+      .status__activity { margin: var(--sp-xl) 0; }
+      .status__activity summary, .manual-controls > summary { width: fit-content; }
+      .status__activity ol { padding-left: var(--sp-xl); color: var(--c-body); line-height: 1.6; }
+      .status__activity li + li { margin-top: var(--sp-sm); }
+      .status__activity .page__note { margin-top: var(--sp-lg); }
+      .manual-controls { width: 100%; }
+      .manual-controls .status { margin-block: var(--sp-xl); }
       .status__guidance { max-width: 65ch; line-height: 1.6; color: var(--c-body); margin: 0 0 var(--sp-xl); }
       .status__details { margin-bottom: var(--sp-xl); }
       .status__details summary { width: fit-content; list-style: none; }
