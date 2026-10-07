@@ -72,6 +72,14 @@ class StatusServerTest(unittest.TestCase):
         self.assertNotIn("login", cleaned)
         self.assertNotIn("password", cleaned)
         self.assertEqual(cleaned["quote"], "stale")
+        prices = sanitize_health(health | {"bid": 4100.25, "ask": 4100.5})
+        self.assertEqual((prices["bid"], prices["ask"]), (4100.25, 4100.5))
+        for prices in ({"bid": 0}, {"ask": -1}, {"bid": 10, "ask": 9}):
+            cleaned = sanitize_health(health | prices | {"quote": "invalid"})
+            self.assertEqual((cleaned["bid"], cleaned["ask"], cleaned["quote"]), (None, None, "invalid"))
+        for prices in ({"bid": True}, {"ask": float("nan")}):
+            with self.assertRaises(ValueError):
+                sanitize_health(health | prices)
         for value in (float("nan"), float("inf"), "99", True):
             with self.assertRaises(ValueError):
                 sanitize_health(health | {"quote_age_seconds": value})

@@ -18,6 +18,14 @@ assert.match(statusFields({ ...report, health: { ...report.health, quote: 'futur
 assert.equal(statusFields({ ...report, health: { ...report.health, quote: 'fresh' } }, 105).freshness, 'Fresh at last check');
 assert.match(statusFields({ ...report, health: { ...report.health, sampled_at: 101 } }, 100).connection, /Unknown/);
 console.log('Trading status: stale/future quotes, history, independent readiness and browser expiry passed');
+const priced = { ...report, status: 'observed', health: { ...report.health,
+  quote: 'fresh', quote_age_seconds: 2, bid: 4100.25, ask: 4100.5 } };
+assert.equal(statusFields(priced, 105).price, '4100.25 / 4100.50');
+assert.equal(statusFields(priced, 129).price, '—');
+for (const changes of [{ bid: null }, { ask: NaN }, { ask: 4000 }, { bid: -1 },
+  { quote: 'stale' }, { terminal: 'guard_failed' }, { quote_age_seconds: -1 }]) {
+  assert.equal(statusFields({ ...priced, health: { ...priced.health, ...changes } }, 105).price, '—');
+}
 
 const ready = { ...report, status: 'observing', health: { ...report.health, quote: 'fresh' } };
 assert.equal(statusFields(ready, 105).state, 'Observing');

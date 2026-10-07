@@ -42,6 +42,17 @@ test('health evidence is sanitized and expires at 30 seconds', () => {
   assert.equal(result.health.quote_age_seconds, -10);
   assert.equal(result.health.login, undefined);
   assert.equal(result.health.password, undefined);
+  assert.equal(normalizeStatus({ ...report, health: { ...report.health, bid: 4100.25, ask: 4100.5 } }, 105).health.bid, 4100.25);
+  for (const prices of [{ bid: 0 }, { ask: -1 }, { bid: 10, ask: 9 }]) {
+    const diagnostic = normalizeStatus({ ...report, health: { ...report.health, ...prices, quote: 'invalid' } }, 105);
+    assert.equal(diagnostic.health.bid, null);
+    assert.equal(diagnostic.health.ask, null);
+    assert.equal(diagnostic.health.quote, 'invalid');
+    assert.equal(diagnostic.status, 'blocked');
+  }
+  for (const prices of [{ bid: true }, { ask: NaN }]) {
+    assert.throws(() => normalizeStatus({ ...report, health: { ...report.health, ...prices } }, 105));
+  }
   assert.equal(normalizeStatus(report, 131).status, 'offline');
   for (const quote_age_seconds of [NaN, Infinity, '10', true]) {
     assert.throws(() => normalizeStatus({ ...report, health: { ...report.health, quote_age_seconds } }, 105));

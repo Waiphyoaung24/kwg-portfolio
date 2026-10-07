@@ -40,11 +40,16 @@ export function normalizeStatus(value, now = Date.now() / 1000) {
     if (!['unknown', 'connected', 'disconnected', 'guard_failed'].includes(input.terminal) ||
         !['unknown', 'fresh', 'stale', 'future', 'missing', 'invalid'].includes(input.quote)) throw new Error('Invalid health');
     health = { terminal: input.terminal, quote: input.quote };
-    for (const key of ['sampled_at', 'tick_time', 'tick_time_msc', 'quote_age_seconds', 'history_bar_time', 'history_count']) {
+    for (const key of ['sampled_at', 'tick_time', 'tick_time_msc', 'quote_age_seconds', 'history_bar_time', 'history_count', 'bid', 'ask']) {
       const number = input[key] ?? null;
       if (number !== null && (typeof number !== 'number' || !Number.isFinite(number) || Math.abs(number) > 1e15)) throw new Error('Invalid health number');
       if (['history_bar_time', 'history_count'].includes(key) && number !== null && (!Number.isInteger(number) || number < 0)) throw new Error('Invalid history');
       health[key] = number;
+    }
+    if ((health.bid !== null && !(health.bid > 0 && health.bid <= 1e6)) ||
+        (health.ask !== null && !(health.ask > 0 && health.ask <= 1e6)) ||
+        (health.bid !== null && health.ask !== null && health.ask < health.bid)) {
+      health.bid = health.ask = null; // Preserve the diagnostic report when prices are unusable.
     }
   }
   const status = stale ? 'offline' : value.status;

@@ -14,7 +14,13 @@ export function statusFields(data, now = Date.now() / 1000) {
     disconnected: 'Disconnected', guard_failed: 'Demo safety checks failed', unknown: 'Not checked' };
   const ready = current && health.terminal === 'connected' && health.quote === 'fresh' && data.status !== 'blocked';
   const waiting = current && health.terminal === 'connected' && health.quote === 'stale';
+  const priced = current && health.terminal === 'connected' && health.quote === 'fresh'
+    && typeof health.quote_age_seconds === 'number' && health.quote_age_seconds >= 0
+    && health.quote_age_seconds + now - health.sampled_at <= 30
+    && Number.isFinite(health.bid) && Number.isFinite(health.ask)
+    && health.bid > 0 && health.ask >= health.bid && health.ask <= 1e6;
   return {
+    price: priced ? `${health.bid.toFixed(2)} / ${health.ask.toFixed(2)}` : '—',
     state: !alive ? 'Observer offline' : waiting ? 'Waiting for price' : ready ? 'Observing' : 'Needs attention',
     guidance: !alive ? 'The observer has stopped reporting. Check the VPS observer before using any signals.'
       : waiting ? 'MT5 is connected, but the last gold price is too old to evaluate. Leave the observer running; it will check again automatically. If prices stay old during an open trading session, check the MT5 feed.'

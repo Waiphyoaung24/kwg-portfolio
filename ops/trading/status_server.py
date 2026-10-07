@@ -23,7 +23,7 @@ def sanitize_health(value):
         raise ValueError("invalid health state")
     result = {key: value[key] for key in ("terminal", "quote")}
     for key in ("sampled_at", "tick_time", "tick_time_msc", "quote_age_seconds",
-                "history_bar_time", "history_count"):
+                "history_bar_time", "history_count", "bid", "ask"):
         number = value.get(key)
         if number is not None and (type(number) not in (int, float) or not math.isfinite(number)
                                    or abs(number) > 1e15):
@@ -31,6 +31,12 @@ def sanitize_health(value):
         if key in ("history_bar_time", "history_count") and number is not None and (type(number) is not int or number < 0):
             raise ValueError("invalid history number")
         result[key] = number
+    if ((result["bid"] is not None and not 0 < result["bid"] <= 1e6)
+            or (result["ask"] is not None and not 0 < result["ask"] <= 1e6)
+            or (result["bid"] is not None and result["ask"] is not None
+                and result["ask"] < result["bid"])):
+        # Keep the observer's invalid-quote reason and execution report available.
+        result["bid"] = result["ask"] = None
     return result
 
 
