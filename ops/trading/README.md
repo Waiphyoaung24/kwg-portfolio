@@ -1,17 +1,163 @@
 # MT5 compatibility probe
 
+**Current candidate — October 7:** offline diagnostics are implemented and reviewed
+(42 tests plus two owner-run local browser checks). The frontend now includes a
+price-level diagram and responsive Overview. Use the [production acceptance plan](../../docs/superpowers/plans/2026-10-07-trading-production-test-plan.md)
+after confirming deployment. Real Batch 3 proposal/evaluation is still incomplete;
+Batch 2 remains unqualified. Preserve the consumed October 6 attempt and its sealed
+runtime; no retry, reseal or new request is authorized by this source release.
+The dated preparation notes below are historical; [HANDOFF.md](HANDOFF.md) leads.
+
+**Historical October 6: restricted CLI handoff preparation.** Owner live-process diagnostic
+passed, with an unrestricted token and no file-denial proof. Owner selected moving
+actual coding into native CLI; [launch and handoff](../../docs/superpowers/plans/2026-10-06-batch3-cli-handoff.md)
+are prepared and checked. Actual CLI isolation remains pending. No account repeat,
+canonical gate write, proposal approval or model dispatch. Existing runtime/seals
+unchanged, dispatch blocked, Batch 2 deferred. Completed owner inspectors must not
+be rerun. See [handoff](HANDOFF.md).
+
+**Historical October 6: account-bound provider-controls audit passed.** Saved refresh result
+confirms app credit spending and automatic reload OFF on the verified Gold
+account. No account/model call, approval or canonical gate writes. Preserve this
+audit and the successful account round; do not rerun their helpers. Combined live
+gates remain false: account evidence expired and fresh actual coding-denial proof
+is unresolved. Current policy prohibits running the old private-path probe from
+this chat; configuration or an owner/nested test cannot stand in for that proof.
+Resolve the evidence path before fresh combined checks and separate proposal
+approval. Dispatch blocked, Batch 2 deferred. See [handoff](HANDOFF.md).
+
+**Historical: same-account gpt-5.6-sol verification passed.** Round
+8185435a78724a81bdd3e8332c34788e verified signed binding, renewal and cleanup with
+zero model requests. Preserve the successful consumed round; do not rerun it.
+Its five-minute dispatch window has elapsed. Fresh browser inspection shows credit
+use and automatic reload OFF; owner account correlation audit is next at
+.superpowers/sdd/gold-zero-spend-refresh-20261006/review.ps1. This only reads saved
+evidence and writes a public audit, with no account/model call or dispatch gates.
+Actual audit, fresh coding isolation and separate proposal approval remain pending;
+dispatch blocked. See [handoff](HANDOFF.md).
+
+The first controls audit refused; original observations are expired and preserved.
+The refresh helper uses a new browser inspection and separate failure phases,
+with the unchanged five-minute age limit. Seven offline checks pass. Run promptly;
+do not repeat account verification or retime the original evidence.
+
+**Historical: fresh account-only verification prepared.** Manual owner entry:
+.superpowers/sdd/gold-account-verification-20261006/verify.ps1. One fixed logged
+round checks signed same-account gpt-5.6-sol catalog availability with the existing
+sealed runner; no source/seal changes, inference or billing/approval gate writes.
+Synthetic wrapper checks pass; actual owner result pending. Redacted result is
+saved in that folder. Preserve consumed attempts and do not rerun on failure.
+Provider $0 checks and separate proposal approval follow; see [handoff](HANDOFF.md).
+
+**Current: all four new native checks passed.** Saved preparation summary matches
+commit 18620b96eb05eeef86dcea52acf3e00cb1c09e6c and unchanged runtime. Cleanup and
+forced termination passed; historical evidence preserved; zero model requests.
+Do not rerun preparation. Next: fresh current-seal account verification, provider
+$0 controls and coding isolation, then separate one-proposal approval. No live
+verification has run yet. See [current handoff](HANDOFF.md); earlier pending
+preparation instructions below are historical.
+
+**Current: owner cleanup passed; guardian fix ready for new native proof.**
+Both leftover networks are gone and historical failure metadata is unchanged.
+Shared cleanup now handles wait/setup errors, publishes redacted failures and
+batches exact-owned Docker operations. Seventeen focused tests and synthetic
+publication checks pass. Manual owner next:
+.superpowers/sdd/gold-guardian-fix-20261005/prepare.ps1; scoped commit, new seals
+and native fake-input proofs only. No account/model requests. See [handoff](HANDOFF.md).
+Do not repeat old preparation or the consumed boundary. Actual new native proof,
+account/$0 verification and separate proposal approval remain pending.
+
+**Current: native cleanup receipt missing; two test networks need review.**
+Owner inspection confirms all containers absent, inner/outer networks present,
+healthy Docker/images, public TLS true and zero model requests. Exact guardian
+failure is unknown. Manual next: .superpowers/sdd/gold-native-failure-20261005/recover.ps1.
+It refuses an active/unknown saved guardian PID or attached/unexpected resources;
+only inspected empty owned network IDs may be removed. Historical failed proof
+and runtime/seals are preserved. Do not repeat preparation/native checks. See
+[handoff](HANDOFF.md); account/$0 verification and inference remain blocked.
+
+**Current: recovery source committed/sealed, but first native boundary failed.**
+Owner preparation reached commit e93578e and fresh seals, then account.boundary
+failed with cleanup unverified and zero model requests. Do not rerun preparation
+or delete the consumed check. Next is read-only owner diagnosis at
+.superpowers/sdd/gold-native-failure-20261005/inspect.ps1; see [handoff](HANDOFF.md).
+No account acceptance/inference or remaining new native checks ran.
+
+**Latest: current account acceptance failed and is consumed.** Owner reported
+`CalledProcessError`, cleanup unverified and zero model requests. Do not rerun
+the verification entry below. Corrected owner inspection confirms Linux Docker,
+both pinned images and absence of exact-owned containers/networks. Owner chose
+durable recovery; implementation and 15 offline tests pass. Next is manual
+native preparation at .superpowers/sdd/gold-account-recovery-20261005/prepare.ps1;
+no acceptance or inference in that entry. See the
+[recovery task plan](../../docs/superpowers/plans/2026-10-05-batch3-account-recovery/task_plan.md) and
+[current handoff](HANDOFF.md). No approval or model dispatch has run.
+
+Current live-verification handoff:
+[account and provider $0 workflow](../../docs/superpowers/plans/2026-10-05-batch3-live-verification-handoff.md).
+Read-only saved controls and actual-chat open-only isolation passed. Signed
+owner account acceptance remains pending; the tested verification-only helper
+is `.superpowers/sdd/gold-live-verification-20261005/verify.ps1`. Keep existing
+seals and consumed checks. Evidence is time-limited; real inference requires
+separate explicit authorization after verification.
+
+## Current model checkpoint — 2026-10-05 Bangkok
+
+Owner selected `gpt-5.6-sol`. Shared supported transport, account, gateway and
+proposal policies now target it; ten focused offline tests, all 14 fake cases
+and all four account/proposal native boundary/forced-cleanup checks passed.
+Source `a6eecea` and its current seals/intent completed preparation; see the
+[completed model-switch checkpoint](../../docs/superpowers/plans/2026-10-05-batch3-56-sol-switch.md).
+Native results are owner-reported and include cleanup, matching seals, zero
+model requests and an empty production registry. Preserve consumed artifacts;
+do not repeat checks or reseal unchanged sources. The prior Astra seals/account
+receipt are historical. Next coordinate fresh current-seal account acceptance,
+account-bound $0 controls, actual coding-denial evidence and concrete one-proposal
+approval within the runner's time windows. This coding chat cannot
+execute private runtime actions because `.batch3-vibe` is denied non-escalatably.
+Fresh account-bound $0/denial evidence and concrete approval remain required.
+No model request has run. Earlier seal results below describe the Astra runner.
+
 ## Current development milestone — 2026-10-02
 
 Owner chose to close Batch 2 for development and defer the 60-day/trade-count
 qualification program. Batch 2 is **closed for development, unqualified**.
 Batch 3's existing synthetic offline integration and separate Vibe learning app
 are the next workflow; see the [current handoff](../../docs/superpowers/plans/2026-10-02-batch2-batch3-handoff.md).
-The qualification policy and risk limits stay fixed. Unknown OAuth cost still
-blocks gold dispatch; human approval remains required for promotion. Historical
+The qualification policy and risk limits stay fixed. Real gold dispatch remains
+blocked; human approval remains required for promotion. Historical
 evidence checkpoints below do not override this current development scope.
-Real credential/network isolation and backend USD0 enforcement are remaining
-Batch 3 activation gates; they do not reopen Batch 2 development. Current
+Account-worker credential/network isolation and catalog acceptance have now
+passed. Provider USD0 controls were verified read-only on October 5 and the real
+development packet and final runner are prepared. Active coding file denial
+passed after custom permissions were selected; fresh account/billing evidence
+and concrete proposal approval remain pending. See the final runner checkpoint below.
+They do not reopen Batch 2 development. Current
 close-out evidence and acceptance boundaries are in the linked handoff.
+
+### Final development proposal runner (activation blocked)
+
+[Final runner results](../../docs/superpowers/plans/2026-10-05-batch3-final-runner-results.md)
+identify the sealed `gold_proposal.py` source and real packet/prompt. The
+owner/SYSTEM-only snapshot fixes one `gpt-6-astra` request, medium reasoning,
+zero retries, tools or trade authority, and requires fresh provider $0 controls.
+Native Docker boundary and forced controller cleanup checks passed, along with
+the 14-case fake transport matrix and regression checks. No real request ran.
+
+The actual coding command's open-only probe now denies registration and private
+canary access, with source/write positive controls passing. Its Windows token
+still reports owner/unrestricted identity; effective file denial is the observed
+property. Keep the non-escalatable private-tree deny. See the
+[owner-only fresh account command](../../docs/superpowers/plans/2026-10-05-batch3-owner-account-handoff.md).
+Private dispatch evidence and approval remain pending; registry-empty status is
+from the last owner verification. Do not replace this boundary with container proof.
+
+`harden-batch3.ps1 -Phase seal-proposal` seals committed sources and the existing
+verified private inputs without granting sandbox access to real input copies.
+Run only the sealed `code/gold_proposal.py` with the manifest hash, first
+`--mode boundary`, then `--mode verify-termination`. Preserve completed attempts;
+they refuse reuse. No approval writer, renewal mode or gate override is exposed.
+The checkpoint's resume order governs any later real activation.
 
 ### Batch 3 local readiness and fake-auth isolation
 
@@ -39,7 +185,51 @@ First failure halts the rehearsal; preserve its artifacts rather than retrying
 at the same path. Timeout cleanup does not imply its configuration was inspected.
 Successful fixtures do not grant real OAuth or USD0 billing approval.
 
+### Gold account acceptance (inference disabled)
+
+The historical owner-selected supported model was `gpt-6-astra`. Same-account
+renewal, signed binding, authenticated catalog access, isolated Internet worker
+and forced-controller-termination cleanup passed. See the
+[account results](../../docs/superpowers/plans/2026-10-03-batch3-account-acceptance-results.md)
+for source/receipt identities, commands and scope limits.
+[Provider $0 controls passed read-only verification on October 5](../../docs/superpowers/plans/2026-10-05-batch3-zero-spend-results.md).
+Recheck saved settings before dispatch. Real inference is blocked pending the
+final sealed execution boundary and owner authorization; the real packet is prepared.
+The token was expired at the last owner check; fresh final-source acceptance
+requires the owner terminal command. Actual file denial now passes, while the
+Windows restricted-token property is not established by this chat's probe.
+
+The owner seals committed sources with `harden-batch3.ps1 -Phase seal-account`.
+Run that snapshot's `code/gold_account.py --seal-sha256 <manifest hash>` with
+`python -I -B`, first `--mode boundary`, then `--mode verify-termination`, and
+only after both pass `--mode accept`. These permit authentication/catalog checks,
+never inference. Attempts are exclusive and consumed; existing final attempts
+refuse repetition. Preserve failed/unknown attempts and private credential
+evidence. Do not rerun registration or overwrite the Vibe store.
+
+### Real development packet preparation (offline only)
+
+The [October 5 preparation checkpoint](../../docs/superpowers/plans/2026-10-05-batch3-real-development-preparation.md)
+adds `batch3_adapter.py --dataset <file> --baseline <file> --manifest <file>
+--output <new-directory>` for the exact existing frozen real export. It requires
+a current frozen manifest, reproduced baseline and protected owner/SYSTEM output
+parent. The packet contains development summaries and unqualified limitations;
+no credentials or model calls are involved. Owner-assisted read-only SSH resolved
+data access; [the actual real packet and reproduced baseline are prepared](../../docs/superpowers/plans/2026-10-05-batch3-real-packet-results.md).
+The final real inference runner, isolation acceptance and source/input seal
+remain pending. Do not treat the fake-only source snapshot as live authorization.
+
 ### Trusted OAuth transport (dispatch disabled)
+
+The supported public-route rehearsal has a separate committed-source seal.
+Run `harden-batch3.ps1 -Phase seal-supported` as the workspace owner, then use
+that snapshot's `code/supported_gateway.py --seal-sha256 <manifest hash>`.
+Load the sealed code directory explicitly with isolated Python, as in the
+readiness command below. It accepts no endpoint, model, credential or registry
+override. Its fixed registry is `.batch3-vibe/supported-readiness/attempts`;
+production reservations and dispatch remain disabled. The bundled TLS fixture
+is synthetic test material, never a production trust store. Repeating an
+attempt or the whole seal review is refused; preserve failed receipts.
 
 `trusted_oauth_transport.py` reuses the pinned provider request/stream guards
 with account-bound headers, fixed gpt-6.1-sol/medium and validated proposal/usage.

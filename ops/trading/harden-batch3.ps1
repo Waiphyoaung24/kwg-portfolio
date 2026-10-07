@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][ValidateSet('canary', 'credentials', 'seal', 'seal-current', 'seal-gateway', 'seal-readiness')][string]$Phase)
+param([Parameter(Mandatory)][ValidateSet('canary', 'credentials', 'seal', 'seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported', 'seal-account', 'seal-proposal')][string]$Phase)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $root = Join-Path $repo '.batch3-vibe'
@@ -11,16 +11,16 @@ function Set-Boundary([string]$Path, [string]$SandboxRights = '') {
     $item = Get-Item -LiteralPath $Path -Force
     if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse point rejected.' }
     if (-not $item.FullName.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase) -and $item.FullName -ne $root) { throw 'Outside workspace boundary.' }
-    $old = Get-Acl -LiteralPath $Path
     $inherit = if ($item.PSIsContainer) { '(OI)(CI)' } else { '' }
     & icacls.exe $Path /setowner "*$user" | Out-Null
     if ($LASTEXITCODE) { throw 'Owner change failed.' }
     & icacls.exe $Path /inheritance:r /grant:r "*${user}:${inherit}F" "*${system}:${inherit}F" | Out-Null
     if ($LASTEXITCODE) { throw 'Owner/SYSTEM boundary failed.' }
+    $old = Get-Acl -LiteralPath $Path
     foreach ($rule in $old.Access) {
         $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier])
         if ($sid -ne $user -and $sid -ne $system) {
-            & icacls.exe $Path /remove "$($rule.IdentityReference)" | Out-Null
+            & icacls.exe $Path /remove "*$sid" | Out-Null
             if ($LASTEXITCODE) { throw 'Unexpected access removal failed.' }
         }
     }
@@ -101,8 +101,9 @@ if ($Phase -eq 'canary') {
     Set-Boundary (Join-Path $root 'profile/.vibe-trading')
     Write-Output 'PASS: auth directory and private config restricted to owner and SYSTEM; contents not read.'
 } else {
-    $current = $Phase -in @('seal-current', 'seal-gateway', 'seal-readiness')
-    if ($Phase -eq 'seal-readiness') {
+    $current = $Phase -in @('seal-current', 'seal-gateway', 'seal-readiness', 'seal-supported', 'seal-account', 'seal-proposal')
+    $committed = $Phase -in @('seal-readiness', 'seal-supported', 'seal-account', 'seal-proposal')
+    if ($committed) {
         & git -C $repo diff --quiet HEAD -- ops/trading
         if ($LASTEXITCODE) { throw 'Commit reviewed trading sources before readiness sealing.' }
         $commit = (& git -C $repo rev-parse HEAD).Trim()
@@ -110,13 +111,16 @@ if ($Phase -eq 'canary') {
     }
     $snapshotName = switch ($Phase) { 'seal-current' { 'sealed-trusted-transport-20261002' } 'seal-gateway' { 'sealed-gateway-20261002-r2' } default { 'sealed-credential-rehearsal' } }
     if ($Phase -eq 'seal-readiness') { $snapshotName = 'sealed-gateway-readiness-' + $commit.Substring(0, 12) }
+    if ($Phase -eq 'seal-supported') { $snapshotName = 'sealed-supported-' + $commit.Substring(0, 12) }
+    if ($Phase -eq 'seal-account') { $snapshotName = 'sealed-account-' + $commit.Substring(0, 12) }
+    if ($Phase -eq 'seal-proposal') { $snapshotName = 'sealed-proposal-' + $commit.Substring(0, 12) }
     $sealed = Join-Path $root $snapshotName
     Assert-NoReparse $root
     if (Test-Path -LiteralPath $sealed) { throw 'Snapshot already exists; preserve it.' }
     New-Item -ItemType Directory -Path $sealed | Out-Null
     # Close sandbox access before any source bytes or manifest are copied.
     Set-Boundary $sealed
-    if ($Phase -eq 'seal-readiness') {
+    if ($committed) {
         $registry = Join-Path $root 'production-attempts'
         Assert-NoReparse $root
         if (-not (Test-Path -LiteralPath $registry)) {
@@ -133,21 +137,51 @@ if ($Phase -eq 'canary') {
             $seen += $sid.Value
         }
         if ($user.Value -notin $seen -or $system.Value -notin $seen) { throw 'Private registry access incomplete.' }
-        $readiness = Join-Path $root 'gateway-readiness'
+        $reviewName = switch ($Phase) { 'seal-supported' { 'supported-readiness' } 'seal-account' { 'account-readiness' } 'seal-proposal' { 'proposal-readiness' } default { 'gateway-readiness' } }
+        $readiness = Join-Path $root $reviewName
         if (-not (Test-Path -LiteralPath $readiness)) {
             New-Item -ItemType Directory -Path $readiness | Out-Null
             Set-Boundary $readiness
         }
         Assert-NoReparse $readiness
-        @{ mode='fake_readiness_only'; git_commit=$commit; production_registry=$registry;
+        if ($Phase -in @('seal-supported', 'seal-account', 'seal-proposal')) {
+            $reviewAcl = Get-Acl -LiteralPath $readiness
+            if (-not $reviewAcl.AreAccessRulesProtected -or $reviewAcl.GetOwner([Security.Principal.SecurityIdentifier]) -ne $user) { throw 'Supported registry owner/inheritance mismatch.' }
+            $reviewSids = @()
+            foreach ($rule in $reviewAcl.Access) {
+                $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier])
+                if ($sid -notin @($user, $system) -or $rule.AccessControlType -ne 'Allow' -or $rule.FileSystemRights -ne 'FullControl') { throw 'Supported registry permissions mismatch.' }
+                $reviewSids += $sid.Value
+            }
+            if ($user.Value -notin $reviewSids -or $system.Value -notin $reviewSids) { throw 'Supported registry access incomplete.' }
+        }
+        $metadata = @{ mode='fake_readiness_only'; git_commit=$commit; production_registry=$registry;
             registry_acl_checked=$true; production_dispatch='blocked'; billing_ceiling_verified=$false;
-            server_account_verified=$false; production_isolation_verified=$false } |
-            ConvertTo-Json | Set-Content -LiteralPath (Join-Path $sealed 'readiness.json') -Encoding utf8
+            server_account_verified=$false; production_isolation_verified=$false }
+        if ($Phase -eq 'seal-supported') {
+            $metadata.mode = 'supported_fake_only'
+            $policy = & python -I -S -B -c "import sys,json;sys.path.insert(0,sys.argv[1]);from supported_gateway import POLICY;print(json.dumps(POLICY))" $PSScriptRoot
+            if ($LASTEXITCODE) { throw 'Supported runtime policy unavailable.' }
+            $metadata.policy = $policy | ConvertFrom-Json
+        }
+        if ($Phase -eq 'seal-account') {
+            $metadata.mode = 'gold_account_only'
+            $policy = & python -I -S -B -c "import sys,json;sys.path.insert(0,sys.argv[1]);from gold_account import POLICY;print(json.dumps(POLICY))" $PSScriptRoot
+            if ($LASTEXITCODE) { throw 'Account runtime policy unavailable.' }
+            $metadata.policy = $policy | ConvertFrom-Json
+        }
+        if ($Phase -eq 'seal-proposal') {
+            $metadata.mode = 'gold_proposal_preparation'
+            $policy = & python -I -S -B -c "import sys,json;sys.path.insert(0,sys.argv[1]);from gold_proposal import POLICY;print(json.dumps(POLICY))" $PSScriptRoot
+            if ($LASTEXITCODE) { throw 'Proposal runtime policy unavailable.' }
+            $metadata.policy = $policy | ConvertFrom-Json
+        }
+        $metadata | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $sealed 'readiness.json') -Encoding utf8
     }
     $code = New-Item -ItemType Directory -Path (Join-Path $sealed 'code')
     # Snapshot the offline tool chain, including test dependencies, not the upstream application.
     $sources = @(Get-ChildItem -LiteralPath $PSScriptRoot -File | Where-Object { $_.Extension -in @('.py', '.json', '.patch', '.ps1') })
-    if ($Phase -eq 'seal-readiness') {
+    if ($committed) {
         foreach ($file in $sources) {
             & git -C $repo ls-files --error-unmatch -- ('ops/trading/' + $file.Name) | Out-Null
             if ($LASTEXITCODE) { throw 'Uncommitted source in readiness seal.' }
@@ -189,14 +223,20 @@ assert attempt['worker_source_sha256']==hashlib.sha256((p/'code/batch3_runner.py
             if ((Get-FileHash -LiteralPath $file.FullName).Hash -ne (Get-FileHash -LiteralPath (Join-Path $code.FullName $file.Name)).Hash) { throw 'Source changed during snapshot; preserve partial snapshot.' }
         }
     }
+    if ($Phase -eq 'seal-proposal') {
+        & python -I -S -B -c "import sys,pathlib;sys.path.insert(0,sys.argv[1]);from gold_proposal import prepare_inputs;prepare_inputs(pathlib.Path(sys.argv[2]),pathlib.Path(sys.argv[3]))" $code.FullName $root $sealed
+        if ($LASTEXITCODE) { throw 'Real proposal input identity refused; preserve partial snapshot.' }
+    }
     $manifest = @(Get-ChildItem -LiteralPath $sealed -Recurse -File | ForEach-Object {
         @{ path=$_.FullName.Substring($sealed.Length + 1); sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
     })
     $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $sealed 'manifest.json') -Encoding utf8
-    Set-Boundary $sealed 'ReadAndExecute'
-    foreach ($item in Get-ChildItem -LiteralPath $sealed -Recurse -Force) { Set-Boundary $item.FullName 'ReadAndExecute' }
+    $snapshotRights = if ($Phase -eq 'seal-proposal') { '' } else { 'ReadAndExecute' }
+    Set-Boundary $sealed $snapshotRights
+    foreach ($item in Get-ChildItem -LiteralPath $sealed -Recurse -Force) { Set-Boundary $item.FullName $snapshotRights }
     foreach ($entry in $manifest) {
         if ((Get-FileHash -LiteralPath (Join-Path $sealed $entry.path)).Hash.ToLowerInvariant() -ne $entry.sha256) { throw 'Sealed snapshot hash mismatch.' }
     }
-    Write-Output 'PASS: code and frozen input copies sealed; owner/SYSTEM full, sandbox read/execute only.'
+    if ($Phase -eq 'seal-proposal') { Write-Output 'PASS: source and real proposal input copies sealed; owner/SYSTEM only; approval pending.' }
+    else { Write-Output 'PASS: code and frozen input copies sealed; owner/SYSTEM full, sandbox read/execute only.' }
 }

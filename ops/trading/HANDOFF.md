@@ -1,5 +1,911 @@
 # Gold trading handoff — 2026-09-28
 
+## Current candidate — October 7: diagnostics reviewed; frontend acceptance next
+
+The offline transport → worker → receipt diagnostic candidate is implemented and
+reviewed: 42 offline tests and two owner-run local read-only browser tests passed.
+The frontend adds the KWG mark, draft/historical price-level diagram and responsive
+Overview layout. Follow the [production test plan](../../docs/superpowers/plans/2026-10-07-trading-production-test-plan.md)
+after confirming the deployed commit. Batch 2 remains unqualified; real Batch 3
+research and promotion remain blocked. This source release does not reseal or
+retry the consumed October 6 experiment. See the [candidate review](../../docs/superpowers/plans/2026-10-07-batch3-future-request-review.md).
+
+## Historical: metadata reviewed; fake-only diagnostics next
+
+[Outcome and offline next milestone](../../docs/superpowers/plans/2026-10-06-batch3-one-proposal-outcome.md).
+Owner saved review passed exact approval binding. Controller failure is ValueError,
+request count unknown; independent cleanup true, guardian exit0, no proposal or
+usage artifact. Receipt SHA158b155e4b8c70420a84f435002ae0cf1ca7c08f38db8041b50d2baf28cc8896.
+Further saved inspection cannot recover the discarded worker/HTTP failure details.
+No retry/live verification/renaming/reset. Preserve both inspectors and all records.
+Next fake-only diagnostic candidate should propagate safe allowlisted stage/status/
+code and verify future approval text against actual request payload. Review before
+any future live plan; no new inference authorization. Correction: actual sealed
+request is stream=true/store=false; assistant's original review text was wrong.
+Original approval records remain intact. Focused fake contract test passed;
+HEAD/runtime/seals unchanged, dispatch blocked, Batch 2 qualification deferred.
+
+## Historical: one approved controller failed; request outcome unknown
+
+[Outcome and next read-only diagnostic](../../docs/superpowers/plans/2026-10-06-batch3-one-proposal-outcome.md).
+Fresh account gpt-5.6-sol/provider $0 controls/actual CLI denial all passed. Owner
+continuation launched the sealed controller once; result passed=false,
+consumed_outcome_unknown, model_requests=outcome_unknown, cleanup_verified=true.
+Preserve canonical gates, production experiment and account ID
+bda965d0f493416c8fffa374f8964a44. No retry/fallback/reset/retiming or zero-request claim.
+Original outcome inspector refused in exact_consumed_experiment; saved source and
+owner refusal preserved. New saved-metadata inspector
+gold-proposal-metadata-20261006/inspect.ps1 is tested, unstarted, never run by agent.
+It matches the protected-registry/inherited-child producer contract while retaining
+strict metadata file ACL checks and narrower refusal phases; no ACL/runtime change.
+Owner must run it to expose safe failure type,
+cleanup and artifact presence; no new network/account/model operation. Source/
+HEAD/seals unchanged; no agent credential bytes, no qualification or trades.
+
+## Historical preparation: one proposal owner workflow — 2026-10-06
+
+Consumed outcome unknown; do not rerun. Follow the current diagnostic above.
+
+[Review and operator steps](../../docs/superpowers/plans/2026-10-06-batch3-one-proposal-workflow.md).
+Public checks pass; new round unstarted, no model requests or human approval yet.
+Owner start.ps1 requires exact human APPROVE before fresh account/provider/actual
+CLI checks and one sealed gpt-5.6-sol/medium EMA20 slope-filter development request.
+Existing 6,000-bar summaries; $0 additional spending; no retry/fallback/tools/trades/
+promotion. New account ID bda965d0f493416c8fffa374f8964a44 and CLI nonce
+3a74a60ed4a24560ba41a9be3297d6b8. Exact receipt binds canonical approval.
+Desktop only releases fresh public browser evidence; owner runs private helpers.
+Unknown/failed outcomes remain consumed. HEAD/runtime/seals unchanged; dispatch
+blocked until explicit owner approval and fresh gates; Batch 2 deferred.
+
+## Completed: combined account/provider/coding verification — 2026-10-06
+
+[Results and next milestone](../../docs/superpowers/plans/2026-10-06-batch3-combined-verification-results.md).
+Owner fresh round passed gpt-5.6-sol/same signed account/client/host, provider
+plan-on/credit-off/reload-off account-correlated controls, and fresh actual CLI
+restricted-token/runner-bound private-file denial. Renewal/cleanup passed;
+credential bytes/agent private reads zero. Combined receipt SHA
+cae600d722064d61c0690e55a634bcfc59cb205cb11807fc0bf85fad6b1d0f22.
+Account ID ae54ed0edad44e3b93f482e3cb324c6f consumed successfully. No model request,
+canonical gate or one-proposal approval. Preserve all receipts/refusals; no replay
+or retiming. Five-minute proofs are now historical, not current dispatch gates.
+Next follow the prepared owner workflow/approval review above before any new final
+account round. One scoped gpt-5.6-sol/medium EMA20 slope-filter development proposal,
+existing 6,000-bar summaries, $0 additional spend; separate explicit approval.
+Runtime/seals unchanged, dispatch blocked, Batch 2 deferred, hook cause unconfirmed.
+
+## Historical: browser release refusal preserved; fresh coordination prepared
+
+Original owner reached its wait. UI release exceeded ten seconds and refused
+before ui-ready/account-started; no account check or renewal ran. Old observations,
+waiting markers and browser-release-refusal.json remain intact. Stop old owner
+wait with Ctrl+C; let old CLI holder expire. No retiming/reset/replay.
+Fresh folder gold-coordinated-refresh-20261006, nonce
+a141482166a44be1bb042b3ce1d2d639; same unstarted account ID
+ae54ed0edad44e3b93f482e3cb324c6f. Updated pins/public checks pass.
+Follow the [current operator plan](../../docs/superpowers/plans/2026-10-06-batch3-coordinated-verification.md):
+fresh CLI prompt, then manual fresh owner verifier. Prebuild release before the
+final actual browser capture; all time limits unchanged. Runtime/seals unchanged;
+no canonical gates/approval/model request, dispatch blocked, Batch 2 deferred.
+
+## Prepared: next coordinated verification — 2026-10-06
+
+Owner authorized one new account-only round and fresh provider/coding audit;
+proposal approval remains separate. Follow the
+[operator plan](../../docs/superpowers/plans/2026-10-06-batch3-coordinated-verification.md).
+Fixed account ID ae54ed0edad44e3b93f482e3cb324c6f; fresh CLI nonce
+34e287c36e634f9cbe11809f065e1b4c. Public synthetic/native/pin checks pass.
+New helpers are unstarted. Actual CLI publishes waiting.json; separate owner
+verify.ps1 waits for fresh browser release before account acceptance, then runs
+owner live denial proof and exact combined audit. No canonical gates/approval or
+model request. Do not agent-run owner helpers or replay/retime old rounds.
+Actual CLI waiting is published. First owner call failed only in public Python -c
+quoting, before owner-ready/account-started. Stdin transport correction passes
+PowerShell 7/5.1 synthetic regression; original coordinator bytes preserved.
+Only waiting.json exists. Run corrected owner entry while that marker is current;
+no resetting/retiming. Docker pipe present but desktop query denied; owner checks
+Linux engine. Browser human checkpoint cleared; no fresh billing record released.
+Source/seals unchanged, model gpt-5.6-sol; dispatch blocked; Batch 2 deferred.
+
+## Completed: actual CLI isolation proof passed — 2026-10-06
+
+Owner gold-cli-runner-binding-20261006 passed at 1791231019, with independent
+live kernel/effective restricted token and pinned versioned runner/CLI ancestry.
+Registration/canary denied, public source read and workspace write allowed;
+credential bytes/agent private probes zero. Saved receipt matches its one-second-
+old challenge and owner console, SHA
+6a0720f77a7ee2cda885839eea0ab048bb1687f754199d2f4a754abd328538ec.
+Original held command is absent. Preserve this consumed round and prior refusal;
+never rerun/retime their helpers or receipts. See the
+[checkpoint](../../docs/superpowers/plans/2026-10-06-batch3-cli-runner-binding.md).
+
+Owner empty Stop fixture passed (exit 0, empty stdout/stderr, bundled node.exe).
+Saved receipt matches the console; preserve this consumed hook-check.ps1 round.
+Original failed hook/environment remain unidentified; warning not reproduced,
+not claimed fixed. Hook configuration unchanged; no hook suppression or MCP
+credential changes. No canonical gates written, account
+round/renewal repeated or inference approved. Fresh combined gates are a later
+authorized round; separate one-proposal approval still required. Runtime/seals
+unchanged, model gpt-5.6-sol, dispatch blocked, Batch 2 qualification deferred.
+
+## Historical: live binding passed; runner filename mismatch corrected — 2026-10-06
+
+Consumed gold-cli-isolation-proof-20261006 round refused at
+pinned_native_runner_ancestry (1791230681); no private owner probe. The sandbox
+uses codex-command-runner-0.160.0.exe in .codex\.sandbox-bin. Its hash equals the
+pinned unversioned cached runner. Recognizing only the cached filename was the
+verifier bug; runner integrity is unchanged. Preserve the failed round and sources.
+
+[Replacement plan](../../docs/superpowers/plans/2026-10-06-batch3-cli-runner-binding.md):
+gold-cli-runner-binding-20261006 uses a fresh nonce and exact observed runner
+name/path/hash followed by pinned CLI ancestry. Identity and wrong-name/path/hash
+refusal checks pass with native/challenge/pin checks. Existing actual CLI must
+publish its new waiting marker before the manual owner inspect.ps1. No agent
+private probes, old helper replay or guard changes. Actual owner denial pending;
+dispatch blocked, model requests zero, Batch 2 deferred. No account/renewal,
+canonical gate writes or proposal approved. Hook cause still unconfirmed.
+
+## Historical: actual CLI token restricted; owner proof prepared — 2026-10-06
+
+Read actual `Verify CLI command context` transcript: ordinary Windows PowerShell
+commands ran as KWG-Beast\CodexSandboxOffline in the expected workspace, with
+CodexSandboxUsers membership. Identity metadata is progress, not isolation proof.
+CIM ancestry failed Access denied; launcher -CheckOnly failed PowerShell
+PSSecurityException/scripts disabled, not a Codex command-policy rejection.
+The launcher belongs in the owner terminal and is not needed inside this CLI.
+
+Actual self-query at 1791228696 reports token_restricted=true. Its completed
+PID/thread are historical, not passing live isolation proof. See the
+[fresh owner proof plan](../../docs/superpowers/plans/2026-10-06-batch3-cli-isolation-proof.md).
+New public inline holder is prepared for the existing actual CLI. Manual owner
+inspect.ps1 under gold-cli-isolation-proof-20261006 binds the live restricted
+token and pinned runner/CLI ancestry before open-only owner checks. It must not
+run through agent tools. Public-only compatibility/refusal checks pass; live
+owner result pending, canonical gates unwritten. Preserve any consumed round.
+
+F2 shows unrelated MCP warnings. The installed CLI discards stderr for Stop
+exit 1. Configured Impeccable Stop passes a logged empty cmd /C fixture; original
+failed hook/cause is still unknown. Owner hook-check.ps1 is prepared for a
+separate empty fixture; no hook/config changes or suppression. Trading source,
+seals, execution policy and deny remain unchanged. Dispatch blocked, Batch 2
+deferred; no account round, renewal, canonical gates or proposal approval.
+
+## Prepared: actual restricted CLI handoff — 2026-10-06
+
+Owner selected moving the actual coding work to restricted Codex CLI. See the
+[CLI handoff](../../docs/superpowers/plans/2026-10-06-batch3-cli-handoff.md).
+Manual launch .superpowers/sdd/gold-restricted-cli-20261006/start.ps1 pins existing
+CLI/project profile and requests elevated sandboxing, approval policy never and
+no shared daemon. It supplies no initial model prompt. Syntax/metadata-only pin
+check passed; actual launch subsequently observed, coding isolation pending. Continue coding there,
+not simultaneously in this desktop chat. First verify its actual live command
+context; no nested-test substitution, reused desktop challenge or private agent
+probes. No account round, renewal, canonical gates or proposal dispatch approved.
+Trading model gpt-5.6-sol; runner/seals unchanged; dispatch blocked, Batch 2 deferred.
+
+## Completed: owner observes this chat's live command process — 2026-10-06
+
+Selected owner process verifier; see the
+[reviewed plan](../../docs/superpowers/plans/2026-10-06-batch3-owner-process-verifier.md).
+First process-verifier round expired at 1791226484; owner ran at 1791227314.
+Saved refusal matches the console: live_public_challenge, no kernel binding.
+Holder exited normally. Preserve its challenge/result; never replay/reset them.
+
+Replacement manual entry:
+.superpowers/sdd/gold-owner-process-ready-20261006/inspect.ps1.
+Holder waits at most 30 minutes for owner readiness. The owner wrapper starts
+the unchanged five-minute challenge and automatically queries its live
+PID/thread/creation/image/effective-token binding. Source hashes are pinned;
+public readiness/challenge markers publish atomically without overwrite.
+Owner result passed at 1791227749, matching the saved console/result and challenge:
+PID 37408 / TID 18096, unrestricted process token. Immediate parent metadata names
+cached codex.exe, without verified ancestry/backend. Holder exited normally;
+preserve completed replacement and do not rerun its inspect.ps1.
+
+Stage one is metadata only: no private-file probes, account/model calls, canonical
+gate writes or approval. Four native kernel mismatch refusals, seven public
+challenge refusals, native/JSON positive cases, readiness nonce/age refusals,
+syntax and source-pin checks pass.
+An unrestricted token or unknown namespace/backend remains inconclusive. Do not
+treat this diagnostic as actual_coding_token or coding isolation proof; both stay
+false and passed=false. Review the independent owner result before designing any
+open-only proof. Runtime and existing seals unchanged, dispatch blocked, Batch 2
+deferred. Historical account/provider audits below must not be replayed/retimed.
+
+## Current: account-bound provider controls audit passed — 2026-10-06
+
+Saved gold-zero-spend-refresh-20261006/result.json matches the owner output.
+Exact account round/receipt/registration and visible browser account correlate;
+provider controls observed 2026-10-05T18:20:01.374Z have app credit use OFF,
+automatic reload OFF, plan usage ON and Save disabled. Observation SHA
+2a129031dc126bd43593a8fc0d1a8ad742324c29c5a2417042aa5c8077967358.
+No account repeat/renewal, canonical gate writes, approval or model requests.
+Historical same-account catalog check and provider-controls audit are complete.
+Combined live gate is not: account receipt is outside 300 seconds and coding
+isolation was not rechecked. billing_ceiling_verified=false remains accurate for
+this audit's limited scope. Preserve successful round and audit; never replay or
+retime them. Source/seals unchanged, dispatch blocked, Batch 2 deferred.
+
+Next: resolve fresh actual coding-context file-denial evidence. The current policy
+and .codex/config.toml deny the private tree, but do not constitute a fresh probe.
+The old probe opens prohibited paths; agent tools must not execute it. Owner or
+nested-profile tests cannot be represented as the actual chat proof. No available
+tool returns an actual-context denial attestation, so this gate remains unresolved.
+Do not weaken the boundary or rewrite sealed guards to pass. After resolving it,
+coordinate fresh account/provider/coding evidence and separately approve one
+concrete proposal. No automatic new account attempt or inference is authorized.
+
+## Historical: account verification passed; saved $0 controls audit next — 2026-10-06
+
+Owner result and saved public log agree: round 8185435a78724a81bdd3e8332c34788e
+passed signed same-account/client/host gpt-5.6-sol availability, renewal and cleanup.
+Accepted at 1791222006; exact receipt SHA
+667052fdbe2c2266da46b893edb7006f59146ecb370d41b996cbca340778d776. Current commit
+18620b96 and account e67f2b7f/proposal a8ad5f49 seals remain unchanged. Requests
+zero, spending gate false, approval false, dispatch blocked. Do not rerun this
+consumed successful account round. Its five-minute dispatch freshness has elapsed.
+
+Fresh browser inspection followed the Gold connection's Manage usage: credit use
+OFF, automatic reload OFF, plan usage ON and Save disabled. No settings changed.
+Manual next: .superpowers/sdd/gold-zero-spend-refresh-20261006/review.ps1, a read-only
+owner audit of these fresh observations against the exact saved receipt and
+registration. Writes only a public result; no account run, renewal, canonical
+gate writes, approval or inference. Synthetic stale/account/spending refusals pass.
+Actual owner audit and fresh actual coding-isolation evidence remain pending;
+the old coding evidence is stale. Never probe denied paths through agent tools or
+mark historical evidence fresh. Separate explicit proposal approval requires all
+combined gates fresh; no automatic new account round. Batch 2 remains deferred.
+
+Original controls audit refused with ValueError in an ambiguous combined phase;
+no account/model request ran. Evidence was expired at the subsequent review time,
+but the console does not identify the exact original failed check. Preserve the
+old helper/UI bytes and reported-refusal.json. Refresh helper separates diagnostic
+phases, uses newly observed browser evidence and retains the five-minute limit.
+Seven synthetic tests pass. Owner must run promptly; no old evidence retiming,
+runtime/seal edits, account replay, canonical gate writes or inference.
+
+## Historical: fresh account-only round prepared — 2026-10-06
+
+Owner requested same-account gpt-5.6-sol availability verification. Manual entry:
+.superpowers/sdd/gold-account-verification-20261006/verify.ps1; fixed round ID
+8185435a78724a81bdd3e8332c34788e. Uses current 18620b96 source and e67f2b7f account
+seal/a8ad5f49 proposal seal, original intent and four passed native proofs.
+No runtime change/sealing/native replay. Requires empty production registry and
+no current proposal approval. Calls only sealed account accept with the explicit
+ID, retaining same-account signature/binding checks, preflight and renewal ledger.
+May renew once if required; no inference. Public started/result logs preserve
+outcome and exact private receipt SHA; repeated/consumed IDs refuse replay.
+
+Synthetic binding/freshness/model/redaction tests plus mocked one-call/replay and
+invalid-native-before-launch checks pass. No actual owner acceptance has run.
+Share/read the saved redacted result; preserve any failure and do not repeat.
+Provider $0 and actual coding isolation remain outstanding, then separate proposal
+approval. This account-only step cannot write those gates or dispatch a model.
+Private reads remain denied to agent tools; owner terminal execution is required.
+
+## Current: all four guardian native checks passed — 2026-10-05
+
+Saved owner preparation.json recovered after terminal output was cleared.
+Source 18620b96eb05eeef86dcea52acf3e00cb1c09e6c matches HEAD and unchanged runtime.
+Account/proposal boundary and forced-termination checks all passed, cleanup
+verified, seal matches, exit zero, model requests zero. Historical failed metadata
+preserved, production registry empty, prior 14-case matrix reused without replay.
+No account acceptance or inference ran; dispatch remains blocked. Do not rerun
+preparation. Summary: .superpowers/sdd/gold-guardian-fix-20261005/preparation.json.
+
+Current account seal e67f2b7f38d4d1458ae70dc5a8c86c311794caa338ecb0f731c025e52ffbe5ea;
+proposal seal a8ad5f4919cd020b71e6c8da408b08a94d2689f095c68fe510faef32b0f3ca2f;
+intent SHA 19de161c8f04a83d9ba66150274df268d1b3f66942deec087fca5a2ea5d01e4c.
+Next: bind a fresh owner account-verification round helper to this actual source,
+seals and intent, then verify fresh provider-enforced $0 controls and actual
+coding isolation. Old live/preparation helpers are obsolete. Preserve renewal
+and production replay guards; separate concrete one-proposal approval follows
+verified gates. gpt-5.6-sol retained, private reads denied, Batch 2 deferred.
+
+## Current: cleanup recovered; functional guardian fix awaits native proof
+
+Owner recovery confirms saved guardian PID absent, both exact empty owned
+networks removed, all owned resources absent and historical metadata unchanged.
+Production registry empty; account acceptance/model requests zero. Failed native
+receipt remains failed, with no cleanup receipt. Actual old cause is unknown.
+
+Reproduced public error path: unexpected parent wait/handle errors previously
+prevented cleanup/publication. Shared guardian now cleans exact owned names after
+these errors, publishes class/phase diagnostics, rejects invalid wait results,
+and keeps success false on any guardian error. Batch removal/absence checks cut
+twenty CLI calls to four under the same cleanup command budget. Both controllers
+surface guardian exit and cleanup failure fields; termination results do too.
+No changes to account rounds, refresh/proposal reservations, model or $0 gates.
+Seventeen focused tests and native-self-handle/mocked-Docker checks for both
+callers pass; actual new isolation/forced termination proof remains pending.
+
+Manual next entry: .superpowers/sdd/gold-guardian-fix-20261005/prepare.ps1.
+Reviewed scoped commit, old evidence/current absence preflight, new seals and
+four native fake-input/public-TLS checks only. Reuses the old supported matrix
+after source/receipt identity checks, with historical metadata rechecked on
+failure. No account acceptance, credentials, renewal/catalog, approval or model
+request. Do not repeat preparation after commit/failure. Private helper execution
+remains owner-only; fresh account/$0 milestone and separate concrete proposal
+approval follow actual native success. Earlier cleanup instructions superseded.
+
+## Current: missing native cleanup receipt and two owned networks — 2026-10-05
+
+Owner diagnosis: e93578e account.boundary reached public TLS, no false probe
+categories or saved exception kind. cleanup.json absent; finished and guardian
+ready markers present. Both image pins and Linux engine pass. Containers absent,
+inner/outer networks present, unexpected matches zero; production registry empty.
+Account acceptance and other native checks never ran. Model requests zero.
+Guardian process state and exact cause remain unknown; native proof is failed.
+
+Manual owner next: .superpowers/sdd/gold-native-failure-20261005/recover.ps1.
+Hash-pinned helper verifies exact failed seals/source, completed controller,
+saved PID absent/exited, empty container inventory and exact empty owned networks
+before removing only their inspected immutable IDs. Active/unknown PID, attached
+networks or unexpected names refuse mutation. Rechecks absence and historical
+metadata hashes; retains failed receipt and never fabricates cleanup proof.
+No restart/prune, credential/provider access, native retry or model request.
+Public synthetic refusal/cleanup/guardian publication tests and 15 focused tests
+pass. Owner recovery pending. Runtime and seals unchanged; account/$0 milestone
+and separate proposal approval remain blocked. Private reads stay denied;
+Batch 2 deferred. Do not repeat preparation or the consumed boundary.
+
+## Current: e93578e native preparation failed at account boundary — 2026-10-05
+
+Owner ran reviewed preparation: 15 offline tests passed, engine/images passed,
+all seven historical account attempt resource inventories absent, previous
+14-case fake matrix reusable. Scoped commit e93578ebb2b375d9be5fad47f380e5078f0eb2d4
+and fresh account/proposal sealing succeeded. First account.boundary returned
+exit 2, passed false, cleanup false, seal matches, model requests zero. The
+workflow stopped; no account acceptance or model dispatch, and no new account
+termination/proposal native tests reached. No final preparation summary exists.
+
+Preserve the failed consumed boundary and all seals/old attempts. Do not rerun
+prepare.ps1 or reseal/reset to bypass it. The wrapper left saved failure fields
+out of its summary; root cause and current resource state are unverified.
+Next manual owner read-only diagnosis:
+.superpowers/sdd/gold-native-failure-20261005/inspect.ps1. Hash-pinned inspector
+checks committed/sealed runtime, bounded receipt/cleanup/ownership and marker
+presence, then only Docker info/image/exact-owned container/network listings.
+It reports existing remaining native attempts, production registry emptiness
+and current seal/intent hashes without credential contents. No startup/removal,
+retry, native test, account/provider request, approval or model call. Diagnostic
+redaction/category checks and wrapper syntax pass; actual owner outcome pending.
+Runtime remains unchanged after e93578e. Private denial and all $0/one-proposal
+gates stay intact; Batch 2 deferred. Earlier preparation-next entries superseded.
+
+## Current: durable recovery offline implementation complete; native proof pending
+
+Owner selected durable account-only verification IDs. Implemented canonical,
+exclusive per-round reservation after Docker/image/current predecessor absence
+checks, exact guardian scope and preserved renewal ledger. Proposal approval
+binds the round ID and exact receipt SHA. Fifteen focused account/crypto/proposal
+offline tests pass, with fake inputs and public workspace temp files. No private
+runtime reads, Docker/provider calls, acceptance or model request by agent tools.
+
+Next owner entry: .superpowers/sdd/gold-account-recovery-20261005/prepare.ps1.
+Reviewed scope includes changed runtime/tests and checkpoint docs only. It
+checks original parent/index/file hashes, public tests, owner-only read-only
+preflight, then scoped commit, fresh account/proposal seals and their native
+boundary/forced cleanup proofs. Prior supported matrix is reused only after
+exact old seal/matrix hashes and unchanged runtime/parser/fixture bytes pass;
+no fake matrix repeat. Old failed attempt metadata hashes must remain unchanged,
+production registry empty. No accept, renewal, catalog, approval writer or
+inference in preparation. Actual owner/native outcome pending. Share summary
+and preserve partial attempts on failure; do not repeat after commit. Old
+verify.ps1 is obsolete. Fresh account round/$0/denial evidence and separate
+proposal approval follow the new native proof. Earlier design-pending entries
+below are historical; private denial and one-proposal guard remain intact.
+
+## Latest: current infrastructure checks passed; recovery contract choice pending
+
+Owner's corrected inspector confirms Linux Docker, worker ID and proxy
+repository digest, and absence of all exact-owned failed-attempt containers/
+networks with zero unexpected matches. Read-only check: no credential contents,
+resources changed, acceptance repeated or model requests. Keep the historical
+cleanup false and failed consumed acceptance intact. No image pull required.
+
+The remaining blocker is one account acceptance per code seal. Replaying the
+old command or resealing unchanged code cannot fix it. Proposed alternatives
+and implementation/verification criteria are in
+[account recovery task plan](../../docs/superpowers/plans/2026-10-05-batch3-account-recovery/task_plan.md).
+Owner choice pending: separately logged account verification rounds with exact
+approval-bound receipt identity (recommended), or smaller one-shot preflight.
+Runtime is unchanged while brainstorming; no fresh acceptance, provider or
+model request. Both paths retain credential denial, same account/client/host,
+renewal replay ledger, $0 controls and experiment-wide one-proposal guard.
+Do not begin new live verification before actual changed-source/native proofs.
+
+## Latest: owner Docker recovery passed; image diagnostic corrected — 2026-10-05
+
+Owner recovery confirms the Linux engine is available and exact-owned failed
+attempt containers/networks are absent, with zero unexpected prefix matches.
+No acceptance repeated, credentials read, resource cleanup mutations or model
+requests. Keep the saved cleanup false and failed consumed receipt; current
+absence is separate evidence. Both image lookups exited zero and worker pin
+passed. Proxy false was a diagnostic comparison bug, not established missing
+image: SQUID_IMAGE is ubuntu/squid@sha256 while image inspect Id is a different
+configuration digest. Inspector now compares that proxy reference to exact
+RepoDigests (with docker.io prefix normalization) and worker ID to Id. Synthetic
+match/mismatch/malformed ID tests plus redaction/ownership pass. Only ignored
+helpers and public handoffs changed; runtime/seals/images remain unchanged.
+Next read-only manual entry: gold-accept-failure-20261005/inspect.ps1 for corrected
+proxy identity confirmation. Account acceptance remains failed/consumed; no
+reset, replay or reseal workaround. Account/$0 and separate proposal approval
+are pending; inference blocked, Batch 2 deferred. Earlier recovery-pending
+entries below are historical.
+
+## Current: consumed account acceptance failed — 2026-10-05 Bangkok
+
+Owner inspector now confirms the Linux engine could not be reached (exit 1;
+stderr SHA `e9133cf10b02b0b91c8b119848513db0ac541e7c3c19681266939e4b9952f7cc`).
+Pinned-image and owned-resource queries were skipped, not proven absent.
+Guard-ready/finished exist; neither credential-renewal snapshot marker exists.
+Metadata/presence checks read no credential contents. Historical cleanup stays
+false. Authorized hidden Desktop startup was attempted from the agent; its
+public empty-config Docker info check returned permission denied. This is not
+proof of owner readiness. Next manual owner command is
+`.superpowers/sdd/gold-accept-failure-20261005/recover.ps1`: start Desktop hidden
+only if no Desktop/backend process exists, then inspect current engine/images/
+exact-owned resources. Inspector now emits bounded safe error categories;
+synthetic classification/redaction/ownership tests pass. No restart/reset,
+pull/removal, acceptance retry or model request. Owner recovery still pending.
+
+Owner's `91322fb3...` current-seal acceptance failed with `CalledProcessError`,
+cleanup false, no accepted timestamp/catalog, account/isolation false and zero
+model requests. Wrapper phase `one_unused_sealed_account_acceptance`. This
+attempt is consumed; do not rerun verification, delete/reset it or reseal as a
+workaround. No proposal approval/dispatch. Earlier pre-acceptance helper fix
+and unused-acceptance instructions below are superseded by this result.
+
+The checked child commands in this controller are Docker operations; the receipt
+does not retain the exact command/stderr. The initial owner engine check failed;
+image/resource state remains unknown, and cleanup false does not prove presence.
+Read-only inspector: `.superpowers/sdd/gold-accept-failure-20261005/inspect.ps1`.
+It reads bounded allowlisted metadata, checks marker presence without opening
+credential snapshots, and queries only Docker info, pinned images and exact
+owned resource presence. No acceptance, credentials, provider requests, Docker
+start/pull/remove or permission changes. Redaction/ownership and wrapper syntax
+tests passed; initial owner diagnosis completed as recorded above. Share recovery JSON.
+Private policy deny and $0/one-proposal approval gates stay intact; Batch 2 deferred.
+
+## Current: live verification handoff prepared — 2026-10-05 Bangkok
+
+Owner helper refused in pre-acceptance source/seal checks. Corrected an ignored
+helper mistake: account code/fake-input snapshots intentionally allow sandbox
+RX, so their owner-only ACL test was inapplicable. Both pinned seals/source
+checks remain, and proposal/credential/receipt/registry privacy checks remain.
+Regression failed before and passed after the fix; invalid account seal and
+private proposal ACL still refuse. Wrapper pin and phase diagnostics updated.
+No runtime/permission/seal changes; this run did not consume account acceptance.
+Resume the corrected verification-only entry with genuinely fresh observations.
+
+Fresh read-only KWG connection/linked Manage usage controls passed: included
+plan use allowed, credit use off, auto reload off, Save disabled. Actual-chat
+open-only credential/canary denial and public-source/workspace positive controls
+passed, no credential contents read. Windows token restriction remains false;
+effective file isolation passed. Current signed account/client correlation and
+catalog acceptance are still owner-only and pending. No inference authorized.
+
+Owner entry: `.superpowers/sdd/gold-live-verification-20261005/verify.ps1`.
+[Workflow, evidence and timing](../../docs/superpowers/plans/2026-10-05-batch3-live-verification-handoff.md).
+The tested helper verifies current existing seals/intent, refuses stale evidence
+before acceptance, then runs only the unused sealed account acceptance and saves
+a private audit. It writes no approval/dispatch gates in verification mode.
+Share output promptly: any separately approved dispatch still requires account,
+billing and coding evidence within five minutes. Do not retime old observations,
+repeat acceptance/production attempts or reseal unchanged code. The prepared
+dispatch mode requires separate exact authorization and was not executed.
+No settings, runtime changes, commits or replacement seals here; Batch 2 deferred.
+
+## Current: 5.6 Sol sealed preparation complete — 2026-10-05 Bangkok
+
+Owner final continuation passed all four account/proposal boundary and forced-
+cleanup checks for source `a6eecea6c3f0fb19bd68ff9a436a47947ce81538`: exit 0,
+cleanup true, seal matches true, zero model requests; both forced-termination
+checks verified forced cleanup. The 14 passed fake cases were reused without
+repetition, production registry empty, account acceptance not run, dispatch
+blocked. Ordinary boundary checks correctly have null forced-termination fields.
+Evidence is owner-reported; private receipts were not independently reread.
+
+Prepared intent SHA256:
+`19de161c8f04a83d9ba66150274df268d1b3f66942deec087fca5a2ea5d01e4c`.
+[Completed results and exact one-proposal scope](../../docs/superpowers/plans/2026-10-05-batch3-56-sol-switch.md).
+Keep these exact seals and every consumed/failed artifact; do not rerun helpers,
+native checks or matrix or reseal unchanged source.
+
+Next prepare fresh owner-side account-bound $0 and actual coding-denial evidence
+and concrete intent review/approval, then coordinate current-seal account
+acceptance and any separately approved single dispatch within the five-minute
+receipt window. Do not prematurely consume acceptance or reuse the old Astra
+receipt. No account renewal/acceptance, approval or real inference is authorized
+by this preparation success. The coding deny stays non-escalatable; Batch 2
+qualification deferred. Earlier native-pending entries are historical.
+
+**Current: 14-case fake matrix passed.** Owner review of `a6eecea` reports all
+14 cases passed with cleanup, production registry unchanged/empty, Docker and
+pinned image available, zero model requests. All four account/proposal boundary/
+termination receipts were absent. The completed matrix is preserved; no engine
+startup, new seals, repeat matrix or runtime code correction is needed now.
+
+Next owner helper: `.superpowers/sdd/gold-native-resume-20261005/continue.ps1`.
+It verifies the existing seal/matrix identities, refuses any existing native
+attempt directories and runs only the four unused boundary/forced-cleanup checks
+via the existing sealed CLIs. Redacted results are visible even on failure.
+Five synthetic wrapper checks passed; actual private native work is pending.
+No account acceptance, token renewal or inference is included. Share final JSON
+or error, preserve all attempts. The coding deny remains non-escalatable.
+
+**Latest owner result:** source `a6eecea6c3f0fb19bd68ff9a436a47947ce81538`
+committed; sealing progressed past the ACL failure. A later native command
+returned nonzero and its captured JSON was hidden by `Invoke-CheckedJson`.
+Specific stage/case is not established from the supplied error. Do not rerun
+the consumed helper or delete attempts.
+
+Next read-only owner command:
+`.superpowers/sdd/gold-native-diagnostic-20261005/inspect.ps1`. It summarizes
+existing seals/fake-case/native receipts and the existing read-only Docker
+preflight, without credentials, permission changes or repeated checks. Public
+syntax/redaction tests passed; private review is pending. Agent-context preflight
+could not reach Docker; owner-context status remains unknown. Share only the
+redacted diagnostic JSON/error. No account acceptance, renewal or model request.
+
+**Current: stale ACL list corrected and regression passed.** Owner diagnostics
+showed the `d053116` partial snapshot was already owner/SYSTEM-only, protected
+and empty. A vanished inherited SID returned native lookup code 1332. The shared
+hardener used a list captured before inheritance cleanup; it now reads the ACL
+after cleanup/grants before removing remaining unexpected entries. Parent ACLs
+and the non-escalatable private-tree deny stay intact.
+
+The full-function sequence regression failed before this correction and passed
+afterward, including refusal when an explicit entry cannot be removed. That
+sequence uses mocked ACL reads/writes; numeric SID removal also passed on a real
+harmless file. Full owner sealing/native checks remain pending. Agent tools read
+only the user-supplied diagnostic attachment, never private runtime metadata.
+
+Next owner helper: `.superpowers/sdd/gold-56-sol-current-acl-20261005/prepare.ps1`.
+It verifies/commits only five reviewed correction/checkpoint files from parent
+`d053116`, then creates new seals and runs existing fake/native checks. Preserve
+both earlier snapshots and never rerun their consumed helpers. No account
+acceptance, token renewal or inference. Share redacted final JSON or refusal.
+
+**Current blocker:** owner committed the SID-prefix correction as
+`d053116e6ad8b3509829725741f277587a867e13`, but sealing failed again at ACL
+removal. Do not treat the canary success as resolving this private native
+failure. Both preparation helpers are consumed; preserve both partial snapshots
+and run neither helper again. No new runtime correction has been guessed.
+
+Next owner-only command: `.superpowers/sdd/gold-acl-diagnostic-20261005/inspect.ps1`.
+This read-only metadata/SID-lookup diagnostic prints hashed identities and native
+exit codes without changing permissions or reading private file contents. Its
+syntax/public formatter passed; actual private execution is pending. The agent
+cannot execute it under the non-escalatable runtime deny. Share redacted JSON or
+error before choosing the next correction. No account acceptance, renewal or
+model request; native sealing and qualification remain blocked/deferred.
+
+Latest owner run committed `0816548e872af0b7a4e507dc109a15375cccbd11`, then
+stopped in `Set-Boundary` with `Unexpected access removal failed.` No fake/native
+matrix ran. The shared hardener's removal command now uses `*<numeric SID>`;
+the actual shared command passed a new harmless native regression after the
+unprefixed numeric form failed. No private runtime was read by the agent.
+Use the superseding owner helper
+`.superpowers/sdd/gold-56-sol-acl-20261005/prepare.ps1`, which verifies/commits
+only this correction/checkpoint and creates new commit-named snapshots. Preserve
+the partial old snapshot; do not rerun the prior helper or delete any attempts.
+Full sealing/native results still pending. No acceptance, renewal or inference.
+
+Owner selected `gpt-5.6-sol` and said continue, superseding the unavailable
+6.1 Sol requirement and earlier Astra choice. Shared transport/account/gateway/
+proposal policies now target 5.6 Sol. Ten focused offline tests passed with fake
+credentials and no real HTTP. Historical Astra snapshots and consumed acceptance
+remain unchanged; their results do not certify the new source/model.
+
+[Model-switch checkpoint and prepared owner command](../../docs/superpowers/plans/2026-10-05-batch3-56-sol-switch.md)
+records the next stage: hash-verified scoped owner commit (agent Git index writes
+failed even after the approved retry), new seals, all 14 fake cases, and native
+account/proposal boundary and forced-cleanup checks. The helper does not run
+account acceptance, renewal or inference. Agent tools cannot run it because the
+private runtime is denied non-escalatably. Owner runs it manually and shares
+only its redacted summary; stop on failure and preserve partial attempts.
+
+After preparation, arrange fresh account-bound $0 controls, actual coding-denial
+evidence and concrete one-proposal approval before the new account acceptance/
+dispatch window. Five-minute receipts must be fresh; do not prematurely consume
+new acceptance or repeat the old command. Support contact was declined and no
+message sent. No model request or provider setting change ran; Batch 2 remains
+unqualified and qualification deferred. Earlier sections are historical where
+superseded by this checkpoint.
+
+## Historical account/model preference change — superseded
+
+Owner declined contacting support and asked about another model. Astra is the
+previously recommended available option because the old sealed runner targets it;
+owner subsequently selected 5.6 Sol above. No support message was sent or model
+call authorized. Keep the $0 and private-tree-denial constraints.
+
+[Sol availability investigation and unsent support draft](../../docs/superpowers/plans/2026-10-05-batch3-sol-availability-review.md):
+the parser returns every provider slug, including hidden entries; synthetic
+Sol absence/presence checks and two fake-only account tests passed. Official
+plan-usage examples use Sol, but the current app catalog still lacks it.
+No documented force-enable step was found; provider-side cause is unknown.
+The broader synthetic atomic-file test failed with Windows temporary-file
+permissions, including its approved rerun; preserve that limitation. No runtime
+source, credentials, provider settings or model dispatch changed in this review.
+
+Owner pasted final account acceptance at Unix `1791197686` (17:54:46 Bangkok):
+passed, renewal completed, same-account verification and cleanup true, seven
+models, zero model requests. Evidence is owner-reported; the coding agent did
+not reread the private receipt. Account seal remains
+`72da287687cdbd950a86c2b2c6442efb15d5c67ea74b36a7ec21ececab8591c3`.
+
+Owner now requires `gpt-6.1-sol`. The returned catalog lacks it; Astra's presence
+no longer meets the owner's model choice. Preserve the existing Astra source,
+seals and intent as historical prepared artifacts; keep dispatch blocked.
+Establish supported same-app Sol availability before any source retarget/new
+intent/seals and affected validation. No alternative model, account switch,
+re-registration, credit change or repeated consumed account command is authorized.
+Private-tree denial stays active. Fresh account-bound $0/denial evidence and
+concrete Sol proposal authorization remain pending. No model request ran.
+
+## Fresh account/$0 handoff ready — 2026-10-05 Bangkok
+
+The owner's "ok go" continued account/$0 checks. Saved UI controls were
+rechecked without changes: one KWG Gold Research app, included usage allowed,
+100% cap, credits off, auto reload off, Save disabled, displayed balance zero.
+This observation is not a current private account-bound billing receipt.
+[Exact owner-only account command](../../docs/superpowers/plans/2026-10-05-batch3-owner-account-handoff.md)
+uses the existing final account seal and verified installed signature packages.
+Owner runs it once manually with `-I -B`, then shares only the redacted result.
+The coding agent cannot execute private runtime actions or escalate around
+the active deny. No fresh acceptance/renewal/catalog has run yet. Preserve
+consumed attempts. Fresh private evidence and concrete one-proposal approval
+remain required before model dispatch; no runtime source or settings changed.
+
+## Active chat file denial passed — 2026-10-05 17:34 Bangkok
+
+The owner selected custom permissions and the active policy now denies the
+private `.batch3-vibe` tree. The ordinary command tool's open-only probe passed
+at Unix `1791196453`: registration/canary denied, public source and workspace
+write allowed, no credential contents read, zero model requests. The process
+still reports owner identity and `token_restricted=false`; record effective
+file-access denial accurately, not a restricted Windows-token claim.
+[Current evidence and next steps](../../docs/superpowers/plans/2026-10-05-batch3-coding-profile-results.md).
+
+Next review the sealed intent, obtain applicable renewal/proposal authorization,
+and establish legitimate owner-side execution for fresh account/$0 evidence.
+This chat must respect the private-tree deny and cannot escalate to read it.
+No private production gate receipt or approval was written; this public diagnostic
+does not satisfy the runner's private, seal-bound, five-minute evidence check.
+Refresh actual coding denial at dispatch time. Runtime source unchanged, no
+renewal/catalog/model request or provider/SSH setting change. Private state
+was not reread; registry-empty status is from the last owner verification.
+Batch 2 qualification deferred. Earlier active-chat failures below are historical.
+
+## Native coding profile validated; active chat still needs reload — 2026-10-05 Bangkok
+
+Added project `.codex/config.toml`: `gold-research-coding` extends `:workspace`
+and denies `.batch3-vibe`. Native Codex 0.160.0 validation passed real restricted
+token and auth/canary open denial, with source access and workspace write positive
+controls. No credential bytes were read. The ordinary tool still uses an
+unrestricted owner token, so its fresh probe failed; do not treat the nested CLI
+check as passing production proof.
+
+[Profile results and resume instructions](../../docs/superpowers/plans/2026-10-05-batch3-coding-profile-results.md):
+fully exit/reopen Codex, confirm/reselect this profile for the active chat, and
+verify genuine denial through its ordinary command tool. Only then proceed to
+fresh account/$0 checks and concrete attempt review. Private validation receipt:
+`.batch3-vibe/proposal-readiness/<proposal seal>.profile-validation-20261005.json`,
+SHA256 `49ef28dd0244e80c17d51e2165a585f42793fd81bd301def15312efb5a8e210c`.
+No production passing proof, approval, renewal, model or authenticated catalog
+was created/run. Owner/SYSTEM ACLs and final runner seal unchanged; registry empty.
+Provider/SSH settings and runtime source unchanged; qualification remains deferred.
+
+## Final runner sealed; real proposal blocked by coding token — 2026-10-05 Bangkok
+
+[Final runner results and resume order](../../docs/superpowers/plans/2026-10-05-batch3-final-runner-results.md)
+record source `dfb9454a81e9a301c80561de4371ffaefae25f78`, exact real inputs and
+one-request `gpt-6-astra` intent. Proposal seal SHA256
+`b00ee5256e16883f9bdc7866cdba1fa58d709ee114599c1cda7d8608eb6e87a5`;
+intent SHA256 `6f41f118325687093072eb72989d370d03c2dfdf25106d7dd2973207125750e1`.
+The 84-file/73-code proposal snapshot is owner/SYSTEM-only; all three final
+snapshots and working source matches verified. Private preparation receipt SHA:
+`5ac92694ab4e555e929984318c9ff05c66c562a574f37116d9feac1d32df738b`.
+
+The 197-test workspace suite, 15 focused tests, four fake signature/registration
+checks and 14 native fake cases passed. Final proposal/account native boundaries
+and forced termination cleanup passed; missing approval stopped the actual
+sealed CLI before credentials, networking or production reservation. Older
+full-suite fixtures failed when relocated into the source-only seal; retain that
+diagnostic and run the full suite in its intended layout. No sources were
+changed to mask it.
+
+**Remaining blocker:** the actual default-tool token is unrestricted and can
+open the private registration/canary. The fresh probe read no bytes; its failed
+receipt is preserved and the passing coding-denial path is absent. Restore a
+restricted coding session and verify genuine file denial before proceeding.
+Do not substitute Docker isolation, change owner ACLs or invent a passing flag.
+Then review the sealed intent, refresh provider $0 evidence and obtain fresh
+same-account acceptance only under the applicable owner authorization. Current
+access expired; concrete one-proposal approval remains pending. Source changes
+require new snapshots and affected checks; never reuse consumed attempts.
+
+No real model request, renewal, authenticated catalog, credit/provider/SSH setting
+change, trade, deployment or push ran. Production registry empty and activation
+flags false; Batch 2 qualification stays deferred. Earlier runner-pending
+checkpoints below are historical where this evidence supersedes them.
+
+## Real development packet complete; final inference runner remains — 2026-10-05 Bangkok
+
+Owner entered the SSH key passphrase directly in a terminal. One read-only
+export copy succeeded and matched the original frozen checksum; no SSH/agent
+configuration or VPS state changed. The local dataset-access blocker is resolved.
+
+[Real packet results](../../docs/superpowers/plans/2026-10-05-batch3-real-packet-results.md)
+record the current frozen manifest, two byte-identical baselines and real packet
+generated with the existing sealed tools from source `e75e515e09a6…`. The adapter
+independently reproduced the baseline again. Packet/prompt remain private under
+`.batch3-vibe/gold-development/real-packet-e75e515e09a6`; inputs/receipt are under
+`real-inputs-e75e515e09a6`. Receipt SHA256
+`1c93fc050b0de511e6fa635b157720c3be74a1832c7585cec90296bc6ee7f046`.
+
+All 77 source-seal files, 71 code matches, file ACLs, artifact hashes and rebuilt
+prompt verified. The packet contains development summaries for 6,000 bars with
+unqualified costs/clock/prior-exposure labels. Reserved bars were not trade-simulated.
+This source snapshot remains fake-only; a final real inference runner and its
+isolation/cleanup acceptance plus source/input seal are still required before
+concrete attempt authorization. Recheck $0 settings and expired login before a
+request. No model request, renewal, settings change, trade, deployment or push
+ran; production registry empty and Batch 2 qualification deferred.
+
+## Real packet adapter prepared; dataset access pending — 2026-10-05 Bangkok
+
+`batch3_adapter.adapt_real` and its offline CLI reuse the frozen experiment,
+baseline simulator and development-summary validator. Exact recorded dataset
+checksum, current frozen manifest, full baseline reproduction and policy/risk
+identity are required. All unqualified/prior-exposure labels stay in the prompt.
+Six new tests, 191 owner-context stdlib tests and native synthetic private-output
+ACL/replay checks passed; synthetic evidence is explicitly not a real packet.
+
+[Preparation results and resume steps](../../docs/superpowers/plans/2026-10-05-batch3-real-development-preparation.md)
+record the native receipt, failed checks and current isolation limitation.
+Read-only SSH rejected the available key; Desktop/Downloads search found no
+frozen export copy. Owner was asked for an existing path or working SSH alias.
+No actual real packet or final inference seal has been created. Gate C remains
+incomplete and dispatch blocked. Obtain the exact data, freeze/reproduce inputs,
+then prepare the distinct final real execution boundary and concrete authorization.
+Gate B settings and expired login need checks immediately before any request.
+No model request, renewal, settings change, trade, deployment or push ran;
+production registry empty and Batch 2 qualification deferred.
+
+## $0 spending verification complete; next is real proposal preparation — 2026-10-05 Bangkok
+
+Gate B passed for the saved provider settings observed today. The unique gold
+connection allows included plan usage; global app credit use and automatic
+reload are disabled. A 100% app plan limit does not enable credits by itself.
+No settings changed or model requests ran; real dispatch remains blocked.
+
+See [spending verification and next milestone](../../docs/superpowers/plans/2026-10-05-batch3-zero-spend-results.md).
+Private receipt `.batch3-vibe/gold-plan-auth/billing-settings-20261005.json`,
+SHA256 `1c0fb6f0878bbef70425478832c4651a9f4caaa31d1dbe5d223370def63809fe`,
+records account/connection correlation and its limits. The UI supplies no numeric
+client ID or fresh signed identity attestation. Current access token expired;
+registration bytes are unchanged and the production registry remains empty.
+
+Next prepare a real development packet and final sealed inference boundary,
+then obtain authorization for one concrete `gpt-6-astra` proposal. Recheck saved
+credit controls, login freshness and actual restricted isolation before dispatch.
+Today's host command ran as the auth owner with an unrestricted token, so its
+open-only probe did not reproduce restricted-token denial. Private ACLs passed;
+the missing fresh denial proof is a gate C execution check.
+
+Batch 2 stays development-complete and unqualified, with qualification deferred.
+Earlier account/fake test totals and superseded billing status below are historical.
+
+## Account acceptance complete; next gate is $0 enforcement — 2026-10-03 Bangkok
+
+The owner authorized reviewed renewal and selected `gpt-6-astra` after the
+account catalog lacked the former model. Same-account/client/host renewal ran
+once, validated signed tokens and published them atomically under private ACLs.
+The final authenticated catalog confirms `gpt-6-astra` is present. Native account
+Internet isolation, forced controller termination and cleanup passed. These
+account-worker results do not enable real inference.
+
+See [account acceptance results](../../docs/superpowers/plans/2026-10-03-batch3-account-acceptance-results.md)
+for exact seals, receipt hashes, preserved failures and limitations. Source
+`ea5c7d5cd1f47bbe76a6d8256ad616bed5cf55f7` has separate account/supported seals;
+76 files per snapshot and 70 working code matches were verified. All 14 native
+fake cases with the selected model, 185 workspace stdlib tests, 15 sealed focused
+checks and four separate dependency checks passed. Replay is refused, receipts
+are preserved, owned resources absent and production registry empty.
+
+Gate A passed; gate B's provider-enforced $0 additional-spend control is next.
+Billing remains false and real dispatch blocked. One refresh and five catalog
+attempts ran across reviewed versions; inference requests remain zero. No credit
+or settings change, trade, deployment or push ran. Gate C requires its own
+authorized concrete proposal. Batch 2 qualification stays deferred. Earlier
+expiry/planning/fake-only status entries below are historical and superseded
+where this completed account milestone supplies newer evidence.
+
+## Account-connection preflight blocked by expiry — 2026-10-03 Bangkok
+
+Owner authorized the next account-connection milestone. Fresh owner-context
+checks passed private ACLs, local issuer/subject/client/host consistency, scopes,
+prior registration signature receipt and source-seal identity. The saved access
+and identity tokens are expired. No authenticated model-catalog request, refresh
+or reauthorization ran; original registration bytes are unchanged. The coding
+sandbox remains denied reading the registration and new redacted receipt.
+
+See [account preflight and minimal renewal scope](../../docs/superpowers/plans/2026-10-03-batch3-account-preflight.md).
+Private receipt: `.batch3-vibe/gold-plan-auth/account-preflight-20261003.json`,
+SHA256 `658422c44e5fd746b226d0b9547bab13c52f50ed4b9a7badbcb3c69aa4099ca8`.
+Gate A remains incomplete: expiry invokes the plan's stop rule; renewal requires
+a reviewed authentication-only boundary and atomic protected persistence.
+Do not rerun dynamic registration, delete credentials or substitute another login.
+Real production isolation/account acceptance/$0 flags remain false, dispatch
+blocked and model requests zero. No credit/settings change or broker action ran.
+Batch 2 qualification remains deferred.
+
+## Supported gateway fake-only milestone complete — 2026-10-03 Bangkok
+
+The practice connection is implemented, locally committed and sealed at source
+commit `0e6db2bf3b2294f5defce57c5ce1371558229b7c`. All 14 actual Docker/Squid/fake-TLS
+cases passed, including binding failures, broken responses, watchdog exits,
+crash, cleanup and replay refusal. Fifteen sealed stdlib tests, three separate
+sealed registration tests and the 182-test workspace stdlib regression passed.
+All 73 sealed hashes, 67 working source matches and 14 case receipt hashes were
+verified; production registry remains empty. No owned containers/networks remain.
+
+See [final implementation results](../../docs/superpowers/plans/2026-10-03-batch3-supported-gateway-results.md)
+for exact identities, commands and limitations. Timeouts consume attempts and
+remain outcome-unknown. Caught interruption before transmission was tested;
+forced controller termination cleanup and a production Internet/credential
+boundary remain unverified. Fake TLS fixtures must never become production trust.
+
+No real OAuth store read, OpenAI model request, credit/settings change, broker
+action, deployment or push occurred during this continuation. Real dispatch is
+blocked; production isolation, server account acceptance and $0 billing flags
+remain false. Next work is the plan's separate production/account and provider
+$0 gates before any explicitly authorized single real proposal. Do not repeat
+registration or delete consumed attempts. Batch 2 qualification stays deferred.
+Earlier unfinished/planning-only entries below are historical checkpoints.
+
+## Fake supported gateway implementation checkpoint — 2026-10-03 Bangkok
+
+Continuation added a fixed public Responses fake-only core and focused tests.
+Existing Docker image/HTTPX runtime was verified; initial isolated bridge and
+real Squid/fake TLS probes passed after automatic image volumes were masked
+read-only. Final fake endpoint observed one POST; forbidden CONNECT destinations,
+ports and untrusted TLS were refused, and owned resources were removed.
+Twenty focused stdlib checks and three separate registration tests passed.
+Full controller binding/watchdog, isolation/failure matrix, registry integration
+and the new committed-source seal remain unfinished. This is not production
+isolation acceptance. See the [implementation checkpoint](../../docs/superpowers/plans/2026-10-03-batch3-supported-gateway-progress.md)
+for commands, runtime identities, preserved failed probes and exact limitations.
+No real credential read, provider request, production reservation, credit change
+or broker action ran. Dispatch/account/billing verification remain blocked/false;
+Batch 2 qualification stays deferred. Historical seals and credentials are intact.
+
+## Current checkpoint and next milestone — 2026-10-03 Bangkok
+
+The owner selected the supported public ChatGPT plan-usage route and accepted
+local byte/time limits in place of the provider-enforced 2,048-token ceiling;
+USD0 additional spend remains mandatory. Separate KWG Gold Research OAuth
+registration completed with signed identity validation and owner/SYSTEM-only
+storage. The registration receipt records zero model requests, dispatch blocked
+and billing verification false. No credits or credit settings were changed.
+Registration does not establish current token freshness or server acceptance.
+Do not repeat registration or overwrite the existing Vibe credential store.
+
+The requested detailed next-milestone plan is
+[supported gateway and isolation](../../docs/superpowers/plans/2026-10-03-batch3-supported-gateway-plan.md).
+It proposes a fake-only public transport, actual runtime isolation probes,
+registry/cleanup verification and a new source/runtime seal. Later account
+acceptance, provider USD0 enforcement and one real proposal are separate gates.
+This checkpoint is planning only; no new gateway implementation, account
+setting change or model request was performed for the plan.
+
+Batch 2 remains development-complete and unqualified, with qualification
+deferred. The entries below are historical; statements that registration has
+not run or the output-cap decision is pending are superseded by this checkpoint.
+
 ## Supported OAuth route compatibility review
 
 Official ChatGPT plan-usage docs specify a separate OAuth registration/grant

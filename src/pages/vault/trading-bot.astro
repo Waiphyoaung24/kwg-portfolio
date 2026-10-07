@@ -295,7 +295,7 @@ const stages = [
     </script>
     <style>
       /* Structural 1px rules and rem media thresholds are layout constants. */
-      .operations { width: min(100%, var(--container-max-width)); margin-inline: auto; padding: var(--sp-3xl) var(--grid-margin); display: grid; gap: var(--sp-2xl); }
+      .operations { width: min(100%, var(--container-max-width)); margin-inline: auto; padding: var(--sp-3xl) var(--grid-margin); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-2xl); container-type: inline-size; hyphens: none; }
       .actions { display: flex; flex-wrap: wrap; gap: var(--sp-md); align-items: center; }
       .actions [hidden] { display: none; }
       .intro h1 { font-size: var(--fs-2); letter-spacing: var(--ls-2); line-height: 1; margin: var(--sp-lg) 0; }
@@ -311,7 +311,11 @@ const stages = [
       .primary, .secondary { display: grid; gap: var(--sp-2xl); align-content: start; min-width: 0; }
       .secondary { border-left: 1px solid var(--c-hairline); padding-left: var(--sp-2xl); }
       .panel { padding-bottom: var(--sp-2xl); border-bottom: 1px solid var(--c-hairline); min-width: 0; }
+      .panel p { margin-block: var(--sp-md); }
+      .panel .pill-btn { max-width: 100%; white-space: normal; text-align: center; }
       .section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-md); }
+      .section-head h2 { flex: 1 1 18rem; min-width: 0; }
+      .section-head .label { max-width: 100%; overflow-wrap: anywhere; }
       .label, .micro { color: var(--c-body); }
       .readings { margin: var(--sp-xl) 0; }
       .readings > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-lg); padding: var(--sp-md) 0; border-bottom: 1px solid var(--c-hairline); }
@@ -336,8 +340,13 @@ const stages = [
       #review-identities :global(div) { padding-block: var(--sp-md); border-bottom: 1px solid var(--c-hairline); }
       #review-identities :global(dd) { margin: var(--sp-sm) 0 0; overflow-wrap: anywhere; font-family: var(--ff-mono); font-size: var(--fs-body-sm); text-align: left; }
       button:disabled { cursor: wait; opacity: .6; }
+      /* Stack when the content area cannot comfortably hold both columns. */
+      @container (max-width: 68rem) {
+        .workspace { grid-template-columns: minmax(0, 1fr); }
+        .secondary { border-left: 0; padding-left: 0; }
+      }
       @media (max-width: 60rem) { .workspace { grid-template-columns: minmax(0, 1fr); } .secondary { border-left: 0; padding-left: 0; } }
-      @media (max-width: 40rem) { .operating { flex-direction: column; align-items: start; } .workflow li { grid-template-columns: auto minmax(0, 1fr); } .stage-state { grid-column: 2; text-align: left; } .readings > div { grid-template-columns: minmax(0, 1fr); gap: var(--sp-xs); } dd { text-align: left; } }
+      @media (max-width: 40rem) { .operating { flex-direction: column; align-items: start; } .section-head { align-items: start; } .section-head h2 { flex-basis: 100%; } .workflow li { grid-template-columns: auto minmax(0, 1fr); } .stage-state { grid-column: 2; text-align: left; } .readings > div { grid-template-columns: minmax(0, 1fr); gap: var(--sp-xs); } dd { text-align: left; } }
     </style>
   </body>
 </html>

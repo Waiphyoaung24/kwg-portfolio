@@ -3,6 +3,69 @@
 Review date: October 2, 2026 Bangkok. No inference, token/config contents,
 broker access, service restart or ACL modification performed.
 
+## October 3: registration-only scope completed
+
+Owner narrowed scope to OAuth registration only, with no credits for now, then
+approved the displayed KWG Gold Research profile/plan-usage permissions.
+The separate supported-flow registration completed successfully; signed identity,
+nonce, issuer, audience and required scopes were validated before exclusive save.
+The registration helper exited 0 and its sanitized receipt was verified.
+Owner/SYSTEM-only directory and credential/receipt permissions were checked;
+the coding sandbox cannot open the saved credentials. No credentials or callback
+parameters are included here. The existing Vibe store was not changed.
+
+Implementation: register_gold_oauth.py and register-gold-oauth.ps1. Three focused
+tests passed, including invalid signatures/binding/scopes/callbacks, overwrite
+refusal and inference-endpoint refusal. Existing installed dependencies were
+reused. The helper has no inference or billing operation, and its listener has
+exited. No paid credits enabled or purchased; no credit settings changed;
+model_requests=0. Registration does not establish billing enforcement or live
+transport isolation. Gold dispatch and promotion remain blocked.
+
+## October 3 review: supported-route credit controls found
+
+Owner subsequently selected option 2: migrate the gold transport to supported
+ChatGPT plan usage, keeping USD0 additional spend mandatory and accepting local
+byte/deadline limits instead of a provider-enforced 2048-token ceiling. This
+supersedes the pending output-cap decision below for the new route only; the
+private-route code and archived seals keep their original meaning. Production
+isolation, exact account/app settings and live transport remain unverified.
+After the owner signed in, the in-app browser confirmed an authenticated Pro
+session. Usage showed zero credits and no recorded credit usage, but exposed
+no app-limit or app-credit-use controls. Security > Sign in with ChatGPT failed
+to load, including after one retry. The connection list and exact integration
+settings therefore remain unknown. Zero balance does not prove USD0 enforcement
+or automatic-purchase status. No OAuth registration or settings change occurred.
+
+Owner selected unblocking Batch 3 dispatch while retaining deferred Batch 2
+qualification. The current [plan](task_plan.md) records the route alternatives
+and the accepted output-cap revision. No live dispatch is enabled.
+
+OpenAI's [plan-sharing controls](https://help.openai.com/en/articles/20001542-using-your-chatgpt-plan-in-other-apps-and-sites)
+document that participating apps stop at included limits unless credit use is
+enabled; an app limit below 100% prevents credit use for that app. Credit-use
+permission is separate from automatic credit purchases. This supplies a
+documented candidate for the USD0 boundary on the supported plan-sharing route,
+not verified settings for this account or applicability to Vibe's private route.
+
+The [supported inference route](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)
+uses public Responses, excludes backend-api endpoints for that flow and requires
+completed inference before reporting success. Its [registration flow](https://developers.openai.com/siwc/token-sharing-open-source/sign-in)
+needs an issued client ID, validated signed identity and plan-usage scopes.
+Do not redirect existing Vibe credentials to a different endpoint.
+
+The [preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)
+still reject max_output_tokens. A supported-route migration therefore needs an
+explicit owner decision on the existing provider-enforced 2048-token cap.
+Local response rejection, stream cutoff and deadlines do not enforce backend
+token consumption. No cap or budget requirement was changed in this review.
+
+Code inspection confirms dispatch always raises, and invoke_bound is exercised
+only by the fake gateway/tests. The gateway uses network=none and fabricated
+credentials; it cannot prove live provider egress. Nine current transport/gateway
+tests passed. Forty targeted Batch 2 tests also passed. No account credential
+read, OAuth operation, settings mutation or real inference was performed.
+
 ## Follow-up after sealed gateway readiness — October 2
 
 The earlier checks table below is historical. Docker is now available and the
