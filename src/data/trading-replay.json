@@ -1,0 +1,128 @@
+{
+  "mode": "synthetic-replay",
+  "source_sha256": "93d03957892b0ca35aa83224fe35c91408c5adcf512dc0a2cdee67a27839535a",
+  "description": "Saved artificial-data simulation; lower-cost baseline, second development trade. Illustrates a target exit, not representative performance.",
+  "bars": [
+    {
+      "time": 271800,
+      "close": 1988.33
+    },
+    {
+      "time": 272700,
+      "close": 1997.91
+    },
+    {
+      "time": 273600,
+      "close": 1990.44
+    },
+    {
+      "time": 274500,
+      "close": 1981.08
+    },
+    {
+      "time": 275400,
+      "close": 1991.37
+    },
+    {
+      "time": 276300,
+      "close": 1999.57
+    },
+    {
+      "time": 277200,
+      "close": 1990.91
+    },
+    {
+      "time": 278100,
+      "close": 1991.18
+    },
+    {
+      "time": 279000,
+      "close": 2006.0
+    },
+    {
+      "time": 279900,
+      "close": 2006.68
+    },
+    {
+      "time": 280800,
+      "close": 1995.86
+    },
+    {
+      "time": 281700,
+      "close": 2000.73
+    },
+    {
+      "time": 282600,
+      "close": 2009.84
+    },
+    {
+      "time": 283500,
+      "close": 1999.97
+    },
+    {
+      "time": 284400,
+      "close": 1990.74
+    },
+    {
+      "time": 285300,
+      "close": 2000.11
+    },
+    {
+      "time": 286200,
+      "close": 2003.79
+    },
+    {
+      "time": 287100,
+      "close": 1992.41
+    },
+    {
+      "time": 288000,
+      "close": 1993.73
+    },
+    {
+      "time": 288900,
+      "close": 2008.27
+    },
+    {
+      "time": 289800,
+      "close": 2007.62
+    },
+    {
+      "time": 290700,
+      "close": 1999.46
+    },
+    {
+      "time": 291600,
+      "close": 2008.72
+    },
+    {
+      "time": 292500,
+      "close": 2018.71
+    },
+    {
+      "time": 293400,
+      "close": 2009.12
+    },
+    {
+      "time": 294300,
+      "close": 2002.73
+    }
+  ],
+  "trade": {
+    "entry": 1990.98,
+    "entry_bar": 277200,
+    "entry_risk_usd": 89.59999999999984,
+    "exit": 2017.6200000000001,
+    "exit_bar": 292500,
+    "exit_reason": "target",
+    "fees": 0.17500000000000002,
+    "gross_pnl": 133.2000000000005,
+    "lots": 0.05,
+    "net_pnl": 132.85000000000048,
+    "net_r": 1.4827008928571508,
+    "side": 1,
+    "signal_bar": 276300,
+    "stop": 1973.19,
+    "target": 2017.67
+  }
+}
