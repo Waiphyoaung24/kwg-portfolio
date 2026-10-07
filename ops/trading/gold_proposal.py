@@ -158,8 +158,15 @@ def reserve_production(registry, identity, seal_sha, intent_sha):
         raise ValueError('Experiment identity required')
     attempt=registry/identity
     attempt.mkdir()  # Atomic, experiment-wide: even unknown/failed outcomes stay consumed.
-    write_once(attempt/'started.json',dict(state='outcome_unknown',seal_sha256=seal_sha,
-        intent_sha256=intent_sha,experiment_sha256=identity,max_posts=1,retries=0))
+    try:
+        write_once(attempt/'started.json',dict(state='outcome_unknown',seal_sha256=seal_sha,
+            intent_sha256=intent_sha,experiment_sha256=identity,max_posts=1,retries=0))
+    except Exception as error:
+        write_once(attempt/'receipt.json',dict(mode='dispatch',seal_sha256=seal_sha,intent_sha256=intent_sha,
+            passed=False,model_requests=0,dispatch_status='consumed_outcome_unknown',promotion_status='blocked',
+            cleanup_verified=False,failure_kind=type(error).__name__,
+            failure_diagnostic={'stage':'controller_pre_dispatch'}))
+        raise
     return attempt
 
 
@@ -285,6 +292,22 @@ def location(seal_sha):
     return sealed
 
 
+def cleanup_result(attempt):
+    cleanup=strict_json((attempt/'cleanup.json').read_bytes())
+    if (not isinstance(cleanup,dict) or type(cleanup.get('cleanup_verified')) is not bool
+            or not set(cleanup)<= {'cleanup_verified','guard_independent','resources_absent','failure_kind','failed_phase'}
+            or any(type(cleanup[k]) is not bool for k in ('guard_independent','resources_absent') if k in cleanup)
+            or ('failure_kind' in cleanup and cleanup['failure_kind'] not in
+                ('OSError','ValueError','TimeoutExpired','CalledProcessError','PermissionError','FileNotFoundError'))
+            or ('failed_phase' in cleanup and cleanup['failed_phase'] not in
+                ('parent_handle','parent_wait','containers_cleanup','networks_cleanup','parent_close','cleanup'))
+            or cleanup['cleanup_verified'] and ('failure_kind' in cleanup
+                or cleanup.get('resources_absent',True) is not True or cleanup.get('guard_independent',True) is not True)):
+        raise ValueError('Cleanup receipt refused')
+    return {'cleanup_'+key if key != 'cleanup_verified' else key:value for key,value in cleanup.items()
+            if key in ('cleanup_verified','failure_kind','failed_phase')}
+
+
 def run(seal_sha, mode):
     sealed=location(seal_sha);root=sealed.parent
     review=root/'proposal-readiness';private_acl(review)
@@ -295,15 +318,6 @@ def run(seal_sha, mode):
         private_acl(root/'production-attempts')
         attempt=reserve_production(root/'production-attempts',intent['experiment_sha256'],seal_sha,intent_sha)
     else: attempt.mkdir()
-    for folder in ('docker-config','empty'): (attempt/folder).mkdir()
-    (attempt/'squid.conf').write_text(PROXY)
-    prefix='kwg-proposal-'+uuid.uuid4().hex
-    names={role:prefix+'-'+role for role in ('proxy','probe','request','parser','control','peer','peer-control')}
-    nets={role:prefix+'-'+role for role in ('inner','outer')}
-    write_once(attempt/'owned.json',{'containers':names,'networks':nets,'policy':POLICY})
-    docker=[str(DOCKER),'--config',str(attempt/'docker-config'),'-H','npipe:////./pipe/dockerDesktopLinuxEngine']
-    env={k:v for k,v in os.environ.items() if k.upper() in {'SYSTEMROOT','WINDIR'}}
-    began=time.monotonic()
     def command(*args,check=True,**options):
         budget=DEADLINE-(time.monotonic()-began)
         if budget<=0: raise ValueError('Controller deadline')
@@ -333,14 +347,23 @@ def run(seal_sha, mode):
         if len(raw)>BOUND: raise ValueError('Worker input limit')
         process=command('start','-a','-i',names[role],input=raw,check=False)
         return decode_worker_result(operation,process.returncode,process.stdout)
-    guard=subprocess.Popen([sys.executable,'-I','-S','-B',str(sealed/'code/gold_proposal.py'),'--seal-sha256',seal_sha,
-        '--guard',str(attempt),'--parent',str(os.getpid())],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
-        creationflags=subprocess.CREATE_NO_WINDOW|subprocess.DETACHED_PROCESS,close_fds=True)
     receipt=dict(mode=mode,seal_sha256=seal_sha,intent_sha256=intent_sha,passed=False,
         model_requests=0,dispatch_status='blocked',promotion_status='blocked')
     failure_stage='controller_pre_dispatch'
-    service=None
+    service=None;guard=None
     try:
+        for folder in ('docker-config','empty'): (attempt/folder).mkdir()
+        (attempt/'squid.conf').write_text(PROXY)
+        prefix='kwg-proposal-'+uuid.uuid4().hex
+        names={role:prefix+'-'+role for role in ('proxy','probe','request','parser','control','peer','peer-control')}
+        nets={role:prefix+'-'+role for role in ('inner','outer')}
+        write_once(attempt/'owned.json',{'containers':names,'networks':nets,'policy':POLICY})
+        docker=[str(DOCKER),'--config',str(attempt/'docker-config'),'-H','npipe:////./pipe/dockerDesktopLinuxEngine']
+        env={k:v for k,v in os.environ.items() if k.upper() in {'SYSTEMROOT','WINDIR'}}
+        began=time.monotonic()
+        guard=subprocess.Popen([sys.executable,'-I','-S','-B',str(sealed/'code/gold_proposal.py'),'--seal-sha256',seal_sha,
+            '--guard',str(attempt),'--parent',str(os.getpid())],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW|subprocess.DETACHED_PROCESS,close_fds=True)
         for _ in range(100):
             if (attempt/'guard-ready.json').exists(): break
             if guard.poll() is not None: raise ValueError('Guardian unavailable')
@@ -419,15 +442,18 @@ def run(seal_sha, mode):
                                                          else {'stage':failure_stage})
         if mode=='dispatch': receipt['dispatch_status']='consumed_outcome_unknown'
     finally:
-        if service is not None: service.shutdown();service.server_close()
-        write_once(attempt/'finished.json',{'finished':True})
-        limit=time.monotonic()+35
-        while not (attempt/'cleanup.json').exists() and guard.poll() is None and time.monotonic()<limit: time.sleep(.1)
-        cleanup=strict_json((attempt/'cleanup.json').read_bytes()) if (attempt/'cleanup.json').exists() else {}
-        receipt['cleanup_verified']=cleanup.get('cleanup_verified') is True
-        for field in ('failure_kind','failed_phase'):
-            if field in cleanup: receipt['cleanup_'+field]=cleanup[field]
-        receipt['cleanup_guard_exit']=guard.poll()
+        receipt['cleanup_verified']=False
+        try:
+            if service is not None: service.shutdown();service.server_close()
+            write_once(attempt/'finished.json',{'finished':True})
+            if guard is not None:
+                limit=time.monotonic()+35
+                while not (attempt/'cleanup.json').exists() and guard.poll() is None and time.monotonic()<limit: time.sleep(.1)
+                receipt.update(cleanup_result(attempt))
+                receipt['cleanup_guard_exit']=guard.poll()
+        except Exception as error:
+            receipt.update(cleanup_verified=False,cleanup_failure_kind=type(error).__name__,
+                cleanup_failed_phase='controller_finalize')
         receipt['passed']=receipt['passed'] and receipt['cleanup_verified']
         write_once(attempt/'receipt.json',receipt)
     return receipt
@@ -450,11 +476,13 @@ def termination_check(seal_sha):
         process.terminate();process.wait(timeout=10)
         deadline=time.monotonic()+35
         while not (attempt/'cleanup.json').exists() and time.monotonic()<deadline: time.sleep(.1)
-        cleanup=strict_json((attempt/'cleanup.json').read_bytes())
-        result={**before,'forced_termination_verified':True,'cleanup_verified':cleanup['cleanup_verified'],
-            'passed':cleanup['cleanup_verified'] is True,'controller_exit':process.returncode}
-        for field in ('failure_kind','failed_phase'):
-            if field in cleanup: result['cleanup_'+field]=cleanup[field]
+        result={**before,'forced_termination_verified':True,'cleanup_verified':False,
+            'passed':False,'controller_exit':process.returncode}
+        try:
+            result.update(cleanup_result(attempt))
+        except Exception as error:
+            result.update(cleanup_failure_kind=type(error).__name__,cleanup_failed_phase='cleanup_receipt')
+        result['passed']=result['cleanup_verified']
         write_once(attempt/'receipt.json',result)
         return result
     finally:

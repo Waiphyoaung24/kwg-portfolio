@@ -95,7 +95,10 @@ class ProposalTest(unittest.TestCase):
                  ('configuration', 'controller_pre_dispatch', 0),
                  ('cleanup_negative', None, 1), ('cleanup_missing', None, 1),
                  ('cleanup_malformed', None, 1), ('success', None, 1),
-                 ('setup_write', None, 0), ('guard_creation', None, 0)]
+                 ('setup_write', 'controller_pre_dispatch', 0),
+                 ('guard_creation', 'controller_pre_dispatch', 0),
+                 ('cleanup_scalar', None, 1), ('cleanup_claim', None, 1),
+                 ('finished_write', None, 1)]
         for case, stage, count in cases:
             with self.subTest(case=case), tempfile.TemporaryDirectory() as folder, ExitStack() as stack:
                 root = Path(folder); sealed = root/'sealed-proposal-fixture'
@@ -112,6 +115,10 @@ class ProposalTest(unittest.TestCase):
                     if case == 'guard_creation': raise OSError('FAKE_CANARY_GUARD')
                     (attempt/'guard-ready.json').write_text('{}')
                     if case == 'cleanup_malformed': (attempt/'cleanup.json').write_bytes(b'FAKE_CANARY_CLEANUP')
+                    elif case == 'cleanup_scalar': (attempt/'cleanup.json').write_text('null')
+                    elif case == 'cleanup_claim':
+                        (attempt/'cleanup.json').write_text(json.dumps({'cleanup_verified': True,
+                            'failure_kind': 'FAKE_CANARY', 'failed_phase': 'FAKE_CANARY'}))
                     elif case != 'cleanup_missing':
                         cleanup = {'cleanup_verified': case != 'cleanup_negative'}
                         if case == 'cleanup_negative': cleanup.update(failure_kind='OSError', failed_phase='cleanup')
@@ -181,6 +188,7 @@ class ProposalTest(unittest.TestCase):
                 original_write = proposal.write_once
                 def fake_write(path, value):
                     if case == 'artifact' and path.name == 'usage.json': raise OSError('FAKE_CANARY_ARTIFACT')
+                    if case == 'finished_write' and path.name == 'finished.json': raise OSError('FAKE_CANARY_FINISHED')
                     return original_write(path, value)
                 original_text = Path.write_text
                 def fake_text(path, value, *args, **kwargs):
@@ -208,26 +216,29 @@ class ProposalTest(unittest.TestCase):
                         (socket, 'socket', {'side_effect': AssertionError('No sockets')}),
                         (socket, 'create_connection', {'side_effect': AssertionError('No connections')})):
                     stack.enter_context(patch.object(target, name, **options))
-                if case in ('cleanup_malformed', 'setup_write', 'guard_creation'):
-                    with self.assertRaises((ValueError, OSError)): proposal.run('a'*64, 'dispatch')
-                    self.assertFalse((attempt/'receipt.json').exists())
-                else:
-                    receipt = proposal.run('a'*64, 'dispatch')
-                    self.assertEqual(json.loads((attempt/'receipt.json').read_bytes()), receipt)
-                    self.assertEqual(receipt['model_requests'], count)
-                    self.assertEqual(receipt['promotion_status'], 'blocked')
-                    self.assertEqual(receipt['passed'], case == 'success')
-                    self.assertEqual(receipt['cleanup_verified'], case not in ('cleanup_negative', 'cleanup_missing'))
-                    if stage:
-                        expected = {'stage': stage}
-                        if case in ('http', 'stream'): expected['http_status'] = 401 if case == 'http' else 200
-                        self.assertEqual(receipt.get('failure_diagnostic'), expected)
-                        self.assertEqual(receipt['dispatch_status'], 'consumed_outcome_unknown')
-                    else: self.assertNotIn('failure_diagnostic', receipt)
-                    if case == 'cleanup_negative':
-                        self.assertEqual(receipt['cleanup_failure_kind'], 'OSError')
-                        self.assertEqual(receipt['cleanup_failed_phase'], 'cleanup')
-                    self.assertNotIn('FAKE_CANARY', json.dumps(receipt))
+                receipt = proposal.run('a'*64, 'dispatch')
+                self.assertEqual(json.loads((attempt/'receipt.json').read_bytes()), receipt)
+                self.assertEqual(receipt['model_requests'], count)
+                self.assertEqual(receipt['promotion_status'], 'blocked')
+                self.assertEqual(receipt['passed'], case == 'success')
+                cleanup_failed = case in ('cleanup_negative', 'cleanup_missing', 'cleanup_malformed',
+                    'cleanup_scalar', 'cleanup_claim', 'setup_write', 'guard_creation', 'finished_write')
+                self.assertEqual(receipt['cleanup_verified'], not cleanup_failed)
+                if stage:
+                    expected = {'stage': stage}
+                    if case in ('http', 'stream'): expected['http_status'] = 401 if case == 'http' else 200
+                    self.assertEqual(receipt.get('failure_diagnostic'), expected)
+                    self.assertEqual(receipt['dispatch_status'], 'consumed_outcome_unknown')
+                else: self.assertNotIn('failure_diagnostic', receipt)
+                if case == 'cleanup_negative':
+                    self.assertEqual(receipt['cleanup_failure_kind'], 'OSError')
+                    self.assertEqual(receipt['cleanup_failed_phase'], 'cleanup')
+                self.assertNotIn('FAKE_CANARY', json.dumps(receipt))
+                if cleanup_failed:
+                    self.assertFalse(receipt['passed'])
+                if case in ('setup_write', 'guard_creation'):
+                    self.assertEqual(operations, []); self.assertEqual(posts, [])
+                    self.assertEqual(containers, {}); self.assertEqual(networks, {})
                 self.assertTrue((attempt/'started.json').exists())
                 self.assertLessEqual(len(operations), 1); self.assertLessEqual(len(posts), 1)
                 if case in ('artifact', 'cleanup_negative', 'cleanup_missing', 'cleanup_malformed', 'success'):
@@ -250,6 +261,33 @@ class ProposalTest(unittest.TestCase):
             with self.subTest(update=update),self.assertRaises(ValueError):
                 proposal.approval_gate({**value,**update},'a'*64,'b'*64,1100)
         with self.assertRaises(ValueError): proposal.approval_gate(value,'a'*64,'b'*64,3001)
+
+    def test_forced_termination_records_bad_cleanup_without_passing(self):
+        for cleanup in (b'FAKE_CANARY', b'null', b'{"cleanup_verified":false}',
+                        b'{"cleanup_verified":true,"guard_independent":true,"resources_absent":true}'):
+            with self.subTest(cleanup=cleanup), tempfile.TemporaryDirectory() as folder:
+                root=Path(folder);sealed=root/'sealed-proposal-fixture';sealed.mkdir()
+                (root/'proposal-readiness').mkdir()
+                attempt=root/'proposal-readiness'/('a'*64+'.termination')
+                def launch(*args, **kwargs):
+                    attempt.mkdir()
+                    proposal.write_once(attempt/'kill-ready.json',dict(synthetic_input_transferred=True,
+                        public_tls_verified=True,passed=False,model_requests=0,promotion_status='blocked'))
+                    (attempt/'cleanup.json').write_bytes(cleanup)
+                    return process
+                process=SimpleNamespace(returncode=-1,poll=lambda: -1,
+                    terminate=lambda: None,wait=lambda **kwargs: None)
+                with patch.object(proposal,'location',return_value=sealed), \
+                        patch.object(proposal.subprocess,'Popen',side_effect=launch), \
+                        patch.object(proposal.subprocess,'run',side_effect=AssertionError('No commands')), \
+                        patch.object(proposal.time,'sleep',side_effect=AssertionError('No wait')):
+                    result=proposal.termination_check('a'*64)
+                    self.assertEqual(result['passed'], b'true' in cleanup)
+                    self.assertEqual(json.loads((attempt/'receipt.json').read_bytes()),result)
+                    self.assertNotIn('FAKE_CANARY',json.dumps(result))
+                    before=(attempt/'receipt.json').read_bytes()
+                    with self.assertRaises(FileExistsError): proposal.termination_check('a'*64)
+                    self.assertEqual((attempt/'receipt.json').read_bytes(),before)
 
     def test_fresh_billing_requires_exact_saved_provider_controls_and_binding(self):
         intent=dict(client_id_sha256='client',subject_sha256='subject')
@@ -338,6 +376,16 @@ class ProposalTest(unittest.TestCase):
             self.assertEqual(len(list(root.iterdir())),1)
             for identity in ('../escape','e'*63,'z'*64):
                 with self.assertRaises(ValueError): proposal.reserve_production(root,identity,'a'*64,'b'*64)
+            original=proposal.write_once
+            def fail_started(path,value):
+                if path.name=='started.json': raise OSError('FAKE_CANARY_START')
+                return original(path,value)
+            with patch.object(proposal,'write_once',side_effect=fail_started):
+                with self.assertRaises(OSError): proposal.reserve_production(root,'f'*64,'a'*64,'b'*64)
+            failed=json.loads((root/('f'*64)/'receipt.json').read_bytes())
+            self.assertFalse(failed['passed']);self.assertEqual(failed['model_requests'],0)
+            self.assertNotIn('FAKE_CANARY',json.dumps(failed))
+            with self.assertRaises(FileExistsError): proposal.reserve_production(root,'f'*64,'c'*64,'d'*64)
 
     def test_live_entry_refuses_host_and_legacy_public_dispatch_stays_closed(self):
         with self.assertRaises(ValueError): transport.invoke_isolated('prompt','FAKE_CANARY_ACCESS')
