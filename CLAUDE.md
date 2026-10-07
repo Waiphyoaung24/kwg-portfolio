@@ -123,7 +123,9 @@ follows the design system; the exhibit itself does not.
 - The signal-only observer, private status sidecar, Cloudflare Tunnel, Access
   policies, read-only API Worker, and `/vault/trading` page route are deployed.
   The signed-in page showed gold blocked with no signal on a stale quote.
-  Algo Trading remains off; no order execution is deployed.
+  Algo Trading stays off for observation. Manual, owner-confirmed demo pending
+  orders (preview → single-use token → arm) have been deployed since 2026-09-29;
+  there is no automatic or agent-initiated order path.
 
 ### Current VPS setup
 
@@ -248,7 +250,7 @@ scheduled work has been configured.
   `/opt/kwg-mt5-qualification/before-health-f0e00d3` preserve rollback state.
 - 14 Python tests, 5 Worker tests, frontend state checks, Astro check/build,
   desktop/mobile preview and signed-in live page checks passed. Fresh gold
-  ticks across two M15 transitions remain pending. Order execution stays off.
+  ticks across two M15 transitions remain pending. Automatic order execution stays off.
 
 ### Frozen research dataset — 2026-09-28 Bangkok
 

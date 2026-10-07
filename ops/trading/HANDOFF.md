@@ -1,6 +1,25 @@
 # Gold trading handoff — 2026-09-28
 
-## Current candidate — October 7: diagnostics reviewed; frontend acceptance next
+## Now / Running / Next — updated 2026-10-08
+
+**Now:** Foundation implementation started from `main` at `2d031cc` (PR #9:
+demo monitor, validated bid/ask, synthetic replay).
+Plan: [trading-agent foundation](../../docs/superpowers/plans/2026-10-08-trading-agent-foundation.md).
+**Running on VPS (last recorded; not reverified this session):** MT5 desktop
+(demo), signal-only observer, status sidecar, Worker, manual demo pending-order
+controls. Algo Trading stays off for observation.
+**Next:** shared status contract, honest execution label, and read-only page tests.
+**Pending owner evidence:** receipt fix `68b7850` requires Windows tests before
+merge; VNC password provisioning; status-only research token; renewed live
+freshness qualification and post-DST repeat; research host selection and private
+development grid run before prospective holdout registration.
+**Research:** Batch 3 LLM proposals paused. Existing policy, risk limits and
+manual promotion remain binding. The September 28 freshness pass is historical
+session evidence, not proof of current feed health.
+
+Everything below this block is history. Read it only for a specific record.
+
+## Historical: October 7 candidate — diagnostics reviewed
 
 The offline transport → worker → receipt diagnostic candidate is implemented and
 reviewed: 42 offline tests and two owner-run local read-only browser tests passed.
