@@ -8,7 +8,11 @@ Plan: [trading-agent foundation](../../docs/superpowers/plans/2026-10-08-trading
 **Running on VPS (last recorded; not reverified this session):** MT5 desktop
 (demo), signal-only observer, status sidecar, Worker, manual demo pending-order
 controls. Algo Trading stays off for observation.
-**Next:** shared status contract, honest execution label, and read-only page tests.
+**Prepared locally:** shared status contract; honest active-order label; four
+read-only browser checks; dev-only fixture excluded from production; VNC password
+precondition; fixed-window development grid. See the [verification commands](README.md#foundation-verification--prepared-locally-not-deployed).
+**Next:** review and integrate the source branch, then owner-run security and
+freshness steps. No VPS deployment or private dataset run occurred in this session.
 **Pending owner evidence:** receipt fix `68b7850` requires Windows tests before
 merge; VNC password provisioning; status-only research token; renewed live
 freshness qualification and post-DST repeat; research host selection and private
