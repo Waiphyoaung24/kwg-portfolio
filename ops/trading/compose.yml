@@ -19,6 +19,7 @@ services:
     environment:
       MT5_DEMO_LOGIN: ${MT5_DEMO_LOGIN:-}
       MT5_SERVER_OFFSET_SECONDS: ${MT5_SERVER_OFFSET_SECONDS:-0}
+      MT5_RUN_MODE: ${MT5_RUN_MODE:-observer}
       TRADING_CONTROL_SECRET: ${TRADING_CONTROL_SECRET:-}
     ports:
       - "127.0.0.1:6081:6080"

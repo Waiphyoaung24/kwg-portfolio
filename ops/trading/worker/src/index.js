@@ -1,3 +1,5 @@
+import { normalizePilot } from '../../../../src/scripts/trading-pilot.mjs';
+
 const noStore = { 'Cache-Control': 'no-store', 'Content-Type': 'application/json; charset=utf-8' };
 
 function unavailable(reason = 'Trading status is unavailable') {
@@ -29,7 +31,7 @@ function normalizeExecution(value, now) {
 }
 
 export function normalizeStatus(value, now = Date.now() / 1000) {
-  if (!value || value.mode !== 'signal-only' || value.symbol !== 'XAUUSD-VIP') throw new Error('Invalid status');
+  if (!value || !['signal-only', 'autonomous-demo'].includes(value.mode) || value.symbol !== 'XAUUSD-VIP') throw new Error('Invalid status');
   if (!['baseline', 'observed', 'duplicate', 'blocked', 'offline'].includes(value.status)) throw new Error('Invalid status');
   if (!['long', 'short', 'none'].includes(value.signal)) throw new Error('Invalid signal');
   if (!Number.isInteger(value.checked_at) || (value.bar_time !== null && !Number.isInteger(value.bar_time))) throw new Error('Invalid time');
@@ -54,12 +56,17 @@ export function normalizeStatus(value, now = Date.now() / 1000) {
   }
   const status = stale ? 'offline' : value.status;
   const result = {
-    mode: 'signal-only', symbol: 'XAUUSD-VIP', status,
+    mode: value.mode, symbol: 'XAUUSD-VIP', status,
     signal: status === 'offline' || status === 'blocked' ? 'none' : value.signal,
     reason: stale ? 'Observer heartbeat missing' : String(value.reason || '').slice(0, 200),
     checked_at: value.checked_at, bar_time: value.bar_time, health,
   };
   if (value.execution !== undefined) result.execution = normalizeExecution(value.execution, now);
+  if (value.mode === 'autonomous-demo') {
+    result.pilot = normalizePilot(value.pilot, now);
+    if (result.pilot === null && result.status !== 'offline') Object.assign(result, {
+      status: 'blocked', signal: 'none', reason: 'Pilot heartbeat unavailable' });
+  }
   return result;
 }
 
@@ -69,7 +76,8 @@ export default {
     const pagePath = ['/vault/trading', '/vault/trading/', '/vault/trading-bot', '/vault/trading-bot/'].includes(pathname)
       ? pathname.replace(/\/$/, '') : null;
     const isPage = pagePath !== null;
-    const action = pathname === '/api/trading/preview' ? 'preview' : pathname === '/api/trading/arm' ? 'arm' : null;
+    const action = pathname === '/api/trading/preview' ? 'preview' : pathname === '/api/trading/arm' ? 'arm'
+      : pathname === '/api/trading/pilot-pause' ? 'pilot-pause' : null;
     if (!(request.method === 'GET' && (isPage || pathname === '/api/trading/status')) &&
         !(request.method === 'POST' && action)) {
       return new Response('Not found', { status: 404 });
@@ -115,7 +123,8 @@ export default {
             (action === 'preview' && (Object.keys(body).sort().join() !== 'entry,side,sl,tp' ||
               !['buy', 'sell'].includes(body.side) ||
               ![body.entry, body.sl, body.tp].every(x => typeof x === 'number' && Number.isFinite(x) && x > 0 && x <= 1e6))) ||
-            (action === 'arm' && (Object.keys(body).join() !== 'token' || !/^[A-Za-z0-9_-]{32}$/.test(body.token)))) {
+            (action === 'arm' && (Object.keys(body).join() !== 'token' || !/^[A-Za-z0-9_-]{32}$/.test(body.token))) ||
+            (action === 'pilot-pause' && Object.keys(body).length !== 0)) {
           throw new Error('Invalid request');
         }
       } catch {
@@ -137,6 +146,10 @@ export default {
         if (!response.ok) {
           return Response.json({ error: typeof result.error === 'string' && result.error.length < 160
             ? result.error : 'Demo control is unavailable.' }, { status: response.status === 409 ? 409 : 503, headers: noStore });
+        }
+        if (action === 'pilot-pause') {
+          if (response.status !== 202 || result.status !== 'pause_requested') throw new Error('Invalid pause response');
+          return Response.json({ status: 'pause_requested' }, { status: 202, headers: noStore });
         }
         if (action === 'arm') {
           if (response.status !== 202 || result.status !== 'starting') throw new Error('Invalid arm response');

@@ -1,0 +1,29 @@
+{
+  "mode": "autonomous-demo",
+  "symbol": "XAUUSD-VIP",
+  "status": "observed",
+  "signal": "none",
+  "reason": "Waiting for the next eligible crossover",
+  "checked_at": 1791500000,
+  "bar_time": 1791498600,
+  "health": {
+    "terminal": "connected", "quote": "fresh",
+    "sampled_at": 1791500000, "tick_time": 1791500000,
+    "tick_time_msc": 1791500000000, "quote_age_seconds": 0,
+    "history_bar_time": 1791498600, "history_count": 250,
+    "bid": 4100.25, "ask": 4100.5
+  },
+  "execution": {
+    "mode": "one-shot-demo", "status": "open", "updated_at": 1791500000,
+    "side": "buy", "volume": 0.01, "opened_at": 1791499990,
+    "closed_at": null, "close_reason": null, "realized_net_usd": null,
+    "entry_price": 4099, "sl": 4090, "tp": 4112.5
+  },
+  "pilot": {
+    "status": "active", "strategy": "gold-ema-v1-slope-3", "qualification": "unqualified",
+    "updated_at": 1791500000, "started_at": 1791490000, "ends_at": 1791576400,
+    "reason": "Waiting for the next eligible crossover",
+    "completed_trades": 1, "realized_net_usd": -4.5, "floating_usd": 1.25,
+    "recent_trades": [{"side": "sell", "opened_at": 1791491000, "closed_at": 1791492000, "realized_net_usd": -4.5}]
+  }
+}
