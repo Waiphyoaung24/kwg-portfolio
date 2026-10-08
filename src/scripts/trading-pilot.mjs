@@ -35,9 +35,11 @@ export function pilotFields(value, now = Date.now() / 1000) {
   if (!p) return { state: 'Unknown', reason: 'No current pilot report.', realized: '—', floating: '—',
     remaining: '—', count: '—', canPause: false, trades: [] };
   const money = number => typeof number === 'number' ? `${number.toFixed(2)} USD` : 'Unknown';
+  const minutes = p.ends_at === null ? null : Math.max(0, Math.ceil((p.ends_at - now) / 60));
   return { state: ({ standby: 'Not activated', active: 'Active', paused: 'Paused', needs_attention: 'Needs attention', expired: 'Expired' })[p.status],
     reason: p.reason, realized: money(p.realized_net_usd), floating: money(p.floating_usd),
-    remaining: p.ends_at === null ? 'Not started' : `${Math.max(0, Math.ceil((p.ends_at - now) / 60))} minutes`,
+    remaining: minutes === null ? 'Not started' : minutes === 0 ? 'Ended'
+      : [minutes >= 1440 ? `${Math.floor(minutes / 1440)}d` : '', minutes >= 60 ? `${Math.floor(minutes % 1440 / 60)}h` : '', `${minutes % 60}m`].filter(Boolean).join(' '),
     count: String(p.completed_trades), canPause: p.status === 'active',
     trades: p.recent_trades.map(t => `${t.side === 'buy' ? 'Buy' : 'Sell'} · ${money(t.realized_net_usd)} net · ${new Date(t.closed_at * 1000).toISOString()}`) };
 }

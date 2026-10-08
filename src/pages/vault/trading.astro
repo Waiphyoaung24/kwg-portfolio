@@ -1,5 +1,6 @@
 ---
 import '../../styles/index.scss';
+import '../../styles/trading-console.scss';
 import TradingNavigation from '../../components/TradingNavigation.astro';
 import TradingReplay from '../../components/TradingReplay.astro';
 export const prerender = true;
@@ -19,21 +20,24 @@ export const prerender = true;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400&family=JetBrains+Mono:wght@400&display=swap" />
   </head>
-  <body>
+  <body class="trading-console">
     <main class="page">
       <TradingNavigation current="demo" />
+      {import.meta.env.DEV && import.meta.env.PUBLIC_TRADING_PILOT_FIXTURE === '1' && <p class="page__note" role="note">Local design preview · simulated quotes update every 2 seconds. All prices and trades are sample data. Trading controls are disabled.</p>}
       <header class="page__intro" id="trading-content" tabindex="-1">
-        <h1>Demo account monitor</h1>
-        <p>Watch the gold feed and strategy checks, or play a saved paper trade below.</p>
-        <a class="pill-btn page__replay-link" href="#replay-title">Watch the replay</a>
+        <div class="console-brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M26.2636 20.4752L29.7034 6.2832H22.8238L26.2636 20.4752ZM12.2636 6.2832L17.0473 26.0199H23.9568L19.1731 6.2832H12.2636ZM8.61287 6.28336L1.70337 6.28373L6.48706 26.0203L13.3966 26.02L8.61287 6.28336Z" /></svg><span class="micro">KWG / Gold operations</span></div>
+        <h1>Gold, under observation.</h1>
+        <p>Your demo pilot, its next move, and the evidence behind each trade.</p>
       </header>
-      <section class="card status" aria-labelledby="status-title">
+      <div class="console-workspace">
+      <section class="card status console-market" aria-labelledby="status-title">
         <div class="status__head">
           <h2 id="status-title">Live demo feed</h2>
-          <span class="status__state label" id="state" aria-live="polite">Checking</span>
+          <button class="pill-btn console-refresh" id="refresh" type="button" aria-label="Refresh status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5.5 8a7 7 0 0 1 11.8-2L20 9M4 15l2.7 3A7 7 0 0 0 18.5 16" /></svg>Refresh</button>
         </div>
-        <p class="status__symbol micro">XAUUSD-VIP · VT Markets demo</p>
+        <div class="console-market__meta"><p class="status__symbol micro">XAUUSD-VIP · VT Markets demo</p><span class="status__state label" id="state" aria-live="polite">Checking</span></div>
         <p class="status__price"><span class="label">Bid / ask · USD</span><span id="price">—</span></p>
+        <div id="trading-charts"><p class="page__note">Loading chart views…</p></div>
         <dl class="status__rows status__checks">
           <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M8 12h8M9 5H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3m6-14h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-3" /></svg>MT5 connection</dt><dd id="connection">Checking</dd></div>
           <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Gold price</dt><dd id="freshness">Checking</dd></div>
@@ -41,13 +45,14 @@ export const prerender = true;
         </dl>
         <p class="status__guidance" id="guidance" role="status">Connecting to the private status API.</p>
         <p class="page__note" id="mode-note">Live observation only. Signals do not place orders. Keep Algo Trading off for observation.</p>
+        <div class="console-tools">
         <details class="status__activity">
-          <summary class="pill-btn">Recent checks</summary>
+          <summary class="pill-btn">Recent checks <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg></summary>
           <p class="page__note">Up to six checks from this page session.</p>
           <ol id="monitor-activity"><li>Waiting for the first status report.</li></ol>
         </details>
         <details class="status__details">
-          <summary class="pill-btn">Technical details <span aria-hidden="true">⌄</span></summary>
+          <summary class="pill-btn">Technical details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg></summary>
           <dl class="status__rows">
             <div><dt class="label">Status delivery</dt><dd id="delivery">Checking</dd></div>
             <div><dt class="label">Observer heartbeat</dt><dd id="heartbeat">Checking</dd></div>
@@ -60,14 +65,15 @@ export const prerender = true;
           </dl>
           <p class="status__reason" id="reason">Checking</p>
         </details>
+        </div>
         <div class="status__actions">
-          <button class="pill-btn" id="refresh" type="button">Refresh status</button>
           <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
         </div>
       </section>
-      <section class="card status" id="pilot-panel" aria-labelledby="pilot-title" hidden>
+      <section class="card status console-pilot" id="pilot-panel" aria-labelledby="pilot-title" hidden>
         <div class="status__head"><h2 id="pilot-title">Autonomous demo pilot</h2><span class="label" id="pilot-state" aria-live="polite">Checking</span></div>
-        <p class="status__symbol micro">Unqualified demo · EMA crossover · slope lookback 3</p>
+        <p class="status__symbol micro">Unqualified demo</p>
+        <h3 class="console-pilot__intent" id="pilot-intent">Waiting for status</h3>
         <p class="status__guidance" id="pilot-reason" role="status">Checking</p>
         <dl class="status__rows">
           <div><dt class="label">Realized net</dt><dd id="pilot-realized">—</dd></div>
@@ -77,12 +83,14 @@ export const prerender = true;
           <div><dt class="label">Position / latest attempt</dt><dd id="pilot-position">—</dd></div>
           <div><dt class="label">Entry / stop / target</dt><dd id="pilot-levels">—</dd></div>
         </dl>
+        <div class="console-strategy"><h3>One fixed strategy</h3><svg viewBox="0 0 280 60" role="img" aria-label="Illustration of two moving averages crossing. Not market data."><path d="M4 45C50 45 65 38 110 30S180 14 276 12" /><path d="M4 14C75 14 100 25 150 31S220 38 276 43" stroke-dasharray="5 5" /></svg><p>EMA crossover · 3-bar slope filter<br />Completed 15-minute candles only.</p><dl><div><dt>Position size</dt><dd>0.01 lot · one position</dd></div><div><dt>Stop / target</dt><dd>2× / 3× ATR</dd></div><div><dt>Entry risk ceiling</dt><dd>0.1% of equity</dd></div></dl></div>
         <button class="pill-btn" id="pilot-pause" type="button" disabled>Pause new entries</button>
         <p class="page__note">Pausing keeps existing positions protected and monitored. At expiry, the pilot requests closure; unresolved positions need owner attention. Floating profit excludes costs not yet booked.</p>
         <p id="pilot-message" role="status"></p>
-        <details class="status__activity"><summary class="pill-btn">Recent completed trades</summary><ol id="pilot-trades"></ol></details>
+        <details class="status__activity console-trade-history"><summary class="pill-btn">Recent completed trades <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg></summary><ol id="pilot-trades"></ol></details>
       </section>
-      <TradingReplay />
+      </div>
+      <div id="trading-replay-source" hidden><TradingReplay /></div>
       <details class="manual-controls" id="manual-controls">
       <summary class="pill-btn">Manual demo order controls</summary>
       <section class="card status" aria-labelledby="control-title">
@@ -159,11 +167,13 @@ export const prerender = true;
       <p class="page__note">Status updates every 10 seconds. This control starts only a reviewed, single demo attempt; it does not run the strategy continuously.</p>
       </details>
     </main>
+    <script is:inline type="module" src="/dashboard-assets/trading.js"></script>
 
     <script>
       import { executionFields, statusFields } from '../../scripts/trading-status.mjs';
       import { pilotFields } from '../../scripts/trading-pilot.mjs';
       import { tradeLevels } from '../../scripts/trading-levels.mjs';
+      import { chartSnapshot } from '../../scripts/trading-chart.mjs';
       const field = (id: string) => document.getElementById(id)!;
       const refresh = field('refresh') as HTMLButtonElement;
       const signIn = field('sign-in') as HTMLAnchorElement;
@@ -176,6 +186,7 @@ export const prerender = true;
       const tp = field('trade-tp') as HTMLInputElement;
       const previewBox = field('trade-preview');
       const fixturePreview = import.meta.env.DEV && import.meta.env.PUBLIC_TRADING_FIXTURE === '1';
+      const designPreview = fixturePreview && import.meta.env.PUBLIC_TRADING_PILOT_FIXTURE === '1';
       const localPreview = !fixturePreview && (['localhost', '127.0.0.1', '[::1]'].includes(location.hostname) || location.protocol === 'file:');
       let latest: Parameters<typeof statusFields>[0] | null = null;
       let receivedAt = 0;
@@ -210,6 +221,7 @@ export const prerender = true;
       }
       function render() {
         renderLevels();
+        window.dispatchEvent(new CustomEvent('trading-snapshot', { detail: chartSnapshot(latest) }));
         if (!latest) return;
         const fields = statusFields(latest);
         const isPilot = latest.mode === 'autonomous-demo';
@@ -220,15 +232,23 @@ export const prerender = true;
         const pilot = pilotFields(latest.pilot);
         if (pilot.state === 'Paused' && field('pilot-message').textContent?.startsWith('Pause requested.')) field('pilot-message').textContent = 'New entries are paused.';
         for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining'] as const) field(`pilot-${key}`).textContent = pilot[key];
-        (field('pilot-pause') as HTMLButtonElement).disabled = !isPilot || !pilot.canPause || Date.now() - receivedAt > 30000;
+        (field('pilot-pause') as HTMLButtonElement).disabled = designPreview || !isPilot || !pilot.canPause || Date.now() - receivedAt > 30000;
         field('pilot-trades').replaceChildren(...(pilot.trades.length ? pilot.trades : ['No completed trades reported.']).map((text: string) => {
           const item = document.createElement('li'); item.textContent = text; return item;
         }));
         if (Date.now() - receivedAt > 30000) fields.delivery = 'No recent API response';
         for (const [id, value] of Object.entries(fields)) field(id).textContent = value;
         const execution = executionFields(latest.execution);
-        field('pilot-position').textContent = `${execution.state} · ${execution.side} · ${execution.volume}`;
-        field('pilot-levels').textContent = `${execution.entry} / ${execution.sl} / ${execution.tp}`;
+        field('pilot-position').textContent = pilot.state === 'Unknown' ? 'Unknown'
+          : execution.state === 'Disarmed' ? 'No open position'
+          : `${execution.state} · ${execution.side} · ${execution.volume}`;
+        field('pilot-intent').textContent = pilot.state !== 'Active' ? pilot.state
+          : fields.price === '—' ? 'Waiting for healthy data'
+          : execution.state === 'Unknown' ? 'Checking execution state'
+          : execution.state === 'Open' ? 'Managing a demo trade'
+          : ['Pending', 'Armed', 'Submitting', 'Closing', 'Needs attention'].includes(execution.state) ? execution.state
+          : 'Waiting for a setup';
+        field('pilot-levels').textContent = pilot.state === 'Unknown' ? '—' : `${execution.entry} / ${execution.sl} / ${execution.tp}`;
         for (const id of ['state', 'entry', 'sl', 'tp', 'opened', 'closed', 'updated', 'guidance'] as const) field(`execution-${id}`).textContent = execution[id];
         field('execution-summary').textContent = execution.state === 'Unknown' ? 'No current report'
           : [execution.side, execution.volume, execution.result].filter(value => value !== '—').join(' · ') || execution.state;
@@ -356,6 +376,8 @@ export const prerender = true;
           render();
         } catch (error) {
           latest = null;
+          window.dispatchEvent(new CustomEvent('trading-snapshot', { detail: chartSnapshot(null) }));
+          field('pilot-intent').textContent = 'Status unavailable';
           (field('pilot-pause') as HTMLButtonElement).disabled = true;
           const pilot = pilotFields(null);
           for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining'] as const) field(`pilot-${key}`).textContent = pilot[key];
@@ -395,7 +417,8 @@ export const prerender = true;
       }
 
       refresh.addEventListener('click', load);
-      window.setInterval(() => { if (!document.hidden) load(); }, 10000);
+      window.addEventListener('trading-chart-ready', render);
+      window.setInterval(() => { if (!document.hidden) load(); }, designPreview ? 2000 : 10000);
       window.setInterval(() => { if (!document.hidden) render(); }, 1000);
       document.addEventListener('visibilitychange', () => { if (!document.hidden) { render(); load(); } });
       load();
