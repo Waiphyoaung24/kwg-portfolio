@@ -1200,11 +1200,17 @@ twice to distinct exclusive outputs and compare bytes. No fabricated candidate,
 Batch 3 research call or continuous trading is part of this collection protocol.
 
 
-## Foundation verification — prepared locally, not deployed
+## Foundation verification
 
 The foundation work keeps gold demo execution owner-controlled and pauses Batch 3
 LLM proposals. See the [foundation plan](../../docs/superpowers/plans/2026-10-08-trading-agent-foundation.md)
 for owner-only Windows, Cloudflare and live-data steps.
+
+On October 8 the owner deployed the VNC launcher update, verified password login
+and collected a passing freshness report. Four local synthetic browser tests
+also passed. Exact deployment and report hashes are recorded in
+[the current handoff](HANDOFF.md#now--running--next--updated-2026-10-08).
+Other deployment and research gates remain open.
 
 The shared synthetic status contract is `fixtures/status-contract.json`. Run:
 
