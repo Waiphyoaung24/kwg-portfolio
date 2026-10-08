@@ -6,7 +6,8 @@
 FROM node:24-alpine AS build
 WORKDIR /app
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+RUN sed -i 's|https://registry.yarnpkg.com/|https://registry.npmjs.org/|g' yarn.lock \
+    && yarn install --frozen-lockfile --network-concurrency 1 --registry https://registry.npmjs.org
 COPY dashboard/package.json dashboard/package-lock.json ./dashboard/
 RUN npm ci --prefix dashboard --ignore-scripts
 COPY . .
