@@ -1,6 +1,75 @@
 # Gold trading handoff — 2026-09-28
 
-## Current candidate — October 7: diagnostics reviewed; frontend acceptance next
+## Now / Running / Next — updated 2026-10-08
+
+**Now:** Foundation implementation started from `main` at `2d031cc` (PR #9:
+demo monitor, validated bid/ask, synthetic replay).
+Plan: [trading-agent foundation](../../docs/superpowers/plans/2026-10-08-trading-agent-foundation.md).
+**Running on VPS:** MT5 desktop (demo), signal-only observer and status sidecar
+verified on October 8. Worker and manual demo pending-order controls remain
+last-recorded deployment state, not reverified this session. Algo Trading stays off.
+**Prepared locally:** shared status contract; honest active-order label; four
+read-only browser checks; dev-only fixture excluded from production; VNC password
+precondition; fixed-window development grid. See the [verification commands](README.md#foundation-verification).
+**Next:** integrate the verified source branch into `main` and resolve the remaining owner gates.
+Only the VNC launcher update was deployed on the VPS; no private dataset grid ran.
+**Pending owner evidence:** status-only research token; post-DST freshness repeat; research host selection and private
+development grid run before prospective holdout registration.
+**Research:** Batch 3 LLM proposals paused. Existing policy, risk limits and
+manual promotion remain binding. October 8 freshness passed; costs remain incomplete.
+
+**October 8 receipt verification:** `68b7850` passed all 11 proposal tests on this
+Windows computer in an isolated checkout, then was cherry-picked into the
+foundation branch as `66c56be`. The integrated proposal, supported transport and
+gateway suites passed all 18 tests. Broader checks passed 27 of 30 initially;
+the registration suite's Windows hard-link permission failure passed all three
+tests outside the sandbox. Two trusted transport/gateway tests still require
+unavailable private provider fixtures and were not rerun. The fix passed local
+integration checks; merge into `main` remains pending.
+
+**October 8 deployment evidence:** owner provisioned the VNC password in the
+persistent home volume, confirmed Algo off and no positions/pending orders, then
+deployed only the password-guarded launcher. Running image:
+`sha256:ddaddceb01ab450a9a14f229550307db2c2e2d990f034044af4658b169e14ddc`.
+Rollback tag `kwg-mt5-desktop:rollback-foundation-20261008` resolves to
+`sha256:2973e5d8ca9d9aa0823cef49105ef9c5c7da7496e30bf9be1c2b8af82a450dc7`.
+The journal backup in `/opt/kwg-mt5-qualification/backups/` passed SQLite integrity
+and container/host hash comparison:
+`8b286e6577da4423a63163e2f1b4fa5a32bda1751f1adb6f722ef6af38644a4d`.
+noVNC password login succeeded. Market Watch 13:55:07 versus UTC 10:55:10
+independently confirmed the configured 10800-second offset; source hashes for
+all four collector modules matched this branch.
+
+**October 8 freshness evidence:** detached collection with a pseudo-terminal
+ran 10:59:22–11:29:26 UTC and exited 0 after meeting the early-stop pass threshold:
+361 accepted samples, two M15 transitions, no blockers, `cost_status: incomplete`.
+Report `/opt/kwg-mt5-qualification/backups/gold-qualification-20261008T105922Z.json`
+has verified container/host SHA256
+`32d1dd6d39d8dd94e10c79551423bd34faf3b8f85a80209037febb2c9686451d`.
+This qualifies this session's data freshness, not a strategy or Batch 3 completion.
+
+**Local review limits:** 12 JavaScript checks and 19 of 21 focused Python tests
+passed. The HTTP test remained blocked by Windows socket permissions, including
+an elevated retry; the Bash launcher assertion failed on Windows. Astro startup
+was traced to denied `fs.realpathSync.native` calls; ordinary `realpathSync` works.
+A temporary Vite `preserveSymlinks: true` override started the fixture server
+without repository config changes. Browser tests still did not execute: Chromium
+download failed with `ENOTFOUND cdn.playwright.dev`, including an elevated retry;
+in-app browser requests to the local fixture server timed out.
+Owner installed Chromium in the normal user cache. With that explicit cache,
+the four browser tests launched but all stopped at navigation with
+`ERR_NETWORK_ACCESS_DENIED`; no page assertions ran in that attempt.
+Owner then ran the fixture server and tests in local PowerShell at 19:35 Bangkok:
+all four passed without skips, retries or flaky results. The saved `.e2e/report.json`
+was independently read and confirms `status: passed`, exit 0 and four executed
+checks: fresh contract rendering, 401/302 clearing prices and requiring sign-in,
+and active manual-order labeling. These use synthetic status, not broker execution.
+`e2e init` installed project skill/MCP files and an example test without replacing
+the existing configuration. These local changes are not committed or published.
+
+Everything below this block is history. Read it only for a specific record.
+
+## Historical: October 7 candidate — diagnostics reviewed
 
 The offline transport → worker → receipt diagnostic candidate is implemented and
 reviewed: 42 offline tests and two owner-run local read-only browser tests passed.

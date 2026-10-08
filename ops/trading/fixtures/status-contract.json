@@ -1,0 +1,639 @@
+{
+  "now": 1000,
+  "cases": [
+    {
+      "name": "fresh priced observation, no execution",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "long",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "execution": null,
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "long",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "ui": {
+        "state": "Observing",
+        "price": "4100.25 / 4100.50",
+        "signal": "Long setup",
+        "strategy": "Observing \u00b7 signals place no orders"
+      }
+    },
+    {
+      "name": "stale weekend quote is blocked and unpriced",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "blocked",
+        "signal": "long",
+        "reason": "Gold quote is old",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "stale",
+          "sampled_at": 995,
+          "tick_time": 10,
+          "tick_time_msc": 10000,
+          "quote_age_seconds": 985,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "execution": null,
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "blocked",
+        "signal": "none",
+        "reason": "Gold quote is old",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "stale",
+          "sampled_at": 995,
+          "tick_time": 10,
+          "tick_time_msc": 10000,
+          "quote_age_seconds": 985,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "ui": {
+        "state": "Waiting for price",
+        "price": "\u2014",
+        "signal": "Paused"
+      }
+    },
+    {
+      "name": "inverted bid/ask is dropped in every layer",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.5,
+          "ask": 4100.25
+        }
+      },
+      "execution": null,
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": null,
+          "ask": null
+        }
+      },
+      "ui": {
+        "state": "Observing",
+        "price": "\u2014",
+        "signal": "No setup yet"
+      }
+    },
+    {
+      "name": "manual demo execution armed",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "execution": {
+        "mode": "one-shot-demo",
+        "status": "armed",
+        "updated_at": 990,
+        "side": "buy",
+        "volume": 0.01,
+        "opened_at": null,
+        "closed_at": null,
+        "realized_net_usd": null,
+        "entry_price": 4095.0,
+        "sl": 4085.0,
+        "tp": 4110.0,
+        "close_reason": null
+      },
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        },
+        "execution": {
+          "mode": "one-shot-demo",
+          "status": "armed",
+          "updated_at": 990,
+          "side": "buy",
+          "volume": 0.01,
+          "opened_at": null,
+          "closed_at": null,
+          "realized_net_usd": null,
+          "entry_price": 4095.0,
+          "sl": 4085.0,
+          "tp": 4110.0,
+          "close_reason": null
+        }
+      },
+      "ui": {
+        "state": "Observing",
+        "strategy": "Signals only \u00b7 manual demo order active"
+      },
+      "executionUi": {
+        "state": "Armed"
+      }
+    },
+    {
+      "name": "manual demo execution submitting",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "execution": {
+        "mode": "one-shot-demo",
+        "status": "submitting",
+        "updated_at": 990,
+        "side": "buy",
+        "volume": 0.01,
+        "opened_at": null,
+        "closed_at": null,
+        "realized_net_usd": null,
+        "entry_price": 4095.0,
+        "sl": 4085.0,
+        "tp": 4110.0,
+        "close_reason": null
+      },
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        },
+        "execution": {
+          "mode": "one-shot-demo",
+          "status": "submitting",
+          "updated_at": 990,
+          "side": "buy",
+          "volume": 0.01,
+          "opened_at": null,
+          "closed_at": null,
+          "realized_net_usd": null,
+          "entry_price": 4095.0,
+          "sl": 4085.0,
+          "tp": 4110.0,
+          "close_reason": null
+        }
+      },
+      "ui": {
+        "state": "Observing",
+        "strategy": "Signals only \u00b7 manual demo order active"
+      },
+      "executionUi": {
+        "state": "Submitting"
+      }
+    },
+    {
+      "name": "manual demo execution pending",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "execution": {
+        "mode": "one-shot-demo",
+        "status": "pending",
+        "updated_at": 990,
+        "side": "buy",
+        "volume": 0.01,
+        "opened_at": null,
+        "closed_at": null,
+        "realized_net_usd": null,
+        "entry_price": 4095.0,
+        "sl": 4085.0,
+        "tp": 4110.0,
+        "close_reason": null
+      },
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        },
+        "execution": {
+          "mode": "one-shot-demo",
+          "status": "pending",
+          "updated_at": 990,
+          "side": "buy",
+          "volume": 0.01,
+          "opened_at": null,
+          "closed_at": null,
+          "realized_net_usd": null,
+          "entry_price": 4095.0,
+          "sl": 4085.0,
+          "tp": 4110.0,
+          "close_reason": null
+        }
+      },
+      "ui": {
+        "state": "Observing",
+        "strategy": "Signals only \u00b7 manual demo order active"
+      },
+      "executionUi": {
+        "state": "Pending"
+      }
+    },
+    {
+      "name": "manual demo execution open",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "execution": {
+        "mode": "one-shot-demo",
+        "status": "open",
+        "updated_at": 990,
+        "side": "buy",
+        "volume": 0.01,
+        "opened_at": null,
+        "closed_at": null,
+        "realized_net_usd": null,
+        "entry_price": 4095.0,
+        "sl": 4085.0,
+        "tp": 4110.0,
+        "close_reason": null
+      },
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        },
+        "execution": {
+          "mode": "one-shot-demo",
+          "status": "open",
+          "updated_at": 990,
+          "side": "buy",
+          "volume": 0.01,
+          "opened_at": null,
+          "closed_at": null,
+          "realized_net_usd": null,
+          "entry_price": 4095.0,
+          "sl": 4085.0,
+          "tp": 4110.0,
+          "close_reason": null
+        }
+      },
+      "ui": {
+        "state": "Observing",
+        "strategy": "Signals only \u00b7 manual demo order active"
+      },
+      "executionUi": {
+        "state": "Open"
+      }
+    },
+    {
+      "name": "manual demo execution closing",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "execution": {
+        "mode": "one-shot-demo",
+        "status": "closing",
+        "updated_at": 990,
+        "side": "buy",
+        "volume": 0.01,
+        "opened_at": null,
+        "closed_at": null,
+        "realized_net_usd": null,
+        "entry_price": 4095.0,
+        "sl": 4085.0,
+        "tp": 4110.0,
+        "close_reason": null
+      },
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        },
+        "execution": {
+          "mode": "one-shot-demo",
+          "status": "closing",
+          "updated_at": 990,
+          "side": "buy",
+          "volume": 0.01,
+          "opened_at": null,
+          "closed_at": null,
+          "realized_net_usd": null,
+          "entry_price": 4095.0,
+          "sl": 4085.0,
+          "tp": 4110.0,
+          "close_reason": null
+        }
+      },
+      "ui": {
+        "state": "Observing",
+        "strategy": "Signals only \u00b7 manual demo order active"
+      },
+      "executionUi": {
+        "state": "Closing"
+      }
+    },
+    {
+      "name": "manual demo execution needs_attention",
+      "observer": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        }
+      },
+      "execution": {
+        "mode": "one-shot-demo",
+        "status": "needs_attention",
+        "updated_at": 990,
+        "side": "buy",
+        "volume": 0.01,
+        "opened_at": null,
+        "closed_at": null,
+        "realized_net_usd": null,
+        "entry_price": 4095.0,
+        "sl": 4085.0,
+        "tp": 4110.0,
+        "close_reason": null
+      },
+      "payload": {
+        "mode": "signal-only",
+        "symbol": "XAUUSD-VIP",
+        "status": "observed",
+        "signal": "none",
+        "reason": "Completed candle evaluated",
+        "checked_at": 995,
+        "bar_time": 900,
+        "health": {
+          "terminal": "connected",
+          "quote": "fresh",
+          "sampled_at": 995,
+          "tick_time": 994,
+          "tick_time_msc": 994500,
+          "quote_age_seconds": 0.5,
+          "history_bar_time": 900,
+          "history_count": 250,
+          "bid": 4100.25,
+          "ask": 4100.5
+        },
+        "execution": {
+          "mode": "one-shot-demo",
+          "status": "needs_attention",
+          "updated_at": 990,
+          "side": "buy",
+          "volume": 0.01,
+          "opened_at": null,
+          "closed_at": null,
+          "realized_net_usd": null,
+          "entry_price": 4095.0,
+          "sl": 4085.0,
+          "tp": 4110.0,
+          "close_reason": null
+        }
+      },
+      "ui": {
+        "state": "Observing",
+        "strategy": "Signals only \u00b7 manual demo order active"
+      },
+      "executionUi": {
+        "state": "Needs attention"
+      }
+    }
+  ]
+}

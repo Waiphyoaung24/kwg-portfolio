@@ -1198,3 +1198,63 @@ real inputs exist, specify and test a separate simulator-to-gate adapter against
 actual report schemas and hash identities. Only then run the immutable baseline
 twice to distinct exclusive outputs and compare bytes. No fabricated candidate,
 Batch 3 research call or continuous trading is part of this collection protocol.
+
+
+## Foundation verification
+
+The foundation work keeps gold demo execution owner-controlled and pauses Batch 3
+LLM proposals. See the [foundation plan](../../docs/superpowers/plans/2026-10-08-trading-agent-foundation.md)
+for owner-only Windows, Cloudflare and live-data steps.
+
+On October 8 the owner deployed the VNC launcher update, verified password login
+and collected a passing freshness report. Four local synthetic browser tests
+also passed. Exact deployment and report hashes are recorded in
+[the current handoff](HANDOFF.md#now--running--next--updated-2026-10-08).
+Other deployment and research gates remain open.
+
+The shared synthetic status contract is `fixtures/status-contract.json`. Run:
+
+```bash
+node --test ops/trading/worker/test.mjs src/scripts/*.test.mjs
+(cd ops/trading && python3 -m pytest -q -p no:cacheprovider test_status_server.py test_desktop.py test_grid_gold.py test_replay_gold.py test_simulate_gold.py)
+```
+
+For the read-only page tests, start an isolated dev server from the repo root:
+
+```bash
+PUBLIC_TRADING_FIXTURE=1 npm run astro -- dev --host 127.0.0.1
+E2E_TELEMETRY_DISABLED=1 APP_URL=http://127.0.0.1:4321 npm run test:e2e -- tests/vault-trading.e2e.ts
+```
+
+The flag opts localhost out of its usual offline preview. Without it the fixture
+route returns 404; production always returns 404, including builds made with the
+flag set. Tests use synthetic status and intercept auth failures; they never
+submit control requests or contact MT5. No production authentication is bypassed.
+
+Before deploying the changed desktop launcher, provision `/home/mt5/.vnc/passwd`
+in the existing `mt5-home` volume using the interactive command in Task 6. The
+launcher now fails before starting services if that file is absent, empty or
+unreadable. Use a safe, owner-approved restart window and preserve the volume,
+journal and rollback image. Actual noVNC password acceptance remains an owner
+verification step.
+
+The development grid accepts the existing frozen experiment manifest:
+
+```bash
+python3 grid-gold.py --dataset /private/path/gold-history-20260928.json --manifest /private/path/manifest.json --output /private/path/grid.json
+```
+
+Run from `ops/trading` on the chosen research host. The output directory must
+already exist and the output file must be new. The CLI verifies the dataset
+checksum against the frozen manifest, binds the current simulator sources, and
+uses only the first 6,000 bars. It compares the baseline with lookbacks 2–5 under
+hypothetical middle costs; ties retain baseline then shorter lookback. Reports
+record input, source, policy and risk hashes and remain **unqualified**. No
+private dataset has been run as part of the local implementation.
+
+Prospective registration remains pending the owner host decision, development
+result, and owner-controlled holdout storage inaccessible to the research
+identity. A JSON access declaration is insufficient. Publish the bound
+registration before its future Monday start; enforce the existing cost,
+provenance, fold and sample gates before any owner promotion. A baseline grid
+winner means retain baseline, not fabricate a changed candidate.

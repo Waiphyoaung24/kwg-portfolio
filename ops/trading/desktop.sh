@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 umask 077
+# Provision this file in the persistent mt5-home volume before recreating desktop.
+if [[ ! -s "$HOME/.vnc/passwd" || ! -r "$HOME/.vnc/passwd" ]]; then
+  echo "VNC password file is missing or unreadable: provision ~/.vnc/passwd first" >&2
+  exit 1
+fi
 trap 'kill $(jobs -pr) 2>/dev/null || true' EXIT
 trap 'exit 0' TERM INT
 Xvfb "$DISPLAY" -screen 0 1280x800x24 -nolisten tcp &
@@ -11,7 +16,7 @@ done
 xdpyinfo >/dev/null
 openbox &
 # VNC is internal only; noVNC is published only on the host's SSH-protected loopback.
-x11vnc -display "$DISPLAY" -localhost -rfbport 5900 -forever -shared -nopw &
+x11vnc -display "$DISPLAY" -localhost -rfbport 5900 -forever -shared -rfbauth "$HOME/.vnc/passwd" &
 websockify --web /usr/share/novnc 6080 localhost:5900 &
 terminal="$WINEPREFIX/drive_c/Program Files/MetaTrader 5/terminal64.exe"
 if [ -f "$terminal" ]; then

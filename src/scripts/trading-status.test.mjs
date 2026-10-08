@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { normalizeStatus } from '../../ops/trading/worker/src/index.js';
 import assert from 'node:assert/strict';
 import { executionFields, statusFields } from './trading-status.mjs';
 
@@ -58,3 +60,15 @@ const desktopClose = executionFields({ ...execution, status: 'closed', close_rea
 assert.equal(desktopClose.state, 'Closed');
 assert.match(desktopClose.result, /-0\.70/);
 assert.equal(desktopClose.guidance, 'Closed from MT5 desktop. This is a historical result.');
+
+
+const contract = JSON.parse(readFileSync(new URL('../../ops/trading/fixtures/status-contract.json', import.meta.url)));
+for (const item of contract.cases) {
+  const fields = statusFields(normalizeStatus(item.payload, contract.now), contract.now);
+  for (const [key, expected] of Object.entries(item.ui)) assert.equal(fields[key], expected, `${item.name}: ${key}`);
+  if (item.executionUi) {
+    const execution = executionFields(item.payload.execution, contract.now);
+    for (const [key, expected] of Object.entries(item.executionUi)) assert.equal(execution[key], expected, `${item.name}: execution ${key}`);
+  }
+}
+console.log('Trading status: shared contract passes Worker and page fields');

@@ -35,7 +35,8 @@ export function statusFields(data, now = Date.now() / 1000) {
       ? `${health.quote_age_seconds.toFixed(3)}s at ${date(health.sampled_at)}${current ? '' : ' (expired check)'}` : '—',
     history: current && Number.isInteger(health.history_count) ? `${health.history_count} bars fetched` : 'Unknown — no current check',
     candle: date(health?.history_bar_time),
-    strategy: !alive ? 'Paused — no current observer report' : data.status === 'blocked' ? 'Blocked — see reason below' : 'Observing · orders off',
+    strategy: !alive ? 'Paused — no current observer report' : data.status === 'blocked' ? 'Blocked — see reason below' : ['armed', 'submitting', 'pending', 'open', 'closing', 'needs_attention'].includes(data.execution?.status)
+      ? 'Signals only · manual demo order active' : 'Observing · signals place no orders',
     signal: ready ? ({ long: 'Long setup', short: 'Short setup', none: 'No setup yet' }[data.signal] ?? '—') : 'Paused',
     checked: date(data.checked_at),
     reason: alive ? data.reason || 'Waiting for the next completed candle.' : 'Observer report expired. Waiting for a current report.',
