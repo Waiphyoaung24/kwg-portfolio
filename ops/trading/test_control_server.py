@@ -1,5 +1,6 @@
 """The web bridge must never arm without a fresh, reviewed preview."""
 import json
+import os
 import shlex
 import sqlite3
 import tempfile
@@ -12,6 +13,16 @@ import control_server as control
 
 
 class ControlTest(unittest.TestCase):
+    def test_pilot_pause_persists_and_manual_entry_is_refused(self):
+        with patch.dict(os.environ, {'MT5_RUN_MODE': 'pilot'}), \
+                patch.object(control.subprocess, 'Popen') as launch:
+            self.assertEqual(control.run_action('preview', {})[0], 409)
+            self.assertEqual(control.run_action('arm', {})[0], 409)
+            self.assertEqual(control.run_action('pilot-pause', {})[0], 202)
+            self.assertTrue((control.STATE.parent/'gold-pilot.pause').exists())
+            self.assertEqual(control.run_action('pilot-pause', {'enable': True})[0], 409)
+            launch.assert_not_called()
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

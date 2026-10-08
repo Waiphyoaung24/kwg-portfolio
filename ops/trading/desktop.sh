@@ -29,6 +29,16 @@ if [ -n "${MT5_DEMO_LOGIN:-}" ]; then
   [[ "$MT5_DEMO_LOGIN" =~ ^[0-9]+$ ]] || { echo "Invalid MT5_DEMO_LOGIN" >&2; exit 1; }
   server_offset="${MT5_SERVER_OFFSET_SECONDS:-0}"
   case "$server_offset" in 0|7200|10800) ;; *) echo "Invalid MT5_SERVER_OFFSET_SECONDS" >&2; exit 1;; esac
+  run_mode="${MT5_RUN_MODE:-observer}"
+  case "$run_mode" in observer|pilot) ;; *) echo "Invalid MT5_RUN_MODE" >&2; exit 1;; esac
+  if [ "$run_mode" = pilot ]; then
+    (
+      while true; do
+        script -q -e -c "wine /opt/python/python.exe /opt/trading/demo_pilot.py run" /dev/null || true
+        sleep 10
+      done
+    ) &
+  else
   (
     while true; do
       if [ -f "$terminal" ]; then
@@ -47,6 +57,7 @@ if [ -n "${MT5_DEMO_LOGIN:-}" ]; then
       sleep 10
     done
   ) &
+  fi
   if [ -n "${TRADING_CONTROL_SECRET:-}" ]; then
     python3 /opt/trading/control_server.py &
   fi

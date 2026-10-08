@@ -541,7 +541,7 @@ def _final_entry_guard(mt5, login, request):
     return account.equity
 
 
-def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True) -> dict:
+def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, before_submit=None) -> dict:
     """Advance one journal state; only a fresh arm may submit an entry."""
     row = _attempt(db)
     if row is None:
@@ -564,6 +564,8 @@ def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True) -
             _update(db, state="disarmed", close_reason=str(exc))
             return _status(db, now)
         try:
+            if before_submit is not None:
+                before_submit(request)
             entry_equity = _final_entry_guard(mt5, login, request)
         except ValueError as exc:
             _update(db, state="disarmed", close_reason=str(exc))

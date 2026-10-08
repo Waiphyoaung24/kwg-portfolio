@@ -215,6 +215,27 @@ test('reviewed preview and one arm reach only the private control route', async 
 });
 
 
+test('pilot pause requires owner identity and same-origin empty POST', async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  let calls = 0;
+  globalThis.fetch = async (url, options) => {
+    calls++;
+    assert.equal(new URL(url).pathname, '/control/pilot-pause');
+    assert.deepEqual(JSON.parse(options.body), {});
+    return Response.json({ status: 'pause_requested' }, { status: 202 });
+  };
+  const enabled = { ...env, TRADING_CONTROL_SECRET: 'control' };
+  const request = (origin, body = {}) => new Request('https://waiphyoaung.com/api/trading/pilot-pause', {
+    method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  assert.equal((await worker.fetch(request('https://waiphyoaung.com'), enabled, {})).status, 403);
+  assert.equal((await worker.fetch(request('https://other.example'), enabled, { access })).status, 400);
+  assert.equal((await worker.fetch(request('https://waiphyoaung.com', { activate: true }), enabled, { access })).status, 400);
+  assert.equal(calls, 0);
+  assert.equal((await worker.fetch(request('https://waiphyoaung.com'), enabled, { access })).status, 202);
+  assert.equal(calls, 1);
+});
+
 test('shared status contract survives Worker normalization unchanged', () => {
   const contract = JSON.parse(readFileSync(new URL('../fixtures/status-contract.json', import.meta.url)));
   for (const item of contract.cases) {

@@ -31,6 +31,14 @@ def available():
 
 def run_action(action, payload):
     global pending, runner
+    if action == 'pilot-pause':
+        if payload != {} or os.environ.get('MT5_RUN_MODE', 'observer') != 'pilot':
+            return 409, {'error': 'Pilot mode is not available.'}
+        with (STATE.parent / 'gold-pilot.pause').open('ab'):
+            pass
+        return 202, {'status': 'pause_requested'}
+    if os.environ.get('MT5_RUN_MODE', 'observer') == 'pilot':
+        return 409, {'error': 'Manual entries are disabled while the pilot owns execution.'}
     if runner is not None and runner.poll() is None:
         return 409, {"error": "A demo attempt is already running."}
     if not available():
@@ -84,7 +92,7 @@ def run_action(action, payload):
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        if self.path not in ("/preview", "/arm"):
+        if self.path not in ("/preview", "/arm", "/pilot-pause"):
             self.send_error(404)
             return
         if not SECRET or not secrets.compare_digest(self.headers.get("X-KWG-Control-Secret", ""), SECRET):

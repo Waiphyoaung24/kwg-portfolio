@@ -40,7 +40,7 @@ export const prerender = true;
           <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 3 8-9m-6 0h6v6" /></svg>Strategy signal</dt><dd id="signal">Checking</dd></div>
         </dl>
         <p class="status__guidance" id="guidance" role="status">Connecting to the private status API.</p>
-        <p class="page__note">Live observation only. Signals do not place orders. Keep Algo Trading off for observation.</p>
+        <p class="page__note" id="mode-note">Live observation only. Signals do not place orders. Keep Algo Trading off for observation.</p>
         <details class="status__activity">
           <summary class="pill-btn">Recent checks</summary>
           <p class="page__note">Up to six checks from this page session.</p>
@@ -65,8 +65,25 @@ export const prerender = true;
           <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
         </div>
       </section>
+      <section class="card status" id="pilot-panel" aria-labelledby="pilot-title" hidden>
+        <div class="status__head"><h2 id="pilot-title">Autonomous demo pilot</h2><span class="label" id="pilot-state" aria-live="polite">Checking</span></div>
+        <p class="status__symbol micro">Unqualified demo · EMA crossover · slope lookback 3</p>
+        <p class="status__guidance" id="pilot-reason" role="status">Checking</p>
+        <dl class="status__rows">
+          <div><dt class="label">Realized net</dt><dd id="pilot-realized">—</dd></div>
+          <div><dt class="label">Floating profit</dt><dd id="pilot-floating">—</dd></div>
+          <div><dt class="label">Completed trades</dt><dd id="pilot-count">—</dd></div>
+          <div><dt class="label">Time remaining</dt><dd id="pilot-remaining">—</dd></div>
+          <div><dt class="label">Position / latest attempt</dt><dd id="pilot-position">—</dd></div>
+          <div><dt class="label">Entry / stop / target</dt><dd id="pilot-levels">—</dd></div>
+        </dl>
+        <button class="pill-btn" id="pilot-pause" type="button" disabled>Pause new entries</button>
+        <p class="page__note">Pausing keeps existing positions protected and monitored. At expiry, the pilot requests closure; unresolved positions need owner attention. Floating profit excludes costs not yet booked.</p>
+        <p id="pilot-message" role="status"></p>
+        <details class="status__activity"><summary class="pill-btn">Recent completed trades</summary><ol id="pilot-trades"></ol></details>
+      </section>
       <TradingReplay />
-      <details class="manual-controls">
+      <details class="manual-controls" id="manual-controls">
       <summary class="pill-btn">Manual demo order controls</summary>
       <section class="card status" aria-labelledby="control-title">
         <div class="status__head">
@@ -145,6 +162,7 @@ export const prerender = true;
 
     <script>
       import { executionFields, statusFields } from '../../scripts/trading-status.mjs';
+      import { pilotFields } from '../../scripts/trading-pilot.mjs';
       import { tradeLevels } from '../../scripts/trading-levels.mjs';
       const field = (id: string) => document.getElementById(id)!;
       const refresh = field('refresh') as HTMLButtonElement;
@@ -194,9 +212,23 @@ export const prerender = true;
         renderLevels();
         if (!latest) return;
         const fields = statusFields(latest);
+        const isPilot = latest.mode === 'autonomous-demo';
+        field('pilot-panel').hidden = !isPilot;
+        field('manual-controls').hidden = isPilot;
+        field('mode-note').textContent = isPilot ? 'Demo execution mode. Review pilot state and positions below.'
+          : 'Live observation only. Signals do not place orders. Keep Algo Trading off for observation.';
+        const pilot = pilotFields(latest.pilot);
+        if (pilot.state === 'Paused' && field('pilot-message').textContent?.startsWith('Pause requested.')) field('pilot-message').textContent = 'New entries are paused.';
+        for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining'] as const) field(`pilot-${key}`).textContent = pilot[key];
+        (field('pilot-pause') as HTMLButtonElement).disabled = !isPilot || !pilot.canPause || Date.now() - receivedAt > 30000;
+        field('pilot-trades').replaceChildren(...(pilot.trades.length ? pilot.trades : ['No completed trades reported.']).map((text: string) => {
+          const item = document.createElement('li'); item.textContent = text; return item;
+        }));
         if (Date.now() - receivedAt > 30000) fields.delivery = 'No recent API response';
         for (const [id, value] of Object.entries(fields)) field(id).textContent = value;
         const execution = executionFields(latest.execution);
+        field('pilot-position').textContent = `${execution.state} · ${execution.side} · ${execution.volume}`;
+        field('pilot-levels').textContent = `${execution.entry} / ${execution.sl} / ${execution.tp}`;
         for (const id of ['state', 'entry', 'sl', 'tp', 'opened', 'closed', 'updated', 'guidance'] as const) field(`execution-${id}`).textContent = execution[id];
         field('execution-summary').textContent = execution.state === 'Unknown' ? 'No current report'
           : [execution.side, execution.volume, execution.result].filter(value => value !== '—').join(' · ') || execution.state;
@@ -208,11 +240,11 @@ export const prerender = true;
           for (const input of [entry, sl, tp]) input.disabled = false;
           field('control-message').textContent = 'Attempt finished. Review the result and turn Algo Trading off in MT5.';
         }
-        prepare.disabled = !!previewToken || !!startedAt || !resolved || fields.state !== 'Observing';
-        start.disabled = !previewToken || !resolved || Date.now() - receivedAt > 30000;
+        prepare.disabled = isPilot || !!previewToken || !!startedAt || !resolved || fields.state !== 'Observing';
+        start.disabled = isPilot || !previewToken || !resolved || Date.now() - receivedAt > 30000;
       }
 
-      async function control(action: 'preview' | 'arm', body: object) {
+      async function control(action: 'preview' | 'arm' | 'pilot-pause', body: object) {
         const response = await fetch(`/api/trading/${action}`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
           cache: 'no-store', credentials: 'same-origin', redirect: 'manual', signal: AbortSignal.timeout(60000),
@@ -222,6 +254,17 @@ export const prerender = true;
         if (!response.ok) throw new Error(typeof result.error === 'string' ? result.error : 'Demo control is unavailable.');
         return result;
       }
+
+      field('pilot-pause').addEventListener('click', async () => {
+        (field('pilot-pause') as HTMLButtonElement).disabled = true;
+        try {
+          await control('pilot-pause', {});
+          field('pilot-message').textContent = 'Pause requested. Waiting for the runner to confirm.';
+          await load();
+        } catch (error) {
+          field('pilot-message').textContent = error instanceof Error ? error.message : 'Pause failed. Check the runner.';
+        }
+      });
 
       form.addEventListener('input', () => {
         if (!previewToken) { renderLevels(); return; }
@@ -297,7 +340,7 @@ export const prerender = true;
           if (!response.ok) throw new Error('unavailable');
           if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('unavailable');
           const data = await response.json();
-          if (data.mode !== 'signal-only' || data.symbol !== 'XAUUSD-VIP') throw new Error('unavailable');
+          if (!['signal-only', 'autonomous-demo'].includes(data.mode) || data.symbol !== 'XAUUSD-VIP') throw new Error('unavailable');
           signIn.hidden = true;
           latest = data;
           receivedAt = Date.now();
@@ -313,6 +356,13 @@ export const prerender = true;
           render();
         } catch (error) {
           latest = null;
+          (field('pilot-pause') as HTMLButtonElement).disabled = true;
+          const pilot = pilotFields(null);
+          for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining'] as const) field(`pilot-${key}`).textContent = pilot[key];
+          field('pilot-position').textContent = 'Unknown';
+          field('pilot-levels').textContent = '—';
+          field('pilot-trades').replaceChildren();
+          field('pilot-message').textContent = '';
           prepare.disabled = true;
           start.disabled = true;
           const needsAccess = error instanceof Error && error.message === 'access';

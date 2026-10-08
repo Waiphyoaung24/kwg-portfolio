@@ -75,15 +75,57 @@ def sanitize_execution(value, now: float):
     return result
 
 
+def sanitize_pilot(value, now):
+    if (not isinstance(value, dict) or value.get('strategy') != 'gold-ema-v1-slope-3'
+            or value.get('qualification') != 'unqualified'
+            or value.get('status') not in ('standby', 'active', 'paused', 'needs_attention', 'expired')):
+        raise ValueError('Invalid pilot state')
+    result = {k: value[k] for k in ('strategy', 'qualification', 'status')}
+    for k in ('updated_at', 'started_at', 'ends_at', 'realized_net_usd', 'floating_usd', 'completed_trades'):
+        number = value.get(k)
+        if number is not None and (type(number) not in (int, float) or not math.isfinite(number) or abs(number) > 1e12):
+            raise ValueError('Invalid pilot number')
+        result[k] = number
+    if (result['updated_at'] is None or not 0 <= now - result['updated_at'] <= 30):
+        return None
+    if type(result['completed_trades']) is not int or result['completed_trades'] < 0:
+        raise ValueError('Invalid pilot count')
+    start, end = result['started_at'], result['ends_at']
+    if ((value['status'] == 'standby' and (start is not None or end is not None))
+            or (value['status'] != 'standby' and
+                (start is None or end is None or not 0 < start <= now or not 0 < end - start <= 604800))):
+        raise ValueError('Invalid pilot window')
+    if not isinstance(value.get('reason'), str) or len(value['reason']) > 160:
+        raise ValueError('Invalid pilot reason')
+    result['reason'] = value['reason']
+    trades = value.get('recent_trades')
+    if not isinstance(trades, list) or len(trades) > 10:
+        raise ValueError('Invalid pilot trades')
+    result['recent_trades'] = []
+    for trade in trades:
+        if not isinstance(trade, dict) or trade.get('side') not in ('buy', 'sell'):
+            raise ValueError('Invalid pilot trade')
+        clean = {'side': trade['side']}
+        for k in ('opened_at', 'closed_at', 'realized_net_usd'):
+            number = trade.get(k)
+            if type(number) not in (int, float) or not math.isfinite(number) or abs(number) > 1e12:
+                raise ValueError('Invalid pilot trade number')
+            clean[k] = number
+        if not 0 < clean['opened_at'] <= clean['closed_at'] <= now:
+            raise ValueError('Invalid pilot trade times')
+        result['recent_trades'].append(clean)
+    return result
+
+
 def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION) -> tuple[int, dict]:
     try:
-        if path.stat().st_size > 4096:
+        if path.stat().st_size > 16384:
             raise ValueError("oversized snapshot")
         data = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ValueError("invalid snapshot")
         data["health"] = sanitize_health(data.get("health"))
-        if (data["mode"] != "signal-only" or data["symbol"] != "XAUUSD-VIP"
+        if (data["mode"] not in ("signal-only", "autonomous-demo") or data["symbol"] != "XAUUSD-VIP"
                 or data["status"] not in ("baseline", "observed", "duplicate", "blocked")
                 or data["signal"] not in ("long", "short", "none")
                 or type(data["checked_at"]) is not int
@@ -101,7 +143,15 @@ def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION) -> 
         data["signal"] = "none"
     payload = {key: data.get(key) for key in
                ("mode", "symbol", "status", "signal", "reason", "checked_at", "bar_time", "health")}
-    if execution_path.exists():
+    if data['mode'] == 'autonomous-demo':
+        try:
+            payload['pilot'] = sanitize_pilot(data.get('pilot'), now)
+            payload['execution'] = sanitize_execution(data.get('execution'), now)
+            if payload['pilot'] is None and payload['status'] != 'offline':
+                payload.update(status='blocked', signal='none', reason='Pilot heartbeat unavailable')
+        except (ValueError, TypeError, KeyError):
+            payload.update(pilot=None, execution=None, status='blocked', signal='none', reason='Pilot report invalid')
+    elif execution_path.exists():
         try:
             if execution_path.stat().st_size > 2048:
                 raise ValueError("oversized execution snapshot")
@@ -114,7 +164,7 @@ def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION) -> 
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        if self.path not in ("/control/preview", "/control/arm"):
+        if self.path not in ("/control/preview", "/control/arm", "/control/pilot-pause"):
             self.send_error(404)
             return
         try:

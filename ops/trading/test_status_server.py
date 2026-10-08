@@ -12,6 +12,19 @@ from status_server import Handler, read_status, sanitize_health
 
 
 class StatusServerTest(unittest.TestCase):
+    def test_pilot_contract_and_expiry_do_not_mix_manual_execution(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / 'latest.json'
+            path.write_text(json.dumps(fixture))
+            status, value = read_status(path, fixture['checked_at'], execution_path=Path(root)/'missing')
+            self.assertEqual(status, 200)
+            self.assertEqual(value, fixture)
+            _, stale = read_status(path, fixture['checked_at'] + 31, execution_path=Path(root)/'missing')
+            self.assertIsNone(stale['pilot'])
+            self.assertIsNone(stale['execution'])
+            self.assertEqual(stale['status'], 'offline')
+
     def test_shared_status_contract(self):
         contract = json.loads((Path(__file__).parent / "fixtures" / "status-contract.json").read_text())
         for case in contract["cases"]:
