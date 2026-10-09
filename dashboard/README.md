@@ -25,18 +25,24 @@ Official references:
 
 ## Development
 
-The dashboard uses stock shadcn neutral dark styling as the dashboard-only
-exception recorded in DESIGN.md. Theme variables live in `src/styles.css`;
-`shared/tokens.css` owns layout geometry. The Astro route does not import the
-marketing stylesheet. Dark mode is permanent, including body-portaled overlays.
+The dashboard uses daisyUI 5 with a single custom dark `kwg` theme, the
+dashboard-only exception recorded in DESIGN.md. The theme lives in
+`src/styles.css` (`@plugin "daisyui/theme"`; built-in themes are disabled);
+`shared/tokens.css` owns layout geometry. The Astro route sets
+`data-theme="kwg"` and does not import the marketing stylesheet. Dark mode is
+permanent.
 
-Run shadcn commands from `dashboard/`. `components.json` uses the existing
-New York/Radix component family, Lucide, Tailwind v4, and the `@/` alias.
-The workspace dropdown is a deliberate custom Base UI component: retain its
-`render` trigger and radio-group APIs when editing it. Other existing primitives
-use Radix APIs such as `asChild`. Inspect `npx shadcn@latest info --json` and
-component documentation before adding or changing components; do not overwrite
-local files to switch primitive families.
+Use daisyUI classes on plain elements (`btn`, `input`, `select`, `menu`,
+`card`, `stats`, `steps`, `badge`, `modal`). There is no component wrapper
+layer. The New note dialog is a native `<dialog class="modal">`. The workspace
+dropdown (`src/WorkspaceMenu.tsx`) implements the menu-radio keyboard pattern
+itself; keep its arrow, Home/End and Escape handling when editing it. The rail
+is a daisyUI `drawer`, open at `lg` and a Pages drawer below it.
+
+Goal panels on Today and Founder read typed frontmatter through
+`shared/goal-model.js`: `type: goals` in `founder/`, `type: lead` in
+`founder/`, `type: niche` in `founder/`, and `type: conversation` anywhere.
+Milestone dates match GitHub milestones M1-M4 for 2026.
 
 Use Node 24 or later. Install the portfolio's locked dependencies with `yarn install --frozen-lockfile`, and the isolated dashboard dependencies with `npm ci --prefix dashboard --ignore-scripts`. Then run `node scripts/build-dashboard.mjs` and `node node_modules/astro/bin/astro.mjs dev --host 127.0.0.1 --port 4327`.
 
@@ -44,8 +50,8 @@ The dashboard bundle is generated into ignored `public/dashboard-assets`. `npm r
 
 ## Verification
 
-- `node --test dashboard/*.test.mjs`: isolated adapter tests, graph, and Wai-G templates.
-- `node dashboard/browser-check.mjs`: requires a local production preview at port 4327, or DASHBOARD_ORIGIN. Uses Microsoft Edge, a new temporary browser profile, real OPFS directory handles, and deterministic chooser/permission substitutes. It checks persistence, cancellation, permission denial, stale writes, workspace isolation, drafts, templates, graph, dark styling, all seven pages at six viewport sizes, centered desktop content, and the compact mobile Pages menu with keyboard and Escape checks, and absence of note-upload requests.
+- `node --test dashboard/*.test.mjs`: isolated adapter tests, graph, Wai-G templates, and the goal model.
+- `node dashboard/browser-check.mjs`: requires a local production preview at port 4327, or DASHBOARD_ORIGIN. Uses Microsoft Edge on Windows, Google Chrome on macOS, or DASHBOARD_BROWSER, a new temporary browser profile, real OPFS directory handles, and deterministic chooser/permission substitutes. It checks persistence, cancellation, permission denial, stale writes, workspace isolation, drafts, templates, graph, dark styling, all seven pages at six viewport sizes, centered desktop content, and the compact mobile Pages menu with keyboard and Escape checks, and absence of note-upload requests.
 - Native Windows chooser was opened during verification, but desktop automation did not complete its confirmation. Manual check remains: choose an empty temporary folder, grant access, create/save a note, confirm the Markdown file on disk, reload and reconnect, then revoke permission and confirm a save retains the draft. Do not use a real private vault for this first check.
 - Automated checks do not constitute a screen-reader audit or native Firefox/WebKit folder-access certification.
 

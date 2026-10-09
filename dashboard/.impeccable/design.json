@@ -1,25 +1,20 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-05T00:00:00Z",
-  "title": "Dashboard exception: shadcn neutral dark",
+  "generatedAt": "2026-10-10T00:00:00Z",
+  "title": "Dashboard exception: daisyUI kwg dark theme",
   "extensions": {
-    "shadows": [
+    "theme": [
       {
-        "name": "workspace-menu",
-        "value": "0 4px 12px rgb(0 0 0 / .25)",
-        "purpose": "Custom Base UI workspace menu; public KWG surfaces remain flat."
-      },
-      {
-        "name": "dialog",
-        "value": "0 12px 32px rgb(0 0 0 / .4)",
-        "purpose": "Dashboard new-note dialog."
+        "name": "kwg",
+        "value": "@plugin \"daisyui/theme\" in dashboard/src/styles.css",
+        "purpose": "Only enabled daisyUI theme; built-in themes are disabled. Neutral dark base, amber primary for goal progress and primary actions."
       }
     ],
     "motion": [
       {
-        "name": "menu-entry",
-        "value": "120ms ease-out",
-        "purpose": "Workspace menu fade; reduced motion disables transitions and animations."
+        "name": "fade-in",
+        "value": "200ms ease-out",
+        "purpose": "Editor and dialog entry; reduced motion disables transitions and animations."
       }
     ],
     "breakpoints": [
@@ -28,46 +23,48 @@
         "value": "767px"
       },
       {
-        "name": "compact-navigation",
-        "value": "1023px"
+        "name": "drawer",
+        "value": "1023px",
+        "purpose": "Below lg the rail becomes a daisyUI drawer opened by Pages."
       }
     ]
   },
   "components": [
     {
-      "name": "Default action",
+      "name": "Primary action",
       "kind": "button",
-      "description": "Dashboard primary action; source tokens inherit from the dashboard theme.",
-      "html": "<button class=\"ds-control ds-primary\">Save note</button>",
-      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 16px;border-radius:var(--radius-md);font:500 14px/1.4 var(--font-ui);background:var(--primary);color:var(--primary-foreground);border:0}.ds-primary:hover{background:color-mix(in oklch,var(--primary) 90%,transparent)}.ds-control:focus-visible{outline:3px solid var(--focus);outline-offset:4px;box-shadow:0 0 0 3px color-mix(in oklch,var(--ring) 50%,transparent)}"
+      "description": "One amber primary action per view; 44 px from --size-field.",
+      "html": "<button class=\"btn btn-primary\">Save note</button>"
     },
     {
       "name": "Outline action",
       "kind": "button",
-      "description": "Dark outline variant, with the input foreground/background roles kept distinct.",
-      "html": "<button class=\"ds-control ds-outline\">Cancel</button>",
-      "css": ".ds-outline{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 16px;border-radius:var(--radius-md);font:500 14px/1.4 var(--font-ui);background:color-mix(in oklch,var(--input) 30%,transparent);color:var(--foreground);border:1px solid var(--input);box-shadow:0 1px 2px rgb(0 0 0 / .05)}.ds-outline:hover{background:color-mix(in oklch,var(--input) 50%,transparent)}.ds-control:focus-visible{outline:3px solid var(--focus);outline-offset:4px;box-shadow:0 0 0 3px color-mix(in oklch,var(--ring) 50%,transparent)}"
+      "description": "Secondary actions.",
+      "html": "<button class=\"btn btn-outline\">Reload</button>"
     },
     {
       "name": "Text field",
       "kind": "input",
-      "description": "Semantic input stroke, dark input fill, muted placeholder and visible focus.",
-      "html": "<input class=\"ds-control ds-input\" aria-label=\"Note title\" placeholder=\"Note title\" />",
-      "css": ".ds-input{width:100%;min-width:0;min-height:44px;padding:4px 12px;border:1px solid var(--input);border-radius:var(--radius-md);background:color-mix(in oklch,var(--input) 30%,transparent);color:var(--foreground);font:400 16px/1.4 var(--font-ui);box-shadow:0 1px 2px rgb(0 0 0 / .05)}.ds-input::placeholder{color:var(--muted-foreground)}.ds-control:focus-visible{outline:3px solid var(--focus);outline-offset:4px;box-shadow:0 0 0 3px color-mix(in oklch,var(--ring) 50%,transparent)}"
+      "description": "Label above; daisyUI input with semantic border and muted placeholder.",
+      "html": "<label for=\"title\">Note title</label><input id=\"title\" class=\"input w-full\">"
     },
     {
       "name": "Sidebar link",
-      "kind": "nav",
-      "description": "Neutral rounded navigation with accent foreground on hover and selection.",
-      "html": "<a class=\"ds-control ds-nav\" href=\"#knowledge\" aria-current=\"page\">Knowledge</a>",
-      "css": ".ds-nav{display:flex;align-items:center;min-height:44px;padding:12px;border-radius:var(--radius-sm);font:400 14px/1.4 var(--font-ui);color:var(--sidebar-foreground);text-decoration:none}.ds-nav[aria-current=page]{background:color-mix(in oklch,var(--accent) 50%,transparent);color:var(--accent-foreground)}.ds-nav:hover{background:var(--accent);color:var(--accent-foreground)}.ds-control:focus-visible{outline:3px solid var(--focus);outline-offset:4px;box-shadow:0 0 0 3px color-mix(in oklch,var(--ring) 50%,transparent)}"
+      "kind": "navigation",
+      "description": "daisyUI menu item; menu-active plus aria-current marks the page.",
+      "html": "<ul class=\"menu\"><li><a class=\"menu-active min-h-11\" aria-current=\"page\" href=\"#\">Today</a></li></ul>"
     },
     {
-      "name": "Folder panel",
-      "kind": "card",
-      "description": "Resting dashboard panel uses card tone, hairline stroke and large corners.",
-      "html": "<section class=\"ds-card\"><h2>Local folder</h2><p>Choose a folder for this workspace.</p></section>",
-      "css": ".ds-card{padding:24px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);color:var(--card-foreground);font:400 16px/1.4 var(--font-ui)}.ds-card h2{margin:0;font-size:20px;font-weight:600}.ds-card p{margin:12px 0 0;line-height:1.6;color:var(--muted-foreground)}"
+      "name": "Goal stat",
+      "kind": "data",
+      "description": "Goal progress uses stats; status always has text, never color alone.",
+      "html": "<div class=\"stats\"><div class=\"stat\"><div class=\"stat-title\">Retainer clients</div><div class=\"stat-value\">1 / 4</div></div></div>"
+    },
+    {
+      "name": "Status badge",
+      "kind": "badge",
+      "description": "Soft badges for connection and pipeline states.",
+      "html": "<span class=\"badge badge-soft badge-success\">Local folder connected</span>"
     }
   ]
 }
