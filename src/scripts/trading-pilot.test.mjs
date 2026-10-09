@@ -16,6 +16,14 @@ test('M1 strategy survives Worker and labels completed one-minute candles', () =
   assert.throws(() => normalizePilot({ ...m1.pilot, strategy: 'unknown' }, now));
 });
 
+test('M1 trend survives Worker and identifies its cooldown', () => {
+  const trend = { ...fixture, pilot: { ...fixture.pilot, strategy: 'gold-ema-v1-m1-trend-3' } };
+  assert.deepEqual(normalizeStatus(trend, now), trend);
+  assert.match(statusFields(trend, now).guidance, /completed 1-minute candles/);
+  assert.match(statusFields(trend, now).strategy, /EMA trend.*5-minute cooldown/);
+  assert.equal(pilotFields(trend.pilot, now).canPause, true);
+});
+
 test('pilot contract survives Worker and produces truthful demo fields', () => {
   assert.deepEqual(normalizeStatus(fixture, now), fixture);
   assert.equal(statusFields(fixture, now).state, 'Demo pilot');

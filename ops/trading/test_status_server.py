@@ -16,6 +16,8 @@ class StatusServerTest(unittest.TestCase):
         fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
         fixture['pilot']['strategy'] = 'gold-ema-v1-m1-slope-3'
         self.assertEqual(sanitize_pilot(fixture['pilot'], fixture['checked_at']), fixture['pilot'])
+        fixture['pilot']['strategy'] = 'gold-ema-v1-m1-trend-3'
+        self.assertEqual(sanitize_pilot(fixture['pilot'], fixture['checked_at']), fixture['pilot'])
         fixture['pilot']['strategy'] = 'unknown'
         with self.assertRaises(ValueError):
             sanitize_pilot(fixture['pilot'], fixture['checked_at'])

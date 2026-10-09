@@ -1,4 +1,4 @@
-param([switch]$DryRun)
+param([switch]$DryRun, [switch]$Trend)
 $ErrorActionPreference = 'Stop'
 $taskNames = @('demo_pilot.py','demo_one_shot.py','mt5_data.py','gold_signal.py','gold_experiment.py','switch-pilot-m1.py','status_server.py')
 $taskBundle = @{}
@@ -45,6 +45,10 @@ command = ('stty cols 4096; wine /opt/python/python.exe ' + target + '/switch-pi
 subprocess.run(['docker','exec','--user','mt5','kwg-mt5-desktop','script','-q','-e','-c',command,'/dev/null'], check=True)
 print('REVIEW_ONLY; runner, journal, and deployed source unchanged', flush=True)
 '@
+if ($Trend) {
+    $taskRemote = $taskRemote.Replace('85fa929e80a9cb2d1bf34072df12de5ba954f186db022687ceb41f9bfcb2a08f', '2495766af1cda52e60ac7b9c7fd3e0e2bb34f49c69323723c2add0a09653c19e')
+    $taskRemote = $taskRemote.Replace('--reviewed-code-sha256 ', '--trend --reviewed-code-sha256 ')
+}
 $taskRemote = $taskRemote.Replace('PAYLOAD', $taskPayload)
 if ($DryRun) {
     $taskRemote | python -B -c 'import sys; compile(sys.stdin.read(), sys.argv[1], sys.argv[2])' m1-stage exec

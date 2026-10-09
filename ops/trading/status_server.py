@@ -76,7 +76,7 @@ def sanitize_execution(value, now: float):
 
 
 def sanitize_pilot(value, now):
-    if (not isinstance(value, dict) or value.get('strategy') not in ('gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3')
+    if (not isinstance(value, dict) or value.get('strategy') not in ('gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3')
             or value.get('qualification') != 'unqualified'
             or value.get('status') not in ('standby', 'active', 'paused', 'needs_attention', 'expired')):
         raise ValueError('Invalid pilot state')

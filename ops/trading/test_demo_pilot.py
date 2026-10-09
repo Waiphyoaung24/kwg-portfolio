@@ -45,7 +45,7 @@ class PilotTest(unittest.TestCase):
         self.mt5.copy_rates_from_pos.return_value = [dict(time=(stamp // seconds - 250 + i) * seconds,
             open=100, high=101, low=99, close=100) for i in range(250)]
         with patch('demo_pilot.evaluate', return_value={'bar_time': stamp // seconds * seconds - seconds,
-                   'signal': signal, 'reason': 'evaluated'}), \
+                   'signal': signal, 'reason': 'evaluated', 'ema20': 101 if signal == 'long' else 99, 'ema50': 100}), \
                 patch('demo_pilot.entry_allowed', return_value=allowed):
             return pilot.poll_once(self.mt5, self.db, 123, stamp, self.pause, **kwargs)
 
@@ -135,6 +135,104 @@ class PilotTest(unittest.TestCase):
             reopened.close()
         self.tick(NOW + 910, bootstrap=True)
         self.assertEqual(self.mt5.order_send.call_count, 1)
+
+    def test_trend_enters_without_crossover_and_does_not_duplicate(self):
+        self.start()
+        p = pilot.state(self.db)
+        p['strategy'] = pilot.TREND_STRATEGY
+        pilot.save(self.db, p)
+        self.fill()
+        self.tick(NOW, bootstrap=True)
+        self.mt5.order_send.assert_not_called()
+        self.assertEqual(self.tick(NOW + 60)['execution']['status'], 'open')
+        self.assertEqual(self.tick(NOW + 65)['status'], 'observed')
+        self.tick(NOW + 120)
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+
+    def test_real_trend_without_crossover_reaches_protected_order(self):
+        self.start()
+        p = pilot.state(self.db)
+        p['strategy'] = pilot.TREND_STRATEGY
+        pilot.save(self.db, p)
+        self.fill()
+        for stamp in (NOW, NOW + 60):
+            self.clock = stamp
+            self.mt5.symbol_info_tick.return_value.time = stamp
+            self.mt5.symbol_info_tick.return_value.time_msc = stamp * 1000
+            bars = [dict(time=stamp-(250-i)*60, open=90+i*.04, close=90+i*.04,
+                         high=91+i*.04, low=89+i*.04) for i in range(250)]
+            self.mt5.copy_rates_from_pos.return_value = bars
+            self.assertEqual(pilot.evaluate(bars, 100, 100.1, stamp, bar_seconds=60)['signal'], 'none')
+            result = pilot.poll_once(self.mt5, self.db, 123, stamp, self.pause)
+        self.assertEqual(result['execution']['status'], 'open')
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+        self.assertEqual(result['health']['strategy_signal'], 'long')
+        request = self.mt5.order_send.call_args.args[0]
+        self.assertEqual(request['volume'], .01)
+        self.assertLess(request['sl'], request['price'])
+        self.assertGreater(request['tp'], request['price'])
+
+    def test_trend_assessment_uses_existing_trend_but_preserves_blocks(self):
+        p = {'strategy': pilot.TREND_STRATEGY}
+        for fast, slow, expected in ((101, 100, 'long'), (99, 100, 'short'), (100, 100, 'none')):
+            with patch('demo_pilot.evaluate', return_value=dict(signal='none', ema20=fast, ema50=slow)):
+                self.assertEqual(pilot.assess([], self.mt5.symbol_info_tick(), NOW, p)['signal'], expected)
+        with patch('demo_pilot.evaluate', return_value=dict(signal='blocked', reason='spread')):
+            self.assertEqual(pilot.assess([], self.mt5.symbol_info_tick(), NOW, p)['signal'], 'blocked')
+
+    def test_trend_still_requires_slope_and_acceptable_spread(self):
+        self.start()
+        p = pilot.state(self.db)
+        p['strategy'] = pilot.TREND_STRATEGY
+        pilot.save(self.db, p)
+        self.tick(NOW)
+        self.tick(NOW + 60, allowed=False)
+        self.mt5.symbol_info_tick.return_value.ask = 100.3
+        self.assertEqual(self.tick(NOW + 120)['status'], 'blocked')
+        self.mt5.order_send.assert_not_called()
+
+    def test_trend_cooldown_survives_reload_and_blocks_entries(self):
+        self.start()
+        p = pilot.state(self.db)
+        p['strategy'] = pilot.TREND_STRATEGY
+        pilot.save(self.db, p)
+        self.fill()
+        self.tick(NOW)
+        self.tick(NOW + 60)
+        self.mt5.positions_get.return_value = ()
+        self.mt5.history_deals_get.return_value = ()
+        with self.db:
+            self.db.execute("UPDATE attempts SET state='closed', closed_at=?, realized_net_usd=0", (NOW + 60,))
+        # Reconciliation is independently tested; isolate the cooldown decision here.
+        closed = {'status': 'closed', 'closed_at': NOW + 60, 'volume': .01}
+        with patch.object(pilot.execution, 'process_once', return_value=closed):
+            self.assertIn('Cooldown', self.tick(NOW + 120)['reason'])
+            for offset in (180, 240, 300, 359):
+                self.assertIn('Cooldown', self.tick(NOW + offset)['reason'])
+        reopened = pilot.open_state(self.path, 123)
+        try:
+            self.assertEqual(pilot.cooldown_remaining(reopened, pilot.state(reopened), NOW + 359), 1)
+            self.assertEqual(pilot.cooldown_remaining(reopened, pilot.state(reopened), NOW + 360), 0)
+        finally:
+            reopened.close()
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+        self.assertEqual(self.tick(NOW + 360)['execution']['status'], 'open')
+        self.assertEqual(self.mt5.order_send.call_count, 2)
+
+    def test_trend_migration_preserves_limits_and_requires_m1(self):
+        self.start()
+        p = pilot.state(self.db)
+        p['strategy'] = pilot.M1_STRATEGY
+        p['code'] = 'old-m1-code'
+        pilot.save(self.db, p)
+        self.mt5.copy_rates_from_pos.return_value = [dict(time=NOW-(250-i)*60, open=100, high=101, low=99, close=100) for i in range(250)]
+        updated = migration['switch'](self.mt5, self.db, 123, NOW, self.pause, p['code'], pilot.identity(), self.path.with_name('trend-backup.sqlite3'), trend=True)
+        self.assertEqual(updated['strategy'], pilot.TREND_STRATEGY)
+        for key in ('start', 'end', 'initial_equity', 'initial_balance', 'peak', 'day_equity'):
+            self.assertEqual(updated[key], p[key])
+        with self.assertRaises(ValueError):
+            migration['review'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity(), pilot.identity(), trend=True)
+        self.mt5.order_send.assert_not_called()
 
     def test_m1_uses_completed_minutes_for_signal_and_order_checks(self):
         self.start()

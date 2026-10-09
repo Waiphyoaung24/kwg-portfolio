@@ -33,6 +33,10 @@ test('pilot shows results and requests pause without reaching a broker', async (
   await expect(screen.getByRole('heading', 'Autonomous demo pilot')).toBeVisible();
   await expect(browser.locator('#pilot-realized')).toHaveText('-4.50 USD');
   await expect(browser.locator('#manual-controls')).toBeHidden();
+  payload.pilot.strategy = 'gold-ema-v1-m1-trend-3';
+  await screen.getByRole('button', 'Refresh status').tap();
+  await expect(browser.locator('#pilot-strategy')).toHaveText('EMA trend \u00b7 3-bar slope \u00b7 5-minute cooldown after close');
+  await expect(browser.locator('#pilot-timeframe')).toHaveText('Completed 1-minute candles only - M1 demo');
   await screen.getByRole('button', 'Pause new entries').tap();
   await expect(browser.locator('#pilot-state')).toHaveText('PAUSED');
   assert.equal(paused, true);

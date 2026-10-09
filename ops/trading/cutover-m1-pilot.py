@@ -14,6 +14,9 @@ CODE = '2495766af1cda52e60ac7b9c7fd3e0e2bb34f49c69323723c2add0a09653c19e'
 OLD_CODE = '85fa929e80a9cb2d1bf34072df12de5ba954f186db022687ceb41f9bfcb2a08f'
 OLD_IMAGE = 'sha256:9e45c8bb453ca492fb05758b8a7765f11630db81abad6df52694490b80ff2cac'
 IMAGE = 'sha256:d43ae354f76bbfb2e3a4e2c39edff8bfd1e7deabd55be95873ea19c3e4d06cfe'
+IMAGE_TAG = 'kwg-mt5-desktop:m1-20261009'
+TARGET_STRATEGY = 'gold-ema-v1-m1-slope-3'
+MIGRATION_FLAGS = ''
 
 
 def run(args, **kwargs):
@@ -35,7 +38,7 @@ def main():
     config = json.loads(run(compose + ['config', '--format', 'json']))
     assert config['services']['desktop']['image'] == 'kwg-mt5-desktop:qualification'
     assert config['services']['desktop']['environment']['MT5_RUN_MODE'] == 'pilot'
-    assert run(['docker', 'image', 'inspect', 'kwg-mt5-desktop:m1-20261009', '--format', '{{.Id}}']) == IMAGE
+    assert run(['docker', 'image', 'inspect', IMAGE_TAG, '--format', '{{.Id}}']) == IMAGE
     inspect_code = "import hashlib,json,pathlib; names=json.loads(__import__('sys').argv[1]); print(json.dumps({n:hashlib.sha256((pathlib.Path('/opt/trading')/n).read_bytes()).hexdigest() for n in names}))"
     hashes = json.loads(run(['docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'python3', IMAGE,
                              '-c', inspect_code, json.dumps(list(manifest['sources']))]))
@@ -49,7 +52,7 @@ def main():
     # Discover the exact runner ancestry, then stop only it and its restart supervisor.
     stop = '''import os,pathlib,signal,time,json
 def args(pid):
-    return (pathlib.Path('/proc')/str(pid)/'cmdline').read_bytes().split(b'\\0')[:-1]
+    return (pathlib.Path('/proc')/str(pid)/'cmdline').read_bytes().rstrip(b'\\0').split(b'\\0')
 def parent(pid):
     return int(next(line.split()[1] for line in (pathlib.Path('/proc')/str(pid)/'status').read_text().splitlines() if line.startswith('PPid:')))
 matches=[]
@@ -74,7 +77,7 @@ print(json.dumps(dict(supervisor=supervisor,runner=runner)))
     print('RUNNER_STOPPED', stopped, flush=True)
     target = '/home/mt5/' + STAGE.name
     command = ('stty cols 4096; wine /opt/python/python.exe ' + target + '/switch-pilot-m1.py '
-               '--previous-code-sha256 ' + OLD_CODE + ' --reviewed-code-sha256 ' + CODE + ' --enable-demo-execution')
+               '--previous-code-sha256 ' + OLD_CODE + ' --reviewed-code-sha256 ' + CODE + ' --enable-demo-execution' + MIGRATION_FLAGS)
     receipt = run(['docker', 'exec', '--user', 'mt5', 'kwg-mt5-desktop', 'script', '-q', '-e', '-c', command, '/dev/null'])
     print(receipt, flush=True)
     assert 'M1_SWITCH_SAVED' in receipt, 'Migration receipt missing; leave runner stopped'
@@ -88,7 +91,7 @@ print(json.dumps(dict(supervisor=supervisor,runner=runner)))
             report = json.loads(run(['docker', 'exec', 'kwg-trading-status', 'python', '-c',
                 "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/status',timeout=5).read().decode())"], stderr=subprocess.DEVNULL))
             p = report.get('pilot') or {}
-            if p.get('strategy') == 'gold-ema-v1-m1-slope-3' and p.get('updated_at', 0) >= time.time()-30:
+            if p.get('strategy') == TARGET_STRATEGY and p.get('updated_at', 0) >= time.time()-30:
                 assert p['ends_at'] == 1792096151, 'Expiry changed'
                 assert run(['docker', 'inspect', 'kwg-mt5-desktop', '--format', '{{.Image}}']) == IMAGE
                 print('M1_CUTOVER_STATUS', json.dumps(report), flush=True)

@@ -1,6 +1,6 @@
 export function normalizePilot(value, now = Date.now() / 1000) {
   if (value === null) return null;
-  if (!value || !['gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3'].includes(value.strategy) || value.qualification !== 'unqualified' ||
+  if (!value || !['gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3'].includes(value.strategy) || value.qualification !== 'unqualified' ||
       !['standby', 'active', 'paused', 'needs_attention', 'expired'].includes(value.status)) throw new Error('Invalid pilot');
   const result = { strategy: value.strategy, qualification: value.qualification, status: value.status };
   for (const key of ['updated_at', 'started_at', 'ends_at', 'realized_net_usd', 'floating_usd', 'completed_trades']) {

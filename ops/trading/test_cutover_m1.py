@@ -1,13 +1,54 @@
+import ast
 import hashlib
 import json
 from pathlib import Path
 import runpy
+import pathlib
 import tempfile
 import unittest
 from unittest.mock import patch
 
 
 class CutoverM1Test(unittest.TestCase):
+    def test_trend_wrapper_pins_reviewed_stage_and_explicit_migration(self):
+        wrapper = runpy.run_path(str(Path(__file__).with_name('cutover-trend-pilot.py')))
+        namespace = {}
+        exec("def main():\n    globals()['called'] = True", namespace)
+        calls = []
+        def run(args):
+            calls.append(args)
+            return 'sha256:built-trend-image'
+        shared = dict(main=namespace['main'], ROOT=Path('/opt/kwg-mt5-qualification'), run=run)
+        with patch.object(wrapper['runpy'], 'run_path', return_value=shared), patch('sys.argv', ['cutover', '--enable-demo-execution']):
+            wrapper['main']()
+        self.assertTrue(namespace['called'])
+        self.assertEqual(namespace['MIGRATION_FLAGS'], ' --trend')
+        self.assertEqual(namespace['TARGET_STRATEGY'], 'gold-ema-v1-m1-trend-3')
+        self.assertEqual(namespace['CODE'], 'c1a2c965fc1bba6c7834d25c1977e79418208491874d9c7e6509c56e94da165b')
+        self.assertEqual(namespace['STAGE'].name, 'm1-review-20261009T141607Z-69e01b51')
+        self.assertEqual(namespace['IMAGE'], 'sha256:built-trend-image')
+        self.assertEqual(len(calls), 1)
+        with patch('sys.argv', ['cutover']), self.assertRaises(SystemExit):
+            wrapper['main']()
+
+    def test_runner_detection_handles_wine_null_padding_without_matching_shells(self):
+        tree = ast.parse(Path(__file__).with_name('cutover-m1-pilot.py').read_text())
+        stop = next(ast.literal_eval(node.value) for node in ast.walk(tree)
+                    if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'stop' for t in node.targets))
+        function = next(node for node in ast.parse(stop).body if isinstance(node, ast.FunctionDef) and node.name == 'args')
+        namespace = {'pathlib': pathlib}
+        exec(compile(ast.Module(body=[function], type_ignores=[]), 'runner-parser', 'exec'), namespace)
+        expected = [b'/opt/trading/demo_pilot.py', b'run']
+        cases = [
+            (b'/opt/python/python.exe\0/opt/trading/demo_pilot.py\0run' + b'\0' * 24, True),
+            (b'/opt/python/python.exe\0/opt/trading/demo_pilot.py\0run\0', True),
+            (b'sh\0-c\0wine /opt/python/python.exe /opt/trading/demo_pilot.py run\0', False),
+            (b'script\0-q\0-e\0-c\0wine /opt/python/python.exe /opt/trading/demo_pilot.py run\0/dev/null\0', False),
+        ]
+        for raw, matches in cases:
+            with self.subTest(raw=raw), patch.object(Path, 'read_bytes', return_value=raw):
+                self.assertEqual(namespace['args'](282)[-2:] == expected, matches)
+
     def test_cutover_order_and_fail_closed_receipt(self):
         module = runpy.run_path(str(Path(__file__).with_name('cutover-m1-pilot.py')))
         main = module['main']

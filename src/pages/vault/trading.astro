@@ -83,7 +83,7 @@ export const prerender = true;
           <div><dt class="label">Position / latest attempt</dt><dd id="pilot-position">—</dd></div>
           <div><dt class="label">Entry / stop / target</dt><dd id="pilot-levels">—</dd></div>
         </dl>
-        <div class="console-strategy"><h3>One fixed strategy</h3><svg viewBox="0 0 280 60" role="img" aria-label="Illustration of two moving averages crossing. Not market data."><path d="M4 45C50 45 65 38 110 30S180 14 276 12" /><path d="M4 14C75 14 100 25 150 31S220 38 276 43" stroke-dasharray="5 5" /></svg><p>EMA crossover · 3-bar slope filter<br /><span id="pilot-timeframe">Waiting for strategy timeframe</span></p><dl><div><dt>Position size</dt><dd>0.01 lot · one position</dd></div><div><dt>Stop / target</dt><dd>2× / 3× ATR</dd></div><div><dt>Entry risk ceiling</dt><dd>0.1% of equity</dd></div></dl></div>
+        <div class="console-strategy"><h3>One fixed strategy</h3><svg viewBox="0 0 280 60" role="img" aria-label="Illustration of two moving averages crossing. Not market data."><path d="M4 45C50 45 65 38 110 30S180 14 276 12" /><path d="M4 14C75 14 100 25 150 31S220 38 276 43" stroke-dasharray="5 5" /></svg><p><span id="pilot-strategy">Waiting for strategy</span><br /><span id="pilot-timeframe">Waiting for strategy timeframe</span></p><dl><div><dt>Position size</dt><dd>0.01 lot · one position</dd></div><div><dt>Stop / target</dt><dd>2× / 3× ATR</dd></div><div><dt>Entry risk ceiling</dt><dd>0.1% of equity</dd></div></dl></div>
         <button class="pill-btn" id="pilot-pause" type="button" disabled>Pause new entries</button>
         <p class="page__note">Pausing keeps existing positions protected and monitored. At expiry, the pilot requests closure; unresolved positions need owner attention. Floating profit excludes costs not yet booked.</p>
         <p id="pilot-message" role="status"></p>
@@ -230,7 +230,8 @@ export const prerender = true;
         field('mode-note').textContent = isPilot ? 'Demo execution mode. Review pilot state and positions below.'
           : 'Live observation only. Signals do not place orders. Keep Algo Trading off for observation.';
         const pilot = pilotFields(latest.pilot);
-        field('pilot-timeframe').textContent = pilot.state === 'Unknown' ? 'Strategy timeframe unavailable' : latest.pilot?.strategy === 'gold-ema-v1-m1-slope-3' ? 'Completed 1-minute candles only - M1 demo' : 'Completed 15-minute candles only - M15 demo';
+        field('pilot-strategy').textContent = pilot.state === 'Unknown' ? 'Strategy unavailable' : latest.pilot?.strategy === 'gold-ema-v1-m1-trend-3' ? 'EMA trend · 3-bar slope · 5-minute cooldown after close' : 'EMA crossover · 3-bar slope filter';
+        field('pilot-timeframe').textContent = pilot.state === 'Unknown' ? 'Strategy timeframe unavailable' : ['gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3'].includes(latest.pilot?.strategy) ? 'Completed 1-minute candles only - M1 demo' : 'Completed 15-minute candles only - M15 demo';
         if (pilot.state === 'Paused' && field('pilot-message').textContent?.startsWith('Pause requested.')) field('pilot-message').textContent = 'New entries are paused.';
         for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining'] as const) field(`pilot-${key}`).textContent = pilot[key];
         (field('pilot-pause') as HTMLButtonElement).disabled = designPreview || !isPilot || !pilot.canPause || Date.now() - receivedAt > 30000;
@@ -379,6 +380,7 @@ export const prerender = true;
           latest = null;
           window.dispatchEvent(new CustomEvent('trading-snapshot', { detail: chartSnapshot(null) }));
           field('pilot-intent').textContent = 'Status unavailable';
+          field('pilot-strategy').textContent = 'Strategy unavailable';
           field('pilot-timeframe').textContent = 'Strategy timeframe unavailable';
           (field('pilot-pause') as HTMLButtonElement).disabled = true;
           const pilot = pilotFields(null);

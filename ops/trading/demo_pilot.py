@@ -15,6 +15,7 @@ from mt5_data import SERVER, SYMBOL, read_gold, validate_account, validate_tick
 
 STRATEGY = 'gold-ema-v1-slope-3'
 M1_STRATEGY = 'gold-ema-v1-m1-slope-3'
+TREND_STRATEGY = 'gold-ema-v1-m1-trend-3'
 SNAPSHOT = Path(r'Z:\opt\status\latest.json')
 SOURCES = ('demo_pilot.py', 'demo_one_shot.py', 'mt5_data.py', 'gold_signal.py', 'gold_experiment.py')
 
@@ -39,9 +40,28 @@ def state(db):
 def candle_seconds(p):
     if p is None or p['strategy'] == STRATEGY:
         return 900
-    if p['strategy'] == M1_STRATEGY:
+    if p['strategy'] in (M1_STRATEGY, TREND_STRATEGY):
         return 60
     raise ValueError('Unknown pilot strategy')
+
+
+def assess(bars, tick, now, p):
+    result = evaluate(bars, float(tick.bid), float(tick.ask), now, bar_seconds=candle_seconds(p))
+    if p and p['strategy'] == TREND_STRATEGY and result['signal'] != 'blocked':
+        fast, slow = result['ema20'], result['ema50']
+        result['signal'] = 'long' if fast > slow else 'short' if fast < slow else 'none'
+    return result
+
+
+def cooldown_remaining(db, p, now):
+    if p['strategy'] != TREND_STRATEGY:
+        return 0
+    closed = db.execute("SELECT MAX(closed_at) FROM attempts WHERE state='closed'").fetchone()[0]
+    if closed is None:
+        return 0
+    if type(closed) not in (int, float) or not math.isfinite(closed) or not 0 < closed <= now:
+        raise ValueError('Invalid close time for cooldown')
+    return max(0, math.ceil(closed + 300 - now))
 
 
 def save(db, value):
@@ -192,11 +212,13 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False):
     try:
         tick, bars = read_gold(mt5, login, now, health,
                               server_offset_seconds=execution._server_offset(), execution=bool(p), bar_seconds=seconds)
-        result = evaluate(bars, float(tick.bid), float(tick.ask), now, bar_seconds=seconds)
+        result = assess(bars, tick, now, p)
+        health.update(strategy_signal=result['signal'], strategy_reason=result['reason'])
         report.update(bar_time=result['bar_time'], status='observed', reason=result['reason'])
         if p:
             new_bar = p['last_bar'] is None or result['bar_time'] > p['last_bar']
-            baseline = bootstrap or p['last_bar'] is None or result['bar_time'] - p['last_bar'] != seconds
+            baseline = bootstrap or p['last_bar'] is None or (new_bar and result['bar_time'] - p['last_bar'] != seconds)
+            cooldown = cooldown_remaining(db, p, now)
             if new_bar:
                 p['last_bar'] = result['bar_time']
                 save(db, p)
@@ -206,6 +228,8 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False):
                 report.update(status='blocked', reason=p['pause'])
             elif baseline:
                 report.update(status='baseline', reason='Startup or missed candle baseline')
+            elif cooldown:
+                report.update(reason=f'Cooldown after close: {cooldown} seconds remaining')
             elif new_bar and result['signal'] in ('long', 'short') and entry_allowed(bars, result['signal'], 3):
                 report['signal'] = result['signal']
                 if status['status'] in ('closed', 'disarmed'):
@@ -218,7 +242,9 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False):
                             raise ValueError('Pause or expiry before submission')
                         fresh_tick, fresh_bars = read_gold(mt5, login, None,
                             server_offset_seconds=execution._server_offset(), execution=True, bar_seconds=seconds)
-                        fresh = evaluate(fresh_bars, float(fresh_tick.bid), float(fresh_tick.ask), time.time(), bar_seconds=seconds)
+                        fresh = assess(fresh_bars, fresh_tick, time.time(), p)
+                        if cooldown_remaining(db, p, time.time()):
+                            raise ValueError('Cooldown before submission')
                         if (fresh['bar_time'] != result['bar_time'] or fresh['signal'] != result['signal']
                                 or not entry_allowed(fresh_bars, fresh['signal'], 3)):
                             raise ValueError('Signal changed before submission')

@@ -1,4 +1,4 @@
-"""Explicit, flat-account M15-to-M1 migration; default is read-only review."""
+"""Explicit, flat-account M1 or trend migration; default is read-only review."""
 import argparse
 from contextlib import closing
 import json
@@ -13,10 +13,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import demo_pilot as pilot
 
 
-def review(mt5, db, login, now, pause_path, previous_code, reviewed_code):
+def review(mt5, db, login, now, pause_path, previous_code, reviewed_code, *, trend=False):
     p = pilot.state(db)
-    if not p or p['strategy'] != pilot.STRATEGY or p['pause'] is not None:
-        raise ValueError('Switch requires an active, unpaused M15 pilot')
+    source = pilot.M1_STRATEGY if trend else pilot.STRATEGY
+    if not p or p['strategy'] != source or p['pause'] is not None:
+        raise ValueError('Switch requires an active, unpaused ' + source + ' pilot')
     if p['code'] != previous_code:
         raise ValueError('Activated journal code does not match previous reviewed code')
     if pilot.identity() != reviewed_code:
@@ -43,13 +44,13 @@ def review(mt5, db, login, now, pause_path, previous_code, reviewed_code):
         if str(exc) != 'ATR or spread outside allowed range':
             raise
         reason = 'M1 selected; entry blocked by ATR or spread outside allowed range'
-    p.update(strategy=pilot.M1_STRATEGY, last_bar=None,
+    p.update(strategy=pilot.TREND_STRATEGY if trend else pilot.M1_STRATEGY, last_bar=None,
              reason=reason)
     return p
 
 
-def switch(mt5, db, login, now, pause_path, previous_code, reviewed_code, backup_path):
-    p = review(mt5, db, login, now, pause_path, previous_code, reviewed_code)
+def switch(mt5, db, login, now, pause_path, previous_code, reviewed_code, backup_path, *, trend=False):
+    p = review(mt5, db, login, now, pause_path, previous_code, reviewed_code, trend=trend)
     with backup_path.open('xb'):
         pass
     with closing(sqlite3.connect(backup_path)) as backup:
@@ -65,6 +66,7 @@ def main():
     parser.add_argument('--previous-code-sha256', required=True)
     parser.add_argument('--reviewed-code-sha256', required=True)
     parser.add_argument('--enable-demo-execution', action='store_true')
+    parser.add_argument('--trend', action='store_true', help='Switch an existing M1 crossover pilot to M1 trend with a 300-second close cooldown')
     args = parser.parse_args()
     if os.environ.get('MT5_RUN_MODE') != 'pilot':
         parser.error('MT5_RUN_MODE must be pilot')
@@ -82,10 +84,10 @@ def main():
             if args.enable_demo_execution:
                 with pilot.execution._exclusive(home / 'gold-one-shot.sqlite3'):
                     backup = home / ('gold-pilot-before-m1-' + str(time.time_ns()) + '.sqlite3')
-                    p = switch(*inputs, backup)
+                    p = switch(*inputs, backup, trend=args.trend)
                     print('M1_SWITCH_SAVED', json.dumps(dict(strategy=p['strategy'], ends_at=p['end'], backup=str(backup), order_sent=False)))
             else:
-                p = review(*inputs)
+                p = review(*inputs, trend=args.trend)
                 print('M1_REVIEW_PASSED', json.dumps(dict(strategy=p['strategy'], ends_at=p['end'], code=p['code'], reason=p['reason'], order_sent=False)))
     finally:
         mt5.shutdown()
