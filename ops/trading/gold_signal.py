@@ -35,9 +35,11 @@ def atr(bars: list[dict], period: int = 14) -> list[float | None]:
     return out
 
 
-def evaluate(bars: list[dict], bid: float, ask: float, now: float) -> dict:
+def evaluate(bars: list[dict], bid: float, ask: float, now: float, *, bar_seconds: int = 900) -> dict:
+    if type(bar_seconds) is not int or bar_seconds not in (60, 900):
+        raise ValueError('Only M1 and M15 candles are supported')
     if len(bars) < 250:
-        raise ValueError("Need 250 completed gold M15 bars")
+        raise ValueError("Need 250 completed gold bars")
     bars = bars[-250:]
     if not all(math.isfinite(value) for value in (bid, ask, now)) or bid <= 0 or ask < bid:
         raise ValueError("Invalid bid/ask")
@@ -45,16 +47,16 @@ def evaluate(bars: list[dict], bid: float, ask: float, now: float) -> dict:
     for bar in bars:
         stamp = bar["time"]
         prices = [bar[key] for key in ("open", "high", "low", "close")]
-        if (not isinstance(stamp, int) or stamp <= 0 or stamp % 900 != 0 or
+        if (not isinstance(stamp, int) or stamp <= 0 or stamp % bar_seconds != 0 or
                 previous_time is not None and stamp <= previous_time or
                 not all(math.isfinite(value) and value > 0 for value in prices) or
                 bar["high"] < max(prices[0], prices[3], bar["low"]) or
                 bar["low"] > min(prices[0], prices[3])):
-            raise ValueError("Invalid or unordered M15 bars")
+            raise ValueError("Invalid or unordered bars")
         previous_time = stamp
     result = {"bar_time": bars[-1]["time"], "signal": "blocked", "reason": "",
               "ema20": None, "ema50": None, "atr14": None}
-    if bars[-1]["time"] != math.floor(now / 900) * 900 - 900 or bars[-1]["time"] - bars[-2]["time"] != 900:
+    if bars[-1]["time"] != math.floor(now / bar_seconds) * bar_seconds - bar_seconds or bars[-1]["time"] - bars[-2]["time"] != bar_seconds:
         result["reason"] = "Latest completed candle is stale or future"
         return result
     closes = [bar["close"] for bar in bars]

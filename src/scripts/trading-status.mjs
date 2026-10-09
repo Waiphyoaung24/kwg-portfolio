@@ -25,7 +25,7 @@ export function statusFields(data, now = Date.now() / 1000) {
     state: !alive ? 'Observer offline' : waiting ? 'Waiting for price' : ready ? pilot ? 'Demo pilot' : 'Observing' : 'Needs attention',
     guidance: !alive ? 'The observer has stopped reporting. Check the VPS observer before using any signals.'
       : waiting ? 'MT5 is connected, but the last gold price is too old to evaluate. Leave the observer running; it will check again automatically. If prices stay old during an open trading session, check the MT5 feed.'
-      : ready ? pilot ? 'The demo pilot checks completed 15-minute candles and may place protected demo orders when active.' : 'The observer is checking completed 15-minute candles. Use these observations to validate the data and test the strategy; a signal does not place an order.'
+      : ready ? pilot ? `The demo pilot checks completed ${data.pilot?.strategy === 'gold-ema-v1-m1-slope-3' ? '1-minute' : '15-minute'} candles and may place protected demo orders when active.` : 'The observer is checking completed 15-minute candles. Use these observations to validate the data and test the strategy; a signal does not place an order.'
       : 'Signal checks are paused. Open technical details for the reason before continuing.',
     delivery: 'Worker → Tunnel → status service responded',
     heartbeat: alive ? `Reporting · ${Math.floor(now - data.checked_at)}s ago` : 'Missing or expired',

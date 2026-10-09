@@ -35,13 +35,13 @@ def _direction_type(mt5, request):
 
 
 def build_entry_request(mt5, login: int, side: str, now: float,
-                        server_offset_seconds: int, *, execution: bool, levels=None) -> dict:
+                        server_offset_seconds: int, *, execution: bool, levels=None, bar_seconds=900) -> dict:
     """Return one locally checked protected request without submitting it."""
     if side not in ("buy", "sell"):
         raise ValueError("Operator must choose buy or sell.")
     tick, bars = read_gold(mt5, login, now,
-                           server_offset_seconds=server_offset_seconds, execution=execution)
-    assessment = evaluate(bars, float(tick.bid), float(tick.ask), now)
+                           server_offset_seconds=server_offset_seconds, execution=execution, bar_seconds=bar_seconds)
+    assessment = evaluate(bars, float(tick.bid), float(tick.ask), now, bar_seconds=bar_seconds)
     if assessment["signal"] == "blocked":
         raise ValueError(assessment["reason"])
     account, terminal = mt5.account_info(), mt5.terminal_info()
@@ -541,7 +541,7 @@ def _final_entry_guard(mt5, login, request):
     return account.equity
 
 
-def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, before_submit=None) -> dict:
+def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, before_submit=None, bar_seconds=900) -> dict:
     """Advance one journal state; only a fresh arm may submit an entry."""
     row = _attempt(db)
     if row is None:
@@ -556,7 +556,7 @@ def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, b
         try:
             levels = json.loads(row["plan_json"]) if row["plan_json"] else None
             request = build_entry_request(mt5, login, row["side"], now,
-                                          _server_offset(), execution=True, levels=levels)
+                                          _server_offset(), execution=True, levels=levels, bar_seconds=bar_seconds)
             check = mt5.order_check(request)
             if check is None or getattr(check, "retcode", None) != 0:
                 raise ValueError("Broker rejected protected entry check.")

@@ -13,6 +13,16 @@ NOW = 251 * 900
 
 
 class GoldSignalTest(unittest.TestCase):
+    def test_m1_rejects_stale_forming_and_wide_spread_bars(self):
+        sample = [{**bar, 'time': bar['time'] // 15} for bar in bars(101)]
+        now = NOW // 15
+        self.assertEqual(evaluate(sample, 100, 100.1, now, bar_seconds=60)['signal'], 'long')
+        for stamp in (now - 60, now + 60):
+            self.assertEqual(evaluate(sample, 100, 100.1, stamp, bar_seconds=60)['signal'], 'blocked')
+        self.assertEqual(evaluate(sample, 100, 100.3, now, bar_seconds=60)['signal'], 'blocked')
+        with self.assertRaises(ValueError):
+            evaluate(sample, 100, 100.1, now, bar_seconds=30)
+
     def test_indicator_seeds(self):
         self.assertEqual(ema([1, 2, 3, 4], 3), [None, None, 2, 3])
         self.assertEqual(atr(bars())[14], 2)

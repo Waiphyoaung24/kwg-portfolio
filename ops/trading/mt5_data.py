@@ -78,7 +78,9 @@ def read_contract(mt5) -> dict:
 
 
 def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
-              *, server_offset_seconds: int = 0, execution: bool = False) -> tuple[object, list[dict]]:
+              *, server_offset_seconds: int = 0, execution: bool = False, bar_seconds: int = 900) -> tuple[object, list[dict]]:
+    if type(bar_seconds) is not int or bar_seconds not in (60, 900):
+        raise ValueError('Only M1 and M15 candles are supported')
     if server_offset_seconds not in (0, 7200, 10800):
         raise ValueError("Unsupported server clock offset.")
     evidence = evidence if evidence is not None else {}
@@ -100,7 +102,7 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
         raise DataUnavailable("Gold symbol is unavailable on the demo account.")
     tick = mt5.symbol_info_tick(SYMBOL)
     sampled_at = time.time() if now is None else now
-    evidence["expected_bar_time"] = int(sampled_at // 900) * 900 - 900
+    evidence["expected_bar_time"] = int(sampled_at // bar_seconds) * bar_seconds - bar_seconds
     info = mt5.symbol_info(SYMBOL)
     point = getattr(info, "point", None)
     if tick is not None:
@@ -119,7 +121,7 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
         validate_tick(tick, sampled_at, evidence, server_offset_seconds=server_offset_seconds)
     except ValueError as exc:
         quote_error = exc
-    rates = mt5.copy_rates_from_pos(SYMBOL, mt5.TIMEFRAME_M15, 1, 250)
+    rates = mt5.copy_rates_from_pos(SYMBOL, mt5.TIMEFRAME_M1 if bar_seconds == 60 else mt5.TIMEFRAME_M15, 1, 250)
     if rates is not None:
         evidence["history_count"] = len(rates)
         if len(rates):
@@ -138,13 +140,13 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
         evidence["strategy_reason"] = "Invalid or unavailable gold point size"
         raise ValueError(evidence["strategy_reason"])
     if rates is None or len(rates) < 250:
-        raise DataUnavailable("Need 250 completed gold M15 bars; history has not populated yet.")
+        raise DataUnavailable("Need 250 completed gold bars; history has not populated yet.")
     bars = []
     for row in rates:
         bars.append({key: int(row[key]) - server_offset_seconds if key == "time" else float(row[key])
                      for key in ("time", "open", "high", "low", "close")})
     try:
-        assessment = evaluate(bars, float(tick.bid), float(tick.ask), sampled_at)
+        assessment = evaluate(bars, float(tick.bid), float(tick.ask), sampled_at, bar_seconds=bar_seconds)
     except ValueError as exc:
         evidence["strategy_reason"] = str(exc)
         raise

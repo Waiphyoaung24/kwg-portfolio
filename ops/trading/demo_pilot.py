@@ -14,6 +14,7 @@ from gold_signal import evaluate
 from mt5_data import SERVER, SYMBOL, read_gold, validate_account, validate_tick
 
 STRATEGY = 'gold-ema-v1-slope-3'
+M1_STRATEGY = 'gold-ema-v1-m1-slope-3'
 SNAPSHOT = Path(r'Z:\opt\status\latest.json')
 SOURCES = ('demo_pilot.py', 'demo_one_shot.py', 'mt5_data.py', 'gold_signal.py', 'gold_experiment.py')
 
@@ -33,6 +34,14 @@ def open_state(path, login):
 def state(db):
     row = db.execute('SELECT data FROM pilot WHERE id=1').fetchone()
     return json.loads(row[0]) if row else None
+
+
+def candle_seconds(p):
+    if p is None or p['strategy'] == STRATEGY:
+        return 900
+    if p['strategy'] == M1_STRATEGY:
+        return 60
+    raise ValueError('Unknown pilot strategy')
 
 
 def save(db, value):
@@ -76,6 +85,7 @@ def activate(mt5, db, login, now, end, pause_path):
 
 
 def limits(mt5, db, p, login, now):
+    candle_seconds(p)
     value = account(mt5, login)
     if now < p['last_poll']:
         raise ValueError('Host clock moved backward')
@@ -151,6 +161,7 @@ def close_at_expiry(mt5, db, login, now):
 
 def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False):
     p = state(db)
+    seconds = candle_seconds(p)
     health = {}
     report = dict(mode='autonomous-demo', symbol=SYMBOL, checked_at=int(now),
                   status='blocked', signal='none', bar_time=None, health=health,
@@ -180,12 +191,12 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False):
         save(db, p)
     try:
         tick, bars = read_gold(mt5, login, now, health,
-                              server_offset_seconds=execution._server_offset(), execution=bool(p))
-        result = evaluate(bars, float(tick.bid), float(tick.ask), now)
+                              server_offset_seconds=execution._server_offset(), execution=bool(p), bar_seconds=seconds)
+        result = evaluate(bars, float(tick.bid), float(tick.ask), now, bar_seconds=seconds)
         report.update(bar_time=result['bar_time'], status='observed', reason=result['reason'])
         if p:
             new_bar = p['last_bar'] is None or result['bar_time'] > p['last_bar']
-            baseline = bootstrap or p['last_bar'] is None or result['bar_time'] - p['last_bar'] != 900
+            baseline = bootstrap or p['last_bar'] is None or result['bar_time'] - p['last_bar'] != seconds
             if new_bar:
                 p['last_bar'] = result['bar_time']
                 save(db, p)
@@ -206,8 +217,8 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False):
                         if pause_path.exists() or time.time() >= p['end']:
                             raise ValueError('Pause or expiry before submission')
                         fresh_tick, fresh_bars = read_gold(mt5, login, None,
-                            server_offset_seconds=execution._server_offset(), execution=True)
-                        fresh = evaluate(fresh_bars, float(fresh_tick.bid), float(fresh_tick.ask), time.time())
+                            server_offset_seconds=execution._server_offset(), execution=True, bar_seconds=seconds)
+                        fresh = evaluate(fresh_bars, float(fresh_tick.bid), float(fresh_tick.ask), time.time(), bar_seconds=seconds)
                         if (fresh['bar_time'] != result['bar_time'] or fresh['signal'] != result['signal']
                                 or not entry_allowed(fresh_bars, fresh['signal'], 3)):
                             raise ValueError('Signal changed before submission')
@@ -217,7 +228,7 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False):
                             p['pause'] = str(exc)
                             raise
                         request['comment'] = 'kwg-pilot-' + execution._attempt(db)['id']
-                    status = execution.process_once(mt5, db, now, before_submit=guard)
+                    status = execution.process_once(mt5, db, now, before_submit=guard, bar_seconds=seconds)
                     if status['status'] in ('needs_attention', 'submitting', 'closing'):
                         p['pause'] = 'Broker outcome requires review'
                     if status['status'] == 'open' and status['volume'] != .01:
@@ -261,7 +272,7 @@ def snapshot(mt5, db, p, status, now, login):
     label = ('standby' if not p else 'expired' if now >= p['end'] and status['status'] in ('closed', 'disarmed')
              else 'needs_attention' if now >= p['end'] or status['status'] in ('needs_attention', 'closing', 'submitting')
              else 'paused' if p['pause'] else 'active')
-    return dict(status=label, strategy=STRATEGY, qualification='unqualified', updated_at=now,
+    return dict(status=label, strategy=p['strategy'] if p else STRATEGY, qualification='unqualified', updated_at=now,
                 started_at=p['start'] if p else None, ends_at=p['end'] if p else None,
                 reason=p['pause'] or p['reason'] if p else 'Owner activation required',
                 completed_trades=closed[0], realized_net_usd=closed[1], floating_usd=floating,

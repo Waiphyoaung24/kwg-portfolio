@@ -8,10 +8,18 @@ from urllib.request import urlopen
 from urllib.error import HTTPError
 from unittest.mock import patch
 
-from status_server import Handler, read_status, sanitize_health
+from status_server import Handler, read_status, sanitize_health, sanitize_pilot
 
 
 class StatusServerTest(unittest.TestCase):
+    def test_m1_strategy_survives_status_boundary(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
+        fixture['pilot']['strategy'] = 'gold-ema-v1-m1-slope-3'
+        self.assertEqual(sanitize_pilot(fixture['pilot'], fixture['checked_at']), fixture['pilot'])
+        fixture['pilot']['strategy'] = 'unknown'
+        with self.assertRaises(ValueError):
+            sanitize_pilot(fixture['pilot'], fixture['checked_at'])
+
     def test_pilot_contract_and_expiry_do_not_mix_manual_execution(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
         with tempfile.TemporaryDirectory() as root:

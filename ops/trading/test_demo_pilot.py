@@ -1,4 +1,6 @@
 import json
+import runpy
+from contextlib import closing
 import os
 import sqlite3
 from pathlib import Path
@@ -9,6 +11,9 @@ from unittest.mock import patch
 
 import demo_pilot as pilot
 from test_demo_one_shot import fake_mt5, NOW
+
+recovery = runpy.run_path(str(Path(__file__).with_name('resume-demo-pilot.py')))
+migration = runpy.run_path(str(Path(__file__).with_name('switch-pilot-m1.py')))
 
 
 class PilotTest(unittest.TestCase):
@@ -36,9 +41,10 @@ class PilotTest(unittest.TestCase):
         self.clock = stamp
         self.mt5.symbol_info_tick.return_value.time = stamp
         self.mt5.symbol_info_tick.return_value.time_msc = stamp * 1000
-        self.mt5.copy_rates_from_pos.return_value = [dict(time=(stamp // 900 - 250 + i) * 900,
+        seconds = pilot.candle_seconds(pilot.state(self.db))
+        self.mt5.copy_rates_from_pos.return_value = [dict(time=(stamp // seconds - 250 + i) * seconds,
             open=100, high=101, low=99, close=100) for i in range(250)]
-        with patch('demo_pilot.evaluate', return_value={'bar_time': stamp // 900 * 900 - 900,
+        with patch('demo_pilot.evaluate', return_value={'bar_time': stamp // seconds * seconds - seconds,
                    'signal': signal, 'reason': 'evaluated'}), \
                 patch('demo_pilot.entry_allowed', return_value=allowed):
             return pilot.poll_once(self.mt5, self.db, 123, stamp, self.pause, **kwargs)
@@ -55,6 +61,44 @@ class PilotTest(unittest.TestCase):
                 price=request['price'], time=self.clock, profit=0, commission=0, swap=0, fee=0),)
             return Record(retcode=10009, order=77, deal=78)
         self.mt5.order_send.side_effect = send
+
+    def test_account_recovery_preserves_risk_window_and_backs_up_pause(self):
+        self.start()
+        p = pilot.state(self.db)
+        p['pause'] = recovery['ACCOUNT_PAUSE']
+        pilot.save(self.db, p)
+        backup = self.path.with_name('backup.sqlite3')
+        result = recovery['resume'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity(), backup)
+        for key in ('start', 'end', 'initial_equity', 'initial_balance', 'peak', 'day_equity', 'code'):
+            self.assertEqual(result[key], p[key])
+        self.assertIsNone(result['pause'])
+        self.assertIsNone(result['last_bar'])
+        with closing(sqlite3.connect(backup)) as db:
+            self.assertEqual(pilot.state(db)['pause'], recovery['ACCOUNT_PAUSE'])
+        self.mt5.order_send.assert_not_called()
+
+    def test_account_recovery_refuses_other_pauses_expiry_exposure_and_changed_code(self):
+        self.start()
+        original = pilot.state(self.db)
+        for change in ({'pause': 'Daily equity loss limit reached'},
+                       {'pause': recovery['ACCOUNT_PAUSE'], 'end': NOW},
+                       {'pause': recovery['ACCOUNT_PAUSE'], 'code': 'changed'}):
+            p = {**original, **change}
+            pilot.save(self.db, p)
+            with self.assertRaises(ValueError):
+                recovery['review'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity())
+            self.assertEqual(pilot.state(self.db), p)
+        p = {**original, 'pause': recovery['ACCOUNT_PAUSE']}
+        pilot.save(self.db, p)
+        self.mt5.positions_get.return_value = (Record(ticket=1),)
+        with self.assertRaises(ValueError):
+            recovery['review'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity())
+        self.mt5.positions_get.return_value = ()
+        self.pause.write_text('owner pause')
+        with self.assertRaises(ValueError):
+            recovery['review'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity())
+        self.assertEqual(pilot.state(self.db), p)
+        self.mt5.order_send.assert_not_called()
 
     def test_requires_explicit_activation_and_rejects_wrong_or_real_accounts(self):
         self.tick(NOW)
@@ -78,6 +122,7 @@ class PilotTest(unittest.TestCase):
         result = self.tick(NOW + 900)
         self.assertEqual(result['execution']['status'], 'open')
         self.assertEqual(self.mt5.order_send.call_count, 1)
+
         request = self.mt5.order_send.call_args.args[0]
         self.assertTrue(request['comment'].startswith('kwg-pilot-'))
         self.assertLess(request['sl'], request['price'])
@@ -90,6 +135,87 @@ class PilotTest(unittest.TestCase):
             reopened.close()
         self.tick(NOW + 910, bootstrap=True)
         self.assertEqual(self.mt5.order_send.call_count, 1)
+
+    def test_m1_uses_completed_minutes_for_signal_and_order_checks(self):
+        self.start()
+        p = pilot.state(self.db)
+        p['strategy'] = pilot.M1_STRATEGY
+        pilot.save(self.db, p)
+        self.fill()
+        self.tick(NOW, bootstrap=True)
+        self.mt5.order_send.assert_not_called()
+        result = self.tick(NOW + 60)
+        self.assertEqual(result['pilot']['strategy'], pilot.M1_STRATEGY)
+        self.assertEqual(result['execution']['status'], 'open')
+        self.assertTrue(all(call.args[1:] == (1, 1, 250) for call in self.mt5.copy_rates_from_pos.call_args_list[1:]))
+        self.tick(NOW + 65)
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+
+    def test_m1_migration_preserves_original_window_and_risk_history(self):
+        self.start()
+        original = pilot.state(self.db)
+        original['code'] = 'previous-reviewed-code'
+        pilot.save(self.db, original)
+        self.mt5.copy_rates_from_pos.return_value = [dict(time=NOW - (250-i)*60,
+            open=100, high=101, low=99, close=100) for i in range(250)]
+        inputs = (self.mt5, self.db, 123, NOW, self.pause, original['code'], pilot.identity())
+        migration['review'](*inputs)
+        self.assertEqual(pilot.state(self.db), original)
+        backup = self.path.with_name('before-m1.sqlite3')
+        updated = migration['switch'](*inputs, backup)
+        for key in ('start', 'end', 'initial_equity', 'initial_balance', 'peak', 'day_equity', 'last_poll'):
+            self.assertEqual(updated[key], original[key])
+        self.assertEqual(updated['strategy'], pilot.M1_STRATEGY)
+        with closing(sqlite3.connect(backup)) as db:
+            self.assertEqual(pilot.state(db), original)
+        self.mt5.order_send.assert_not_called()
+
+    def test_m1_migration_cannot_bypass_pause_risk_or_exposure(self):
+        self.start()
+        original = pilot.state(self.db)
+        inputs = (self.mt5, self.db, 123, NOW, self.pause, original['code'], pilot.identity())
+        for change in ({'pause': 'Daily equity loss limit reached'}, {'end': NOW}, {'code': 'wrong'}):
+            p = {**original, **change}
+            pilot.save(self.db, p)
+            with self.assertRaises(ValueError):
+                migration['review'](*inputs)
+            self.assertEqual(pilot.state(self.db), p)
+        pilot.save(self.db, original)
+        self.mt5.account_info.return_value.equity = 9800
+        with self.assertRaises(ValueError):
+            migration['review'](*inputs)
+        self.mt5.account_info.return_value.equity = 10000
+        self.mt5.orders_get.return_value = (Record(ticket=1),)
+        with self.assertRaises(ValueError):
+            migration['review'](*inputs)
+        self.assertEqual(pilot.state(self.db), original)
+        self.mt5.order_send.assert_not_called()
+
+    def test_m1_switch_can_wait_for_spread_but_runner_cannot_enter(self):
+        self.start()
+        original = pilot.state(self.db)
+        self.mt5.copy_rates_from_pos.return_value = [dict(time=NOW - (250-i)*60,
+            open=100, high=101, low=99, close=100) for i in range(250)]
+        self.mt5.symbol_info_tick.return_value.ask = 100.3
+        inputs = (self.mt5, self.db, 123, NOW, self.pause, original['code'], pilot.identity())
+        p = migration['switch'](*inputs, self.path.with_name('wide-spread-backup.sqlite3'))
+        self.assertIn('entry blocked', p['reason'])
+        for stamp in (NOW, NOW + 60, NOW + 120):
+            result = self.tick(stamp)
+            self.assertEqual(result['status'], 'blocked')
+            self.assertEqual(result['reason'], 'ATR or spread outside allowed range')
+        self.mt5.order_send.assert_not_called()
+
+    def test_m1_switch_still_rejects_stale_ticks(self):
+        self.start()
+        original = pilot.state(self.db)
+        self.mt5.copy_rates_from_pos.return_value = [dict(time=NOW - (250-i)*60,
+            open=100, high=101, low=99, close=100) for i in range(250)]
+        self.mt5.symbol_info_tick.return_value.time_msc = (NOW - 31) * 1000
+        with self.assertRaisesRegex(ValueError, 'older than 30 seconds'):
+            migration['review'](self.mt5, self.db, 123, NOW, self.pause, original['code'], pilot.identity())
+        self.assertEqual(pilot.state(self.db), original)
+        self.mt5.order_send.assert_not_called()
 
     def test_uncertain_submission_is_not_retried(self):
         self.start()
