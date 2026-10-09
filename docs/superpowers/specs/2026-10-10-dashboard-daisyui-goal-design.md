@@ -22,7 +22,7 @@ Supersedes the design system in `2026-10-05-dashboard-shadcn-neutral-dark.md`.
 2. The Base UI workspace menu becomes a daisyUI `dropdown`; the README rule to
    retain its Base UI API is retired.
 3. Existing element IDs used by `browser-check.mjs` are kept where possible.
-4. `trading.tsx` moves from Radix Tabs to daisyUI `tabs`, so `radix-ui` can go.
+4. `trading.tsx` moves from Radix Tabs to native ARIA tabs (decision 9), so `radix-ui` can go.
 5. Performance: dashboard bundle grows by no more than 15%. Scale: under 2,000
    notes, computed in memory. Privacy: no network calls, telemetry or uploads.
 
@@ -38,6 +38,8 @@ Supersedes the design system in `2026-10-05-dashboard-shadcn-neutral-dark.md`.
 | 6 | `trading.tsx` in scope | Keep Radix there | Removes `radix-ui` |
 | 7 | Stage change by editing the note | Drag-and-drop | Reuses save, history and conflict checks; YAGNI |
 | 8 | Native `<dialog>` for New note | Keep Radix Dialog | Native focus trap, Escape and backdrop |
+| 9 | `trading.tsx` uses native ARIA tabs with its existing `.pill-btn` classes, not daisyUI `tabs` | daisyUI `tabs` | `/vault/trading` is marketing-styled and does not load `dashboard.css`; daisyUI there would be unstyled and break the Dashboard Boundary Rule. Still removes `radix-ui` |
+| 10 | Pin `daisyui@5.7.43` exactly | Latest 5.7.47 | Latest was 10 days old at implementation; pinned release is over 2 weeks old |
 
 ## 1. Shell and theme
 
@@ -95,7 +97,7 @@ Projects: re-skin only.
 | Dialog | `<dialog class="modal">` with `showModal()`; focus returns to opener |
 | DropdownMenu | `dropdown` + `menu`, `menuitemradio`, arrow/Home/End/Escape handler |
 | NavigationMenu | `menu` + `menu-active` |
-| Radix Tabs | `tabs tabs-box`, ARIA tabs pattern, arrow-key handler |
+| Radix Tabs (trading) | Native ARIA tabs with existing `.pill-btn` styles; arrow, Home, End keys |
 | Feedback | `alert` with live `role=status` |
 
 - Keep visible focus, reduced motion, 44 px targets, noscript guidance.

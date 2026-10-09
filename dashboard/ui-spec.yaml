@@ -1,6 +1,6 @@
 surface: /vault/dashboard
 visual_authority: Dashboard exception in ../DESIGN.md; src/styles.css theme; shared/tokens.css geometry
-mode: shadcn neutral dark only; component radii and overlay elevation; six note page layouts and Settings
+mode: daisyUI kwg dark theme only; goal-first Today and Founder; six note page layouts and Settings
 source_contract: Reuses Dot geometry, component states, keyboard controls, reduced motion, and graph behavior
 data:
   storage: User-selected local directories only; no notes network endpoint
@@ -17,14 +17,16 @@ acceptance:
   - Cancelled switch preserves draft; saving blocks workspace change
   - Reconnect permission preserves the active draft and original version without a discard prompt
   - Safe initial no-folder screen; no silent browser-storage fallback
-  - Six note pages, nine Wai-G templates, graph and keyboard list
+  - Six note pages, nine Wai-G and five goal templates, graph and keyboard list
+  - Today and Founder show milestone steps and goal stats from a founder goals note; Personal offers goal setup, Parallel shows nothing without its own note
+  - Founder shows lead pipeline, niche validation and conversation count from typed frontmatter
   - Settings tab owns folder selection; disconnected note pages link to Settings
   - Back to vault is the first sidebar control
   - Centered desktop content beside the rail; compact connection and editor empty states
   - Tablet and phone Pages disclosure supports touch, keyboard and Escape
   - Visible focus; readable neutral contrast; mobile no overflow
 
-operate_type: App headings (h1 32, h2 20, h3 20 pixels) at weight 600; body 400; actions 500; system sans; sentence-case labels
-selected_navigation: sidebar-accent-foreground on sidebar-accent; avoid background aliases as foreground
-components: Radix shadcn new-york; custom Base UI workspace menu retains its API
-theme_boundary: html.dark owns semantic variables for the root and body portals; no marketing SCSS import
+operate_type: App headings (h1 32, h2 20, h3 20 pixels) at weight 600; body 400; daisyUI actions 600; system sans; sentence-case labels
+selected_navigation: daisyUI menu-active with aria-current; content colors always paired with their background role
+components: daisyUI 5 classes on plain elements; native dialog; custom keyboard workspace menu
+theme_boundary: html[data-theme=kwg] owns semantic variables; no marketing SCSS import

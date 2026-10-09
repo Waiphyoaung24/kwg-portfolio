@@ -452,46 +452,45 @@ The brand uses no shadows. Hairline borders carry all elevation cues.
 
 ### Dashboard exception
 
-The owner approved stock shadcn neutral dark styling for `/vault/dashboard` on
-2026-10-05. This route owns its theme in `dashboard/src/styles.css` and geometry
+The owner approved a daisyUI 5 design system with a custom dark `kwg` theme for
+`/vault/dashboard` on 2026-10-10, replacing the 2026-10-05 shadcn neutral dark
+exception. This route owns its theme in `dashboard/src/styles.css` and geometry
 in `dashboard/shared/tokens.css`; it does not import the marketing stylesheet.
-Its controls use shadcn component radii, body weight 400, action weight 500,
-heading weight 600, sentence-case labels, system sans, and standard overlay
-elevation. It stays dark-only and preserves WCAG 2.2 AA, visible focus, reduced
-motion, and 44-pixel touch targets. Existing Radix components and the Base UI
-workspace menu share semantic colors. Other routes follow the rules below.
+Built-in daisyUI themes are disabled. Controls use daisyUI component radii,
+body weight 400, action weight 600, heading weight 600, sentence-case labels and
+system sans. It stays dark-only and preserves WCAG 2.2 AA, visible focus,
+reduced motion, and 44-pixel touch targets. Other routes follow the rules below.
 
 **The Dashboard Boundary Rule.** The exception applies only to this route,
-including its body-portaled dialogs and menus. Public KWG chrome keeps the
-incumbent palette, type, pills, and flat elevation. Dashboard semantic tokens
-are normative in `dashboard/src/styles.css`; do not copy their values into the
-public frontmatter or map foreground aliases to shadcn background roles.
+including its native dialog and menus. Public KWG chrome, including
+`/vault/trading`, keeps the incumbent palette, type, pills, and flat elevation
+and never loads daisyUI. Dashboard tokens are normative in
+`dashboard/src/styles.css`; do not copy their values into the public
+frontmatter.
 
-- **Palette:** achromatic background, card/popover/sidebar surfaces, bright
-  foreground and primary actions, muted supporting text, translucent border
-  and input strokes. Destructive red accompanies error text. Selected and
-  hovered rows pair accent backgrounds with accent foregrounds. Native buttons
-  reset their background to transparent; component variants supply the fill.
+- **Palette:** achromatic `base-100`/`base-200`/`base-300` surfaces with bright
+  `base-content`; supporting text is `base-content` at 70% opacity. One amber
+  `primary` (`oklch(78% 0.16 75)`) is reserved for goal progress and the
+  primary action per view. `success`, `warning` and `error` carry connection
+  and pipeline states, always with text.
 - **Type:** system sans with no marketing tracking. Body uses the 16-pixel
   base and 1.4 line height; reading copy uses 1.6. Headings use the compact
-  32-pixel h1 and 20-pixel h2/h3 scale. Actions use 14-pixel medium labels.
-- **Shapes and depth:** the base radius is 0.625rem; small, medium, large,
-  and extra-large corners derive from it. Buttons and inputs use medium
-  corners; panels use large corners. Border and tonal layers separate resting
-  surfaces; stock component shadows and elevated menus/dialogs are permitted.
-- **Components:** retain existing button variants. Outline actions use the
-  dark input surface and stroke; default actions use primary with its
-  contrasting foreground. Inputs use semantic input borders and muted
-  placeholders. Radix focus rings and the custom workspace menu's visible
-  focus outline remain intact.
+  32-pixel h1 and 20-pixel h2/h3 scale.
+- **Shapes and depth:** `--radius-box` 0.75rem for cards, `--radius-field`
+  0.5rem for buttons and inputs, `--radius-selector` 1rem for badges.
+  `--depth: 0` and `--noise: 0`: borders and tonal layers separate surfaces.
+- **Components:** daisyUI classes on plain elements: `btn-primary` for the one
+  primary action, `btn-outline` otherwise; `input`, `select`, `textarea`;
+  `menu` with `menu-active` for navigation; `drawer` for the rail; `stats`,
+  `steps`, `radial-progress` and `progress` for goals; `badge-soft` for status.
+  The New note dialog is a native `<dialog class="modal">`.
 - **Graph:** node titles and paths stack within their rectangular controls.
   Missing/ambiguous nodes retain dashed outlines and selected nodes retain a
-  stroke distinction, so color is not the only signal. Graph geometry remains
-  separate from reusable button variants.
+  stroke distinction, so color is not the only signal.
 
-**The Foreground Pair Rule.** Background roles (`muted`, `accent`, `primary`)
-must use their matching foreground roles; supporting text uses
-`muted-foreground`. Preserve visible focus and reduced-motion suppression.
+**The Content Pair Rule.** Every daisyUI color role (`primary`, `success`,
+`error`, ...) is used with its matching `*-content` color, and each pair meets
+4.5:1. Preserve visible focus and reduced-motion suppression.
 Dashboard-only extensions and representative component snippets are recorded
 in `dashboard/.impeccable/design.json`.
 
