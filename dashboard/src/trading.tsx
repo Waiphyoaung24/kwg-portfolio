@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Tabs } from 'radix-ui';
 import { Activity, ChartNoAxesColumn, Play, Radio } from 'lucide-react';
 import { appendQuote, quotePlot } from '../../src/scripts/trading-chart.mjs';
 
@@ -8,6 +7,23 @@ type Quote = { at: number; bid: number; ask: number };
 type Trade = { side: string; closed_at: number; realized_net_usd: number };
 type Snapshot = { quote: Quote | null; trades: Trade[] | null };
 const time = (at: number) => new Date(at * 1000).toISOString().slice(11, 19);
+const tabs = [['quotes', 'Live quotes', Activity], ['results', 'Trade results', ChartNoAxesColumn], ['replay', 'Synthetic replay', Play]] as const;
+// WAI-ARIA tabs with automatic activation; data-state keeps the existing trading-console styles.
+function TabList({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const move = (e: KeyboardEvent, i: number) => {
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    const [id] = tabs[(next + tabs.length) % tabs.length];
+    onChange(id);
+    document.getElementById(`trading-tab-${id}`)?.focus();
+  };
+  return <div role="tablist" className="trading-charts__tabs" aria-label="Trading views">
+    {tabs.map(([id, label, TabIcon], i) => <button key={id} id={`trading-tab-${id}`} type="button" role="tab" className="pill-btn" aria-selected={value === id} aria-controls={`trading-panel-${id}`} tabIndex={value === id ? 0 : -1} data-state={value === id ? 'active' : 'inactive'} onClick={() => onChange(id)} onKeyDown={e => move(e, i)}><TabIcon aria-hidden="true" />{label}</button>)}
+  </div>;
+}
+const Panel = ({ id, hidden, children }: { id: string; hidden: boolean; children: ReactNode }) =>
+  <div role="tabpanel" id={`trading-panel-${id}`} aria-labelledby={`trading-tab-${id}`} tabIndex={0} hidden={hidden} className="trading-charts__content">{children}</div>;
 
 function TradingCharts() {
   const [samples, setSamples] = useState<Quote[]>([]);
@@ -35,13 +51,9 @@ function TradingCharts() {
   const latest = samples.at(-1);
   const ordered = trades?.slice().sort((a, b) => a.closed_at - b.closed_at) ?? [];
   const scale = Math.max(1, ...ordered.map(t => Math.abs(t.realized_net_usd)));
-  return <Tabs.Root className="trading-charts" value={tab} onValueChange={setTab}>
-    <Tabs.List className="trading-charts__tabs" aria-label="Trading views">
-      <Tabs.Trigger className="pill-btn" value="quotes"><Activity aria-hidden="true" />Live quotes</Tabs.Trigger>
-      <Tabs.Trigger className="pill-btn" value="results"><ChartNoAxesColumn aria-hidden="true" />Trade results</Tabs.Trigger>
-      <Tabs.Trigger className="pill-btn" value="replay"><Play aria-hidden="true" />Synthetic replay</Tabs.Trigger>
-    </Tabs.List>
-    <Tabs.Content value="quotes" className="trading-charts__content">
+  return <div className="trading-charts">
+    <TabList value={tab} onChange={setTab} />
+    {tab === 'quotes' && <Panel id="quotes" hidden={false}>
       <div className="trading-charts__heading"><h3>Gold / US dollar</h3><span className="micro">Page-session quotes</span></div>
       <div className="trading-charts__legend"><span>Solid · bid</span><span>Dashed · ask</span><span>{latest ? `Spread ${(latest.ask - latest.bid).toFixed(2)} USD` : 'Waiting for fresh quotes'}</span></div>
       {plot && samples.length > 1 ? <figure>
@@ -53,8 +65,8 @@ function TradingCharts() {
         <figcaption><span>{time(plot.first)} UTC</span><span>{time(plot.last)} UTC</span></figcaption>
       </figure> : <div className="trading-charts__empty"><Radio aria-hidden="true" /><h3>{latest ? 'First quote received' : 'Waiting for a fresh quote'}</h3><p>{latest ? 'The chart begins with the next distinct quote.' : 'Verified bid and ask samples will appear here.'}</p></div>}
       <p className="trading-charts__note">Quotes collected while this page is open. No historical candles; gaps and stale data reset the chart.</p>
-    </Tabs.Content>
-    <Tabs.Content value="results" className="trading-charts__content">
+    </Panel>}
+    {tab === 'results' && <Panel id="results" hidden={false}>
       <div className="trading-charts__heading"><h3>Recent trade results</h3><span className="micro">Net USD / closed trade</span></div>
       {ordered.length ? <figure><svg className="trading-charts__bars" viewBox="0 0 640 240" role="img" aria-label="Net results for the reported recent trades. Values are listed below.">
         <line x1="12" x2="628" y1="120" y2="120" className="trading-charts__grid" />
@@ -62,9 +74,9 @@ function TradingCharts() {
       </svg><figcaption>Above zero: profit. Below zero: loss. Recent trades only, not a full equity curve.</figcaption>
       <ol className="trading-charts__trades">{ordered.map((t,i) => <li key={`${t.closed_at}-${i}`}><span>{t.side === 'buy' ? 'Buy' : 'Sell'} · {new Date(t.closed_at*1000).toISOString().replace('T',' ').slice(0,19)} UTC</span><span>{t.realized_net_usd.toFixed(2)} USD</span></li>)}</ol></figure>
       : <div className="trading-charts__empty"><ChartNoAxesColumn aria-hidden="true" /><h3>{trades ? 'No completed trades yet' : 'No current trade report'}</h3><p>{trades ? 'Results appear after a trade closes and is reconciled.' : 'Waiting for a fresh pilot report.'}</p></div>}
-    </Tabs.Content>
-    <Tabs.Content value="replay" forceMount hidden={tab !== 'replay'} className="trading-charts__content"><div ref={replay} /></Tabs.Content>
-  </Tabs.Root>;
+    </Panel>}
+    <Panel id="replay" hidden={tab !== 'replay'}><div ref={replay} /></Panel>
+  </div>;
 }
 
 const root = document.getElementById('trading-charts');
