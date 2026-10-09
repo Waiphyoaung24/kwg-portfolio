@@ -40,6 +40,7 @@ Supersedes the design system in `2026-10-05-dashboard-shadcn-neutral-dark.md`.
 | 8 | Native `<dialog>` for New note | Keep Radix Dialog | Native focus trap, Escape and backdrop |
 | 9 | `trading.tsx` uses native ARIA tabs with its existing `.pill-btn` classes, not daisyUI `tabs` | daisyUI `tabs` | `/vault/trading` is marketing-styled and does not load `dashboard.css`; daisyUI there would be unstyled and break the Dashboard Boundary Rule. Still removes `radix-ui` |
 | 10 | Pin `daisyui@5.7.43` exactly | Latest 5.7.47 | Latest was 10 days old at implementation; pinned release is over 2 weeks old |
+| 11 | Minimal copy: no subtitles, descriptions, hints, privacy or empty-state text; status and error messages cut to 2-4 words | Remove errors too | Silent save failures risk lost drafts |
 
 ## 1. Shell and theme
 
