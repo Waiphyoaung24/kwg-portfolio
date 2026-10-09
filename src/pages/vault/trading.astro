@@ -33,8 +33,10 @@ export const prerender = true;
       <section class="card status console-market" aria-labelledby="status-title">
         <div class="status__head">
           <h2 id="status-title">Live demo feed</h2>
+          <button class="pill-btn" id="trade-sound" type="button" aria-pressed="false" aria-describedby="trade-sound-note">Trade sound: Off</button>
           <button class="pill-btn console-refresh" id="refresh" type="button" aria-label="Refresh status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5.5 8a7 7 0 0 1 11.8-2L20 9M4 15l2.7 3A7 7 0 0 0 18.5 16" /></svg>Refresh</button>
         </div>
+        <p class="page__note" id="trade-sound-note" role="status">Quiet entry alert · enable to preview. Only while this page is visible.</p>
         <div class="console-market__meta"><p class="status__symbol micro">XAUUSD-VIP · VT Markets demo</p><span class="status__state label" id="state" aria-live="polite">Checking</span></div>
         <p class="status__price"><span class="label">Bid / ask · USD</span><span id="price">—</span></p>
         <div id="trading-charts"><p class="page__note">Loading chart views…</p></div>
@@ -174,8 +176,46 @@ export const prerender = true;
       import { pilotFields } from '../../scripts/trading-pilot.mjs';
       import { tradeLevels } from '../../scripts/trading-levels.mjs';
       import { chartSnapshot } from '../../scripts/trading-chart.mjs';
+      import { entryNotifications } from '../../scripts/trading-sound.mjs';
       const field = (id: string) => document.getElementById(id)!;
       const refresh = field('refresh') as HTMLButtonElement;
+      const soundToggle = field('trade-sound') as HTMLButtonElement;
+      const sound = new Audio('/audio/trade-entry.mp3');
+      sound.preload = 'none';
+      sound.volume = 0.35;
+      const entryNotification = entryNotifications();
+      let soundEnabled = false;
+      function muteSound() {
+        soundEnabled = false;
+        sound.pause();
+        soundToggle.setAttribute('aria-pressed', 'false');
+        soundToggle.textContent = 'Trade sound: Off';
+      }
+      async function playEntrySound() {
+        sound.currentTime = 0;
+        try { await sound.play(); }
+        catch {
+          if (!soundEnabled) return;
+          muteSound();
+          field('trade-sound-note').textContent = 'Sound unavailable. Click On to try again; check your browser volume.';
+        }
+      }
+      soundToggle.addEventListener('click', () => {
+        if (soundEnabled) {
+          muteSound();
+          field('trade-sound-note').textContent = 'Trade sounds muted.';
+        } else {
+          soundEnabled = true;
+          soundToggle.setAttribute('aria-pressed', 'true');
+          soundToggle.textContent = 'Trade sound: On';
+          field('trade-sound-note').textContent = 'Quiet preview · new entry alerts on, while this page is visible.';
+          void playEntrySound();
+        }
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { sound.pause(); entryNotification(null, Date.now() / 1000, false); }
+      });
+      window.addEventListener('pagehide', muteSound);
       const signIn = field('sign-in') as HTMLAnchorElement;
       const prepare = field('prepare-trade') as HTMLButtonElement;
       const start = field('start-trade') as HTMLButtonElement;
@@ -366,6 +406,7 @@ export const prerender = true;
           signIn.hidden = true;
           latest = data;
           receivedAt = Date.now();
+          if (entryNotification(data, receivedAt / 1000, !document.hidden) && soundEnabled) void playEntrySound();
           if (data.checked_at !== lastCheck) {
             lastCheck = data.checked_at;
             const fields = statusFields(data);
@@ -377,6 +418,7 @@ export const prerender = true;
           }
           render();
         } catch (error) {
+          entryNotification(null, Date.now() / 1000);
           latest = null;
           window.dispatchEvent(new CustomEvent('trading-snapshot', { detail: chartSnapshot(null) }));
           field('pilot-intent').textContent = 'Status unavailable';
