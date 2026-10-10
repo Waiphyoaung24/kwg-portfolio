@@ -1,7 +1,20 @@
 ---
-import '../../styles/index.scss';
+import '@tabler/core/dist/css/tabler.min.css';
+import '../../styles/desk.scss';
 import TradingNavigation from '../../components/TradingNavigation.astro';
+import iconRefresh from '@tabler/icons/outline/refresh.svg?raw';
+import iconPlug from '@tabler/icons/outline/plug-connected.svg?raw';
+import iconCoin from '@tabler/icons/outline/coin.svg?raw';
+import iconPulse from '@tabler/icons/outline/activity.svg?raw';
+import iconHistory from '@tabler/icons/outline/history.svg?raw';
+import iconChevron from '@tabler/icons/outline/chevron-down.svg?raw';
+import iconExternal from '@tabler/icons/outline/external-link.svg?raw';
+import iconLogin from '@tabler/icons/outline/login.svg?raw';
+import iconFiles from '@tabler/icons/outline/files.svg?raw';
 export const prerender = true;
+// Tabler icons ship as raw SVG; mark them decorative for assistive technology.
+const icon = (svg: string) => svg.replace('<svg', '<svg aria-hidden="true" focusable="false"');
+const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path fill="currentColor" d="M26.2636 20.4752L29.7034 6.2832H22.8238L26.2636 20.4752ZM12.2636 6.2832L17.0473 26.0199H23.9568L19.1731 6.2832H12.2636ZM8.61287 6.28336L1.70337 6.28373L6.48706 26.0203L13.3966 26.02L8.61287 6.28336Z" /></svg>';
 const stages = [
   { number: '01', title: 'Observe', detail: 'Completed gold M15 candles. Feed health comes from the observer.', state: 'Feed below' },
   { number: '02', title: 'Research', detail: 'Separate Vibe learning workspace. Bounded gold dispatch still needs production isolation and backend spend enforcement.', state: 'Gold dispatch blocked' },
@@ -11,99 +24,108 @@ const stages = [
 ];
 ---
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Browser theme-color metadata cannot resolve a CSS variable. -->
+    <meta name="theme-color" content="#ffffff" />
     <meta name="robots" content="noindex" />
-    <title>Gold operations — Vault — KWG</title>
+    <title>Gold operations - Vault - KWG</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400&family=JetBrains+Mono:wght@400&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" />
   </head>
-  <body>
-    <main class="operations">
-      <TradingNavigation current="overview" />
-      <header class="intro" id="trading-content" tabindex="-1">
-        <p class="label">XAUUSD-VIP · M15 · demo</p>
+  <body class="desk">
+    <TradingNavigation current="overview" />
+    <main class="container-xl desk-main">
+      <header class="desk-intro reveal" style="--i: 0" id="trading-content" tabindex="-1">
+        <p class="desk-eyebrow"><span class="desk-logo desk-logo--sm" set:html={logo} />KWG / Demo operations</p>
         <h1>Gold operations</h1>
-        <p>Check the demo connection and practice comparing strategy changes.</p>
+        <p class="desk-lede">Check the demo connection and practice comparing strategy changes.</p>
       </header>
-      <section class="operating" aria-labelledby="operating-title">
+
+      <section class="desk-hero desk-banner reveal" style="--i: 1" aria-labelledby="operating-title">
         <div>
-          <p class="label">Automatic trading</p>
-          <h2 id="operating-title">Not available yet</h2>
-          <p>The system does not trade automatically. You can check the feed and review fictional test results here.</p>
+          <p class="desk-kicker">XAUUSD-VIP · M15 · Automatic trading</p>
+          <h2 class="desk-idle-title" id="operating-title">Not available yet</h2>
+          <p class="desk-muted m-0">The system does not trade automatically. You can check the feed and review fictional test results here.</p>
         </div>
-        <div class="actions">
-          <button class="pill-btn pill-btn--filled" id="refresh" type="button">Refresh feed</button>
-          <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to feed</a>
-          <a class="pill-btn" id="hosted-feed" href="https://waiphyoaung.com/vault/trading" target="_blank" rel="noopener noreferrer" hidden>Open hosted MT5 dashboard ↗</a>
+        <div class="btn-list desk-banner__actions">
+          <button class="btn btn-primary" id="refresh" type="button">Refresh feed</button>
+          <a class="btn desk-btn" id="sign-in" href="/api/trading/status" hidden><Fragment set:html={icon(iconLogin)} />Sign in to feed</a>
+          <a class="btn desk-btn" id="hosted-feed" href="https://waiphyoaung.com/vault/trading" target="_blank" rel="noopener noreferrer" hidden><Fragment set:html={icon(iconExternal)} />Open hosted MT5 dashboard</a>
         </div>
       </section>
-      <div class="workspace">
-        <div class="primary">
-          <section class="panel" aria-labelledby="feed-title">
-            <div class="section-head"><h2 id="feed-title">Live demo feed</h2><span class="label" id="feed-state">Checking</span></div>
-            <dl class="readings">
-              <div><dt>MT5 connection</dt><dd id="connection">Checking</dd></div>
-              <div><dt>Quote freshness</dt><dd id="freshness">Checking</dd></div>
-              <div><dt>Strategy signal</dt><dd id="signal">Checking</dd></div>
-              <div><dt>Completed history</dt><dd id="history">Checking</dd></div>
+
+      <div class="desk-columns">
+        <div class="desk-stack">
+          <section class="desk-tile reveal" style="--i: 2" aria-labelledby="feed-title">
+            <div class="desk-tile__head"><h2 id="feed-title">Live demo feed</h2><span class="desk-chip" id="feed-state">Checking</span></div>
+            <dl class="desk-stats">
+              <div><dt><Fragment set:html={icon(iconPlug)} />MT5 connection</dt><dd id="connection">Checking</dd></div>
+              <div><dt><Fragment set:html={icon(iconCoin)} />Quote freshness</dt><dd id="freshness">Checking</dd></div>
+              <div><dt><Fragment set:html={icon(iconPulse)} />Strategy signal</dt><dd id="signal">Checking</dd></div>
+              <div><dt><Fragment set:html={icon(iconHistory)} />Completed history</dt><dd id="history">Checking</dd></div>
             </dl>
-            <p id="guidance" role="status" aria-live="polite">Connecting to the protected status feed.</p>
-            <details>
-              <summary class="pill-btn">Observation details</summary>
-              <dl class="readings">
+            <p class="desk-callout" id="guidance" role="status" aria-live="polite">Connecting to the protected status feed.</p>
+            <details class="desk-disclosure">
+              <summary>Observation details <Fragment set:html={icon(iconChevron)} /></summary>
+              <dl class="desk-stats desk-stats--plain">
                 <div><dt>Observer heartbeat</dt><dd id="heartbeat">Unknown</dd></div>
                 <div><dt>Latest candle opened</dt><dd id="candle">—</dd></div>
                 <div><dt>Quote checked</dt><dd id="tick">—</dd></div>
                 <div><dt>Last report</dt><dd id="checked">—</dd></div>
               </dl>
-              <p id="reason">Waiting for a current report.</p>
+              <p class="desk-muted" id="reason">Waiting for a current report.</p>
             </details>
-            <p class="note">The MT5 desktop tunnel and this status feed are separate connections. An unavailable feed here does not establish that MT5 disconnected.</p>
+            <p class="desk-muted small mt-3 mb-0">The MT5 desktop tunnel and this status feed are separate connections. An unavailable feed here does not establish that MT5 disconnected.</p>
           </section>
-          <section class="panel" aria-labelledby="attempt-title">
-            <div class="section-head"><h2 id="attempt-title">Last manually approved demo trade</h2><span class="label" id="attempt-state">Unknown</span></div>
-            <p id="attempt-guidance">No execution report loaded.</p>
-            <dl class="readings">
-              <div><dt>Direction / size</dt><dd id="attempt-size">—</dd></div>
-              <div><dt>Broker-reconciled net result</dt><dd id="attempt-result">—</dd></div>
-              <div><dt>Entry / stop / target</dt><dd id="attempt-prices">—</dd></div>
-              <div><dt>Closed</dt><dd id="attempt-closed">—</dd></div>
+
+          <section class="desk-tile reveal" style="--i: 3" aria-labelledby="attempt-title">
+            <div class="desk-tile__head"><h2 id="attempt-title">Last manually approved demo trade</h2><span class="desk-chip" id="attempt-state">Unknown</span></div>
+            <p class="desk-muted" id="attempt-guidance">No execution report loaded.</p>
+            <dl class="desk-stats">
+              <div><dt>Direction / size</dt><dd class="desk-num" id="attempt-size">—</dd></div>
+              <div><dt>Broker-reconciled net result</dt><dd class="desk-num" id="attempt-result">—</dd></div>
+              <div><dt>Entry / stop / target</dt><dd class="desk-num" id="attempt-prices">—</dd></div>
+              <div><dt>Closed</dt><dd class="desk-num" id="attempt-closed">—</dd></div>
             </dl>
-            <p class="note">One supervised attempt only. This is not an autonomous position inventory, trade history or strategy return.</p>
-            <a class="pill-btn" href="/vault/trading">Open supervised demo</a>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+              <p class="desk-muted small m-0">One supervised attempt only. This is not an autonomous position inventory, trade history or strategy return.</p>
+              <a class="btn desk-btn" href="/vault/trading">Open supervised demo</a>
+            </div>
           </section>
-          <section class="panel" aria-labelledby="workflow-title">
-            <div class="section-head"><h2 id="workflow-title">What is ready?</h2></div>
-            <p>The comparison software works with fictional test data. Real gold AI requests, strategy approval and automatic trading remain unavailable.</p>
-            <details>
-              <summary class="pill-btn">Development stages</summary>
-              <p class="note">Development checkpoint · October 2, 2026 · not a live qualification report</p>
-            <ol class="workflow">
-              {stages.map(stage => <li><span class="micro">{stage.number}</span><div><h3>{stage.title}</h3><p>{stage.detail}</p></div><span class="micro stage-state">{stage.state}</span></li>)}
-            </ol>
+
+          <section class="desk-tile reveal" style="--i: 4" aria-labelledby="workflow-title">
+            <div class="desk-tile__head"><h2 id="workflow-title">What is ready?</h2></div>
+            <p class="desk-muted">The comparison software works with fictional test data. Real gold AI requests, strategy approval and automatic trading remain unavailable.</p>
+            <details class="desk-disclosure">
+              <summary>Development stages <Fragment set:html={icon(iconChevron)} /></summary>
+              <p class="desk-muted small mt-3">Development checkpoint, October 2, 2026. Not a live qualification report.</p>
+              <ol class="desk-stages">
+                {stages.map(stage => <li><span class="desk-stages__number">{stage.number}</span><div><h3>{stage.title}</h3><p>{stage.detail}</p></div><span class="desk-chip">{stage.state}</span></li>)}
+              </ol>
             </details>
           </section>
-          <section class="panel" aria-labelledby="review-title">
-            <div class="section-head"><h2 id="review-title">Practice comparison</h2><span class="label">Fictional results</span></div>
-            <p>This tests the software using made-up market data. The amounts below are not profits or losses on your MT5 account.</p>
-            <p class="note">Select comparison.json, baseline.json and candidate.json together from one test folder. The original strategy is compared with one proposed filter.</p>
-            <div class="actions">
-              <button class="pill-btn" id="choose-reports" type="button">Choose three reports</button>
-              <button class="pill-btn" id="clear-reports" type="button" hidden>Clear review</button>
+
+          <section class="desk-tile reveal" style="--i: 5" aria-labelledby="review-title">
+            <div class="desk-tile__head"><h2 id="review-title">Practice comparison</h2><span class="desk-chip">Fictional results</span></div>
+            <p class="desk-muted">This tests the software using made-up market data. The amounts below are not profits or losses on your MT5 account.</p>
+            <p class="desk-muted small">Select comparison.json, baseline.json and candidate.json together from one test folder. The original strategy is compared with one proposed filter.</p>
+            <div class="btn-list">
+              <button class="btn desk-btn" id="choose-reports" type="button"><Fragment set:html={icon(iconFiles)} />Choose three reports</button>
+              <button class="btn desk-btn" id="clear-reports" type="button" hidden>Clear review</button>
               <input id="report-files" type="file" accept=".json,application/json" multiple hidden />
             </div>
-            <p class="note">Files stay in this browser tab. No upload, model request or order. Up to 8 MiB per file. Leaving this page, clearing or reloading removes the review.</p>
-            <p id="review-message" role="status" aria-live="polite">Choose your three test reports to see the comparison.</p>
+            <p class="desk-muted small mt-3">Files stay in this browser tab. No upload, model request or order. Up to 8 MiB per file. Leaving this page, clearing or reloading removes the review.</p>
+            <p class="desk-callout" id="review-message" role="status" aria-live="polite">Choose your three test reports to see the comparison.</p>
             <div id="review-result" hidden>
               <p id="review-explanation"></p>
-              <details>
-                <summary class="pill-btn">How to read the results</summary>
-                <ul class="gates">
+              <details class="desk-disclosure">
+                <summary>How to read the results <Fragment set:html={icon(iconChevron)} /></summary>
+                <ul class="desk-gates">
                   <li>Original = the fixed EMA strategy. Proposed = the same strategy with one filter.</li>
                   <li>Development = the first test portion. Validation = a separate portion used to check the change.</li>
                   <li>Lower, middle and stress use increasingly demanding hypothetical trading costs.</li>
@@ -117,64 +139,67 @@ const stages = [
                   <tbody id="review-rows"></tbody>
                 </table>
               </div>
-              <h3>What this test proves</h3>
-              <p>The selected report files match and their numbers reconcile. This checks the software, not whether a strategy is ready to trade. No AI request or order was sent.</p>
-              <details>
-              <summary class="pill-btn">What remains before trading</summary>
-              <ul class="gates" id="review-gates"></ul>
+              <h3 class="desk-subhead">What this test proves</h3>
+              <p class="desk-muted">The selected report files match and their numbers reconcile. This checks the software, not whether a strategy is ready to trade. No AI request or order was sent.</p>
+              <details class="desk-disclosure">
+                <summary>What remains before trading <Fragment set:html={icon(iconChevron)} /></summary>
+                <ul class="desk-gates" id="review-gates"></ul>
               </details>
-              <details>
-                <summary class="pill-btn">Technical file checks</summary>
-                <p class="note">Baseline and candidate hashes checked against selected file bytes. Other identities are declarations in the comparison; their source files are not loaded or verified.</p>
-                <dl class="readings" id="review-identities"></dl>
+              <details class="desk-disclosure">
+                <summary>Technical file checks <Fragment set:html={icon(iconChevron)} /></summary>
+                <p class="desk-muted small mt-3">Baseline and candidate hashes checked against selected file bytes. Other identities are declarations in the comparison; their source files are not loaded or verified.</p>
+                <dl class="desk-stats desk-stats--plain" id="review-identities"></dl>
               </details>
             </div>
           </section>
         </div>
-        <aside class="secondary" aria-label="Strategy and qualification">
-          <section class="panel" aria-labelledby="strategy-title">
-            <p class="label">Original strategy</p>
-            <h2 id="strategy-title">EMA20 / EMA50</h2>
-            <p>Uses the crossing of two moving averages on completed 15-minute candles. A proposed filter can change when it enters; the risk rules stay fixed.</p>
-            <details><summary class="pill-btn">Strategy and risk details</summary>
-            <dl class="readings">
-              <div><dt>Entry risk</dt><dd>0.1% equity</dd></div>
-              <div><dt>Stop / target</dt><dd>2 ATR / 3 ATR</dd></div>
-              <div><dt>Daily entry pause</dt><dd>1% equity loss</dd></div>
-              <div><dt>Position limit</dt><dd>One gold position</dd></div>
-            </dl>
-            <p class="note">Approved strategy limits, not proof that an autonomous runner is enforcing them. No pyramiding, martingale or same-candle reversal.</p>
+
+        <aside class="desk-stack desk-side" aria-label="Strategy and qualification">
+          <section class="desk-tile reveal" style="--i: 2" aria-labelledby="strategy-title">
+            <p class="desk-kicker">Original strategy</p>
+            <h2 class="desk-intent" id="strategy-title">EMA20 / EMA50</h2>
+            <p class="desk-muted">Uses the crossing of two moving averages on completed 15-minute candles. A proposed filter can change when it enters; the risk rules stay fixed.</p>
+            <details class="desk-disclosure">
+              <summary>Strategy and risk details <Fragment set:html={icon(iconChevron)} /></summary>
+              <dl class="desk-stats">
+                <div><dt>Entry risk</dt><dd>0.1% equity</dd></div>
+                <div><dt>Stop / target</dt><dd>2 ATR / 3 ATR</dd></div>
+                <div><dt>Daily entry pause</dt><dd>1% equity loss</dd></div>
+                <div><dt>Position limit</dt><dd>One gold position</dd></div>
+              </dl>
+              <p class="desk-muted small">Approved strategy limits, not proof that an autonomous runner is enforcing them. No pyramiding, martingale or same-candle reversal.</p>
             </details>
           </section>
-          <section class="panel" aria-labelledby="gates-title">
-            <p class="label">Qualification deferred · Oct 2</p>
-            <h2 id="gates-title">Evidence still incomplete</h2>
-            <p>Batch 2's software preparation is finished. Real-market evidence is not sufficient to approve a strategy. You deferred the longer observation period; it was not marked as passed.</p>
-            <details><summary class="pill-btn">Qualification requirements</summary>
-            <ul class="gates">
-              <li>Dated costs and broker clock coverage</li>
-              <li>Frozen prospective protocol</li>
-              <li>60 validation days; three flat folds of at least 20 days</li>
-              <li>100 closed trades per strategy</li>
-              <li>Verified report provenance and repeatable baseline</li>
-              <li>Performance and stress criteria, then human approval</li>
-            </ul>
-            <p class="note">Batch 2 is closed for development, unqualified. The reviewed smoke has a partial pipeline verdict; it does not earn qualifying-day credit. These requirements remain unchanged.</p>
+          <section class="desk-tile reveal" style="--i: 3" aria-labelledby="gates-title">
+            <p class="desk-kicker">Qualification deferred · Oct 2</p>
+            <h2 class="desk-intent" id="gates-title">Evidence still incomplete</h2>
+            <p class="desk-muted">Batch 2's software preparation is finished. Real-market evidence is not sufficient to approve a strategy. You deferred the longer observation period; it was not marked as passed.</p>
+            <details class="desk-disclosure">
+              <summary>Qualification requirements <Fragment set:html={icon(iconChevron)} /></summary>
+              <ul class="desk-gates">
+                <li>Dated costs and broker clock coverage</li>
+                <li>Frozen prospective protocol</li>
+                <li>60 validation days; three flat folds of at least 20 days</li>
+                <li>100 closed trades per strategy</li>
+                <li>Verified report provenance and repeatable baseline</li>
+                <li>Performance and stress criteria, then human approval</li>
+              </ul>
+              <p class="desk-muted small">Batch 2 is closed for development, unqualified. The reviewed smoke has a partial pipeline verdict; it does not earn qualifying-day credit. These requirements remain unchanged.</p>
             </details>
           </section>
-          <section class="panel" aria-labelledby="research-title">
-            <p class="label">AI research workspace</p>
-            <h2 id="research-title">Vibe-Trading</h2>
-            <p>OpenAI Codex through ChatGPT OAuth, gpt-6.1-sol with medium reasoning. Learning runs in the separate local app; this page does not verify its current login or availability.</p>
+          <section class="desk-tile reveal" style="--i: 4" aria-labelledby="research-title">
+            <p class="desk-kicker">AI research workspace</p>
+            <h2 class="desk-intent" id="research-title">Vibe-Trading</h2>
+            <p class="desk-muted">OpenAI Codex through ChatGPT OAuth, gpt-6.1-sol with medium reasoning. Learning runs in the separate local app; this page does not verify its current login or availability.</p>
             {import.meta.env.DEV ? <>
-              <a class="pill-btn" href="http://127.0.0.1:8899/" target="_blank" rel="noopener noreferrer" aria-describedby="local-workspace-note">Open local Vibe workspace ↗</a>
-              <p class="note" id="local-workspace-note">Opens the separate app on this computer. It must be running locally; OAuth login and research permissions are not verified by this link.</p>
-            </> : <p class="note">Local workspace only. Vibe-Trading is not hosted on this website.</p>}
-            <p class="note">Use Vibe for the separate learning exercises. Real gold AI requests still need verified credential isolation and a guaranteed $0 additional-spend boundary.</p>
+              <a class="btn desk-btn" href="http://127.0.0.1:8899/" target="_blank" rel="noopener noreferrer" aria-describedby="local-workspace-note"><Fragment set:html={icon(iconExternal)} />Open local Vibe workspace</a>
+              <p class="desk-muted small mt-2" id="local-workspace-note">Opens the separate app on this computer. It must be running locally; OAuth login and research permissions are not verified by this link.</p>
+            </> : <p class="desk-muted small">Local workspace only. Vibe-Trading is not hosted on this website.</p>}
+            <p class="desk-muted small mb-0">Use Vibe for the separate learning exercises. Real gold AI requests still need verified credential isolation and a guaranteed $0 additional-spend boundary.</p>
           </section>
         </aside>
       </div>
-      <footer><p class="note" id="page-note">Live feed refreshes every 10 seconds. Practice results come only from the selected files.</p></footer>
+      <footer class="mt-4"><p class="desk-muted small" id="page-note">Live feed refreshes every 10 seconds. Practice results come only from the selected files.</p></footer>
       <noscript><p>Enable JavaScript to load the feed. No current observation or execution data is shown without it.</p></noscript>
     </main>
     <script>
@@ -233,7 +258,8 @@ const stages = [
       const refresh = field('refresh') as HTMLButtonElement;
       const signIn = field('sign-in');
       const localPreview = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
-      choose.classList.toggle('pill-btn--filled', localPreview);
+      choose.classList.toggle('btn-primary', localPreview);
+      choose.classList.toggle('desk-btn', !localPreview);
       const offline = { status: 'offline', checked_at: null };
       let latest: any = offline;
       function render(data: any) {
@@ -294,59 +320,17 @@ const stages = [
       setInterval(() => { if (latest !== offline) render(latest); }, 1000);
     </script>
     <style>
-      /* Structural 1px rules and rem media thresholds are layout constants. */
-      .operations { width: min(100%, var(--container-max-width)); margin-inline: auto; padding: var(--sp-3xl) var(--grid-margin); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-2xl); container-type: inline-size; hyphens: none; }
-      .actions { display: flex; flex-wrap: wrap; gap: var(--sp-md); align-items: center; }
-      .actions [hidden] { display: none; }
-      .intro h1 { font-size: var(--fs-2); letter-spacing: var(--ls-2); line-height: 1; margin: var(--sp-lg) 0; }
-      p { color: var(--c-body); line-height: 1.6; max-width: 65ch; }
-      .intro p, .operating p { margin: 0; }
-      h2, h3 { font-weight: var(--fw-regular); }
-      h2 { font-size: var(--fs-4); letter-spacing: var(--ls-4); margin: 0; line-height: 1.2; }
-      h3 { font-size: var(--fs-5); margin: 0; }
-      .operating { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2xl); padding: var(--sp-2xl) 0; border-block: 1px solid var(--c-hairline-bright); }
-      .operating h2 { font-size: var(--fs-3); margin: var(--sp-md) 0; }
-      .operating > div:first-child { flex: 1; }
-      .workspace { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--sp-3xl); }
-      .primary, .secondary { display: grid; gap: var(--sp-2xl); align-content: start; min-width: 0; }
-      .secondary { border-left: 1px solid var(--c-hairline); padding-left: var(--sp-2xl); }
-      .panel { padding-bottom: var(--sp-2xl); border-bottom: 1px solid var(--c-hairline); min-width: 0; }
-      .panel p { margin-block: var(--sp-md); }
-      .panel .pill-btn { max-width: 100%; white-space: normal; text-align: center; }
-      .section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-md); }
-      .section-head h2 { flex: 1 1 18rem; min-width: 0; }
-      .section-head .label { max-width: 100%; overflow-wrap: anywhere; }
-      .label, .micro { color: var(--c-body); }
-      .readings { margin: var(--sp-xl) 0; }
-      .readings > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-lg); padding: var(--sp-md) 0; border-bottom: 1px solid var(--c-hairline); }
-      dt { color: var(--c-body); }
-      dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-      .note { font-size: var(--fs-body-sm); }
-      summary { width: fit-content; }
-      .workflow { list-style: none; padding: 0; margin: var(--sp-xl) 0 0; }
-      .workflow li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--sp-lg); align-items: baseline; border-top: 1px solid var(--c-hairline); padding: var(--sp-xl) 0; }
-      .workflow p { margin: var(--sp-sm) 0 0; }
-      .stage-state { text-align: right; }
-      .gates { color: var(--c-body); padding-left: var(--sp-lg); line-height: 1.6; }
-      .gates li { margin-block: var(--sp-md); }
+      /* Overview-only parts; the shared desk theme lives in src/styles/desk.scss. */
       #review-result[hidden] { display: none; }
-      .review-table { overflow-x: auto; margin-block: var(--sp-xl); }
-      table { width: 100%; border-collapse: collapse; font-size: var(--fs-body-sm); font-variant-numeric: tabular-nums; }
-      caption { text-align: left; color: var(--c-body); margin-bottom: var(--sp-md); }
-      .review-table :global(th), .review-table :global(td) { padding: var(--sp-md); border-bottom: 1px solid var(--c-hairline); text-align: right; font-weight: var(--fw-regular); }
+      .review-table { overflow-x: auto; margin-block: 1.25rem; border: 1px solid var(--desk-line); border-radius: 16px; }
+      table { width: 100%; border-collapse: collapse; font-size: .875rem; font-variant-numeric: tabular-nums; }
+      caption { caption-side: top; padding: .875rem 1rem 0; text-align: left; color: var(--desk-muted); }
+      thead th { font-family: var(--tblr-font-monospace); font-size: .6875rem; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--desk-muted); }
+      .review-table :global(th), .review-table :global(td) { padding: .75rem 1rem; border-bottom: 1px solid var(--desk-line); text-align: right; font-weight: 400; }
       .review-table :global(th:first-child) { text-align: left; }
-      thead th { color: var(--c-body); }
-      .review-table :global(td) { white-space: nowrap; }
-      #review-identities :global(div) { padding-block: var(--sp-md); border-bottom: 1px solid var(--c-hairline); }
-      #review-identities :global(dd) { margin: var(--sp-sm) 0 0; overflow-wrap: anywhere; font-family: var(--ff-mono); font-size: var(--fs-body-sm); text-align: left; }
+      .review-table :global(td) { white-space: nowrap; font-family: var(--tblr-font-monospace); }
+      .review-table :global(tbody tr:last-child > *) { border-bottom: 0; }
       button:disabled { cursor: wait; opacity: .6; }
-      /* Stack when the content area cannot comfortably hold both columns. */
-      @container (max-width: 68rem) {
-        .workspace { grid-template-columns: minmax(0, 1fr); }
-        .secondary { border-left: 0; padding-left: 0; }
-      }
-      @media (max-width: 60rem) { .workspace { grid-template-columns: minmax(0, 1fr); } .secondary { border-left: 0; padding-left: 0; } }
-      @media (max-width: 40rem) { .operating { flex-direction: column; align-items: start; } .section-head { align-items: start; } .section-head h2 { flex-basis: 100%; } .workflow li { grid-template-columns: auto minmax(0, 1fr); } .stage-state { grid-column: 2; text-align: left; } .readings > div { grid-template-columns: minmax(0, 1fr); gap: var(--sp-xs); } dd { text-align: left; } }
     </style>
   </body>
 </html>
