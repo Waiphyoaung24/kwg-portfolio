@@ -1,6 +1,6 @@
-export function normalizePilot(value, now = Date.now() / 1000) {
+export function normalizePilot(value, now = Date.now() / 1000, symbol = 'XAUUSD-VIP') {
   if (value === null) return null;
-  if (!value || !['gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3'].includes(value.strategy) || value.qualification !== 'unqualified' ||
+  if (!value || !(symbol === 'BTCUSD' ? ['btc-ema-v1-m15-trend-3'] : symbol === 'XAUUSD-VIP' ? ['gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3'] : []).includes(value.strategy) || value.qualification !== 'unqualified' ||
       !['standby', 'active', 'paused', 'needs_attention', 'expired'].includes(value.status)) throw new Error('Invalid pilot');
   const result = { strategy: value.strategy, qualification: value.qualification, status: value.status };
   for (const key of ['updated_at', 'started_at', 'ends_at', 'realized_net_usd', 'floating_usd', 'completed_trades']) {
@@ -29,9 +29,9 @@ export function normalizePilot(value, now = Date.now() / 1000) {
   return result;
 }
 
-export function pilotFields(value, now = Date.now() / 1000) {
+export function pilotFields(value, now = Date.now() / 1000, symbol = 'XAUUSD-VIP') {
   let p;
-  try { p = normalizePilot(value ?? null, now); } catch { p = null; }
+  try { p = normalizePilot(value ?? null, now, symbol); } catch { p = null; }
   if (!p) return { state: 'Unknown', reason: 'No current pilot report.', realized: '—', floating: '—',
     remaining: '—', count: '—', canPause: false, trades: [] };
   const money = number => typeof number === 'number' ? `${number.toFixed(2)} USD` : 'Unknown';

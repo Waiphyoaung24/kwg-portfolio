@@ -1,15 +1,17 @@
-import { statusFields } from './trading-status.mjs';
+import { executionFields, statusFields } from './trading-status.mjs';
 import { normalizePilot } from './trading-pilot.mjs';
 
 export function chartSnapshot(data, now = Date.now() / 1000) {
-  if (!data) return { quote: null, trades: null };
+  if (!data) return { quote: null, trades: null, levels: null };
   let pilot = null;
-  try { pilot = normalizePilot(data.pilot ?? null, now); } catch { /* Invalid reports clear the chart. */ }
+  try { pilot = normalizePilot(data.pilot ?? null, now, data.symbol); } catch { /* Invalid reports clear the chart. */ }
   const h = data.health;
   const at = h?.tick_time_msc ? h.tick_time_msc / 1000 : h?.tick_time;
   const quote = statusFields(data, now).price !== '—' && Number.isFinite(at) && at > 0 && at <= now
     ? { at, bid: h.bid, ask: h.ask } : null;
-  return { quote, trades: pilot?.recent_trades ?? null };
+  const e = data.execution;
+  const levels = executionFields(e, now).state === 'Open' ? { side: e.side, entry: e.entry_price, sl: e.sl, tp: e.tp } : null;
+  return { quote, trades: pilot?.recent_trades ?? null, levels };
 }
 
 // Keep only this page session; clear on stale/auth failure and break lines across polling gaps.

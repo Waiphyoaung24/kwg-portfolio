@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from gold_signal import evaluate
+from instruments import instrument
 from mt5_data import SERVER, SYMBOL, read_gold, validate_account, validate_tick
 
 MAGIC = 20260929
@@ -35,13 +36,14 @@ def _direction_type(mt5, request):
 
 
 def build_entry_request(mt5, login: int, side: str, now: float,
-                        server_offset_seconds: int, *, execution: bool, levels=None, bar_seconds=900) -> dict:
+                        server_offset_seconds: int, *, execution: bool, levels=None, bar_seconds=900, trend_demo=False, symbol=SYMBOL) -> dict:
     """Return one locally checked protected request without submitting it."""
+    instrument(symbol)
     if side not in ("buy", "sell"):
         raise ValueError("Operator must choose buy or sell.")
     tick, bars = read_gold(mt5, login, now,
-                           server_offset_seconds=server_offset_seconds, execution=execution, bar_seconds=bar_seconds)
-    assessment = evaluate(bars, float(tick.bid), float(tick.ask), now, bar_seconds=bar_seconds)
+                           server_offset_seconds=server_offset_seconds, execution=execution, bar_seconds=bar_seconds, trend_demo=trend_demo, symbol=symbol)
+    assessment = evaluate(bars, float(tick.bid), float(tick.ask), now, bar_seconds=bar_seconds, trend_demo=trend_demo, symbol=symbol)
     if assessment["signal"] == "blocked":
         raise ValueError(assessment["reason"])
     account, terminal = mt5.account_info(), mt5.terminal_info()
@@ -49,12 +51,15 @@ def build_entry_request(mt5, login: int, side: str, now: float,
     if getattr(account, "currency", None) != "USD":
         raise ValueError("Expected USD demo account for risk and result reporting.")
     equity = _positive(getattr(account, "equity", None), "equity")
-    positions, orders = mt5.positions_get(symbol=SYMBOL), mt5.orders_get(symbol=SYMBOL)
+    positions, orders = mt5.positions_get(symbol=symbol), mt5.orders_get(symbol=symbol)
     if positions is None or orders is None or positions or orders:
         raise ValueError("Gold position/order state is occupied or unavailable.")
-    info = mt5.symbol_info(SYMBOL)
-    if info is None or getattr(info, "name", None) != SYMBOL:
+    info = mt5.symbol_info(symbol)
+    if info is None or getattr(info, "name", None) != symbol:
         raise ValueError("Gold contract metadata is unavailable.")
+    if symbol == "BTCUSD" and (getattr(info, "currency_profit", None) != "USD"
+            or getattr(info, "trade_contract_size", None) != 1):
+        raise ValueError("BTC contract differs from reviewed USD contract")
     point = _positive(getattr(info, "point", None), "point")
     tick_size = _positive(getattr(info, "trade_tick_size", None), "tick size")
     minimum = _positive(getattr(info, "volume_min", None), "minimum volume")
@@ -124,19 +129,20 @@ def build_entry_request(mt5, login: int, side: str, now: float,
         if order_mode & mode_flag != mode_flag or min(abs(entry - sl), abs(entry - tp)) < distance:
             raise ValueError("Broker does not permit this protected pending order.")
         action, fill_type = mt5.TRADE_ACTION_PENDING, mt5.ORDER_FILLING_RETURN
-    profit = mt5.order_calc_profit(order_type, SYMBOL, minimum, entry, sl)
+    profit = mt5.order_calc_profit(order_type, symbol, minimum, entry, sl)
     if (type(profit) not in (int, float) or not math.isfinite(profit)
             or profit >= 0 or -profit > equity * .001):
         raise ValueError("Minimum-lot stop exposure exceeds 0.1% of equity or is unknown.")
-    return {"action": action, "symbol": SYMBOL, "volume": minimum,
+    return {"action": action, "symbol": symbol, "volume": minimum,
             "type": pending_type, "price": entry, "sl": sl, "tp": tp,
             "deviation": 10, "magic": MAGIC,
             "comment": f"kwg-demo-{secrets.token_hex(4)}",
             "type_time": mt5.ORDER_TIME_GTC, "type_filling": fill_type}
 
 
-def open_journal(path: Path, login: int) -> sqlite3.Connection:
+def open_journal(path: Path, login: int, symbol=SYMBOL) -> sqlite3.Connection:
     """Open the persistent, account-bound attempt history; never touch observer state."""
+    instrument(symbol)
     path = Path(path)
     if path.is_dir() or not path.parent.is_dir():
         raise ValueError("One-shot journal needs an existing private directory.")
@@ -157,9 +163,9 @@ def open_journal(path: Path, login: int) -> sqlite3.Connection:
                            "position_ticket INTEGER, volume REAL, opened_at REAL, closed_at REAL, "
                            "close_reason TEXT, realized_net_usd REAL, entry_equity REAL, "
                            "close_order_id INTEGER, close_deal_id INTEGER, plan_json TEXT)")
-                db.execute("INSERT INTO metadata VALUES (?, ?, ?)", (login, SERVER, SYMBOL))
+                db.execute("INSERT INTO metadata VALUES (?, ?, ?)", (login, SERVER, symbol))
         identity = db.execute("SELECT login, server, symbol FROM metadata").fetchall()
-        if [tuple(row) for row in identity] != [(login, SERVER, SYMBOL)]:
+        if [tuple(row) for row in identity] != [(login, SERVER, symbol)]:
             raise ValueError("One-shot journal belongs to another account or symbol.")
         if existed and "plan_json" not in {row[1] for row in db.execute("PRAGMA table_info(attempts)")}:
             with db:
@@ -212,6 +218,9 @@ def _status(db, now):
 
 
 def _broker_state(mt5, row, now, login):
+    request = json.loads(row["request_json"])
+    symbol = request["symbol"]
+    instrument(symbol)
     account = mt5.account_info()
     terminal = mt5.terminal_info()
     if (account is None or terminal is None or not terminal.connected
@@ -219,8 +228,8 @@ def _broker_state(mt5, row, now, login):
             or account.login != login
             or account.server != SERVER):
         raise ValueError("Pinned demo identity is unavailable during reconciliation.")
-    positions = mt5.positions_get(symbol=SYMBOL)
-    orders = mt5.orders_get(symbol=SYMBOL)
+    positions = mt5.positions_get(symbol=symbol)
+    orders = mt5.orders_get(symbol=symbol)
     offset = _server_offset()
     start = datetime.fromtimestamp(row["armed_at"] - 120 + offset, timezone.utc)
     end = datetime.fromtimestamp(now + 60 + offset, timezone.utc)
@@ -230,13 +239,13 @@ def _broker_state(mt5, row, now, login):
     request = json.loads(row["request_json"])
     all_positions = tuple(positions)
     candidates = [position for position in all_positions
-                  if getattr(position, "symbol", None) == SYMBOL
+                  if getattr(position, "symbol", None) == symbol
                   and getattr(position, "magic", None) == MAGIC
                   and (getattr(position, "comment", None) == request["comment"]
                        or getattr(position, "ticket", None) == row["order_id"]
                        or getattr(position, "ticket", None) == row["position_ticket"])]
     anchored_entries = [deal for deal in deals
-                        if getattr(deal, "symbol", None) == SYMBOL
+                        if getattr(deal, "symbol", None) == symbol
                         and getattr(deal, "entry", None) == 0
                         and getattr(deal, "magic", None) == MAGIC
                         and (getattr(deal, "comment", None) == request["comment"]
@@ -247,13 +256,17 @@ def _broker_state(mt5, row, now, login):
                     and position_id > 0}
     if row["position_ticket"]:
         position_ids.add(row["position_ticket"])
-    matching_deals = [deal for deal in deals if getattr(deal, "symbol", None) == SYMBOL
+    matching_deals = [deal for deal in deals if getattr(deal, "symbol", None) == symbol
                       and getattr(deal, "position_id", None) in position_ids]
     return candidates, all_positions, tuple(orders), matching_deals
 
 
 def _protected(mt5, position, request, entry_equity):
-    info = mt5.symbol_info(SYMBOL)
+    symbol = request["symbol"]
+    instrument(symbol)
+    if getattr(position, "symbol", None) != symbol:
+        raise ValueError("Position symbol differs from journal request")
+    info = mt5.symbol_info(symbol)
     tick_size = _positive(getattr(info, "trade_tick_size", None), "tick size")
     volume = _positive(getattr(position, "volume", None), "filled volume")
     price = _positive(getattr(position, "price_open", None), "fill price")
@@ -269,7 +282,7 @@ def _protected(mt5, position, request, entry_equity):
     account = mt5.account_info()
     if account is None or account.trade_mode != 0 or account.server != SERVER:
         raise ValueError("Pinned demo identity changed during reconciliation.")
-    profit = mt5.order_calc_profit(direction, SYMBOL, volume, price, sl)
+    profit = mt5.order_calc_profit(direction, symbol, volume, price, sl)
     if (type(profit) not in (int, float) or not math.isfinite(profit)
             or profit >= 0 or -profit > _positive(entry_equity, "entry equity") * .001):
         raise ValueError("Actual filled stop exposure exceeds the demo risk ceiling.")
@@ -352,6 +365,8 @@ def _observed_exit_reason(mt5, deals, ticket, expected_volume):
 
 
 def _historical_protection(mt5, row, request, deals, ticket):
+    symbol = request["symbol"]
+    instrument(symbol)
     """Prove broker-held stops when an entry closed before a position read."""
     entries = [deal for deal in deals if getattr(deal, "position_id", None) == ticket
                and getattr(deal, "entry", None) == 0]
@@ -364,11 +379,11 @@ def _historical_protection(mt5, row, request, deals, ticket):
     if orders is None or len(orders) != 1:
         return None
     order = orders[0]
-    info = mt5.symbol_info(SYMBOL)
+    info = mt5.symbol_info(symbol)
     tick_size = _positive(getattr(info, "trade_tick_size", None), "tick size")
     if (getattr(order, "ticket", None) != order_id
             or getattr(order, "position_id", None) != ticket
-            or getattr(order, "symbol", None) != SYMBOL
+            or getattr(order, "symbol", None) != symbol
             or getattr(order, "magic", None) != MAGIC
             or getattr(order, "type", None) != request["type"]
             or getattr(order, "volume_initial", None) != request["volume"]
@@ -382,7 +397,7 @@ def _historical_protection(mt5, row, request, deals, ticket):
     exposure = 0.0
     for deal in entries:
         price = _positive(getattr(deal, "price", None), "filled price")
-        profit = mt5.order_calc_profit(_direction_type(mt5, request), SYMBOL,
+        profit = mt5.order_calc_profit(_direction_type(mt5, request), symbol,
                                       deal.volume, price, request["sl"])
         if type(profit) not in (int, float) or not math.isfinite(profit) or profit >= 0:
             return None
@@ -393,12 +408,16 @@ def _historical_protection(mt5, row, request, deals, ticket):
 
 
 def _reconcile(mt5, db, row, now):
+    symbol = db.execute("SELECT symbol FROM metadata").fetchone()[0]
+    if json.loads(row["request_json"])["symbol"] != symbol:
+        _update(db, state="needs_attention")
+        return
     try:
         login = db.execute("SELECT login FROM metadata").fetchone()[0]
         positions, all_positions, orders, deals = _broker_state(mt5, row, now, login)
         request = json.loads(row["request_json"])
         pending_request = request.get("action") == mt5.TRADE_ACTION_PENDING
-        own_orders = [order for order in orders if getattr(order, "symbol", None) == SYMBOL
+        own_orders = [order for order in orders if getattr(order, "symbol", None) == symbol
                       and getattr(order, "ticket", None) == row["order_id"]
                       and getattr(order, "magic", None) == MAGIC
                       and getattr(order, "type", None) == request["type"]
@@ -461,7 +480,7 @@ def _reconcile(mt5, db, row, now):
             if pending_request and row["order_id"] and not deals:
                 history = mt5.history_orders_get(ticket=row["order_id"])
                 if (history is not None and len(history) == 1
-                        and getattr(history[0], "symbol", None) == SYMBOL
+                        and getattr(history[0], "symbol", None) == symbol
                         and getattr(history[0], "magic", None) == MAGIC
                         and getattr(history[0], "state", None) == mt5.ORDER_STATE_CANCELED):
                     _update(db, state="disarmed", close_reason="pending order cancelled in MT5")
@@ -479,12 +498,17 @@ def _server_offset():
 
 
 def _final_entry_guard(mt5, login, request):
+    symbol = request["symbol"]
+    instrument(symbol)
     account = mt5.account_info()
     validate_account(account, mt5.terminal_info(), login, execution=True)
-    tick = mt5.symbol_info_tick(SYMBOL)
-    validate_tick(tick, time.time(), server_offset_seconds=_server_offset())
-    info = mt5.symbol_info(SYMBOL)
-    positions, orders = mt5.positions_get(symbol=SYMBOL), mt5.orders_get(symbol=SYMBOL)
+    tick = mt5.symbol_info_tick(symbol)
+    validate_tick(tick, time.time(), server_offset_seconds=_server_offset(), symbol=symbol)
+    info = mt5.symbol_info(symbol)
+    positions, orders = mt5.positions_get(symbol=symbol), mt5.orders_get(symbol=symbol)
+    if symbol == 'BTCUSD' and (getattr(info, 'currency_profit', None) != 'USD'
+            or getattr(info, 'trade_contract_size', None) != 1):
+        raise ValueError('BTC contract changed before entry')
     if positions is None or orders is None or positions or orders:
         raise ValueError("Gold position/order state changed before entry.")
     pending_request = request["action"] == mt5.TRADE_ACTION_PENDING
@@ -493,7 +517,7 @@ def _final_entry_guard(mt5, login, request):
                  else FILLING_IOC_FLAG)
     filling = getattr(info, "filling_mode", None)
     order_mode = getattr(info, "order_mode", None)
-    if (getattr(info, "name", None) != SYMBOL
+    if (getattr(info, "name", None) != symbol
             or getattr(info, "trade_mode", None) != mt5.SYMBOL_TRADE_MODE_FULL
             or getattr(info, "trade_exemode", None) not in (0, 1, 2, 3)
             or (not pending_request and (type(filling) is not int or not filling & fill_flag))
@@ -533,7 +557,7 @@ def _final_entry_guard(mt5, login, request):
         valid = request["sl"] - ask >= distance and ask - request["tp"] >= distance
     if not valid:
         raise ValueError("Gold stop distance changed before entry.")
-    profit = mt5.order_calc_profit(direction, SYMBOL, request["volume"],
+    profit = mt5.order_calc_profit(direction, symbol, request["volume"],
                                    request["price"] if pending_request else current_price, request["sl"])
     if (type(profit) not in (int, float) or not math.isfinite(profit)
             or profit >= 0 or -profit > _positive(getattr(account, "equity", None), "equity") * .001):
@@ -541,8 +565,10 @@ def _final_entry_guard(mt5, login, request):
     return account.equity
 
 
-def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, before_submit=None, bar_seconds=900) -> dict:
+def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, before_submit=None, bar_seconds=900, trend_demo=False) -> dict:
     """Advance one journal state; only a fresh arm may submit an entry."""
+    symbol = db.execute("SELECT symbol FROM metadata").fetchone()[0]
+    instrument(symbol)
     row = _attempt(db)
     if row is None:
         return _status(db, now)
@@ -556,7 +582,7 @@ def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, b
         try:
             levels = json.loads(row["plan_json"]) if row["plan_json"] else None
             request = build_entry_request(mt5, login, row["side"], now,
-                                          _server_offset(), execution=True, levels=levels, bar_seconds=bar_seconds)
+                                          _server_offset(), execution=True, levels=levels, bar_seconds=bar_seconds, trend_demo=trend_demo, symbol=symbol)
             check = mt5.order_check(request)
             if check is None or getattr(check, "retcode", None) != 0:
                 raise ValueError("Broker rejected protected entry check.")
@@ -566,6 +592,8 @@ def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, b
         try:
             if before_submit is not None:
                 before_submit(request)
+            if request["symbol"] != symbol:
+                raise ValueError("Entry symbol differs from journal")
             entry_equity = _final_entry_guard(mt5, login, request)
         except ValueError as exc:
             _update(db, state="disarmed", close_reason=str(exc))

@@ -13,6 +13,13 @@ import control_server as control
 
 
 class ControlTest(unittest.TestCase):
+    def test_btc_pause_is_scoped_and_unknown_symbols_are_rejected(self):
+        with patch.dict(os.environ, {'MT5_RUN_MODE': 'pilot', 'MT5_PILOT_SYMBOLS': 'XAUUSD-VIP,BTCUSD'}):
+            self.assertEqual(control.run_action('pilot-pause', {'symbol': 'BTCUSD'})[0], 202)
+            self.assertTrue((control.STATE.parent/'btc-pilot.pause').exists())
+            self.assertFalse((control.STATE.parent/'gold-pilot.pause').exists())
+            self.assertEqual(control.run_action('pilot-pause', {'symbol': '../gold'})[0], 409)
+
     def test_pilot_pause_persists_and_manual_entry_is_refused(self):
         with patch.dict(os.environ, {'MT5_RUN_MODE': 'pilot'}), \
                 patch.object(control.subprocess, 'Popen') as launch:

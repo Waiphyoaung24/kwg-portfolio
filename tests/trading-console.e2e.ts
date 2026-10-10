@@ -29,8 +29,11 @@ for (const width of [1280, 390]) {
     await app.open('/vault/trading');
     await expect(screen.getByRole('tab', 'Live quotes')).toBeVisible();
     await expect(browser.locator('#pilot-intent')).toHaveText('Managing a demo trade');
+    await expect(screen.getByRole('heading', 'Open demo position')).toBeVisible();
+    await expect(browser.locator('#position-side')).toHaveText('BUY');
     await screen.getByRole('button', 'Refresh status').tap();
-    await expect(browser.locator('.trading-charts__bid')).toBeVisible();
+    await expect(browser.locator('.trading-charts__chart')).toBeVisible();
+    await expect(browser.locator('#position-rail')).toHaveAttribute('aria-valuetext', /of the way from entry to/);
     await expect(browser.locator('#replay-play')).toBeHidden();
     const layout = await browser.evaluate(() => ({ height: document.documentElement.scrollHeight, width: document.documentElement.scrollWidth, viewport: innerWidth }));
     assert.ok(layout.width <= layout.viewport, 'Console must not overflow horizontally');
@@ -48,7 +51,7 @@ for (const width of [1280, 390]) {
     await screen.getByRole('tab', 'Live quotes').tap();
     await browser.route('**/api/trading/status', route => route.fulfill({ status: 401, body: '' }));
     await screen.getByRole('button', 'Refresh status').tap();
-    await expect(browser.locator('.trading-charts__bid')).toBeHidden();
+    await expect(browser.locator('.trading-charts__chart')).toBeHidden();
     await expect(browser.locator('#price')).toHaveText('—');
     await expect(browser.locator('#pilot-pause')).toBeDisabled();
     await screen.getByRole('tab', 'Trade results').tap();

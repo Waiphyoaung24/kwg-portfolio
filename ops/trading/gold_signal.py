@@ -1,5 +1,6 @@
 """Pure, signal-only gold crossover calculation on completed M15 bars."""
 import math
+from instruments import GOLD, BTC, validate_market
 
 
 def ema(values: list[float], period: int) -> list[float | None]:
@@ -35,9 +36,12 @@ def atr(bars: list[dict], period: int = 14) -> list[float | None]:
     return out
 
 
-def evaluate(bars: list[dict], bid: float, ask: float, now: float, *, bar_seconds: int = 900) -> dict:
+def evaluate(bars: list[dict], bid: float, ask: float, now: float, *, bar_seconds: int = 900, trend_demo: bool = False, symbol: str = GOLD) -> dict:
+    validate_market(symbol, bar_seconds, trend_demo)
     if type(bar_seconds) is not int or bar_seconds not in (60, 900):
         raise ValueError('Only M1 and M15 candles are supported')
+    if type(trend_demo) is not bool or trend_demo and bar_seconds != (900 if symbol == BTC else 60):
+        raise ValueError('Trend demo spread policy requires M1 candles')
     if len(bars) < 250:
         raise ValueError("Need 250 completed gold bars")
     bars = bars[-250:]
@@ -62,7 +66,7 @@ def evaluate(bars: list[dict], bid: float, ask: float, now: float, *, bar_second
     closes = [bar["close"] for bar in bars]
     fast, slow, volatility = ema(closes, 20), ema(closes, 50), atr(bars)
     result.update(ema20=fast[-1], ema50=slow[-1], atr14=volatility[-1])
-    if volatility[-1] <= 0 or ask - bid > volatility[-1] * .1 + 1e-12:
+    if volatility[-1] <= 0 or ask - bid > volatility[-1] * (.25 if trend_demo else .1) + 1e-12:
         result["reason"] = "ATR or spread outside allowed range"
         return result
     if fast[-2] <= slow[-2] and fast[-1] > slow[-1]:

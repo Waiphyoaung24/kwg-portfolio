@@ -32,9 +32,13 @@ def available():
 def run_action(action, payload):
     global pending, runner
     if action == 'pilot-pause':
-        if payload != {} or os.environ.get('MT5_RUN_MODE', 'observer') != 'pilot':
+        if (set(payload) - {'symbol'} or payload.get('symbol', 'XAUUSD-VIP') not in ('XAUUSD-VIP', 'BTCUSD')
+                or os.environ.get('MT5_RUN_MODE', 'observer') != 'pilot'):
             return 409, {'error': 'Pilot mode is not available.'}
-        with (STATE.parent / 'gold-pilot.pause').open('ab'):
+        symbol = payload.get('symbol', 'XAUUSD-VIP')
+        if symbol == 'BTCUSD' and os.environ.get('MT5_PILOT_SYMBOLS') != 'XAUUSD-VIP,BTCUSD':
+            return 409, {'error': 'BTC pilot is not deployed.'}
+        with (STATE.parent / ('btc-pilot.pause' if symbol == 'BTCUSD' else 'gold-pilot.pause')).open('ab'):
             pass
         return 202, {'status': 'pause_requested'}
     if os.environ.get('MT5_RUN_MODE', 'observer') == 'pilot':

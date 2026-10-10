@@ -155,6 +155,7 @@ class PilotTest(unittest.TestCase):
         p['strategy'] = pilot.TREND_STRATEGY
         pilot.save(self.db, p)
         self.fill()
+        self.mt5.symbol_info_tick.return_value.ask = 100.5
         for stamp in (NOW, NOW + 60):
             self.clock = stamp
             self.mt5.symbol_info_tick.return_value.time = stamp
@@ -180,6 +181,59 @@ class PilotTest(unittest.TestCase):
         with patch('demo_pilot.evaluate', return_value=dict(signal='blocked', reason='spread')):
             self.assertEqual(pilot.assess([], self.mt5.symbol_info_tick(), NOW, p)['signal'], 'blocked')
 
+    def test_trend_rechecks_spread_before_submission(self):
+        self.start()
+        p = pilot.state(self.db)
+        p['strategy'] = pilot.TREND_STRATEGY
+        pilot.save(self.db, p)
+        self.mt5.symbol_info_tick.return_value.ask = 100.5
+        self.tick(NOW)
+        def widen(request):
+            self.mt5.symbol_info_tick.return_value.ask = 100.51
+            return Record(retcode=0)
+        self.mt5.order_check.side_effect = widen
+        result = self.tick(NOW + 60)
+        self.assertEqual(result['execution']['status'], 'disarmed')
+        self.assertIn('ATR or spread', result['execution']['close_reason'])
+        self.mt5.order_send.assert_not_called()
+
+    def test_account_recovery_allows_monitoring_but_not_wide_spread_entries(self):
+        self.start()
+        p = pilot.state(self.db)
+        p.update(strategy=pilot.TREND_STRATEGY, pause=recovery['ACCOUNT_PAUSE'])
+        pilot.save(self.db, p)
+        self.mt5.copy_rates_from_pos.return_value = [dict(time=NOW-(250-i)*60,
+            open=100, high=101, low=99, close=100) for i in range(250)]
+        self.mt5.symbol_info_tick.return_value.ask = 100.5
+        recovery['review'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity())
+        self.assertEqual(pilot.state(self.db), p)
+        self.mt5.symbol_info_tick.return_value.ask = 100.5001
+        recovery['review'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity())
+        self.assertEqual(pilot.state(self.db), p)
+        backup = self.path.with_name('wide-spread-backup.sqlite3')
+        result = recovery['resume'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity(), backup)
+        self.assertIsNone(result['pause'])
+        self.assertEqual(result['end'], p['end'])
+        result = pilot.poll_once(self.mt5, self.db, 123, NOW, self.pause)
+        self.assertEqual(result['status'], 'blocked')
+        self.assertEqual(result['reason'], 'ATR or spread outside allowed range')
+        self.mt5.order_send.assert_not_called()
+
+    def test_account_recovery_rejects_stale_data_and_other_read_failures(self):
+        self.start()
+        p = pilot.state(self.db)
+        p['pause'] = recovery['ACCOUNT_PAUSE']
+        pilot.save(self.db, p)
+        self.mt5.symbol_info_tick.return_value.time = NOW - 60
+        self.mt5.symbol_info_tick.return_value.time_msc = (NOW - 60) * 1000
+        with self.assertRaisesRegex(ValueError, 'older than 30 seconds'):
+            recovery['review'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity())
+        with patch('demo_pilot.read_gold', side_effect=ValueError('Invalid or unordered bars')):
+            with self.assertRaisesRegex(ValueError, 'Invalid or unordered bars'):
+                recovery['review'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity())
+        self.assertEqual(pilot.state(self.db), p)
+        self.mt5.order_send.assert_not_called()
+
     def test_trend_still_requires_slope_and_acceptable_spread(self):
         self.start()
         p = pilot.state(self.db)
@@ -187,7 +241,7 @@ class PilotTest(unittest.TestCase):
         pilot.save(self.db, p)
         self.tick(NOW)
         self.tick(NOW + 60, allowed=False)
-        self.mt5.symbol_info_tick.return_value.ask = 100.3
+        self.mt5.symbol_info_tick.return_value.ask = 100.5001
         self.assertEqual(self.tick(NOW + 120)['status'], 'blocked')
         self.mt5.order_send.assert_not_called()
 
@@ -232,6 +286,30 @@ class PilotTest(unittest.TestCase):
             self.assertEqual(updated[key], p[key])
         with self.assertRaises(ValueError):
             migration['review'](self.mt5, self.db, 123, NOW, self.pause, pilot.identity(), pilot.identity(), trend=True)
+        self.mt5.order_send.assert_not_called()
+
+    def test_trend_spread_upgrade_preserves_state_and_rejects_wrong_source(self):
+        self.start()
+        p = pilot.state(self.db)
+        p.update(strategy=pilot.TREND_STRATEGY, code='previous-trend-code')
+        pilot.save(self.db, p)
+        self.mt5.copy_rates_from_pos.return_value = [dict(time=NOW-(250-i)*60,
+            open=100, high=101, low=99, close=100) for i in range(250)]
+        inputs = (self.mt5, self.db, 123, NOW, self.pause, p['code'], pilot.identity())
+        for change in ({'pause': 'Owner paused'}, {'code': 'unexpected'}, {'strategy': pilot.M1_STRATEGY}):
+            pilot.save(self.db, {**p, **change})
+            with self.assertRaises(ValueError):
+                migration['review'](*inputs, trend=True, spread_upgrade=True)
+        pilot.save(self.db, p)
+        with self.assertRaisesRegex(ValueError, 'requires trend'):
+            migration['review'](*inputs, spread_upgrade=True)
+        backup = self.path.with_name('spread-backup.sqlite3')
+        updated = migration['switch'](*inputs, backup, trend=True, spread_upgrade=True)
+        for key in p.keys() - {'code', 'last_bar', 'reason'}:
+            self.assertEqual(updated[key], p[key])
+        self.assertEqual(updated['code'], pilot.identity())
+        with closing(sqlite3.connect(backup)) as db:
+            self.assertEqual(pilot.state(db), p)
         self.mt5.order_send.assert_not_called()
 
     def test_m1_uses_completed_minutes_for_signal_and_order_checks(self):

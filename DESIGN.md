@@ -495,6 +495,21 @@ must use their matching foreground roles; supporting text uses
 Dashboard-only extensions and representative component snippets are recorded
 in `dashboard/.impeccable/design.json`.
 
+### Trading exception
+
+The owner approved a light "trading desk" theme for `/vault/trading` on
+2026-10-10, built on the Tabler UI kit (`@tabler/core`) with `@tabler/icons`
+and ApexCharts. The page imports Tabler's CSS instead of the marketing
+stylesheet and re-points Tabler's variables in the page's `--desk-*` tokens:
+a white canvas, one forest green (`#0f7a45`, deep `#0a4d2c`) for text, brand,
+live states and profit, and red (`#d92d20`) only for stop, loss and alerts.
+Type is Geist with Geist Mono for every number; weights 400-600 are allowed.
+Profit and loss always pair colour with a sign or an arrow. Motion (staggered
+entrance, price flash, rolling numbers, rail glide, chart draw-in, sliding tab
+highlight) collapses under reduced motion. WCAG 2.2 AA, visible focus and
+44-pixel touch targets still apply. The exception covers this route only;
+`/vault/trading-bot` and public pages keep the incumbent system.
+
 ### Do
 - Reserve `{colors.canvas}` (`#0a0a0a`) as the only page surface. The brand is dark-canvas only.
 - Set hero headlines in `{typography.display-xl}` Universal Sans weight 400 with `-2.4 px` tracking. The precision IS the voice.

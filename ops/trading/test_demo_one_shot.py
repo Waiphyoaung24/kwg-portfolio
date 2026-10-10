@@ -406,7 +406,7 @@ class AttemptTest(unittest.TestCase):
 
     def test_reconcile_uses_broker_offset_and_reports_utc_close(self):
         arm_once(self.db, "buy", NOW)
-        request = {"type": 0, "volume": .01, "comment": "kwg-demo-test"}
+        request = {"symbol": "XAUUSD-VIP", "type": 0, "volume": .01, "comment": "kwg-demo-test"}
         with self.db:
             self.db.execute("UPDATE attempts SET state='needs_attention', phase='close', "
                             "request_json=?, order_id=77, deal_id=88, position_ticket=77, "

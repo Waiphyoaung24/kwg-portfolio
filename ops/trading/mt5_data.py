@@ -3,6 +3,7 @@ import math
 import time
 
 from gold_signal import evaluate
+from instruments import validate_market
 
 SYMBOL = "XAUUSD-VIP"
 SERVER = "VTMarkets-Demo"
@@ -34,14 +35,15 @@ def validate_account(account, terminal, login, server=SERVER, *, execution=False
         raise AlgoTradingOn("Turn Algo Trading off for this read-only check.")
 
 
-def validate_tick(tick, now: float, evidence: dict | None = None, *, server_offset_seconds: int = 0) -> float:
+def validate_tick(tick, now: float, evidence: dict | None = None, *, server_offset_seconds: int = 0, symbol: str = SYMBOL) -> float:
+    label = 'Bitcoin' if symbol == 'BTCUSD' else 'Gold'
     if server_offset_seconds not in (0, 7200, 10800):
         raise ValueError("Unsupported server clock offset.")
     evidence = evidence if evidence is not None else {}
     evidence.update(quote="missing", sampled_at=now, tick_time=None,
                     tick_time_msc=None, quote_age_seconds=None)
     if tick is None:
-        raise DataUnavailable("Gold quote has not populated yet.")
+        raise DataUnavailable(f"{label} quote has not populated yet.")
     evidence["quote"] = "invalid"
     bid, ask = float(tick.bid), float(tick.ask)
     raw_msc = getattr(tick, "time_msc", 0)
@@ -58,10 +60,10 @@ def validate_tick(tick, now: float, evidence: dict | None = None, *, server_offs
     age = now - normalized_stamp
     if age < 0:
         evidence["quote"] = "future"
-        raise ValueError("Gold quote timestamp is ahead of the checking clock.")
+        raise ValueError(f"{label} quote timestamp is ahead of the checking clock.")
     if age > 30:
         evidence["quote"] = "stale"
-        raise ValueError("Gold quote is older than 30 seconds.")
+        raise ValueError(f"{label} quote is older than 30 seconds.")
     evidence["quote"] = "fresh"
     return age
 
@@ -78,7 +80,8 @@ def read_contract(mt5) -> dict:
 
 
 def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
-              *, server_offset_seconds: int = 0, execution: bool = False, bar_seconds: int = 900) -> tuple[object, list[dict]]:
+              *, server_offset_seconds: int = 0, execution: bool = False, bar_seconds: int = 900, trend_demo: bool = False, symbol: str = SYMBOL) -> tuple[object, list[dict]]:
+    validate_market(symbol, bar_seconds, trend_demo)
     if type(bar_seconds) is not int or bar_seconds not in (60, 900):
         raise ValueError('Only M1 and M15 candles are supported')
     if server_offset_seconds not in (0, 7200, 10800):
@@ -98,12 +101,12 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
                         sampled_at=time.time() if now is None else now)
         raise
     evidence["terminal"] = "connected"
-    if not mt5.symbol_select(SYMBOL, True):
+    if not mt5.symbol_select(symbol, True):
         raise DataUnavailable("Gold symbol is unavailable on the demo account.")
-    tick = mt5.symbol_info_tick(SYMBOL)
+    tick = mt5.symbol_info_tick(symbol)
     sampled_at = time.time() if now is None else now
     evidence["expected_bar_time"] = int(sampled_at // bar_seconds) * bar_seconds - bar_seconds
-    info = mt5.symbol_info(SYMBOL)
+    info = mt5.symbol_info(symbol)
     point = getattr(info, "point", None)
     if tick is not None:
         try:
@@ -118,10 +121,10 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
             evidence["spread_points"] = evidence["spread_price"] / point
     quote_error = None
     try:
-        validate_tick(tick, sampled_at, evidence, server_offset_seconds=server_offset_seconds)
+        validate_tick(tick, sampled_at, evidence, server_offset_seconds=server_offset_seconds, symbol=symbol)
     except ValueError as exc:
         quote_error = exc
-    rates = mt5.copy_rates_from_pos(SYMBOL, mt5.TIMEFRAME_M1 if bar_seconds == 60 else mt5.TIMEFRAME_M15, 1, 250)
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M1 if bar_seconds == 60 else mt5.TIMEFRAME_M15, 1, 250)
     if rates is not None:
         evidence["history_count"] = len(rates)
         if len(rates):
@@ -146,7 +149,7 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
         bars.append({key: int(row[key]) - server_offset_seconds if key == "time" else float(row[key])
                      for key in ("time", "open", "high", "low", "close")})
     try:
-        assessment = evaluate(bars, float(tick.bid), float(tick.ask), sampled_at, bar_seconds=bar_seconds)
+        assessment = evaluate(bars, float(tick.bid), float(tick.ask), sampled_at, bar_seconds=bar_seconds, trend_demo=trend_demo, symbol=symbol)
     except ValueError as exc:
         evidence["strategy_reason"] = str(exc)
         raise

@@ -7,6 +7,33 @@ const url = 'https://waiphyoaung.com/api/trading/status';
 const env = { ALLOWED_VIEWER_EMAIL: 'owner@example.com', STATUS_ORIGIN_URL: 'https://origin.example/status', STATUS_ACCESS_CLIENT_ID: 'id', STATUS_ACCESS_CLIENT_SECRET: 'secret' };
 const access = { getIdentity: async () => ({ email: 'owner@example.com' }) };
 
+test('BTC status forwards an explicit selector and rejects a gold response', async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  const payload = JSON.parse(readFileSync(new URL('../fixtures/pilot-status.json', import.meta.url)));
+  const now = Math.floor(Date.now()/1000), shift = now-payload.checked_at;
+  payload.checked_at = payload.pilot.updated_at = payload.execution.updated_at = now;
+  payload.pilot.started_at += shift;
+  payload.pilot.ends_at += shift;
+  payload.pilot.recent_trades = [];
+  let called = 0;
+  globalThis.fetch = async target => {
+    called++;
+    assert.equal(new URL(target).searchParams.get('symbol'), 'BTCUSD');
+    return Response.json(payload);
+  };
+  const request = new Request(url+'?symbol=BTCUSD');
+  assert.equal((await worker.fetch(request, env, {})).status, 403);
+  assert.equal(called, 0);
+  assert.equal((await worker.fetch(request, env, { access })).status, 503);
+  payload.symbol = 'BTCUSD';
+  payload.pilot.strategy = 'btc-ema-v1-m15-trend-3';
+  const response = await worker.fetch(request, env, { access });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).symbol, 'BTCUSD');
+  assert.equal((await worker.fetch(new Request(url+'?symbol=unknown'), env, { access })).status, 400);
+});
+
 test('operations page requires exact Access identity and supports only fixed GET paths', async (t) => {
   const original = globalThis.fetch;
   t.after(() => { globalThis.fetch = original; });

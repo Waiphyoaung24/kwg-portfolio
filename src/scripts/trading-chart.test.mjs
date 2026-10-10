@@ -10,8 +10,9 @@ test('chart clears on stale or unavailable reports and never uses replay prices'
   const current = chartSnapshot(fixture, now);
   assert.equal(current.quote.bid, fixture.health.bid);
   assert.equal(current.trades.length, 1);
-  assert.deepEqual(chartSnapshot(null, now), { quote: null, trades: null });
-  assert.deepEqual(chartSnapshot(fixture, now + 31), { quote: null, trades: null });
+  assert.deepEqual(chartSnapshot(null, now), { quote: null, trades: null, levels: null });
+  assert.equal(chartSnapshot(fixture, now + 31).quote, null);
+  assert.equal(current.levels.entry, fixture.execution.entry_price);
   assert.equal(chartSnapshot({ ...fixture, health: { ...fixture.health, bid: NaN } }, now).quote, null);
 });
 

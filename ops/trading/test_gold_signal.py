@@ -13,6 +13,19 @@ NOW = 251 * 900
 
 
 class GoldSignalTest(unittest.TestCase):
+    def test_trend_demo_spread_boundary_is_m1_only(self):
+        sample = [{**bar, 'time': bar['time'] // 15} for bar in bars(101)]
+        now = NOW // 15
+        self.assertEqual(evaluate(sample, 100, 100.5, now, bar_seconds=60, trend_demo=True)['signal'], 'long')
+        self.assertEqual(evaluate(sample, 100, 100.5001, now, bar_seconds=60, trend_demo=True)['signal'], 'blocked')
+        self.assertEqual(evaluate(sample, 100, 100.5, now, bar_seconds=60)['signal'], 'blocked')
+        self.assertEqual(evaluate(sample, 100, 100.5, now + 60, bar_seconds=60, trend_demo=True)['signal'], 'blocked')
+        for policy in (1, None, 'true'):
+            with self.assertRaises(ValueError):
+                evaluate(sample, 100, 100.1, now, bar_seconds=60, trend_demo=policy)
+        with self.assertRaises(ValueError):
+            evaluate(bars(), 100, 100.1, NOW, trend_demo=True)
+
     def test_m1_rejects_stale_forming_and_wide_spread_bars(self):
         sample = [{**bar, 'time': bar['time'] // 15} for bar in bars(101)]
         now = NOW // 15

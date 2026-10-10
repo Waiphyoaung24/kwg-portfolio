@@ -2,9 +2,9 @@ import { normalizePilot } from '../../../../src/scripts/trading-pilot.mjs';
 
 const noStore = { 'Cache-Control': 'no-store', 'Content-Type': 'application/json; charset=utf-8' };
 
-function unavailable(reason = 'Trading status is unavailable') {
+function unavailable(reason = 'Trading status is unavailable', symbol = 'XAUUSD-VIP') {
   return Response.json(
-    { mode: 'signal-only', symbol: 'XAUUSD-VIP', status: 'offline', signal: 'none', reason, checked_at: null, bar_time: null },
+    { mode: 'signal-only', symbol, status: 'offline', signal: 'none', reason, checked_at: null, bar_time: null },
     { status: 503, headers: noStore },
   );
 }
@@ -30,8 +30,8 @@ function normalizeExecution(value, now) {
   return execution;
 }
 
-export function normalizeStatus(value, now = Date.now() / 1000) {
-  if (!value || !['signal-only', 'autonomous-demo'].includes(value.mode) || value.symbol !== 'XAUUSD-VIP') throw new Error('Invalid status');
+export function normalizeStatus(value, now = Date.now() / 1000, symbol = 'XAUUSD-VIP') {
+  if (!value || !['signal-only', 'autonomous-demo'].includes(value.mode) || !['XAUUSD-VIP', 'BTCUSD'].includes(symbol) || value.symbol !== symbol) throw new Error('Invalid status');
   if (!['baseline', 'observed', 'duplicate', 'blocked', 'offline'].includes(value.status)) throw new Error('Invalid status');
   if (!['long', 'short', 'none'].includes(value.signal)) throw new Error('Invalid signal');
   if (!Number.isInteger(value.checked_at) || (value.bar_time !== null && !Number.isInteger(value.bar_time))) throw new Error('Invalid time');
@@ -56,14 +56,14 @@ export function normalizeStatus(value, now = Date.now() / 1000) {
   }
   const status = stale ? 'offline' : value.status;
   const result = {
-    mode: value.mode, symbol: 'XAUUSD-VIP', status,
+    mode: value.mode, symbol, status,
     signal: status === 'offline' || status === 'blocked' ? 'none' : value.signal,
     reason: stale ? 'Observer heartbeat missing' : String(value.reason || '').slice(0, 200),
     checked_at: value.checked_at, bar_time: value.bar_time, health,
   };
   if (value.execution !== undefined) result.execution = normalizeExecution(value.execution, now);
   if (value.mode === 'autonomous-demo') {
-    result.pilot = normalizePilot(value.pilot, now);
+    result.pilot = normalizePilot(value.pilot, now, symbol);
     if (result.pilot === null && result.status !== 'offline') Object.assign(result, {
       status: 'blocked', signal: 'none', reason: 'Pilot heartbeat unavailable' });
   }
@@ -72,7 +72,10 @@ export function normalizeStatus(value, now = Date.now() / 1000) {
 
 export default {
   async fetch(request, env, ctx) {
-    const pathname = new URL(request.url).pathname;
+    const url = new URL(request.url);
+    const pathname = url.pathname;
+    const symbol = url.searchParams.get('symbol') ?? 'XAUUSD-VIP';
+    if (!['XAUUSD-VIP', 'BTCUSD'].includes(symbol) || url.searchParams.getAll('symbol').length > 1) return new Response('Unknown symbol', { status: 400 });
     const pagePath = ['/vault/trading', '/vault/trading/', '/vault/trading-bot', '/vault/trading-bot/'].includes(pathname)
       ? pathname.replace(/\/$/, '') : null;
     const isPage = pagePath !== null;
@@ -94,17 +97,17 @@ export default {
           headers: { Accept: 'text/html' }, redirect: 'manual', cache: 'no-store',
           signal: AbortSignal.timeout(5000),
         });
-        if (!response.ok || !response.headers.get('content-type')?.includes('text/html')) return unavailable();
+        if (!response.ok || !response.headers.get('content-type')?.includes('text/html')) return unavailable(undefined, symbol);
         return new Response(response.body, { headers: {
           'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
           'X-Robots-Tag': 'noindex', 'X-Content-Type-Options': 'nosniff',
         } });
       } catch {
-        return unavailable();
+        return unavailable(undefined, symbol);
       }
     }
     if (!env.STATUS_ORIGIN_URL || !env.STATUS_ACCESS_CLIENT_ID || !env.STATUS_ACCESS_CLIENT_SECRET) {
-      return unavailable();
+      return unavailable(undefined, symbol);
     }
     if (action) {
       if (!env.TRADING_CONTROL_SECRET) return Response.json({ error: 'Demo control is unavailable.' }, { status: 503, headers: noStore });
@@ -124,7 +127,7 @@ export default {
               !['buy', 'sell'].includes(body.side) ||
               ![body.entry, body.sl, body.tp].every(x => typeof x === 'number' && Number.isFinite(x) && x > 0 && x <= 1e6))) ||
             (action === 'arm' && (Object.keys(body).join() !== 'token' || !/^[A-Za-z0-9_-]{32}$/.test(body.token))) ||
-            (action === 'pilot-pause' && Object.keys(body).length !== 0)) {
+            (action === 'pilot-pause' && (Object.keys(body).some(key => key !== 'symbol') || !['XAUUSD-VIP', 'BTCUSD'].includes(body.symbol ?? 'XAUUSD-VIP')))) {
           throw new Error('Invalid request');
         }
       } catch {
@@ -178,6 +181,7 @@ export default {
     }
     try {
       const origin = new URL(env.STATUS_ORIGIN_URL);
+      if (symbol === 'BTCUSD') origin.searchParams.set('symbol', symbol);
       const response = await fetch(origin, {
         headers: {
           'CF-Access-Client-ID': env.STATUS_ACCESS_CLIENT_ID,
@@ -185,11 +189,11 @@ export default {
         },
         redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(5000),
       });
-      if (!response.ok) return unavailable();
-      if (!response.headers.get('content-type')?.includes('application/json')) return unavailable();
-      return Response.json(normalizeStatus(await response.json()), { headers: noStore });
+      if (!response.ok) return unavailable(undefined, symbol);
+      if (!response.headers.get('content-type')?.includes('application/json')) return unavailable(undefined, symbol);
+      return Response.json(normalizeStatus(await response.json(), Date.now() / 1000, symbol), { headers: noStore });
     } catch {
-      return unavailable();
+      return unavailable(undefined, symbol);
     }
   },
 };

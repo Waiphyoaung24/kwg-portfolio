@@ -73,7 +73,7 @@ else:
     else:
         assert result == 'JOURNAL_ABSENT'
     print(result, flush=True)
-    sources = ('desktop.sh', 'demo_pilot.py', 'demo_one_shot.py', 'gold_experiment.py',
+    sources = ('desktop.sh', 'demo_pilot.py', 'demo_one_shot.py', 'gold_experiment.py','instruments.py',
                'gold_signal.py', 'mt5_data.py', 'control_server.py')
     (stage / 'Dockerfile').write_text('FROM ' + rollback + '\nCOPY --chmod=0644 ' + ' '.join(sources) + ' /opt/trading/\n')
     (stage / '.dockerignore').write_text('*\n!Dockerfile\n' + ''.join('!' + name + '\n' for name in sources))

@@ -1,10 +1,10 @@
 // A fresh page/reconnection establishes a baseline; polling must not replay old entries.
-export function entryNotifications() {
+export function entryNotifications(symbol = 'XAUUSD-VIP') {
   let baseline = false;
   let latestOpened = 0;
   return (report, now, visible = true) => {
     if (!visible || !report || report.mode !== 'autonomous-demo' ||
-        report.symbol !== 'XAUUSD-VIP' || !Number.isFinite(report.checked_at) ||
+        !['XAUUSD-VIP', 'BTCUSD'].includes(symbol) || report.symbol !== symbol || !Number.isFinite(report.checked_at) ||
         now - report.checked_at < 0 || now - report.checked_at > 30) {
       baseline = false;
       return false;

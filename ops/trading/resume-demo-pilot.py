@@ -29,8 +29,13 @@ def review(mt5, db, login, now, pause_path, reviewed_code):
     if db.execute("SELECT count(*) FROM attempts WHERE state NOT IN ('closed','disarmed')").fetchone()[0]:
         raise ValueError('Unresolved journal attempts require review')
     pilot.limits(mt5, db, p, login, now)
-    pilot.read_gold(mt5, login, now, server_offset_seconds=pilot.execution._server_offset(), execution=True,
-                    bar_seconds=pilot.candle_seconds(p))
+    try:
+        pilot.read_gold(mt5, login, now, server_offset_seconds=pilot.execution._server_offset(), execution=True,
+                        bar_seconds=pilot.candle_seconds(p), trend_demo=p['strategy'] == pilot.TREND_STRATEGY)
+    except ValueError as exc:
+        # Flat-account recovery resumes monitoring; the runner still enforces entry eligibility.
+        if str(exc) != 'ATR or spread outside allowed range':
+            raise
     return p
 
 

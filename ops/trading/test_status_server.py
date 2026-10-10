@@ -12,6 +12,23 @@ from status_server import Handler, read_status, sanitize_health, sanitize_pilot
 
 
 class StatusServerTest(unittest.TestCase):
+    def test_btc_status_never_falls_back_to_gold_snapshot_or_manual_execution(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'btc.json'
+            path.write_text(json.dumps(fixture))
+            self.assertEqual(read_status(path, fixture['checked_at'], symbol='BTCUSD')[0], 503)
+            fixture['symbol'] = 'BTCUSD'
+            fixture['pilot']['strategy'] = 'btc-ema-v1-m15-trend-3'
+            path.write_text(json.dumps(fixture))
+            code, report = read_status(path, fixture['checked_at'], symbol='BTCUSD')
+            self.assertEqual(code, 200)
+            self.assertEqual(report['pilot']['strategy'], 'btc-ema-v1-m15-trend-3')
+            self.assertEqual(read_status(path, fixture['checked_at'])[0], 503)
+            fixture['pilot']['strategy'] = 'gold-ema-v1-m1-trend-3'
+            path.write_text(json.dumps(fixture))
+            self.assertIsNone(read_status(path, fixture['checked_at'], symbol='BTCUSD')[1]['pilot'])
+
     def test_m1_strategy_survives_status_boundary(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
         fixture['pilot']['strategy'] = 'gold-ema-v1-m1-slope-3'

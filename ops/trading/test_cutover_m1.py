@@ -17,17 +17,19 @@ class CutoverM1Test(unittest.TestCase):
         calls = []
         def run(args):
             calls.append(args)
-            return 'sha256:built-trend-image'
+            return 'sha256:previous-trend-image' if args[3] == 'kwg-mt5-desktop:trend-20261009' else 'sha256:built-trend-image'
         shared = dict(main=namespace['main'], ROOT=Path('/opt/kwg-mt5-qualification'), run=run)
         with patch.object(wrapper['runpy'], 'run_path', return_value=shared), patch('sys.argv', ['cutover', '--enable-demo-execution']):
             wrapper['main']()
         self.assertTrue(namespace['called'])
-        self.assertEqual(namespace['MIGRATION_FLAGS'], ' --trend')
+        self.assertEqual(namespace['MIGRATION_FLAGS'], ' --trend --spread-upgrade')
         self.assertEqual(namespace['TARGET_STRATEGY'], 'gold-ema-v1-m1-trend-3')
-        self.assertEqual(namespace['CODE'], 'c1a2c965fc1bba6c7834d25c1977e79418208491874d9c7e6509c56e94da165b')
-        self.assertEqual(namespace['STAGE'].name, 'm1-review-20261009T141607Z-69e01b51')
+        self.assertEqual(namespace['CODE'], '4e00c3fa04b2f130a26fc46f754b1380e2a4891c5b23eba3b2c56f71ef955eb1')
+        self.assertEqual(namespace['OLD_CODE'], '6f34c5f608156bb367a9c0c4938ef85741121c9cf440c16953af7b4f3e98cc34')
+        self.assertEqual(namespace['OLD_IMAGE'], 'sha256:previous-trend-image')
+        self.assertEqual(namespace['STAGE'].name, 'm1-review-20261009T175402Z-58626dae')
         self.assertEqual(namespace['IMAGE'], 'sha256:built-trend-image')
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls), 2)
         with patch('sys.argv', ['cutover']), self.assertRaises(SystemExit):
             wrapper['main']()
 

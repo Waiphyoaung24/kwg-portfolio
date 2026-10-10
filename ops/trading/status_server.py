@@ -5,6 +5,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit, parse_qs
 from urllib.request import Request, urlopen
 
 SNAPSHOT = Path("/status/latest.json")
@@ -75,8 +76,9 @@ def sanitize_execution(value, now: float):
     return result
 
 
-def sanitize_pilot(value, now):
-    if (not isinstance(value, dict) or value.get('strategy') not in ('gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3')
+def sanitize_pilot(value, now, symbol="XAUUSD-VIP"):
+    strategies = ("btc-ema-v1-m15-trend-3",) if symbol == "BTCUSD" else ("gold-ema-v1-slope-3", "gold-ema-v1-m1-slope-3", "gold-ema-v1-m1-trend-3")
+    if (not isinstance(value, dict) or value.get('strategy') not in strategies
             or value.get('qualification') != 'unqualified'
             or value.get('status') not in ('standby', 'active', 'paused', 'needs_attention', 'expired')):
         raise ValueError('Invalid pilot state')
@@ -117,7 +119,9 @@ def sanitize_pilot(value, now):
     return result
 
 
-def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION) -> tuple[int, dict]:
+def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION, symbol="XAUUSD-VIP") -> tuple[int, dict]:
+    if symbol not in ("XAUUSD-VIP", "BTCUSD"):
+        raise ValueError("Unsupported symbol")
     try:
         if path.stat().st_size > 16384:
             raise ValueError("oversized snapshot")
@@ -125,7 +129,7 @@ def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION) -> 
         if not isinstance(data, dict):
             raise ValueError("invalid snapshot")
         data["health"] = sanitize_health(data.get("health"))
-        if (data["mode"] not in ("signal-only", "autonomous-demo") or data["symbol"] != "XAUUSD-VIP"
+        if (data["mode"] not in ("signal-only", "autonomous-demo") or data["symbol"] != symbol
                 or data["status"] not in ("baseline", "observed", "duplicate", "blocked")
                 or data["signal"] not in ("long", "short", "none")
                 or type(data["checked_at"]) is not int
@@ -133,7 +137,7 @@ def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION) -> 
                 or not isinstance(data.get("reason"), str)):
             raise ValueError("invalid snapshot")
     except (OSError, ValueError, KeyError, TypeError, UnicodeError):
-        return 503, {"mode": "signal-only", "symbol": "XAUUSD-VIP",
+        return 503, {"mode": "signal-only", "symbol": symbol,
                      "status": "offline", "signal": "none",
                      "reason": "Observer status unavailable", "checked_at": None,
                      "bar_time": None}
@@ -145,13 +149,13 @@ def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION) -> 
                ("mode", "symbol", "status", "signal", "reason", "checked_at", "bar_time", "health")}
     if data['mode'] == 'autonomous-demo':
         try:
-            payload['pilot'] = sanitize_pilot(data.get('pilot'), now)
+            payload['pilot'] = sanitize_pilot(data.get('pilot'), now, symbol)
             payload['execution'] = sanitize_execution(data.get('execution'), now)
             if payload['pilot'] is None and payload['status'] != 'offline':
                 payload.update(status='blocked', signal='none', reason='Pilot heartbeat unavailable')
         except (ValueError, TypeError, KeyError):
             payload.update(pilot=None, execution=None, status='blocked', signal='none', reason='Pilot report invalid')
-    elif execution_path.exists():
+    elif symbol == "XAUUSD-VIP" and execution_path.exists():
         try:
             if execution_path.stat().st_size > 2048:
                 raise ValueError("oversized execution snapshot")
@@ -206,10 +210,14 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        if self.path != "/status":
+        url = urlsplit(self.path)
+        query = parse_qs(url.query, keep_blank_values=True)
+        symbol = query.get("symbol", ["XAUUSD-VIP"])[0]
+        if (url.path != "/status" or set(query) - {"symbol"}
+                or len(query.get("symbol", [symbol])) != 1 or symbol not in ("XAUUSD-VIP", "BTCUSD")):
             self.send_error(404)
             return
-        status, payload = read_status(SNAPSHOT, time.time())
+        status, payload = read_status(SNAPSHOT if symbol == "XAUUSD-VIP" else SNAPSHOT.with_name("btc.json"), time.time(), symbol=symbol)
         body = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")

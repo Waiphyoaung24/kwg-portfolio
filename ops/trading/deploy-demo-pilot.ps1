@@ -1,6 +1,6 @@
 param([switch]$DryRun)
 $ErrorActionPreference = 'Stop'
-$taskNames = @('desktop.sh','demo_pilot.py','demo_one_shot.py','gold_experiment.py','gold_signal.py','mt5_data.py','control_server.py','status_server.py','trading.html','trading-bot.html','compose.yml','preflight-demo-pilot.py','deploy-demo-pilot.py')
+$taskNames = @('desktop.sh','demo_pilot.py','demo_one_shot.py','gold_experiment.py','instruments.py','gold_signal.py','mt5_data.py','control_server.py','status_server.py','trading.html','trading-bot.html','compose.yml','preflight-demo-pilot.py','deploy-demo-pilot.py')
 $taskBundle = @{}
 foreach ($taskName in $taskNames) {
     $taskText = [IO.File]::ReadAllText((Join-Path $PSScriptRoot $taskName)).Replace("`r`n", "`n")

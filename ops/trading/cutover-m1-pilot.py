@@ -23,6 +23,34 @@ def run(args, **kwargs):
     return subprocess.check_output(args, timeout=kwargs.pop('timeout', 60), **kwargs).decode().strip()
 
 
+def stop_runner():
+    # Discover the exact runner ancestry, then stop only it and its restart supervisor.
+    stop = '''import os,pathlib,signal,time,json
+def args(pid):
+    return (pathlib.Path('/proc')/str(pid)/'cmdline').read_bytes().rstrip(b'\\0').split(b'\\0')
+def parent(pid):
+    return int(next(line.split()[1] for line in (pathlib.Path('/proc')/str(pid)/'status').read_text().splitlines() if line.startswith('PPid:')))
+matches=[]
+for path in pathlib.Path('/proc').iterdir():
+    if path.name.isdigit():
+        try:
+            if args(path.name)[-2:] == [b'/opt/trading/demo_pilot.py',b'run']: matches.append(int(path.name))
+        except (FileNotFoundError,ProcessLookupError,PermissionError): pass
+assert len(matches)==1, 'Expected exactly one pilot runner'
+runner=matches[0]; shell=parent(runner); script=parent(shell); supervisor=parent(script)
+assert args(supervisor)==[b'bash',b'/opt/trading/desktop.sh']
+assert args(parent(supervisor))==[b'bash',b'/opt/trading/desktop.sh']
+os.kill(supervisor,signal.SIGSTOP)
+os.kill(runner,signal.SIGTERM)
+for _ in range(100):
+    if not (pathlib.Path('/proc')/str(runner)).exists(): break
+    time.sleep(.1)
+assert not (pathlib.Path('/proc')/str(runner)).exists(), 'Runner did not stop'
+print(json.dumps(dict(supervisor=supervisor,runner=runner)))
+'''
+    return run(['docker', 'exec', '--user', 'mt5', 'kwg-mt5-desktop', 'python3', '-c', stop])
+
+
 def main():
     if sys.argv[1:] != ['--enable-demo-execution']:
         raise SystemExit('Explicit --enable-demo-execution is required; deploy the matching dashboard first')
@@ -49,31 +77,7 @@ def main():
         shutil.copy2(ROOT / name, backup / name)
     (backup / 'image.txt').write_text(OLD_IMAGE + '\n')
     print('CUTOVER_BACKUP', backup, flush=True)
-    # Discover the exact runner ancestry, then stop only it and its restart supervisor.
-    stop = '''import os,pathlib,signal,time,json
-def args(pid):
-    return (pathlib.Path('/proc')/str(pid)/'cmdline').read_bytes().rstrip(b'\\0').split(b'\\0')
-def parent(pid):
-    return int(next(line.split()[1] for line in (pathlib.Path('/proc')/str(pid)/'status').read_text().splitlines() if line.startswith('PPid:')))
-matches=[]
-for path in pathlib.Path('/proc').iterdir():
-    if path.name.isdigit():
-        try:
-            if args(path.name)[-2:] == [b'/opt/trading/demo_pilot.py',b'run']: matches.append(int(path.name))
-        except (FileNotFoundError,ProcessLookupError,PermissionError): pass
-assert len(matches)==1, 'Expected exactly one pilot runner'
-runner=matches[0]; shell=parent(runner); script=parent(shell); supervisor=parent(script)
-assert args(supervisor)==[b'bash',b'/opt/trading/desktop.sh']
-assert args(parent(supervisor))==[b'bash',b'/opt/trading/desktop.sh']
-os.kill(supervisor,signal.SIGSTOP)
-os.kill(runner,signal.SIGTERM)
-for _ in range(100):
-    if not (pathlib.Path('/proc')/str(runner)).exists(): break
-    time.sleep(.1)
-assert not (pathlib.Path('/proc')/str(runner)).exists(), 'Runner did not stop'
-print(json.dumps(dict(supervisor=supervisor,runner=runner)))
-'''
-    stopped = run(['docker', 'exec', '--user', 'mt5', 'kwg-mt5-desktop', 'python3', '-c', stop])
+    stopped = stop_runner()
     print('RUNNER_STOPPED', stopped, flush=True)
     target = '/home/mt5/' + STAGE.name
     command = ('stty cols 4096; wine /opt/python/python.exe ' + target + '/switch-pilot-m1.py '

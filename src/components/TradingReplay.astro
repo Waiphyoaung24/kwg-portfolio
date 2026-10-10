@@ -1,42 +1,55 @@
-<section class="card replay" aria-labelledby="replay-title">
-  <div class="replay__head">
-    <h2 id="replay-title">Watch a paper trade</h2>
-    <span class="label">Synthetic replay · no orders</span>
+<section class="replay" aria-labelledby="replay-title">
+  <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2">
+    <h2 class="card-title mb-0" id="replay-title">Watch a paper trade</h2>
+    <span class="badge bg-green-lt text-uppercase">Synthetic replay, no orders</span>
   </div>
-  <p class="replay__intro">Play saved artificial candles to see a signal, entry and exit in about 25 seconds.</p>
-  <div class="replay__workspace">
-    <figure>
-      <div class="replay__quote"><span class="label">Simulated gold price</span><output id="replay-price">—</output></div>
-      <!-- SVG coordinates are chart geometry, not layout spacing. -->
-      <svg viewBox="0 0 640 230" role="img" aria-labelledby="replay-chart-title">
-        <title id="replay-chart-title">Saved synthetic closing prices</title>
-        <line x1="12" y1="210" x2="628" y2="210" class="replay__axis" />
-        <polyline id="replay-line" fill="none" />
-        <circle id="replay-dot" r="4" />
-      </svg>
-      <figcaption><span id="replay-progress">Candle 1 of 26</span> · each candle represents 15 minutes</figcaption>
+  <p class="text-secondary mt-2 mb-3">Play saved artificial candles to see a signal, entry and exit in about 25 seconds.</p>
+  <div class="row g-4 py-3 border-top border-bottom">
+    <figure class="col-lg-7 m-0">
+      <div class="subheader">Simulated gold price</div>
+      <output class="h2 d-block font-monospace mb-2" id="replay-price">—</output>
+      <p class="visually-hidden" id="replay-chart-title">Saved synthetic closing prices</p>
+      <div id="replay-chart" aria-hidden="true"></div>
+      <figcaption class="text-secondary small"><span id="replay-progress">Candle 1 of 26</span>. Each candle represents 15 minutes.</figcaption>
     </figure>
-    <div class="replay__activity">
-      <h3 id="replay-state" role="status">Waiting for a signal</h3>
-      <ol id="replay-events"><li>Watching completed M15 candles.</li></ol>
-      <p class="replay__result"><span class="label">Simulated net result</span><output id="replay-result">—</output></p>
+    <div class="col-lg-5">
+      <h3 class="h3" id="replay-state" role="status">Waiting for a signal</h3>
+      <ol class="text-secondary ps-3" id="replay-events"><li>Watching completed M15 candles.</li></ol>
+      <div class="subheader mt-3">Simulated net result</div>
+      <output class="h2 d-block font-monospace" id="replay-result">—</output>
     </div>
   </div>
-  <div class="replay__actions">
-    <button type="button" class="pill-btn pill-btn--filled" id="replay-play">Play replay</button>
-    <button type="button" class="pill-btn" id="replay-step">Next candle</button>
-    <button type="button" class="pill-btn" id="replay-reset">Reset replay</button>
+  <div class="btn-list mt-3">
+    <button type="button" class="btn btn-primary" id="replay-play">Play replay</button>
+    <button type="button" class="btn desk-btn" id="replay-step">Next candle</button>
+    <button type="button" class="btn desk-btn" id="replay-reset">Reset replay</button>
   </div>
-  <p class="replay__note">Illustrative target exit from the saved baseline simulation, with assumed costs. This is not your account, a live signal or evidence of profitability.</p>
+  <p class="text-secondary small mt-3 mb-0">Illustrative target exit from the saved baseline simulation, with assumed costs. This is not your account, a live signal or evidence of profitability.</p>
 </section>
 
 <script>
   import fixture from '../data/trading-replay.json';
+  import ApexCharts from 'apexcharts/core';
+  import 'apexcharts/line';
+  import 'apexcharts/features/annotations';
   import { replayFrame } from '../scripts/trading-replay.mjs';
   const el = (id: string) => document.getElementById(id)!;
   const play = el('replay-play') as HTMLButtonElement;
   const step = el('replay-step') as HTMLButtonElement;
   let index = 0;
+  const closes = fixture.bars.map((bar: { close: number }) => bar.close);
+  const xaxis = { type: 'numeric' as const, min: 1, max: fixture.bars.length, tickAmount: 5, labels: { formatter: (v: string) => `${Math.round(Number(v))}` } };
+  const chart = new ApexCharts(el('replay-chart'), {
+    chart: { type: 'line', height: 220, background: 'transparent', fontFamily: 'inherit', toolbar: { show: false }, zoom: { enabled: false }, animations: { enabled: false }, parentHeightOffset: 0 },
+    theme: { mode: 'light' }, colors: ['#0f7a45'], stroke: { width: 2, curve: 'straight' },
+    grid: { strokeDashArray: 4, borderColor: '#d5eadc' }, dataLabels: { enabled: false }, legend: { show: false },
+    markers: { size: 0 }, tooltip: { enabled: false },
+    xaxis,
+    // Fixed range across the whole replay so the line does not rescale each candle.
+    yaxis: { min: Math.min(...closes) - 1, max: Math.max(...closes) + 1, labels: { formatter: (v: number) => v.toFixed(0) } },
+    series: [{ name: 'Close', data: [] }],
+  });
+  void chart.render();
   let timer: ReturnType<typeof setInterval> | undefined;
   function pause() {
     clearInterval(timer);
@@ -53,13 +66,10 @@
     el('replay-events').replaceChildren(...frame.events.map((text: string) => {
       const item = document.createElement('li'); item.textContent = text; return item;
     }));
-    const prices = frame.bars.map((bar: { close: number }) => bar.close);
-    const low = Math.min(...prices) - 1;
-    const high = Math.max(...prices) + 1;
-    const points = prices.map((price: number, i: number) => [12 + i / (fixture.bars.length - 1) * 616, 200 - (price - low) / (high - low) * 180]);
-    el('replay-line').setAttribute('points', points.map((point: number[]) => point.join(',')).join(' '));
-    el('replay-dot').setAttribute('cx', String(points.at(-1)![0]));
-    el('replay-dot').setAttribute('cy', String(points.at(-1)![1]));
+    const prices: number[] = frame.bars.map((bar: { close: number }) => bar.close);
+    const data = prices.map((price, i) => [i + 1, price]);
+    // Re-send the fixed x range: a series update otherwise shrinks the axis to the visible candles.
+    void chart.updateOptions({ series: [{ name: 'Close', data }], xaxis, annotations: { points: [{ x: data.length, y: prices.at(-1), marker: { size: 5, fillColor: '#0f7a45', strokeColor: '#ffffff' } }] } }, false, false);
     el('replay-chart-title').textContent = `${frame.progress}. Synthetic closing price ${frame.price}. ${frame.state}.`;
   }
   function advance() {
@@ -79,28 +89,3 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   render();
 </script>
-
-<style>
-  .replay { width: 100%; box-shadow: none; }
-  .replay__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--sp-md); }
-  h2 { margin: 0; font-size: var(--fs-4); letter-spacing: var(--ls-4); }
-  h3 { margin: 0 0 var(--sp-lg); font-size: var(--fs-5); }
-  .replay__intro, .replay__note, figcaption, li { color: var(--c-body); line-height: 1.6; }
-  .replay__intro { max-width: 65ch; margin: var(--sp-md) 0 var(--sp-xl); }
-  .replay__workspace { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-2xl); border-block: 1px solid var(--c-hairline); padding-block: var(--sp-xl); }
-  figure { margin: 0; min-width: 0; }
-  .replay__quote, .replay__result { display: grid; gap: var(--sp-sm); }
-  output { font-variant-numeric: tabular-nums; font-size: var(--fs-4); }
-  svg { width: 100%; display: block; }
-  polyline { stroke: var(--c-ink); stroke-width: 2; stroke-linejoin: round; }
-  circle { fill: var(--c-ink); }
-  .replay__axis { stroke: var(--c-hairline-bright); }
-  ol { padding-left: var(--sp-xl); margin: 0; }
-  li + li { margin-top: var(--sp-md); }
-  .replay__result { margin: var(--sp-xl) 0 0; }
-  .replay__actions { display: flex; flex-wrap: wrap; gap: var(--sp-md); margin-top: var(--sp-xl); }
-  .replay__note, figcaption { font-size: var(--fs-body-sm); }
-  .replay__note { margin: var(--sp-lg) 0 0; max-width: 75ch; }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-  @media (max-width: 48rem) { .replay__workspace { grid-template-columns: 1fr; } }
-</style>

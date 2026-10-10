@@ -1,13 +1,31 @@
 # M1 trend demo release
 
+## Pending 25% spread update
+
+The owner approved a 25% ATR14 spread ceiling for the M1 trend demo. Local code
+and boundary tests use 25%; the deployed 15% code below remains unchanged until
+a new reviewed cutover. Size, stop/target, cooldown, loss limits and expiry remain
+unchanged. No guaranteed minimum profit or new profit target is introduced.
+VPS review passed for `m1-review-20261009T175402Z-58626dae`, code
+`4e00c3fa04b2f130a26fc46f754b1380e2a4891c5b23eba3b2c56f71ef955eb1`.
+`cutover-trend-pilot.py` now pins that stage, uses image tag
+`kwg-mt5-desktop:trend-spread25-20261009`, and requires the previous trend image
+and 15% journal identity. Three cutover tests passed; remote cutover is pending.
+Stage with `stage-m1-pilot.ps1 -Trend -SpreadUpgrade`. This verifies the deployed
+15% journal identity and reviews the new code without placing orders. Do not run
+the historical cutover commands below for this update: they pin the older stage.
+
+## Previous 15% deployment
+
 Owner-selected behavior: EMA20 above EMA50 buys; below sells, with the existing
 three-bar EMA20 slope confirmation. Evaluate only new completed M1 candles.
 After each broker-confirmed close, wait 300 seconds before another entry.
 One 0.01-lot position, protected stops/targets, loss limits and original expiry
-remain unchanged. Spread must still be at most 10% of ATR14. No entry is promised.
+remain unchanged. The trend demo allows spread at most 15% of ATR14; crossover modes retain 10%. No entry is promised.
 
-Reviewed VPS stage: `/opt/kwg-mt5-qualification/m1-review-20261009T141607Z-69e01b51`.
-Code: `c1a2c965fc1bba6c7834d25c1977e79418208491874d9c7e6509c56e94da165b`.
+Reviewed 15% VPS stage: `/opt/kwg-mt5-qualification/m1-review-20261009T145700Z-4aa81f9b`.
+Previous code: `c1a2c965fc1bba6c7834d25c1977e79418208491874d9c7e6509c56e94da165b`.
+Approved 15% code: `6f34c5f608156bb367a9c0c4938ef85741121c9cf440c16953af7b4f3e98cc34`; VPS review passed without orders.
 Review passed with an ATR/spread entry block; no orders sent. Current M1 crossover
 code is `2495766af1cda52e60ac7b9c7fd3e0e2bb34f49c69323723c2add0a09653c19e`.
 
@@ -24,7 +42,7 @@ scp C:\Users\wai19\Desktop\kwg-portfolio\ops\trading\cutover-m1-pilot.py C:\User
 Build the reviewed stage on the VPS:
 
 ```bash
-stage=/opt/kwg-mt5-qualification/m1-review-20261009T141607Z-69e01b51
+stage=/opt/kwg-mt5-qualification/m1-review-20261009T145700Z-4aa81f9b
 docker tag sha256:d43ae354f76bbfb2e3a4e2c39edff8bfd1e7deabd55be95873ea19c3e4d06cfe kwg-mt5-desktop:rollback-before-trend-20261009
 printf '%s\n' \
   'FROM kwg-mt5-desktop:rollback-before-trend-20261009' \

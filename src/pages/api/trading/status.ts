@@ -1,13 +1,33 @@
 import type { APIRoute } from 'astro';
+import { selectedInstrument } from '../../../scripts/trading-instruments.mjs';
 import contract from '../../../../ops/trading/fixtures/status-contract.json';
 import pilot from '../../../../ops/trading/fixtures/pilot-status.json';
 
 export const prerender = false;
 
 // Explicit dev-test opt-in only; production status belongs to the Access-gated Worker.
-export const GET: APIRoute = () => {
+export const GET: APIRoute = ({ url }) => {
   if (!import.meta.env.DEV || import.meta.env.PUBLIC_TRADING_FIXTURE !== '1') {
     return new Response(null, { status: 404 });
+  }
+  let selected;
+  try { selected = selectedInstrument(url.search); }
+  catch { return new Response(null, { status: 400 }); }
+  if (selected.symbol === 'BTCUSD') {
+    const now = Math.floor(Date.now() / 1000);
+    const payload = structuredClone(pilot);
+    payload.symbol = 'BTCUSD';
+    payload.checked_at = now;
+    payload.bar_time = Math.floor(now / 900) * 900 - 900;
+    Object.assign(payload.health, { bid: 82790.5, ask: 82807.49, sampled_at: now,
+      tick_time: now, tick_time_msc: now * 1000, quote_age_seconds: 0, history_bar_time: payload.bar_time });
+    Object.assign(payload.pilot, { strategy: 'btc-ema-v1-m15-trend-3', status: 'standby',
+      updated_at: now, started_at: null, ends_at: null, realized_net_usd: 0, floating_usd: 0,
+      completed_trades: 0, recent_trades: [], reason: 'Owner activation required' });
+    Object.assign(payload.execution, { status: 'disarmed', updated_at: now, side: null, volume: null,
+      opened_at: null, closed_at: null, realized_net_usd: null, entry_price: null, sl: null, tp: null });
+    payload.reason = 'Owner activation required';
+    return Response.json(payload, { headers: { 'Cache-Control': 'no-store' } });
   }
   if (import.meta.env.PUBLIC_TRADING_PILOT_FIXTURE === '1') {
     const payload = structuredClone(pilot);

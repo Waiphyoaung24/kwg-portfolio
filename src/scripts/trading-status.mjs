@@ -24,7 +24,7 @@ export function statusFields(data, now = Date.now() / 1000) {
     price: priced ? `${health.bid.toFixed(2)} / ${health.ask.toFixed(2)}` : '—',
     state: !alive ? 'Observer offline' : waiting ? 'Waiting for price' : ready ? pilot ? 'Demo pilot' : 'Observing' : 'Needs attention',
     guidance: !alive ? 'The observer has stopped reporting. Check the VPS observer before using any signals.'
-      : waiting ? 'MT5 is connected, but the last gold price is too old to evaluate. Leave the observer running; it will check again automatically. If prices stay old during an open trading session, check the MT5 feed.'
+      : waiting ? 'MT5 is connected, but the last symbol price is too old to evaluate. Leave the observer running; it will check again automatically. If prices stay old during an open trading session, check the MT5 feed.'
       : ready ? pilot ? `The demo pilot checks completed ${['gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3'].includes(data.pilot?.strategy) ? '1-minute' : '15-minute'} candles and may place protected demo orders when active.` : 'The observer is checking completed 15-minute candles. Use these observations to validate the data and test the strategy; a signal does not place an order.'
       : 'Signal checks are paused. Open technical details for the reason before continuing.',
     delivery: 'Worker → Tunnel → status service responded',
@@ -36,7 +36,7 @@ export function statusFields(data, now = Date.now() / 1000) {
       ? `${health.quote_age_seconds.toFixed(3)}s at ${date(health.sampled_at)}${current ? '' : ' (expired check)'}` : '—',
     history: current && Number.isInteger(health.history_count) ? `${health.history_count} bars fetched` : 'Unknown — no current check',
     candle: date(health?.history_bar_time),
-    strategy: !alive ? 'Paused — no current observer report' : data.status === 'blocked' ? 'Blocked — see reason below' : pilot ? (data.pilot?.strategy === 'gold-ema-v1-m1-trend-3' ? 'EMA trend · slope lookback 3 · 5-minute cooldown' : 'Fixed EMA crossover · slope lookback 3') : ['armed', 'submitting', 'pending', 'open', 'closing', 'needs_attention'].includes(data.execution?.status)
+    strategy: !alive ? 'Paused — no current observer report' : data.status === 'blocked' ? 'Blocked — see reason below' : pilot ? (['gold-ema-v1-m1-trend-3', 'btc-ema-v1-m15-trend-3'].includes(data.pilot?.strategy) ? 'EMA trend · slope lookback 3 · 5-minute cooldown' : 'Fixed EMA crossover · slope lookback 3') : ['armed', 'submitting', 'pending', 'open', 'closing', 'needs_attention'].includes(data.execution?.status)
       ? 'Signals only · manual demo order active' : 'Observing · signals place no orders',
     signal: ready ? ({ long: 'Long setup', short: 'Short setup', none: 'No setup yet' }[data.signal] ?? '—') : 'Paused',
     checked: date(data.checked_at),

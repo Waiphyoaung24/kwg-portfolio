@@ -1,172 +1,270 @@
 ---
-import '../../styles/index.scss';
-import '../../styles/trading-console.scss';
-import TradingNavigation from '../../components/TradingNavigation.astro';
+import '@tabler/core/dist/css/tabler.min.css';
+import '@tabler/core/dist/css/tabler-vendors.min.css';
 import TradingReplay from '../../components/TradingReplay.astro';
+import iconDown from '@tabler/icons/outline/arrow-down-right.svg?raw';
+import iconUp from '@tabler/icons/outline/arrow-up-right.svg?raw';
+import iconRefresh from '@tabler/icons/outline/refresh.svg?raw';
+import iconPlug from '@tabler/icons/outline/plug-connected.svg?raw';
+import iconCoin from '@tabler/icons/outline/coin.svg?raw';
+import iconPulse from '@tabler/icons/outline/activity.svg?raw';
+import iconChevron from '@tabler/icons/outline/chevron-down.svg?raw';
+import iconPause from '@tabler/icons/outline/player-pause.svg?raw';
+import iconExternal from '@tabler/icons/outline/external-link.svg?raw';
+import iconLogin from '@tabler/icons/outline/login.svg?raw';
+import iconShield from '@tabler/icons/outline/shield.svg?raw';
+import iconClock from '@tabler/icons/outline/clock.svg?raw';
+import iconTarget from '@tabler/icons/outline/target-arrow.svg?raw';
+import iconTrendUp from '@tabler/icons/outline/trending-up.svg?raw';
+import iconTrendDown from '@tabler/icons/outline/trending-down.svg?raw';
 export const prerender = true;
+// Tabler icons ship as raw SVG; mark them decorative for assistive technology.
+const icon = (svg: string) => svg.replace('<svg', '<svg aria-hidden="true" focusable="false"');
+const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path fill="currentColor" d="M26.2636 20.4752L29.7034 6.2832H22.8238L26.2636 20.4752ZM12.2636 6.2832L17.0473 26.0199H23.9568L19.1731 6.2832H12.2636ZM8.61287 6.28336L1.70337 6.28373L6.48706 26.0203L13.3966 26.02L8.61287 6.28336Z" /></svg>';
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Browser theme-color metadata cannot resolve a CSS variable. -->
-    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="robots" content="noindex" />
-    <title>Demo account monitor — Gold operations — KWG</title>
+    <title>Demo account monitor - Gold operations - KWG</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400&family=JetBrains+Mono:wght@400&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" />
   </head>
-  <body class="trading-console">
-    <main class="page">
-      <TradingNavigation current="demo" />
-      {import.meta.env.DEV && import.meta.env.PUBLIC_TRADING_PILOT_FIXTURE === '1' && <p class="page__note" role="note">Local design preview · simulated quotes update every 2 seconds. All prices and trades are sample data. Trading controls are disabled.</p>}
-      <header class="page__intro" id="trading-content" tabindex="-1">
-        <div class="console-brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M26.2636 20.4752L29.7034 6.2832H22.8238L26.2636 20.4752ZM12.2636 6.2832L17.0473 26.0199H23.9568L19.1731 6.2832H12.2636ZM8.61287 6.28336L1.70337 6.28373L6.48706 26.0203L13.3966 26.02L8.61287 6.28336Z" /></svg><span class="micro">KWG / Gold operations</span></div>
-        <h1>Gold, under observation.</h1>
-        <p>Your demo pilot, its next move, and the evidence behind each trade.</p>
-      </header>
-      <div class="console-workspace">
-      <section class="card status console-market" aria-labelledby="status-title">
-        <div class="status__head">
-          <h2 id="status-title">Live demo feed</h2>
-          <button class="pill-btn" id="trade-sound" type="button" aria-pressed="false" aria-describedby="trade-sound-note">Trade sound: Off</button>
-          <button class="pill-btn console-refresh" id="refresh" type="button" aria-label="Refresh status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5.5 8a7 7 0 0 1 11.8-2L20 9M4 15l2.7 3A7 7 0 0 0 18.5 16" /></svg>Refresh</button>
-        </div>
-        <p class="page__note" id="trade-sound-note" role="status">Quiet entry alert · enable to preview. Only while this page is visible.</p>
-        <div class="console-market__meta"><p class="status__symbol micro">XAUUSD-VIP · VT Markets demo</p><span class="status__state label" id="state" aria-live="polite">Checking</span></div>
-        <p class="status__price"><span class="label">Bid / ask · USD</span><span id="price">—</span></p>
-        <div id="trading-charts"><p class="page__note">Loading chart views…</p></div>
-        <dl class="status__rows status__checks">
-          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M8 12h8M9 5H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3m6-14h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-3" /></svg>MT5 connection</dt><dd id="connection">Checking</dd></div>
-          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Gold price</dt><dd id="freshness">Checking</dd></div>
-          <div><dt class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 3 8-9m-6 0h6v6" /></svg>Strategy signal</dt><dd id="signal">Checking</dd></div>
-        </dl>
-        <p class="status__guidance" id="guidance" role="status">Connecting to the private status API.</p>
-        <p class="page__note" id="mode-note">Live observation only. Signals do not place orders. Keep Algo Trading off for observation.</p>
-        <div class="console-tools">
-        <details class="status__activity">
-          <summary class="pill-btn">Recent checks <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg></summary>
-          <p class="page__note">Up to six checks from this page session.</p>
-          <ol id="monitor-activity"><li>Waiting for the first status report.</li></ol>
-        </details>
-        <details class="status__details">
-          <summary class="pill-btn">Technical details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg></summary>
-          <dl class="status__rows">
-            <div><dt class="label">Status delivery</dt><dd id="delivery">Checking</dd></div>
-            <div><dt class="label">Observer heartbeat</dt><dd id="heartbeat">Checking</dd></div>
-            <div><dt class="label">Last quote</dt><dd id="tick">—</dd></div>
-            <div><dt class="label">Quote age at check</dt><dd id="age">—</dd></div>
-            <div><dt class="label">Completed-candle history</dt><dd id="history">Checking</dd></div>
-            <div><dt class="label">Latest fetched candle · opened</dt><dd id="candle">—</dd></div>
-            <div><dt class="label">Strategy readiness</dt><dd id="strategy">Checking</dd></div>
-            <div><dt class="label">Last checked</dt><dd id="checked">—</dd></div>
-          </dl>
-          <p class="status__reason" id="reason">Checking</p>
-        </details>
-        </div>
-        <div class="status__actions">
-          <a class="pill-btn" id="sign-in" href="/api/trading/status" hidden>Sign in to status</a>
-        </div>
-      </section>
-      <section class="card status console-pilot" id="pilot-panel" aria-labelledby="pilot-title" hidden>
-        <div class="status__head"><h2 id="pilot-title">Autonomous demo pilot</h2><span class="label" id="pilot-state" aria-live="polite">Checking</span></div>
-        <p class="status__symbol micro">Unqualified demo</p>
-        <h3 class="console-pilot__intent" id="pilot-intent">Waiting for status</h3>
-        <p class="status__guidance" id="pilot-reason" role="status">Checking</p>
-        <dl class="status__rows">
-          <div><dt class="label">Realized net</dt><dd id="pilot-realized">—</dd></div>
-          <div><dt class="label">Floating profit</dt><dd id="pilot-floating">—</dd></div>
-          <div><dt class="label">Completed trades</dt><dd id="pilot-count">—</dd></div>
-          <div><dt class="label">Time remaining</dt><dd id="pilot-remaining">—</dd></div>
-          <div><dt class="label">Position / latest attempt</dt><dd id="pilot-position">—</dd></div>
-          <div><dt class="label">Entry / stop / target</dt><dd id="pilot-levels">—</dd></div>
-        </dl>
-        <div class="console-strategy"><h3>One fixed strategy</h3><svg viewBox="0 0 280 60" role="img" aria-label="Illustration of two moving averages crossing. Not market data."><path d="M4 45C50 45 65 38 110 30S180 14 276 12" /><path d="M4 14C75 14 100 25 150 31S220 38 276 43" stroke-dasharray="5 5" /></svg><p><span id="pilot-strategy">Waiting for strategy</span><br /><span id="pilot-timeframe">Waiting for strategy timeframe</span></p><dl><div><dt>Position size</dt><dd>0.01 lot · one position</dd></div><div><dt>Stop / target</dt><dd>2× / 3× ATR</dd></div><div><dt>Entry risk ceiling</dt><dd>0.1% of equity</dd></div></dl></div>
-        <button class="pill-btn" id="pilot-pause" type="button" disabled>Pause new entries</button>
-        <p class="page__note">Pausing keeps existing positions protected and monitored. At expiry, the pilot requests closure; unresolved positions need owner attention. Floating profit excludes costs not yet booked.</p>
-        <p id="pilot-message" role="status"></p>
-        <details class="status__activity console-trade-history"><summary class="pill-btn">Recent completed trades <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg></summary><ol id="pilot-trades"></ol></details>
-      </section>
+  <body class="desk">
+    <a class="visually-hidden-focusable btn btn-primary desk-skip" href="#trading-content">Skip to content</a>
+    <header class="desk-nav">
+      <div class="container-xl d-flex align-items-center justify-content-between gap-3">
+        <a class="desk-brand" href="/vault"><span class="desk-logo" set:html={logo} />Vault</a>
+        <nav class="desk-nav__links" aria-label="Demo operations navigation">
+          <a href="/vault/trading-bot">Overview</a>
+          <a href="/vault/trading" aria-current="page">Supervised demo</a>
+        </nav>
       </div>
-      <div id="trading-replay-source" hidden><TradingReplay /></div>
-      <details class="manual-controls" id="manual-controls">
-      <summary class="pill-btn">Manual demo order controls</summary>
-      <section class="card status" aria-labelledby="control-title">
-        <div class="status__head">
-          <h2 id="control-title">Prepare one trade</h2>
-          <span class="status__state label">Manual · demo</span>
-        </div>
-        <p class="status__symbol">XAUUSD-VIP · 0.01 lot · broker-held stop loss and take profit</p>
-        <ol class="trade__steps" aria-label="Demo order steps">
-          <li><span class="micro">1</span>Set prices</li>
-          <li><span class="micro">2</span>Preview · no order</li>
-          <li><span class="micro">3</span>Place once</li>
-        </ol>
-        <div class="trade__workspace">
-        <div class="trade__setup">
-        <form id="trade-form" class="trade__form">
-          <div class="trade__fields">
-            <label class="trade__field"><span class="label">Direction</span><select id="trade-side" aria-label="Demo trade direction"><option value="buy">Buy</option><option value="sell">Sell</option></select></label>
-            <label class="trade__field"><span class="label">Entry price</span><input id="trade-entry" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
-            <label class="trade__field"><span class="label">Stop loss</span><input id="trade-sl" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
-            <label class="trade__field"><span class="label">Take profit</span><input id="trade-tp" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
+    </header>
+    <main class="container-xl desk-main">
+      <header class="desk-intro reveal" style="--i: 0" id="trading-content" tabindex="-1">
+        <p class="desk-eyebrow"><span class="desk-logo desk-logo--sm" set:html={logo} />KWG / Demo operations</p>
+        <h1 id="instrument-title">Gold, under observation.</h1>
+        <p class="desk-lede">Your demo pilot, its next move, and the evidence behind each trade.</p>
+        {import.meta.env.DEV && import.meta.env.PUBLIC_TRADING_PILOT_FIXTURE === '1' && <p class="desk-note" role="note">Local design preview. Simulated quotes update every 2 seconds. All prices and trades are sample data. Trading controls are disabled.</p>}
+      </header>
+
+      <nav class="btn-list mb-3" aria-label="Demo instrument">
+        <a class="btn desk-btn" id="instrument-gold" href="/vault/trading">Gold · M1</a>
+        <a class="btn desk-btn" id="instrument-btc" href="/vault/trading?symbol=BTCUSD">Bitcoin · M15</a>
+      </nav>
+      <p class="desk-muted small">Each view shows one symbol. Switching views does not start, pause, or switch execution. Account loss limits cover both symbols.</p>
+      <section class="desk-hero reveal" style="--i: 1" aria-labelledby="hero-price-label">
+        <div class="desk-hero__price">
+          <p class="desk-kicker" id="hero-price-label"><span class="desk-live" aria-hidden="true"></span>XAUUSD-VIP · Bid / ask, USD</p>
+          <p class="desk-price" id="price">—</p>
+          <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+            <span class="desk-chip" id="state" aria-live="polite">Checking</span>
+            <span class="desk-muted small">VT Markets demo</span>
           </div>
-          <p class="page__note">Choose prices from MT5. Buy: stop below entry, target above. Sell: target below entry, stop above.</p>
-          <div class="trade__actions">
-            <button class="pill-btn" id="prepare-trade" type="submit" disabled>Preview pending order</button>
-            <a class="pill-btn" href="http://127.0.0.1:6081/vnc.html?autoconnect=1&amp;resize=scale" target="_blank" rel="noopener noreferrer">Open MT5 desktop ↗</a>
+        </div>
+        <div class="desk-hero__idle" id="position-idle">
+          <p class="desk-kicker">Position</p>
+          <p class="desk-idle-title">No open position</p>
+          <p class="desk-muted mb-0">The trade appears here, with its stop, entry and target, the moment the pilot opens one.</p>
+        </div>
+        <section class="desk-trade" id="position-strip" aria-labelledby="position-title" hidden>
+          <div class="desk-trade__head">
+            <div>
+              <h2 class="desk-kicker" id="position-title"><span class="desk-live" aria-hidden="true"></span>Open demo position</h2>
+              <p class="desk-trade__side"><span class="desk-trade__arrow" id="position-side-icon-sell" set:html={icon(iconDown)} hidden /><span class="desk-trade__arrow" id="position-side-icon-buy" set:html={icon(iconUp)} hidden /><span id="position-side">-</span><span class="desk-trade__volume" id="position-volume"></span></p>
+              <p class="desk-muted small m-0"><span id="position-symbol">XAUUSD-VIP</span> <span id="position-opened"></span></p>
+            </div>
+            <div class="desk-trade__pl">
+              <p class="desk-kicker">Floating P/L</p>
+              <p class="desk-pl" id="position-pl-wrap"><span id="position-pl-up" set:html={icon(iconTrendUp)} hidden /><span id="position-pl-down" set:html={icon(iconTrendDown)} hidden /><span id="position-pl">-</span></p>
+              <p class="desk-muted small m-0">Before unbooked costs</p>
+            </div>
           </div>
-        </form>
-        <p class="page__note">Keep Algo Trading off for the preview. The MT5 desktop link needs your SSH tunnel to port 6081.</p>
-        <div id="trade-preview" class="trade__preview" hidden>
-          <h3>Review before starting</h3>
-          <p id="preview-summary"></p>
-          <p id="preview-protection"></p>
-          <p>This preview expires after 10 minutes. Enable Algo Trading in MT5, then place this one pending order. Prices, account and broker conditions are checked again first.</p>
-          <p>The pending order stays until you cancel it in MT5.</p>
-          <button class="pill-btn" id="start-trade" type="button">Place one pending order</button>
-        </div>
-        <p id="control-message" role="status" aria-live="polite"></p>
-        </div>
-        <figure class="trade__chart" aria-labelledby="levels-title levels-caption">
-          <h3 id="levels-title">Entry / stop / target</h3>
-          <p class="micro" id="levels-source">Waiting for a report</p>
-          <!-- Fixed SVG coordinates are diagram geometry, not design-system spacing. -->
-          <div id="levels-plot" hidden>
-          <svg id="levels-chart" viewBox="0 0 400 260" role="img" aria-labelledby="levels-description">
-            <title id="levels-description">Trade price levels</title>
-            <line class="trade__axis" x1="136" x2="136" y1="20" y2="240" />
-            <g id="level-stop"><line x1="136" x2="290" /><circle cx="136" r="4" /><text x="0" class="trade__level-label">Stop loss</text><text x="400" text-anchor="end" class="trade__level-price"></text></g>
-            <g id="level-entry"><line x1="136" x2="290" /><circle cx="136" r="4" /><text x="0" class="trade__level-label">Entry</text><text x="400" text-anchor="end" class="trade__level-price"></text></g>
-            <g id="level-target"><line x1="136" x2="290" /><circle cx="136" r="4" /><text x="0" class="trade__level-label">Take profit</text><text x="400" text-anchor="end" class="trade__level-price"></text></g>
-          </svg>
+          <div class="position-rail" id="position-rail" role="meter" aria-label="Price between stop and target" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+            <div class="position-rail__track">
+              <div class="position-rail__fill" id="position-fill"></div>
+              <div class="position-rail__entry" id="position-entry-tick"></div>
+              <div class="position-rail__pos" id="position-marker"><span class="position-rail__price" id="position-price"></span><span class="position-rail__dot"></span></div>
+            </div>
+            <div class="position-rail__labels">
+              <span><span class="text-loss">Stop</span> <span class="desk-num" id="position-sl"></span></span>
+              <span class="position-rail__entry-label" id="position-entry-label">Entry <span class="desk-num" id="position-entry"></span></span>
+              <span><span class="desk-green">Target</span> <span class="desk-num" id="position-tp"></span></span>
+            </div>
           </div>
-          <p class="trade__empty" id="levels-empty">Enter entry, stop loss and take profit to see their price levels.</p>
-          <figcaption id="levels-caption" class="page__note">Price levels only. This is not a market chart or a forecast.</figcaption>
-        </figure>
-        </div>
-        <div class="trade__result">
-          <div class="status__head"><h3>Latest attempt</h3><span class="status__state label" id="execution-state" aria-live="polite">Checking</span></div>
-          <p id="execution-summary">Checking</p>
-          <p class="status__guidance" id="execution-guidance">Connecting to the private status API.</p>
-        <details class="status__details">
-          <summary class="pill-btn">Trade details <span aria-hidden="true">⌄</span></summary>
-          <dl class="status__rows">
-            <div><dt class="label">Entry price</dt><dd id="execution-entry">—</dd></div>
-            <div><dt class="label">Stop loss</dt><dd id="execution-sl">—</dd></div>
-            <div><dt class="label">Take profit</dt><dd id="execution-tp">—</dd></div>
-            <div><dt class="label">Opened</dt><dd id="execution-opened">—</dd></div>
-            <div><dt class="label">Closed</dt><dd id="execution-closed">—</dd></div>
-            <div><dt class="label">Last report</dt><dd id="execution-updated">—</dd></div>
-          </dl>
-        </details>
-        </div>
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+            <p class="desk-muted small m-0" id="position-progress">Waiting for a fresh price</p>
+            <a class="btn btn-sm desk-btn" href="#pilot-panel">Pilot details</a>
+          </div>
+        </section>
       </section>
-      <p class="page__note">Status updates every 10 seconds. This control starts only a reviewed, single demo attempt; it does not run the strategy continuously.</p>
+      <p class="visually-hidden" role="status" id="position-announce"></p>
+
+      <div class="desk-grid">
+        <section class="desk-tile desk-tile--chart reveal" style="--i: 2" aria-labelledby="status-title">
+          <div class="desk-tile__head">
+            <div>
+              <h2 id="status-title">Live demo feed</h2>
+              <p class="desk-muted small m-0" id="trade-sound-note" role="status">Quiet entry alert. Enable to preview. Only while this page is visible.</p>
+            </div>
+            <div class="btn-list">
+              <button class="btn btn-sm desk-btn" id="trade-sound" type="button" aria-pressed="false" aria-describedby="trade-sound-note">Trade sound: Off</button>
+              <button class="btn btn-sm desk-btn" id="refresh" type="button" aria-label="Refresh status"><Fragment set:html={icon(iconRefresh)} />Refresh</button>
+            </div>
+          </div>
+          <div id="trading-charts"><p class="desk-muted">Loading chart views…</p></div>
+          <a class="btn btn-primary mt-3" id="sign-in" href="/api/trading/status" hidden><Fragment set:html={icon(iconLogin)} />Sign in to status</a>
+        </section>
+
+        <div class="desk-health reveal" style="--i: 3">
+          <div class="desk-tile desk-stat"><p class="desk-kicker"><Fragment set:html={icon(iconPlug)} />MT5 connection</p><p class="desk-stat__value" id="connection">Checking</p></div>
+          <div class="desk-tile desk-stat"><p class="desk-kicker"><Fragment set:html={icon(iconCoin)} /><span id="instrument-price-label">Gold price</span></p><p class="desk-stat__value" id="freshness">Checking</p></div>
+          <div class="desk-tile desk-stat"><p class="desk-kicker"><Fragment set:html={icon(iconPulse)} />Strategy signal</p><p class="desk-stat__value" id="signal">Checking</p></div>
+          <div class="desk-tile desk-guidance">
+            <p class="m-0" id="guidance" role="status">Connecting to the private status API.</p>
+            <p class="desk-muted small mt-2 mb-0" id="mode-note">Live observation only. Signals do not place orders. Keep Algo Trading off for observation.</p>
+          </div>
+        </div>
+
+        <section class="desk-tile desk-pilot reveal" style="--i: 4" id="pilot-panel" aria-labelledby="pilot-title" tabindex="-1" hidden>
+          <div class="desk-tile__head">
+            <div>
+              <h2 id="pilot-title">Autonomous demo pilot</h2>
+              <p class="desk-muted small m-0">Unqualified demo</p>
+            </div>
+            <span class="desk-chip desk-chip--solid text-uppercase" id="pilot-state" aria-live="polite">Checking</span>
+          </div>
+          <p class="desk-intent" id="pilot-intent">Waiting for status</p>
+          <p class="desk-muted" id="pilot-reason" role="status">Checking</p>
+          <dl class="desk-stats">
+            <div><dt>Realized net</dt><dd class="desk-num" id="pilot-realized">—</dd></div>
+            <div><dt>Floating profit</dt><dd class="desk-num" id="pilot-floating">—</dd></div>
+            <div><dt>Completed trades</dt><dd class="desk-num" id="pilot-count">—</dd></div>
+            <div><dt><Fragment set:html={icon(iconClock)} />Time remaining</dt><dd class="desk-num" id="pilot-remaining">—</dd></div>
+            <div class="desk-stats__wide"><dt>Position / latest attempt</dt><dd id="pilot-position">—</dd></div>
+            <div class="desk-stats__wide"><dt><Fragment set:html={icon(iconTarget)} />Entry / stop / target</dt><dd class="desk-num" id="pilot-levels">—</dd></div>
+          </dl>
+          <div class="desk-strategy">
+            <h3>One fixed strategy</h3>
+            <p class="desk-muted small"><span id="pilot-strategy">Waiting for strategy</span><br /><span id="pilot-timeframe">Waiting for strategy timeframe</span></p>
+            <ul class="desk-rules">
+              <li><Fragment set:html={icon(iconShield)} />0.01 lot, one position per symbol</li>
+              <li><Fragment set:html={icon(iconTarget)} />Stop 2× ATR, target 3× ATR</li>
+              <li><Fragment set:html={icon(iconCoin)} />Entry risk at most 0.1% of equity</li>
+            </ul>
+          </div>
+          <button class="btn btn-primary w-100" id="pilot-pause" type="button" disabled><Fragment set:html={icon(iconPause)} />Pause new entries</button>
+          <p class="desk-muted small mt-3">Pausing keeps existing positions protected and monitored. At expiry, the pilot requests closure. Unresolved positions need owner attention. Floating profit excludes costs not yet booked.</p>
+          <p class="small" id="pilot-message" role="status"></p>
+          <details class="desk-disclosure"><summary>Recent completed trades <Fragment set:html={icon(iconChevron)} /></summary><ol class="desk-list" id="pilot-trades"></ol></details>
+        </section>
+
+        <section class="desk-tile desk-timeline reveal" style="--i: 5" aria-labelledby="checks-title">
+          <h2 id="checks-title">Recent checks</h2>
+          <p class="desk-muted small">Up to six checks from this page session.</p>
+          <ol class="desk-steps" id="monitor-activity"><li>Waiting for the first status report.</li></ol>
+          <details class="desk-disclosure">
+            <summary>Technical details <Fragment set:html={icon(iconChevron)} /></summary>
+            <dl class="desk-stats desk-stats--plain">
+              <div><dt>Status delivery</dt><dd id="delivery">Checking</dd></div>
+              <div><dt>Observer heartbeat</dt><dd id="heartbeat">Checking</dd></div>
+              <div><dt>Last quote</dt><dd id="tick">—</dd></div>
+              <div><dt>Quote age at check</dt><dd id="age">—</dd></div>
+              <div><dt>Completed-candle history</dt><dd id="history">Checking</dd></div>
+              <div><dt>Latest fetched candle, opened</dt><dd id="candle">—</dd></div>
+              <div><dt>Strategy readiness</dt><dd id="strategy">Checking</dd></div>
+              <div><dt>Last checked</dt><dd id="checked">—</dd></div>
+            </dl>
+            <p class="desk-muted" id="reason">Checking</p>
+          </details>
+        </section>
+      </div>
+
+      <div id="trading-replay-source" hidden><TradingReplay /></div>
+      <details class="manual-controls desk-disclosure reveal" style="--i: 6" id="manual-controls">
+        <summary>Manual demo order controls <Fragment set:html={icon(iconChevron)} /></summary>
+        <section class="desk-tile mt-3" aria-labelledby="control-title">
+          <div class="desk-tile__head">
+            <div>
+              <h2 id="control-title">Prepare one trade</h2>
+              <p class="desk-muted small m-0">XAUUSD-VIP, 0.01 lot, broker-held stop loss and take profit</p>
+            </div>
+            <span class="desk-chip">Manual demo</span>
+          </div>
+          <ol class="steps steps-counter steps-green mb-4" aria-label="Demo order steps">
+            <li class="step-item">Set prices</li>
+            <li class="step-item">Preview, no order</li>
+            <li class="step-item">Place once</li>
+          </ol>
+          <div class="row g-4">
+            <div class="col-md-6">
+              <form id="trade-form">
+                <div class="row g-3">
+                  <label class="col-6"><span class="form-label">Direction</span><select class="form-select" id="trade-side" aria-label="Demo trade direction"><option value="buy">Buy</option><option value="sell">Sell</option></select></label>
+                  <label class="col-6"><span class="form-label">Entry price</span><input class="form-control desk-num" id="trade-entry" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
+                  <label class="col-6"><span class="form-label">Stop loss</span><input class="form-control desk-num" id="trade-sl" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
+                  <label class="col-6"><span class="form-label">Take profit</span><input class="form-control desk-num" id="trade-tp" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" placeholder="Price" required /></label>
+                </div>
+                <p class="form-hint mt-2">Choose prices from MT5. Buy: stop below entry, target above. Sell: target below entry, stop above.</p>
+                <div class="btn-list">
+                  <button class="btn btn-primary" id="prepare-trade" type="submit" disabled>Preview pending order</button>
+                  <a class="btn desk-btn" href="http://127.0.0.1:6081/vnc.html?autoconnect=1&amp;resize=scale" target="_blank" rel="noopener noreferrer"><Fragment set:html={icon(iconExternal)} />Open MT5 desktop</a>
+                </div>
+              </form>
+              <p class="desk-muted small mt-3">Keep Algo Trading off for the preview. The MT5 desktop link needs your SSH tunnel to port 6081.</p>
+              <div id="trade-preview" class="desk-preview mt-3" hidden>
+                <h3>Review before starting</h3>
+                <p id="preview-summary"></p>
+                <p id="preview-protection"></p>
+                <p>This preview expires after 10 minutes. Enable Algo Trading in MT5, then place this one pending order. Prices, account and broker conditions are checked again first.</p>
+                <p>The pending order stays until you cancel it in MT5.</p>
+                <button class="btn btn-primary" id="start-trade" type="button">Place one pending order</button>
+              </div>
+              <p class="mt-3" id="control-message" role="status" aria-live="polite"></p>
+            </div>
+            <figure class="col-md-6 m-0 trade__chart" aria-labelledby="levels-title levels-caption">
+              <h3 id="levels-title">Entry / stop / target</h3>
+              <p class="desk-muted small" id="levels-source">Waiting for a report</p>
+              <!-- Fixed SVG coordinates are diagram geometry, not layout spacing. -->
+              <div id="levels-plot" hidden>
+              <svg id="levels-chart" viewBox="0 0 400 260" role="img" aria-labelledby="levels-description">
+                <title id="levels-description">Trade price levels</title>
+                <line class="trade__axis" x1="136" x2="136" y1="20" y2="240" />
+                <g id="level-stop"><line x1="136" x2="290" /><circle cx="136" r="4" /><text x="0" class="trade__level-label">Stop loss</text><text x="400" text-anchor="end" class="trade__level-price"></text></g>
+                <g id="level-entry"><line x1="136" x2="290" /><circle cx="136" r="4" /><text x="0" class="trade__level-label">Entry</text><text x="400" text-anchor="end" class="trade__level-price"></text></g>
+                <g id="level-target"><line x1="136" x2="290" /><circle cx="136" r="4" /><text x="0" class="trade__level-label">Take profit</text><text x="400" text-anchor="end" class="trade__level-price"></text></g>
+              </svg>
+              </div>
+              <p class="desk-muted" id="levels-empty">Enter entry, stop loss and take profit to see their price levels.</p>
+              <figcaption id="levels-caption" class="desk-muted small">Price levels only. This is not a market chart or a forecast.</figcaption>
+            </figure>
+          </div>
+          <div class="desk-attempt">
+            <div class="d-flex justify-content-between align-items-baseline gap-2"><h3 class="m-0">Latest attempt</h3><span class="desk-chip text-uppercase" id="execution-state" aria-live="polite">Checking</span></div>
+            <p class="desk-num fs-3 mt-2" id="execution-summary">Checking</p>
+            <p class="desk-muted" id="execution-guidance">Connecting to the private status API.</p>
+            <details class="desk-disclosure">
+              <summary>Trade details <Fragment set:html={icon(iconChevron)} /></summary>
+              <dl class="desk-stats desk-stats--plain">
+                <div><dt>Entry price</dt><dd id="execution-entry">—</dd></div>
+                <div><dt>Stop loss</dt><dd id="execution-sl">—</dd></div>
+                <div><dt>Take profit</dt><dd id="execution-tp">—</dd></div>
+                <div><dt>Opened</dt><dd id="execution-opened">—</dd></div>
+                <div><dt>Closed</dt><dd id="execution-closed">—</dd></div>
+                <div><dt>Last report</dt><dd id="execution-updated">—</dd></div>
+              </dl>
+            </details>
+          </div>
+        </section>
+        <p class="desk-muted small mt-2">Status updates every 10 seconds. This control starts only a reviewed, single demo attempt. It does not run the strategy continuously.</p>
       </details>
     </main>
     <script is:inline type="module" src="/dashboard-assets/trading.js"></script>
@@ -177,13 +275,49 @@ export const prerender = true;
       import { tradeLevels } from '../../scripts/trading-levels.mjs';
       import { chartSnapshot } from '../../scripts/trading-chart.mjs';
       import { entryNotifications } from '../../scripts/trading-sound.mjs';
+      import { positionRail } from '../../scripts/trading-position.mjs';
+      import { selectedInstrument } from '../../scripts/trading-instruments.mjs';
       const field = (id: string) => document.getElementById(id)!;
+      const selected = selectedInstrument(location.search);
+      document.title = `Demo account monitor - ${selected.name} operations - KWG`;
+      field('instrument-title').textContent = `${selected.name}, under observation.`;
+      field('hero-price-label').textContent = `${selected.symbol} · Bid / ask, USD`;
+      field('position-symbol').textContent = selected.symbol;
+      field('instrument-price-label').textContent = `${selected.name} price`;
+      field(selected.symbol === 'BTCUSD' ? 'instrument-btc' : 'instrument-gold').setAttribute('aria-current', 'page');
+      field('manual-controls').hidden = selected.symbol === 'BTCUSD';
+      (field('sign-in') as HTMLAnchorElement).href = '/api/trading/status' + selected.query;
+      const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+      const numbers = /-?\d+(?:\.\d+)?/g;
+      const rolling = new WeakMap<Element, number>();
+      // Roll every number in `text` from the value currently shown; same sign and shape only.
+      function roll(el: HTMLElement, text: string) {
+        const from = (el.textContent ?? '').match(numbers)?.map(Number);
+        const to = text.match(numbers)?.map(Number);
+        cancelAnimationFrame(rolling.get(el) ?? 0);
+        if (reduceMotion.matches || !from || !to || from.length !== to.length || from.some((v, i) => Math.sign(v) !== Math.sign(to[i]))) { el.textContent = text; return; }
+        const start = performance.now();
+        const step = (now: number) => {
+          const t = Math.min(1, (now - start) / 450), eased = 1 - (1 - t) ** 3;
+          let i = 0;
+          el.textContent = t === 1 ? text : text.replace(numbers, match => { const v = from[i] + (to[i] - from[i]) * eased; i++; return v.toFixed((match.split('.')[1] ?? '').length); });
+          if (t < 1) rolling.set(el, requestAnimationFrame(step));
+        };
+        rolling.set(el, requestAnimationFrame(step));
+      }
+      // Restart a one-shot flash class so repeated ticks in one direction still show.
+      function flash(el: HTMLElement, up: boolean) {
+        el.classList.remove('tick-up', 'tick-down');
+        void el.offsetWidth;
+        el.classList.add(up ? 'tick-up' : 'tick-down');
+      }
+      let lastBid: number | null = null;
       const refresh = field('refresh') as HTMLButtonElement;
       const soundToggle = field('trade-sound') as HTMLButtonElement;
       const sound = new Audio('/audio/trade-entry.mp3');
       sound.preload = 'none';
       sound.volume = 0.35;
-      const entryNotification = entryNotifications();
+      const entryNotification = entryNotifications(selected.symbol);
       let soundEnabled = false;
       function muteSound() {
         soundEnabled = false;
@@ -259,6 +393,58 @@ export const prerender = true;
         }
         field('levels-description').textContent = `${draft ? 'Form' : 'Reported'} ${draft ? side.value : execution!.side} levels: ${levels.map(level => `${level.name} ${level.price.toFixed(2)}`).join(', ')}. Higher prices are above lower prices.`;
       }
+      let positionOpen: boolean | null = null;
+      function renderPosition(execution: ReturnType<typeof executionFields>, freshPrice: boolean) {
+        const raw = latest?.execution;
+        const open = !!raw && ['Open', 'Closing'].includes(execution.state);
+        const strip = field('position-strip');
+        // Announce and highlight only real transitions, not the first report after page load.
+        if (positionOpen !== null && open !== positionOpen) {
+          field('position-announce').textContent = open ? `Demo position opened: ${execution.side} ${execution.volume} at ${execution.entry}.` : 'Demo position closed.';
+          strip.classList.remove('is-new');
+          if (open) { void strip.offsetWidth; strip.classList.add('is-new'); }
+        }
+        positionOpen = open;
+        strip.hidden = !open;
+        field('position-idle').hidden = open;
+        if (!open || !raw) return;
+        const sell = raw.side === 'sell';
+        field('position-side').textContent = execution.side;
+        field('position-side-icon-sell').hidden = !sell;
+        field('position-side-icon-buy').hidden = sell;
+        field('position-volume').textContent = execution.volume;
+        field('position-opened').textContent = execution.opened === '—' ? '' : `opened ${execution.opened}`;
+        field('position-entry').textContent = execution.entry;
+        field('position-sl').textContent = execution.sl;
+        field('position-tp').textContent = execution.tp;
+        const floating = latest?.pilot?.floating_usd;
+        const pl = typeof floating === 'number' && Number.isFinite(floating) ? floating : null;
+        roll(field('position-pl'), pl === null ? 'Not reported' : `${pl > 0 ? '+' : ''}${pl.toFixed(2)} USD`);
+        field('position-pl-wrap').classList.toggle('text-green', pl !== null && pl > 0);
+        field('position-pl-wrap').classList.toggle('text-loss', pl !== null && pl < 0);
+        field('position-pl-up').hidden = !(pl !== null && pl > 0);
+        field('position-pl-down').hidden = !(pl !== null && pl < 0);
+        const rail = freshPrice ? positionRail(raw.side, raw.entry_price, raw.sl, raw.tp, latest!.health?.bid, latest!.health?.ask) : null;
+        const meter = field('position-rail');
+        meter.classList.toggle('is-stale', !rail);
+        if (!rail) {
+          field('position-progress').textContent = 'Waiting for a fresh price';
+          meter.setAttribute('aria-valuetext', 'Waiting for a fresh price');
+          return;
+        }
+        // Full-width layers moved by transform keep the motion on the compositor.
+        field('position-marker').style.transform = `translateX(${rail.at}%)`;
+        field('position-entry-tick').style.transform = `translateX(${rail.entryAt}%)`;
+        field('position-entry-label').style.left = `${rail.entryAt}%`;
+        const fill = field('position-fill');
+        fill.style.clipPath = `inset(0 ${100 - Math.max(rail.at, rail.entryAt)}% 0 ${Math.min(rail.at, rail.entryAt)}%)`;
+        fill.classList.toggle('is-gain', rail.progress >= 0);
+        field('position-price').textContent = rail.price.toFixed(2);
+        const summary = `Exit price ${rail.price.toFixed(2)}, ${Math.round(Math.abs(rail.progress) * 100)}% of the way from entry to ${rail.progress >= 0 ? 'target' : 'stop'}.`;
+        field('position-progress').textContent = summary;
+        meter.setAttribute('aria-valuenow', String(Math.round(rail.at)));
+        meter.setAttribute('aria-valuetext', summary);
+      }
       function render() {
         renderLevels();
         window.dispatchEvent(new CustomEvent('trading-snapshot', { detail: chartSnapshot(latest) }));
@@ -266,21 +452,29 @@ export const prerender = true;
         const fields = statusFields(latest);
         const isPilot = latest.mode === 'autonomous-demo';
         field('pilot-panel').hidden = !isPilot;
-        field('manual-controls').hidden = isPilot;
+        field('manual-controls').hidden = isPilot || selected.symbol === 'BTCUSD';
         field('mode-note').textContent = isPilot ? 'Demo execution mode. Review pilot state and positions below.'
           : 'Live observation only. Signals do not place orders. Keep Algo Trading off for observation.';
-        const pilot = pilotFields(latest.pilot);
-        field('pilot-strategy').textContent = pilot.state === 'Unknown' ? 'Strategy unavailable' : latest.pilot?.strategy === 'gold-ema-v1-m1-trend-3' ? 'EMA trend · 3-bar slope · 5-minute cooldown after close' : 'EMA crossover · 3-bar slope filter';
+        const pilot = pilotFields(latest.pilot, Date.now() / 1000, selected.symbol);
+        field('pilot-strategy').textContent = pilot.state === 'Unknown' ? 'Strategy unavailable' : ['gold-ema-v1-m1-trend-3', 'btc-ema-v1-m15-trend-3'].includes(latest.pilot?.strategy) ? 'EMA trend · 3-bar slope · 5-minute cooldown after close' : 'EMA crossover · 3-bar slope filter';
         field('pilot-timeframe').textContent = pilot.state === 'Unknown' ? 'Strategy timeframe unavailable' : ['gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3'].includes(latest.pilot?.strategy) ? 'Completed 1-minute candles only - M1 demo' : 'Completed 15-minute candles only - M15 demo';
         if (pilot.state === 'Paused' && field('pilot-message').textContent?.startsWith('Pause requested.')) field('pilot-message').textContent = 'New entries are paused.';
         for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining'] as const) field(`pilot-${key}`).textContent = pilot[key];
+        // render() runs every second, so the countdown ticks between status reports.
+        const left = typeof latest.pilot?.ends_at === 'number' ? Math.floor(latest.pilot.ends_at - Date.now() / 1000) : 0;
+        if (pilot.state !== 'Unknown' && left > 0) field('pilot-remaining').textContent = `${left >= 86400 ? `${Math.floor(left / 86400)}d ` : ''}${String(Math.floor(left % 86400 / 3600)).padStart(2, '0')}h ${String(Math.floor(left % 3600 / 60)).padStart(2, '0')}m ${String(left % 60).padStart(2, '0')}s`;
         (field('pilot-pause') as HTMLButtonElement).disabled = designPreview || !isPilot || !pilot.canPause || Date.now() - receivedAt > 30000;
         field('pilot-trades').replaceChildren(...(pilot.trades.length ? pilot.trades : ['No completed trades reported.']).map((text: string) => {
           const item = document.createElement('li'); item.textContent = text; return item;
         }));
         if (Date.now() - receivedAt > 30000) fields.delivery = 'No recent API response';
-        for (const [id, value] of Object.entries(fields)) field(id).textContent = value;
+        for (const [id, value] of Object.entries(fields)) if (id !== 'price') field(id).textContent = value;
+        const bid = latest.health?.bid;
+        if (fields.price !== '—' && typeof bid === 'number' && lastBid !== null && bid !== lastBid) flash(field('price'), bid > lastBid);
+        lastBid = fields.price === '—' ? null : bid ?? null;
+        roll(field('price'), fields.price);
         const execution = executionFields(latest.execution);
+        renderPosition(execution, fields.price !== '—');
         field('pilot-position').textContent = pilot.state === 'Unknown' ? 'Unknown'
           : execution.state === 'Disarmed' ? 'No open position'
           : `${execution.state} · ${execution.side} · ${execution.volume}`;
@@ -302,8 +496,8 @@ export const prerender = true;
           for (const input of [entry, sl, tp]) input.disabled = false;
           field('control-message').textContent = 'Attempt finished. Review the result and turn Algo Trading off in MT5.';
         }
-        prepare.disabled = isPilot || !!previewToken || !!startedAt || !resolved || fields.state !== 'Observing';
-        start.disabled = isPilot || !previewToken || !resolved || Date.now() - receivedAt > 30000;
+        prepare.disabled = selected.symbol === 'BTCUSD' || isPilot || !!previewToken || !!startedAt || !resolved || fields.state !== 'Observing';
+        start.disabled = selected.symbol === 'BTCUSD' || isPilot || !previewToken || !resolved || Date.now() - receivedAt > 30000;
       }
 
       async function control(action: 'preview' | 'arm' | 'pilot-pause', body: object) {
@@ -320,7 +514,7 @@ export const prerender = true;
       field('pilot-pause').addEventListener('click', async () => {
         (field('pilot-pause') as HTMLButtonElement).disabled = true;
         try {
-          await control('pilot-pause', {});
+          await control('pilot-pause', { symbol: selected.symbol });
           field('pilot-message').textContent = 'Pause requested. Waiting for the runner to confirm.';
           await load();
         } catch (error) {
@@ -397,12 +591,12 @@ export const prerender = true;
         refresh.disabled = true;
         try {
           if (localPreview) throw new Error('local-preview');
-          const response = await fetch('/api/trading/status', { cache: 'no-store', credentials: 'same-origin', redirect: 'manual', signal: AbortSignal.timeout(8000) });
+          const response = await fetch('/api/trading/status' + selected.query, { cache: 'no-store', credentials: 'same-origin', redirect: 'manual', signal: AbortSignal.timeout(8000) });
           if (response.type === 'opaqueredirect' || [401, 403].includes(response.status)) throw new Error('access');
           if (!response.ok) throw new Error('unavailable');
           if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('unavailable');
           const data = await response.json();
-          if (!['signal-only', 'autonomous-demo'].includes(data.mode) || data.symbol !== 'XAUUSD-VIP') throw new Error('unavailable');
+          if (!['signal-only', 'autonomous-demo'].includes(data.mode) || data.symbol !== selected.symbol) throw new Error('unavailable');
           signIn.hidden = true;
           latest = data;
           receivedAt = Date.now();
@@ -420,6 +614,9 @@ export const prerender = true;
         } catch (error) {
           entryNotification(null, Date.now() / 1000);
           latest = null;
+          field('position-strip').hidden = true;
+          field('position-idle').hidden = false;
+          lastBid = null;
           window.dispatchEvent(new CustomEvent('trading-snapshot', { detail: chartSnapshot(null) }));
           field('pilot-intent').textContent = 'Status unavailable';
           field('pilot-strategy').textContent = 'Strategy unavailable';
@@ -439,7 +636,7 @@ export const prerender = true;
           field('heartbeat').textContent = 'Unknown';
           field('connection').textContent = 'Unknown — status unavailable';
           field('freshness').textContent = 'Unknown';
-          field('price').textContent = '—';
+          roll(field('price'), '—');
           for (const id of ['tick', 'age', 'history', 'strategy']) field(id).textContent = '—';
           field('candle').textContent = '—';
           field('signal').textContent = '—';
@@ -471,83 +668,231 @@ export const prerender = true;
     </script>
 
     <style lang="scss">
-      .page { display: grid; align-content: start; justify-items: start; gap: var(--sp-2xl); min-height: 100svh; width: min(100%, var(--container-max-width)); margin-inline: auto; padding: var(--sp-3xl) var(--grid-margin); }
-      .page__intro { max-width: 65ch; }
-      .page__intro h1 { margin: 0 0 var(--sp-lg); font-size: var(--fs-3); line-height: 1; letter-spacing: var(--ls-3); }
-      .page__intro p { margin: 0; color: var(--c-body); line-height: 1.5; }
-      .page__replay-link { margin-top: var(--sp-lg); }
-      .page__note { margin: 0; color: var(--c-body); font-size: var(--fs-body-sm); }
-      .status { width: min(100%, var(--container-max-width)); box-shadow: none; }
-      .status__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-md); }
-      .status__head h2 { margin: 0; font-size: var(--fs-4); font-weight: var(--fw-regular); letter-spacing: var(--ls-4); }
-      .status__state { color: var(--c-body); }
-      .status__rows { margin: var(--sp-xl) 0; }
-      .status__rows div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-md); padding: var(--sp-md) 0; border-top: 1px solid var(--c-hairline); }
-      .status__rows dt { display: flex; align-items: center; gap: var(--sp-sm); color: var(--c-body); }
-      .status__rows svg { width: var(--sp-xl); height: var(--sp-xl); flex-shrink: 0; }
-      .status__symbol { margin: var(--sp-md) 0 0; color: var(--c-body); }
-      .status__price { display: grid; gap: var(--sp-sm); margin: var(--sp-xl) 0; }
-      #price { font-size: var(--fs-4); font-variant-numeric: tabular-nums; }
-      .status__activity { margin: var(--sp-xl) 0; }
-      .status__activity summary, .manual-controls > summary { width: fit-content; }
-      .status__activity ol { padding-left: var(--sp-xl); color: var(--c-body); line-height: 1.6; }
-      .status__activity li + li { margin-top: var(--sp-sm); }
-      .status__activity .page__note { margin-top: var(--sp-lg); }
-      .manual-controls { width: 100%; }
-      .manual-controls .status { margin-block: var(--sp-xl); }
-      .status__guidance { max-width: 65ch; line-height: 1.6; color: var(--c-body); margin: 0 0 var(--sp-xl); }
-      .status__details { margin-bottom: var(--sp-xl); }
-      .status__details summary { width: fit-content; list-style: none; }
-      .status__details summary::-webkit-details-marker { display: none; }
-      .status__details[open] summary span { transform: rotate(180deg); }
-      .status__rows dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-      .status__checks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-xl); }
-      .status__checks div { grid-template-columns: 1fr; gap: var(--sp-sm); }
-      .status__checks dd { font-size: var(--fs-6); }
-      .status__reason { min-height: 1.5em; margin: 0 0 var(--sp-xl); color: var(--c-body); }
-      .status__actions { display: flex; flex-wrap: wrap; gap: var(--sp-md); }
-      .status__actions [hidden] { display: none; }
-      .trade__form { display: grid; gap: var(--sp-lg); margin-bottom: var(--sp-lg); }
-      .trade__steps { display: flex; flex-wrap: wrap; gap: var(--sp-xl); padding: 0; margin: var(--sp-xl) 0 var(--sp-2xl); list-style: none; }
-      .trade__steps li { display: flex; align-items: center; gap: var(--sp-sm); color: var(--c-body); font-size: var(--fs-body-sm); }
-      .trade__steps span { display: grid; place-items: center; width: var(--sp-2xl); height: var(--sp-2xl); border: 1px solid var(--c-hairline-bright); border-radius: var(--r-pill); color: var(--c-ink); }
-      .trade__workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-3xl); }
-      .trade__setup { min-width: 0; }
-      .trade__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-lg); }
-      .trade__field { display: grid; gap: var(--sp-sm); min-width: 0; }
-      .trade__field input, .trade__field select { width: 100%; min-height: var(--sp-3xl); padding: var(--sp-sm) var(--sp-lg); border: 1px solid var(--c-hairline-bright); border-radius: var(--r-pill); background: var(--c-canvas); color: var(--c-ink); font: inherit; font-variant-numeric: tabular-nums; }
-      .trade__field input::placeholder { color: var(--c-body); }
-      .trade__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-md); }
-      .trade__preview { max-width: 65ch; margin-top: var(--sp-xl); padding-top: var(--sp-xl); border-top: 1px solid var(--c-hairline); }
-      .trade__preview h3 { margin: 0 0 var(--sp-md); font-size: var(--fs-5); font-weight: var(--fw-regular); }
-      .trade__preview p { color: var(--c-body); line-height: 1.5; }
-      .trade__preview[hidden], .trade__actions [hidden] { display: none; }
-      #control-message { min-height: 1.5em; color: var(--c-body); }
-      #control-message:empty { display: none; }
-      .trade__chart { margin: 0; min-width: 0; padding-left: var(--sp-2xl); border-left: 1px solid var(--c-hairline); }
-      .trade__chart h3, .trade__result h3 { margin: 0 0 var(--sp-md); font-size: var(--fs-5); font-weight: var(--fw-regular); }
-      .trade__chart .micro { color: var(--c-body); }
-      .trade__chart svg { display: block; width: 100%; margin: var(--sp-lg) 0; overflow: visible; }
-      #levels-plot[hidden], .trade__empty[hidden] { display: none; }
-      .trade__chart line { stroke: var(--c-body); stroke-width: 1; }
-      .trade__chart .trade__axis { stroke: var(--c-hairline-bright); }
-      .trade__chart circle { fill: var(--c-ink); }
-      .trade__chart g:not(#level-entry) line { stroke-dasharray: 4 4; }
-      .trade__chart text { fill: var(--c-body); font-size: var(--fs-5); }
-      .trade__chart .trade__level-price { fill: var(--c-ink); font-family: var(--ff-mono); }
-      .trade__empty { display: grid; align-content: center; min-height: calc(var(--sp-4xl) * 3); color: var(--c-body); line-height: 1.6; }
-      .trade__result { margin-top: var(--sp-2xl); padding-top: var(--sp-xl); border-top: 1px solid var(--c-hairline); }
-      #execution-summary { font-size: var(--fs-5); font-variant-numeric: tabular-nums; }
-      .trade__result .status__details { margin-bottom: 0; }
-      button:disabled { opacity: .5; cursor: not-allowed; }
-      @media (max-width: 48rem) {
-        .trade__workspace { grid-template-columns: 1fr; gap: var(--sp-xl); }
-        .trade__chart { padding: var(--sp-xl) 0 0; border-left: 0; border-top: 1px solid var(--c-hairline); }
+      // Trading desk theme (DESIGN.md, Trading exception): white canvas, one forest green,
+      // red only for stop, loss and alerts. Tabler stays underneath; its variables are re-pointed here.
+      :global(body.desk) {
+        --desk-ink: #0b2a1c;
+        --desk-muted: #4a6656;
+        --desk-green: #0f7a45;
+        --desk-green-rgb: 15, 122, 69;
+        --desk-green-deep: #0a4d2c;
+        --desk-green-bright: #17b45f;
+        --desk-mint: #f3faf6;
+        --desk-mint-2: #e2f3e9;
+        --desk-line: #d5eadc;
+        --desk-red: #d92d20;
+        --desk-red-rgb: 217, 45, 32;
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+        --tblr-primary: var(--desk-green);
+        --tblr-primary-rgb: var(--desk-green-rgb);
+        --tblr-primary-fg: #fff;
+        --tblr-primary-darken: var(--desk-green-deep);
+        --tblr-green: var(--desk-green);
+        --tblr-green-rgb: var(--desk-green-rgb);
+        --tblr-red: var(--desk-red);
+        --tblr-red-rgb: var(--desk-red-rgb);
+        --tblr-body-color: var(--desk-ink);
+        --tblr-heading-color: var(--desk-ink);
+        --tblr-body-bg: #fff;
+        --tblr-secondary: var(--desk-muted);
+        --tblr-secondary-color: var(--desk-muted);
+        --tblr-border-color: var(--desk-line);
+        --tblr-bg-surface: #fff;
+        --tblr-bg-surface-secondary: var(--desk-mint);
+        --tblr-link-color: var(--desk-green);
+        --tblr-body-font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        --tblr-font-sans-serif: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        --tblr-font-monospace: 'Geist Mono', ui-monospace, 'Cascadia Mono', monospace;
+        --tblr-focus-ring-color: rgba(var(--desk-green-rgb), .35);
+        background: radial-gradient(1100px 420px at 85% -120px, var(--desk-mint-2), transparent 70%), #fff;
+        color: var(--desk-ink);
+        font-family: var(--tblr-body-font-family);
+        font-feature-settings: 'ss01';
       }
-      @media (max-width: 40rem) {
-        .status__checks { grid-template-columns: 1fr; gap: 0; }
-        .status__rows div { grid-template-columns: 1fr; gap: var(--sp-xs); }
-        .trade__steps { gap: var(--sp-md); }
+      .desk-skip { position: fixed; top: .75rem; left: .75rem; z-index: 1030; }
+      .desk-logo { display: inline-flex; width: 1.5rem; height: 1.5rem; color: var(--desk-green); }
+      .desk-logo :global(svg) { width: 100%; height: 100%; }
+      .desk-logo--sm { width: 1rem; height: 1rem; }
+      .desk-num, :global(.desk-num) { font-family: var(--tblr-font-monospace); font-variant-numeric: tabular-nums; }
+      .desk-muted { color: var(--desk-muted); }
+      .desk-green { color: var(--desk-green); }
+      :global(.text-loss) { color: var(--desk-red) !important; }
+      :global(.text-green) { color: var(--desk-green) !important; }
+
+      // Navigation
+      .desk-nav { position: sticky; top: 0; z-index: 1020; background: rgba(255, 255, 255, .86); backdrop-filter: blur(12px); border-bottom: 1px solid var(--desk-line); padding-block: .75rem; }
+      .desk-brand { display: inline-flex; align-items: center; gap: .5rem; color: var(--desk-green-deep); font-weight: 600; text-decoration: none; min-height: 44px; }
+      .desk-nav__links { display: flex; gap: .25rem; padding: .25rem; border-radius: 999px; background: var(--desk-mint); border: 1px solid var(--desk-line); }
+      .desk-nav__links a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 1rem; border-radius: 999px; color: var(--desk-muted); text-decoration: none; font-size: .875rem; transition: background-color 150ms ease, color 150ms ease; }
+      .desk-nav__links a:hover { color: var(--desk-green-deep); }
+      .desk-nav__links [aria-current='page'] { background: #fff; color: var(--desk-green-deep); box-shadow: 0 1px 2px rgba(var(--desk-green-rgb), .18); }
+
+      // Intro
+      .desk-main { padding-block: 2.5rem 4rem; }
+      .desk-intro { max-width: 46rem; }
+      #trading-content:focus { outline: none; }
+      .desk-eyebrow, .desk-kicker { display: flex; align-items: center; gap: .5rem; margin: 0 0 .5rem; font-family: var(--tblr-font-monospace); font-size: .75rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--desk-muted); }
+      .desk-kicker :global(svg) { width: 1rem; height: 1rem; color: var(--desk-green); }
+      .desk-intro h1 { margin: 0; font-size: clamp(2.25rem, 5vw, 3.75rem); font-weight: 600; line-height: 1.02; letter-spacing: -0.035em; color: var(--desk-green-deep); }
+      .desk-lede { margin: .75rem 0 0; font-size: 1.125rem; color: var(--desk-muted); }
+      .desk-note { margin: 1rem 0 0; padding: .75rem 1rem; border-radius: 12px; background: var(--desk-mint); border: 1px solid var(--desk-line); color: var(--desk-green-deep); font-size: .875rem; }
+
+      // Live dot: a ripple that reads as "streaming".
+      .desk-live { position: relative; width: .5rem; height: .5rem; border-radius: 50%; background: var(--desk-green-bright); flex-shrink: 0; }
+      .desk-live::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--desk-green-bright); animation: desk-ripple 1.8s var(--ease-out) infinite; }
+      @keyframes desk-ripple { from { transform: scale(1); opacity: .55; } to { transform: scale(3); opacity: 0; } }
+
+      .desk-chip { display: inline-flex; align-items: center; min-height: 1.75rem; padding: 0 .75rem; border-radius: 999px; border: 1px solid var(--desk-line); background: var(--desk-mint); color: var(--desk-green-deep); font-family: var(--tblr-font-monospace); font-size: .75rem; letter-spacing: .04em; text-transform: uppercase; }
+      .desk-chip--solid { background: var(--desk-green); border-color: var(--desk-green); color: #fff; }
+
+      // Hero: price on the left, the open trade on the right.
+      .desk-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 2rem; margin-top: 2rem; padding: 1.75rem; border-radius: 24px; background: #fff; border: 1px solid var(--desk-line); box-shadow: 0 24px 60px -40px rgba(var(--desk-green-rgb), .45); overflow-x: clip; }
+      .desk-price { margin: .25rem 0 0; padding: .125rem .375rem; margin-inline: -.375rem; border-radius: 10px; font-family: var(--tblr-font-monospace); font-size: clamp(1.75rem, 3.2vw, 2.75rem); font-weight: 500; line-height: 1.1; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: var(--desk-ink); white-space: nowrap; }
+      :global(.desk-price.tick-up) { animation: tick-up 900ms var(--ease-out); }
+      :global(.desk-price.tick-down) { animation: tick-down 900ms var(--ease-out); }
+      @keyframes tick-up { from { background-color: rgba(var(--desk-green-rgb), .16); color: var(--desk-green); } }
+      @keyframes tick-down { from { background-color: rgba(var(--desk-red-rgb), .12); color: var(--desk-red); } }
+      .desk-hero__idle, .desk-trade { border-left: 1px solid var(--desk-line); padding-left: 2rem; }
+      .desk-hero__idle[hidden] { display: none; }
+      .desk-idle-title { margin: 0 0 .25rem; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; color: var(--desk-green-deep); }
+      .desk-trade { animation: desk-rise 600ms var(--ease-out) both; }
+      .desk-trade.is-new { animation: desk-rise 600ms var(--ease-out) both, trade-arrive 1200ms var(--ease-out); }
+      @keyframes trade-arrive { from { background: rgba(var(--desk-green-rgb), .1); } }
+      .desk-trade__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1.5rem; }
+      .desk-trade__head > div:first-child { flex: 1 1 14rem; min-width: 0; }
+      .desk-trade h2.desk-kicker { color: var(--desk-green); }
+      .desk-trade__side { display: flex; align-items: center; gap: .5rem; margin: 0 0 .25rem; font-size: 2.5rem; font-weight: 600; line-height: 1; letter-spacing: -0.035em; color: var(--desk-green-deep); }
+      .desk-trade__arrow :global(svg) { width: 2.25rem; height: 2.25rem; color: var(--desk-green); }
+      .desk-trade__volume { font-size: 1.125rem; font-weight: 400; letter-spacing: 0; color: var(--desk-muted); }
+      .desk-trade__pl { text-align: right; }
+      .desk-trade__pl .desk-kicker { justify-content: flex-end; }
+      .desk-pl { display: flex; align-items: center; justify-content: flex-end; gap: .375rem; margin: 0; font-family: var(--tblr-font-monospace); font-size: clamp(2.25rem, 4.5vw, 3.25rem); font-weight: 500; line-height: 1.05; letter-spacing: -0.045em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .desk-pl :global(svg) { width: 2rem; height: 2rem; }
+
+      // Stop -> entry -> target rail
+      .position-rail { margin-top: 1.5rem; padding-top: 2.5rem; }
+      .position-rail__track { position: relative; height: .625rem; border-radius: 999px; background: linear-gradient(90deg, rgba(var(--desk-red-rgb), .22), var(--desk-mint-2) 35%, var(--desk-mint-2) 65%, rgba(var(--desk-green-rgb), .28)); }
+      .position-rail__fill { position: absolute; inset: 0; border-radius: inherit; background: var(--desk-red); transition: clip-path 600ms var(--ease-in-out); }
+      .position-rail__fill.is-gain { background: linear-gradient(90deg, var(--desk-green), var(--desk-green-bright)); }
+      .position-rail__entry, .position-rail__pos { position: absolute; inset: 0; pointer-events: none; transition: transform 600ms var(--ease-in-out); }
+      .position-rail__entry::before { content: ''; position: absolute; left: 0; top: -.5rem; width: 2px; height: 1.625rem; margin-left: -1px; border-radius: 2px; background: var(--desk-ink); }
+      .position-rail__dot { position: absolute; left: 0; top: 50%; width: 1.375rem; height: 1.375rem; margin: -.6875rem 0 0 -.6875rem; border-radius: 50%; background: var(--desk-green); border: 4px solid #fff; box-shadow: 0 0 0 1px var(--desk-line), 0 6px 16px -4px rgba(var(--desk-green-rgb), .6); }
+      .position-rail__dot::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--desk-green-bright); animation: desk-ripple 2s var(--ease-out) infinite; }
+      .position-rail__price { position: absolute; left: 0; bottom: 1.25rem; transform: translateX(-50%); padding: .125rem .5rem; border-radius: 8px; background: var(--desk-green-deep); color: #fff; font-family: var(--tblr-font-monospace); font-size: .8125rem; white-space: nowrap; }
+      .position-rail__labels { position: relative; display: flex; justify-content: space-between; gap: .5rem; margin-top: .875rem; min-height: 1.25rem; font-size: .875rem; }
+      .position-rail__entry-label { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; color: var(--desk-muted); }
+      .position-rail.is-stale .position-rail__pos, .position-rail.is-stale .position-rail__fill { opacity: 0; }
+
+      // Tile grid
+      .desk-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1.25rem; margin-top: 1.25rem; align-items: start; }
+      .desk-grid > * { grid-column: 1 / span 8; min-width: 0; }
+      .desk-grid > .desk-pilot { grid-column: 9 / span 4; grid-row: 1 / span 3; position: sticky; top: 5.5rem; }
+      .desk-grid:has(#pilot-panel[hidden]) > * { grid-column: 1 / -1; }
+      .desk-tile { background: #fff; border: 1px solid var(--desk-line); border-radius: 20px; padding: 1.375rem; transition: transform 300ms var(--ease-out), border-color 200ms ease, box-shadow 300ms var(--ease-out); }
+      @media (hover: hover) and (pointer: fine) {
+        .desk-tile:hover { transform: translateY(-2px); border-color: rgba(var(--desk-green-rgb), .35); box-shadow: 0 18px 40px -28px rgba(var(--desk-green-rgb), .55); }
+        .desk-pilot.desk-tile:hover { transform: none; }
+      }
+      .desk-tile__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: .75rem 1rem; margin-bottom: 1rem; }
+      .desk-tile h2, .desk-timeline h2 { margin: 0 0 .25rem; font-size: 1.125rem; font-weight: 600; letter-spacing: -0.01em; color: var(--desk-ink); }
+      .desk-health { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+      .desk-stat__value { margin: 0; font-size: 1.0625rem; font-weight: 500; color: var(--desk-green-deep); }
+      .desk-guidance { grid-column: 1 / -1; background: var(--desk-mint); }
+      .desk-intent { margin: 0 0 .25rem; font-size: 1.75rem; font-weight: 600; line-height: 1.15; letter-spacing: -0.025em; color: var(--desk-green-deep); }
+      .desk-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .625rem; margin: 1rem 0; }
+      .desk-stats div { padding: .75rem .875rem; border-radius: 14px; background: var(--desk-mint); }
+      .desk-stats .desk-stats__wide { grid-column: 1 / -1; }
+      .desk-stats dt { display: flex; align-items: center; gap: .375rem; margin-bottom: .25rem; font-family: var(--tblr-font-monospace); font-size: .6875rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--desk-muted); }
+      .desk-stats dt :global(svg) { width: .875rem; height: .875rem; color: var(--desk-green); }
+      .desk-stats dd { margin: 0; font-size: 1.0625rem; color: var(--desk-ink); overflow-wrap: anywhere; }
+      .desk-stats--plain { grid-template-columns: 1fr; gap: 0; }
+      .desk-stats--plain div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 1rem; padding: .625rem 0; border-radius: 0; background: none; border-top: 1px solid var(--desk-line); }
+      .desk-stats--plain dd { font-size: .9375rem; font-family: var(--tblr-font-monospace); }
+      .desk-strategy { padding: 1rem 0; margin-bottom: 1rem; border-block: 1px solid var(--desk-line); }
+      .desk-strategy h3 { margin: 0 0 .25rem; font-size: 1rem; font-weight: 600; }
+      .desk-rules { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; font-size: .875rem; }
+      .desk-rules li { display: flex; align-items: center; gap: .5rem; }
+      .desk-rules :global(svg) { width: 1.125rem; height: 1.125rem; color: var(--desk-green); flex-shrink: 0; }
+      #pilot-message:empty, #control-message:empty { display: none; }
+
+      // Recent checks as a timeline: newest first, newest pulses.
+      .desk-steps { list-style: none; margin: 1rem 0; padding: 0; }
+      .desk-steps :global(li) { position: relative; padding: 0 0 .875rem 1.5rem; font-family: var(--tblr-font-monospace); font-size: .8125rem; color: var(--desk-muted); }
+      .desk-steps :global(li)::before { content: ''; position: absolute; left: 0; top: .3rem; width: .625rem; height: .625rem; border-radius: 50%; border: 2px solid var(--desk-green); background: #fff; }
+      .desk-steps :global(li:not(:last-child))::after { content: ''; position: absolute; left: .28rem; top: 1.05rem; bottom: .1rem; width: 2px; background: var(--desk-line); }
+      .desk-steps :global(li:first-child) { color: var(--desk-ink); animation: desk-rise 500ms var(--ease-out) both; }
+      .desk-steps :global(li:first-child)::before { background: var(--desk-green); box-shadow: 0 0 0 4px rgba(var(--desk-green-rgb), .15); }
+
+      // Disclosures and buttons
+      .desk-disclosure { margin-top: .75rem; }
+      .desk-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: 44px; padding: 0 1rem; border: 1px solid var(--desk-line); border-radius: 999px; background: #fff; cursor: pointer; list-style: none; font-weight: 500; transition: border-color 150ms ease, background-color 150ms ease; }
+      .desk-disclosure > summary::-webkit-details-marker { display: none; }
+      .desk-disclosure > summary:hover { border-color: var(--desk-green); background: var(--desk-mint); }
+      .desk-disclosure > summary :global(svg) { width: 1.125rem; height: 1.125rem; color: var(--desk-green); transition: transform 250ms var(--ease-out); }
+      .desk-disclosure[open] > summary :global(svg) { transform: rotate(180deg); }
+      .desk-disclosure > :not(summary) { animation: desk-rise 350ms var(--ease-out) both; }
+      .desk-list { margin: .75rem 0 0; padding-left: 1.25rem; color: var(--desk-muted); font-size: .875rem; }
+      .manual-controls { margin-top: 1.5rem; }
+      :global(.desk .btn) { gap: .375rem; min-height: 44px; border-radius: 999px; font-weight: 500; transition: transform 160ms var(--ease-out), background-color 150ms ease, border-color 150ms ease, color 150ms ease; }
+      :global(.desk .btn.btn-sm) { min-height: 36px; }
+      :global(.desk .btn:not(:disabled):active) { transform: scale(0.97); }
+      :global(.desk .btn .icon) { width: 1.125rem; height: 1.125rem; }
+      :global(.desk .desk-btn) { background: #fff; border: 1px solid var(--desk-line); color: var(--desk-ink); }
+      :global(.desk .desk-btn:hover) { border-color: var(--desk-green); color: var(--desk-green-deep); background: var(--desk-mint); }
+      :global(.desk .desk-btn[aria-pressed='true']) { background: var(--desk-green); border-color: var(--desk-green); color: #fff; }
+      .desk-preview { padding: 1rem; border-radius: 16px; background: var(--desk-mint); border: 1px solid var(--desk-line); }
+      .desk-preview h3, .trade__chart h3 { font-size: 1rem; font-weight: 600; }
+      .desk-attempt { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--desk-line); }
+      .desk-attempt h3 { font-size: 1rem; font-weight: 600; }
+
+      // Chart island (React renders outside Astro's scoped styles, so these are global).
+      :global(.desk-muted) { color: var(--desk-muted); }
+      :global(.trading-charts__tabs) { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 4px; margin-bottom: 1.25rem; border-radius: 999px; background: var(--desk-mint); border: 1px solid var(--desk-line); }
+      :global(.trading-charts__tab) { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; gap: .375rem; min-height: 40px; padding: 0 .5rem; border: 0; border-radius: 999px; background: none; color: var(--desk-muted); font: inherit; font-size: .875rem; font-weight: 500; cursor: pointer; transition: color 200ms ease; }
+      :global(.trading-charts__tab[data-state='active']) { color: var(--desk-green-deep); }
+      :global(.trading-charts__tab:focus-visible) { outline: 2px solid var(--desk-green); outline-offset: 2px; }
+      :global(.trading-charts__tab .icon) { width: 1rem; height: 1rem; }
+      :global(.trading-charts__indicator) { position: absolute; top: 4px; bottom: 4px; left: 0; border-radius: 999px; background: #fff; box-shadow: 0 1px 3px rgba(var(--desk-green-rgb), .25), 0 0 0 1px var(--desk-line); transition: transform 350ms var(--ease-in-out), width 350ms var(--ease-in-out); }
+      :global(.trading-charts__title) { margin: 0; font-size: 1rem; font-weight: 600; color: var(--desk-ink); }
+      :global(.trading-charts .empty-icon) { color: var(--desk-green); }
+      :global(.trading-charts .list-group-item) { background: transparent; border-color: var(--desk-line); }
+      @media (max-width: 575.98px) { :global(.trading-charts__tab .icon) { display: none; } }
+      @media (prefers-reduced-motion: reduce) { :global(.trading-charts__indicator) { transition: none; } }
+
+      // Entrance: sections rise in order on load.
+      .reveal { animation: desk-rise 700ms var(--ease-out) both; animation-delay: calc(var(--i) * 80ms); }
+      @keyframes desk-rise { from { opacity: 0; transform: translateY(14px); } }
+
+      // Manual-order levels diagram (SVG geometry, not layout spacing).
+      .trade__chart svg { display: block; width: 100%; margin: 1rem 0; overflow: visible; }
+      .trade__chart line { stroke: var(--desk-muted); stroke-width: 1; }
+      .trade__chart .trade__axis { stroke: var(--desk-line); }
+      .trade__chart circle { fill: var(--desk-ink); }
+      .trade__chart g:not(#level-entry) line { stroke-dasharray: 4 4; }
+      #level-stop circle { fill: var(--desk-red); }
+      #level-target circle { fill: var(--desk-green); }
+      .trade__chart text { fill: var(--desk-muted); font-size: 1rem; }
+      .trade__chart .trade__level-price { fill: var(--desk-ink); font-family: var(--tblr-font-monospace); }
+
+      @media (max-width: 991.98px) {
+        .desk-grid > *, .desk-grid > .desk-pilot { grid-column: 1 / -1; grid-row: auto; position: static; }
+        .desk-hero { grid-template-columns: 1fr; gap: 1.5rem; }
+        .desk-hero__idle, .desk-trade { border-left: 0; padding-left: 0; border-top: 1px solid var(--desk-line); padding-top: 1.5rem; }
+      }
+      @media (max-width: 575.98px) {
+        .desk-hero { padding: 1.25rem; border-radius: 20px; }
+        .desk-health { grid-template-columns: 1fr; }
+        .desk-trade__pl, .desk-trade__pl .desk-kicker, .desk-pl { text-align: left; justify-content: flex-start; }
+        .position-rail__entry-label { display: none; }
+        .desk-nav__links a { padding: 0 .75rem; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .reveal, .desk-trade, .desk-trade.is-new, .desk-steps :global(li:first-child), .desk-disclosure > :not(summary) { animation: none; }
+        .desk-live::after, .position-rail__dot::after { animation: none; opacity: 0; }
+        .position-rail__pos, .position-rail__entry, .position-rail__fill, .desk-tile, :global(.desk .btn) { transition: none; }
+        :global(.desk .btn:not(:disabled):active), .desk-tile:hover { transform: none; }
+        :global(.desk-price.tick-up), :global(.desk-price.tick-down) { animation-duration: 1ms; }
       }
     </style>
   </body>

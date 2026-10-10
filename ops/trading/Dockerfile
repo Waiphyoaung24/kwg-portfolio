@@ -15,7 +15,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     && chown -R mt5:mt5 /opt/python /opt/status
 COPY desktop.sh verify-demo.py mt5_data.py gold_signal.py gold_qualification.py observe-gold.py export-gold.py demo_one_shot.py control_server.py batch2-evidence.py /opt/trading/
 USER mt5
-COPY demo_pilot.py gold_experiment.py /opt/trading/
+COPY demo_pilot.py gold_experiment.py instruments.py /opt/trading/
 WORKDIR /home/mt5
 RUN xvfb-run -a script -q -e -c "bash -ec '\
     timeout 60s wineboot -u; \
