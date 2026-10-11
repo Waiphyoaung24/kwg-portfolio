@@ -1,12 +1,12 @@
 import { selectedInstrument } from '../../src/scripts/trading-instruments.mjs';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Tabs } from 'radix-ui';
 import ApexCharts from 'apexcharts/core';
 import 'apexcharts/line';
 import 'apexcharts/bar';
 import 'apexcharts/features/annotations';
-import { IconActivity, IconChartBar, IconPlayerPlay, IconAntennaBars5 } from '@tabler/icons-react';
+import { IconActivity, IconChartBar, IconAntennaBars5 } from '@tabler/icons-react';
 import { appendQuote } from '../../src/scripts/trading-chart.mjs';
 
 type Quote = { at: number; bid: number; ask: number };
@@ -68,15 +68,26 @@ function QuoteChart({ samples, levels }: { samples: Quote[]; levels: Levels | nu
 
 function ResultsChart({ trades }: { trades: Trade[] }) {
   const el = useRef<HTMLDivElement>(null);
+  const chart = useRef<ApexCharts | null>(null);
+  const displayed = useRef(trades);
   useEffect(() => {
-    const chart = new ApexCharts(el.current!, { ...base, chart: { ...base.chart, type: 'bar', height: 240 },
+    chart.current = new ApexCharts(el.current!, { ...base, chart: { ...base.chart, id: 'trading-results', type: 'bar', height: 240 },
       series: [{ name: 'Net USD', data: trades.map(t => t.realized_net_usd) }],
       plotOptions: { bar: { columnWidth: '46%', borderRadius: 6, colors: { ranges: [{ from: -1e9, to: -0.000001, color: RED }, { from: 0, to: 1e9, color: GREEN }] } } },
       xaxis: { categories: trades.map(t => time(t.closed_at)), labels: { rotate: 0, hideOverlappingLabels: true }, axisBorder: { color: LINE }, axisTicks: { color: LINE } },
       yaxis: { labels: { formatter: (v: number) => v.toFixed(2) } },
       tooltip: { y: { formatter: (v: number) => `${v.toFixed(2)} USD` } } });
-    void chart.render();
-    return () => chart.destroy();
+    displayed.current = trades;
+    void chart.current.render();
+    return () => { chart.current?.destroy(); chart.current = null; };
+  }, []);
+  useEffect(() => {
+    if (displayed.current === trades) return;
+    displayed.current = trades;
+    void chart.current?.updateOptions({
+      series: [{ name: 'Net USD', data: trades.map(t => t.realized_net_usd) }],
+      xaxis: { categories: trades.map(t => time(t.closed_at)) },
+    }, false, false);
   }, [trades]);
   return <div ref={el} aria-hidden="true" />;
 }
@@ -87,7 +98,6 @@ function TradingCharts() {
   const [trades, setTrades] = useState<Trade[] | null>(null);
   const [levels, setLevels] = useState<Levels | null>(null);
   const [tab, setTab] = useState('quotes');
-  const replay = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const indicator = useRef<HTMLSpanElement>(null);
   // Slide one highlight under the active tab instead of swapping backgrounds.
@@ -106,29 +116,23 @@ function TradingCharts() {
     const receive = (event: Event) => {
       const data = (event as CustomEvent<Snapshot>).detail;
       setSamples(previous => appendQuote(previous, data.quote));
-      setTrades(data.trades);
+      setTrades(previous => JSON.stringify(previous) === JSON.stringify(data.trades) ? previous : data.trades);
       setLevels(previous => JSON.stringify(previous) === JSON.stringify(data.levels) ? previous : data.levels);
     };
     window.addEventListener('trading-snapshot', receive);
     window.dispatchEvent(new Event('trading-chart-ready'));
-    // Move the existing Astro replay intact so its event handlers and SVG stay shared.
-    const source = document.getElementById('trading-replay-source');
-    const section = source?.querySelector('section');
-    if (section) replay.current?.append(section);
     return () => {
       window.removeEventListener('trading-snapshot', receive);
-      if (section) source?.append(section);
     };
   }, []);
   const latest = samples.at(-1);
-  const ordered = trades?.slice().sort((a, b) => a.closed_at - b.closed_at) ?? [];
+  const ordered = useMemo(() => trades?.slice().sort((a, b) => a.closed_at - b.closed_at) ?? [], [trades]);
   const tabClass = 'trading-charts__tab';
   return <Tabs.Root className="trading-charts" value={tab} onValueChange={setTab}>
     <Tabs.List ref={list} className="trading-charts__tabs" aria-label="Trading views">
       <span ref={indicator} className="trading-charts__indicator" aria-hidden="true" />
       <Tabs.Trigger className={tabClass} value="quotes"><IconActivity className="icon" aria-hidden="true" />Live quotes</Tabs.Trigger>
       <Tabs.Trigger className={tabClass} value="results"><IconChartBar className="icon" aria-hidden="true" />Trade results</Tabs.Trigger>
-      {selected.symbol === 'XAUUSD-VIP' && <Tabs.Trigger className={tabClass} value="replay"><IconPlayerPlay className="icon" aria-hidden="true" />Synthetic replay</Tabs.Trigger>}
     </Tabs.List>
     <Tabs.Content value="quotes" className="trading-charts__content">
       <div className="d-flex flex-wrap justify-content-between align-items-baseline gap-2"><h3 className="trading-charts__title">{selected.name} / US dollar</h3><span className="desk-muted small">Page-session quotes</span></div>
@@ -146,7 +150,6 @@ function TradingCharts() {
       <ol className="list-group list-group-flush trading-charts__trades mt-3">{ordered.map((t, i) => <li key={`${t.closed_at}-${i}`} className="list-group-item d-flex flex-wrap justify-content-between gap-2 px-0"><span>{t.side === 'buy' ? 'Buy' : 'Sell'} {new Date(t.closed_at * 1000).toISOString().replace('T', ' ').slice(0, 19)} UTC</span><span className={`desk-num ${t.realized_net_usd >= 0 ? 'text-green' : 'text-loss'}`}>{t.realized_net_usd.toFixed(2)} USD</span></li>)}</ol></figure>
       : <div className="empty py-5"><div className="empty-icon"><IconChartBar className="icon" aria-hidden="true" /></div><h3 className="empty-title">{trades ? 'No completed trades yet' : 'No current trade report'}</h3><p className="empty-subtitle desk-muted">{trades ? 'Results appear after a trade closes and is reconciled.' : 'Waiting for a fresh pilot report.'}</p></div>}
     </Tabs.Content>
-    <Tabs.Content value="replay" forceMount hidden={tab !== 'replay'} className="trading-charts__content"><div ref={replay} /></Tabs.Content>
   </Tabs.Root>;
 }
 

@@ -5,7 +5,7 @@ import { appendQuote, chartSnapshot, quotePlot } from './trading-chart.mjs';
 import { pilotFields } from './trading-pilot.mjs';
 const fixture = JSON.parse(readFileSync(new URL('../../ops/trading/fixtures/pilot-status.json', import.meta.url)));
 
-test('chart clears on stale or unavailable reports and never uses replay prices', () => {
+test('chart uses reported quotes and clears on stale or unavailable reports', () => {
   const now = fixture.checked_at;
   const current = chartSnapshot(fixture, now);
   assert.equal(current.quote.bid, fixture.health.bid);

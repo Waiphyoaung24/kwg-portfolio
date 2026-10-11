@@ -75,8 +75,8 @@ The original pilot expiry is not extended by adding BTC.
 - Prices, trade results, position levels, pause requests and sound notifications
   are scoped to the selected symbol. A cross-symbol response clears the view.
 - Each navigation starts a fresh chart/sound baseline. Historical or already-open
-  entries do not trigger a catch-up sound. Synthetic Gold replay is only shown
-  in the Gold view.
+  entries do not trigger a catch-up sound. Both views show live quotes and
+  actual trade results.
 - BTC activation does not guarantee entries. Spread, signal, cooldown, account
   and broker checks still apply at each submission.
 

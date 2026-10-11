@@ -4,7 +4,7 @@ import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 
 for (const width of [1280, 390]) {
-  test(`console charts, replay isolation and stale clearing at ${width}px`, async ({ app, screen, browser }) => {
+  test(`console charts and stale clearing at ${width}px`, async ({ app, screen, browser }) => {
     await browser.setViewport({ width, height: 900 });
     const payload = structuredClone(fixture);
     const now = Math.floor(Date.now() / 1000);
@@ -34,7 +34,8 @@ for (const width of [1280, 390]) {
     await screen.getByRole('button', 'Refresh status').tap();
     await expect(browser.locator('.trading-charts__chart')).toBeVisible();
     await expect(browser.locator('#position-rail')).toHaveAttribute('aria-valuetext', /of the way from entry to/);
-    await expect(browser.locator('#replay-play')).toBeHidden();
+    const views = await browser.evaluate(() => Array.from(document.querySelectorAll('[role="tab"]'), tab => tab.textContent?.trim()));
+    assert.deepEqual(views, ['Live quotes', 'Trade results']);
     const layout = await browser.evaluate(() => ({ height: document.documentElement.scrollHeight, width: document.documentElement.scrollWidth, viewport: innerWidth }));
     assert.ok(layout.width <= layout.viewport, 'Console must not overflow horizontally');
     await browser.setViewport({ width, height: layout.height });
@@ -44,10 +45,32 @@ for (const width of [1280, 390]) {
     await screen.getByRole('tab', 'Live quotes').press('ArrowRight');
     await expect(screen.getByRole('heading', 'Recent trade results')).toBeVisible();
     await expect(browser.locator('.trading-charts__trades')).toContainText('-4.50 USD');
-    await screen.getByRole('tab', 'Synthetic replay').tap();
-    await expect(browser.locator('#replay-play')).toBeVisible();
-    await screen.getByRole('button', 'Next candle').tap();
-    await expect(browser.locator('#replay-progress')).toContainText('Candle 2');
+    await expect(browser.locator('.apexcharts-canvas')).toBeVisible();
+    const resultsChartId = await browser.evaluate(() => {
+      const canvas = document.querySelector('.apexcharts-canvas')!;
+      const instances = (window as any).Apex._chartInstances;
+      const chart = instances.find((entry: any) => entry.chart.el.contains(canvas)).chart;
+      const original = chart.updateOptions.bind(chart);
+      chart.el.setAttribute('data-results-updates', '0');
+      chart.updateOptions = (...args: any[]) => {
+        chart.el.setAttribute('data-results-updates', String(Number(chart.el.getAttribute('data-results-updates')) + 1));
+        return original(...args);
+      };
+      return canvas.id;
+    });
+    const beforeRefresh = request;
+    await screen.getByRole('button', 'Refresh status').tap();
+    await expect(browser.locator('#price')).toContainText((4100.25 + (beforeRefresh + 1) * .05).toFixed(2));
+    await expect(browser.locator('[data-results-updates]')).toHaveAttribute('data-results-updates', '0');
+    await expect(browser.locator('.apexcharts-canvas')).toHaveAttribute('id', resultsChartId);
+    payload.pilot.recent_trades.push({ side: 'sell', opened_at: now - 120, closed_at: now - 60, realized_net_usd: 2.75 });
+    payload.pilot.completed_trades = 2;
+    payload.pilot.realized_net_usd = -1.75;
+    await screen.getByRole('button', 'Refresh status').tap();
+    await expect(browser.locator('.trading-charts__trades')).toContainText('2.75 USD');
+    await expect(browser.locator('.apexcharts-bar-area')).toHaveCount(2);
+    await expect(browser.locator('.apexcharts-canvas')).toHaveAttribute('id', resultsChartId);
+    await expect(browser.locator('[data-results-updates]')).toHaveAttribute('data-results-updates', '1');
     await screen.getByRole('tab', 'Live quotes').tap();
     await browser.route('**/api/trading/status', route => route.fulfill({ status: 401, body: '' }));
     await screen.getByRole('button', 'Refresh status').tap();

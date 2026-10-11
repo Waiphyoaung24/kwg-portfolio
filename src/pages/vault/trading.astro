@@ -3,7 +3,6 @@ import '@tabler/core/dist/css/tabler.min.css';
 import '@tabler/core/dist/css/tabler-vendors.min.css';
 import '../../styles/desk.scss';
 import TradingNavigation from '../../components/TradingNavigation.astro';
-import TradingReplay from '../../components/TradingReplay.astro';
 import iconDown from '@tabler/icons/outline/arrow-down-right.svg?raw';
 import iconUp from '@tabler/icons/outline/arrow-up-right.svg?raw';
 import iconRefresh from '@tabler/icons/outline/refresh.svg?raw';
@@ -183,7 +182,6 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
         </section>
       </div>
 
-      <div id="trading-replay-source" hidden><TradingReplay /></div>
       <details class="manual-controls desk-disclosure reveal" style="--i: 6" id="manual-controls">
         <summary>Manual demo order controls <Fragment set:html={icon(iconChevron)} /></summary>
         <section class="desk-tile mt-3" aria-labelledby="control-title">
@@ -639,7 +637,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
           field('candle').textContent = '—';
           field('signal').textContent = '—';
           field('checked').textContent = '—';
-          field('reason').textContent = localPreview ? 'Live MT5 status is available on the hosted page. You can play the synthetic replay here.'
+          field('reason').textContent = localPreview ? 'Live MT5 status is available on the hosted page.'
             : needsAccess ? 'Sign in through Cloudflare Access to view this status.' : 'The private status API is unavailable. Try again shortly.';
           if (localPreview) {
             field('state').textContent = 'Local preview';
