@@ -71,7 +71,8 @@ function ResultsChart({ trades }: { trades: Trade[] }) {
   const chart = useRef<ApexCharts | null>(null);
   const displayed = useRef(trades);
   useEffect(() => {
-    chart.current = new ApexCharts(el.current!, { ...base, chart: { ...base.chart, id: 'trading-results', type: 'bar', height: 240 },
+    // Resize redraws can replay the entrance even when data updates disable animation.
+    chart.current = new ApexCharts(el.current!, { ...base, chart: { ...base.chart, id: 'trading-results', type: 'bar', height: 240, animations: { enabled: false } },
       series: [{ name: 'Net USD', data: trades.map(t => t.realized_net_usd) }],
       plotOptions: { bar: { columnWidth: '46%', borderRadius: 6, colors: { ranges: [{ from: -1e9, to: -0.000001, color: RED }, { from: 0, to: 1e9, color: GREEN }] } } },
       xaxis: { categories: trades.map(t => time(t.closed_at)), labels: { rotate: 0, hideOverlappingLabels: true }, axisBorder: { color: LINE }, axisTicks: { color: LINE } },

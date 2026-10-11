@@ -13,6 +13,10 @@ class DataUnavailable(ValueError):
     """Market subscription or history has not populated yet."""
 
 
+class BrokerUnavailable(ValueError):
+    """A broker read failed; never treat missing data as an empty account."""
+
+
 class AccountGuardError(ValueError):
     """The terminal is no longer the pinned, non-trading demo session."""
 

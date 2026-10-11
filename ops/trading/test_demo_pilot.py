@@ -246,8 +246,16 @@ class PilotTest(unittest.TestCase):
         self.mt5.order_send.assert_not_called()
 
     def test_trend_cooldown_survives_reload_and_blocks_entries(self):
+        self.check_sequential_trades(False)
+
+    def test_continuous_trend_repeats_after_close_and_cooldown(self):
+        self.check_sequential_trades(True)
+
+    def check_sequential_trades(self, continuous):
         self.start()
         p = pilot.state(self.db)
+        if continuous:
+            p.update(run_policy='continuous', end=None)
         p['strategy'] = pilot.TREND_STRATEGY
         pilot.save(self.db, p)
         self.fill()

@@ -92,10 +92,17 @@ def sanitize_pilot(value, now, symbol="XAUUSD-VIP"):
         return None
     if type(result['completed_trades']) is not int or result['completed_trades'] < 0:
         raise ValueError('Invalid pilot count')
+    continuous = value.get('run_policy') == 'continuous'
+    if 'run_policy' in value and not continuous:
+        raise ValueError('Invalid run policy')
+    if continuous:
+        result['run_policy'] = 'continuous'
     start, end = result['started_at'], result['ends_at']
-    if ((value['status'] == 'standby' and (start is not None or end is not None))
+    if ((value['status'] == 'standby' and (start is not None or end is not None or continuous))
             or (value['status'] != 'standby' and
-                (start is None or end is None or not 0 < start <= now or not 0 < end - start <= 604800))):
+                (start is None or not 0 < start <= now or
+                 (end is not None or value['status'] == 'expired' if continuous else
+                  end is None or not 0 < end - start <= 604800)))):
         raise ValueError('Invalid pilot window')
     if not isinstance(value.get('reason'), str) or len(value['reason']) > 160:
         raise ValueError('Invalid pilot reason')

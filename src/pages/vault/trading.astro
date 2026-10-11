@@ -142,7 +142,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
             <div><dt>Realized net</dt><dd class="desk-num" id="pilot-realized">—</dd></div>
             <div><dt>Floating profit</dt><dd class="desk-num" id="pilot-floating">—</dd></div>
             <div><dt>Completed trades</dt><dd class="desk-num" id="pilot-count">—</dd></div>
-            <div><dt><Fragment set:html={icon(iconClock)} />Time remaining</dt><dd class="desk-num" id="pilot-remaining">—</dd></div>
+            <div><dt><Fragment set:html={icon(iconClock)} />Run duration</dt><dd class="desk-num" id="pilot-remaining">—</dd></div>
             <div class="desk-stats__wide"><dt>Position / latest attempt</dt><dd id="pilot-position">—</dd></div>
             <div class="desk-stats__wide"><dt><Fragment set:html={icon(iconTarget)} />Entry / stop / target</dt><dd class="desk-num" id="pilot-levels">—</dd></div>
           </dl>
@@ -156,7 +156,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
             </ul>
           </div>
           <button class="btn btn-primary w-100" id="pilot-pause" type="button" disabled><Fragment set:html={icon(iconPause)} />Pause new entries</button>
-          <p class="desk-muted small mt-3">Pausing keeps existing positions protected and monitored. At expiry, the pilot requests closure. Unresolved positions need owner attention. Floating profit excludes costs not yet booked.</p>
+          <p class="desk-muted small mt-3">Pausing stops new entries; the runner continues checking existing positions. A continuous run has no scheduled expiry. Bounded pilots request closure at expiry. Unresolved positions need owner attention. Floating profit excludes costs not yet booked.</p>
           <p class="small" id="pilot-message" role="status"></p>
           <details class="desk-disclosure"><summary>Recent completed trades <Fragment set:html={icon(iconChevron)} /></summary><ol class="desk-list" id="pilot-trades"></ol></details>
         </section>
@@ -474,7 +474,8 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
         field('pilot-position').textContent = pilot.state === 'Unknown' ? 'Unknown'
           : execution.state === 'Disarmed' ? 'No open position'
           : `${execution.state} · ${execution.side} · ${execution.volume}`;
-        field('pilot-intent').textContent = pilot.state !== 'Active' ? pilot.state
+        field('pilot-intent').textContent = pilot.state !== 'Unknown' && fields.connection === 'Connected to demo' && execution.state === 'Open' ? 'Managing a demo trade'
+          : pilot.state !== 'Active' ? pilot.state
           : fields.price === '—' ? 'Waiting for healthy data'
           : execution.state === 'Unknown' ? 'Checking execution state'
           : execution.state === 'Open' ? 'Managing a demo trade'

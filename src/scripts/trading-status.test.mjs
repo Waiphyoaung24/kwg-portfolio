@@ -22,6 +22,17 @@ assert.match(statusFields({ ...report, health: { ...report.health, sampled_at: 1
 console.log('Trading status: stale/future quotes, history, independent readiness and browser expiry passed');
 const priced = { ...report, status: 'observed', health: { ...report.health,
   quote: 'fresh', quote_age_seconds: 2, bid: 4100.25, ask: 4100.5 } };
+const filtering = { ...priced, mode: 'autonomous-demo', status: 'blocked',
+  reason: 'ATR or spread outside allowed range', pilot: { status: 'active', updated_at: 100 } };
+assert.equal(statusFields(filtering, 105).state, 'Waiting for setup');
+assert.equal(statusFields(filtering, 105).signal, 'Waiting for setup');
+assert.match(statusFields(filtering, 105).guidance, /automatically/);
+for (const changes of [
+  { pilot: { status: 'paused', updated_at: 100 } },
+  { pilot: { status: 'active', updated_at: 60 } },
+  { reason: 'Pinned USD demo account unavailable' },
+  { health: { ...filtering.health, quote: 'stale' } },
+]) assert.notEqual(statusFields({ ...filtering, ...changes }, 105).signal, 'Waiting for setup');
 assert.equal(statusFields(priced, 105).price, '4100.25 / 4100.50');
 assert.equal(statusFields(priced, 129).price, '—');
 for (const changes of [{ bid: null }, { ask: NaN }, { ask: 4000 }, { bid: -1 },
@@ -72,3 +83,10 @@ for (const item of contract.cases) {
   }
 }
 console.log('Trading status: shared contract passes Worker and page fields');
+
+const recovering = { ...report, mode: 'autonomous-demo', health: null,
+  reason: 'Pinned USD demo account unavailable', pilot: { status: 'active', run_policy: 'continuous', updated_at: 100 } };
+assert.equal(statusFields(recovering, 105).state, 'Reconnecting');
+assert.equal(statusFields(recovering, 105).price, '—');
+assert.equal(statusFields(recovering, 131).state, 'Observer offline');
+assert.equal(statusFields({ ...recovering, pilot: { ...recovering.pilot, status: 'paused' } }, 105).state, 'Needs attention');

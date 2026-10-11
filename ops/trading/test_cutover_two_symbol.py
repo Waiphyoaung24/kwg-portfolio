@@ -1,4 +1,5 @@
 import hashlib
+from itertools import product
 import json
 from pathlib import Path
 import runpy
@@ -12,13 +13,15 @@ class CutoverTwoSymbolTest(unittest.TestCase):
     def test_receipt_required_before_recreation_and_btc_starts_standby(self):
         module = runpy.run_path(str(Path(__file__).with_name('cutover-two-symbol-pilot.py')))
         deploy = module['deploy']
-        for failure in (None, 'receipt', 'base'):
+        for failure, continuous in product((None, 'receipt', 'base'), (False, True)):
             receipt_ok = failure is None
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 stage = root/'two-symbol-review-test'
                 stage.mkdir()
                 original = 'services:\n  desktop:\n    environment:\n      MT5_RUN_MODE: pilot\n'
+                if continuous:
+                    original += '      MT5_PILOT_SYMBOLS: "XAUUSD-VIP,BTCUSD"\n'
                 (root/'compose.yml').write_text(original)
                 (root/'status_server.py').write_text('old status')
                 names = ('demo_pilot.py', 'control_server.py', 'status_server.py', 'cutover-m1-pilot.py')
@@ -26,7 +29,7 @@ class CutoverTwoSymbolTest(unittest.TestCase):
                     (stage/name).write_text(name)
                 hashes = {n:hashlib.sha256((stage/n).read_bytes()).hexdigest() for n in names}
                 (stage/'manifest.json').write_text(json.dumps(dict(code_sha256='reviewed', previous_image='old',
-                    sources={'demo_pilot.py':hashes['demo_pilot.py']}, files=hashes)))
+                    sources={'demo_pilot.py':hashes['demo_pilot.py']}, files=hashes, continuous=continuous)))
                 calls = []
                 def run(args, **kwargs):
                     calls.append(args)
@@ -39,12 +42,20 @@ class CutoverTwoSymbolTest(unittest.TestCase):
                         self.assertTrue(base.startswith('kwg-mt5-desktop:two-symbol-base-'))
                         self.assertEqual((stage/'Dockerfile').read_text().splitlines()[0], 'FROM ' + base)
                     if 'config' in args:
-                        return json.dumps({'services':{'desktop':{'image':'kwg-mt5-desktop:qualification', 'environment':{'MT5_RUN_MODE':'pilot'}}}})
+                        env = {'MT5_RUN_MODE':'pilot'}
+                        if continuous:
+                            env['MT5_PILOT_SYMBOLS'] = 'XAUUSD-VIP,BTCUSD'
+                        return json.dumps({'services':{'desktop':{'image':'kwg-mt5-desktop:qualification', 'environment':env}}})
                     if args[:2] == ['docker','run']:
                         return json.dumps({n:hashes[n] for n in ('demo_pilot.py','control_server.py')})
                     if 'script' in args:
+                        if continuous:
+                            self.assertIn('/migrate-continuous-pilot.py', args[-2])
+                            return 'CONTINUOUS_MIGRATED '+json.dumps(dict(ends_at=None, run_policy='continuous', gold_pause='Paused by owner', btc_pause=None, order_sent=False)) if receipt_ok else 'missing'
                         return 'TWO_SYMBOL_MIGRATED '+json.dumps(dict(ends_at=999999, gold_pause='Paused by owner', btc_status='standby', order_sent=False)) if receipt_ok else 'missing'
                     if 'kwg-trading-status' in args:
+                        if continuous:
+                            return json.dumps([dict(symbol=s, checked_at=time.time(), pilot=dict(run_policy='continuous', ends_at=None, reason='Paused by owner')) for s in ('XAUUSD-VIP','BTCUSD')])
                         return json.dumps([dict(symbol='XAUUSD-VIP', checked_at=time.time(), pilot=dict(ends_at=999999, reason='Paused by owner')),
                                            dict(symbol='BTCUSD', checked_at=time.time(), pilot=dict(status='standby'))])
                     return ''

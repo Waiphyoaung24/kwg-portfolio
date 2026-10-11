@@ -12,7 +12,7 @@ from pathlib import Path
 
 from gold_signal import evaluate
 from instruments import instrument
-from mt5_data import SERVER, SYMBOL, read_gold, validate_account, validate_tick
+from mt5_data import SERVER, SYMBOL, read_gold, validate_account, validate_tick, BrokerUnavailable
 
 MAGIC = 20260929
 SNAPSHOT = Path(r"Z:\opt\status\execution.json")
@@ -223,8 +223,9 @@ def _broker_state(mt5, row, now, login):
     instrument(symbol)
     account = mt5.account_info()
     terminal = mt5.terminal_info()
-    if (account is None or terminal is None or not terminal.connected
-            or account.trade_mode != 0
+    if account is None or terminal is None or not terminal.connected:
+        raise BrokerUnavailable("Broker connection unavailable")
+    if (account.trade_mode != 0
             or account.login != login
             or account.server != SERVER):
         raise ValueError("Pinned demo identity is unavailable during reconciliation.")
@@ -235,7 +236,7 @@ def _broker_state(mt5, row, now, login):
     end = datetime.fromtimestamp(now + 60 + offset, timezone.utc)
     deals = mt5.history_deals_get(start, end)
     if positions is None or orders is None or deals is None:
-        raise ValueError("Broker reconciliation data unavailable.")
+        raise BrokerUnavailable("Broker reconciliation data unavailable.")
     request = json.loads(row["request_json"])
     all_positions = tuple(positions)
     candidates = [position for position in all_positions
@@ -407,7 +408,7 @@ def _historical_protection(mt5, row, request, deals, ticket):
     return reason
 
 
-def _reconcile(mt5, db, row, now):
+def _reconcile(mt5, db, row, now, *, retry_unavailable=False):
     symbol = db.execute("SELECT symbol FROM metadata").fetchone()[0]
     if json.loads(row["request_json"])["symbol"] != symbol:
         _update(db, state="needs_attention")
@@ -486,6 +487,10 @@ def _reconcile(mt5, db, row, now):
                     _update(db, state="disarmed", close_reason="pending order cancelled in MT5")
                     return
             _update(db, state="needs_attention")
+    except BrokerUnavailable:
+        if retry_unavailable:
+            raise
+        _update(db, state="needs_attention")
     except (ValueError, TypeError, OverflowError):
         _update(db, state="needs_attention")
 
@@ -565,7 +570,7 @@ def _final_entry_guard(mt5, login, request):
     return account.equity
 
 
-def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, before_submit=None, bar_seconds=900, trend_demo=False) -> dict:
+def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, before_submit=None, bar_seconds=900, trend_demo=False, retry_unavailable=False) -> dict:
     """Advance one journal state; only a fresh arm may submit an entry."""
     symbol = db.execute("SELECT symbol FROM metadata").fetchone()[0]
     instrument(symbol)
@@ -606,7 +611,7 @@ def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, b
             result = None
         _update(db, result_code=getattr(result, "retcode", None),
                 order_id=getattr(result, "order", None), deal_id=getattr(result, "deal", None))
-        _reconcile(mt5, db, _attempt(db), now)
+        _reconcile(mt5, db, _attempt(db), now, retry_unavailable=retry_unavailable)
         code = getattr(result, "retcode", None)
         if type(code) is int and code not in (10008, 10009, 10010):
             try:
@@ -617,9 +622,9 @@ def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, b
                 pass
     elif row["state"] in ("submitting", "pending", "closing", "needs_attention"):
         if row["request_json"] is not None:
-            _reconcile(mt5, db, row, now)
+            _reconcile(mt5, db, row, now, retry_unavailable=retry_unavailable)
     elif row["state"] == "open":
-        _reconcile(mt5, db, row, now)
+        _reconcile(mt5, db, row, now, retry_unavailable=retry_unavailable)
     return _status(db, now)
 
 

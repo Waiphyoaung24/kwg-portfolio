@@ -8,6 +8,16 @@ import { statusFields } from './trading-status.mjs';
 const fixture = JSON.parse(readFileSync(new URL('../../ops/trading/fixtures/pilot-status.json', import.meta.url)));
 const now = fixture.checked_at;
 
+test('continuous policy survives Worker without an expiry and rejects inconsistent windows', () => {
+  const data = { ...fixture, pilot: { ...fixture.pilot, run_policy: 'continuous', ends_at: null } };
+  assert.deepEqual(normalizeStatus(data, now), data);
+  assert.equal(pilotFields(data.pilot, now).remaining, 'Until you pause');
+  for (const changes of [{ run_policy: undefined }, { run_policy: 'forever' },
+    { ends_at: now + 60 }, { status: 'standby' }, { status: 'expired' }]) {
+    assert.throws(() => normalizePilot({ ...data.pilot, ...changes }, now));
+  }
+});
+
 test('M1 strategy survives Worker and labels completed one-minute candles', () => {
   const m1 = { ...fixture, pilot: { ...fixture.pilot, strategy: 'gold-ema-v1-m1-slope-3' } };
   assert.deepEqual(normalizeStatus(m1, now), m1);

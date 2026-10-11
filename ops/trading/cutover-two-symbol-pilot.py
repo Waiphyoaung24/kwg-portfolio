@@ -1,4 +1,4 @@
-"""Deploy a reviewed two-symbol stage in BTC standby; keep gold state intact."""
+"""Deploy a reviewed two-symbol stage, preserving existing positions and limits."""
 import argparse
 import hashlib
 import json
@@ -27,6 +27,7 @@ def deploy(stage, reviewed):
     for name, expected in manifest['files'].items():
         if Path(name).name != name or hashlib.sha256((stage/name).read_bytes()).hexdigest() != expected:
             raise ValueError('Stage file identity mismatch')
+    continuous = manifest.get('continuous') is True
     current = json.loads(run(['docker', 'inspect', 'kwg-mt5-desktop']))[0]
     if current['Image'] != manifest['previous_image']:
         raise ValueError('Deployment changed since review')
@@ -35,15 +36,15 @@ def deploy(stage, reviewed):
     desktop = config['services']['desktop']
     if (desktop['image'] != 'kwg-mt5-desktop:qualification'
             or desktop['environment']['MT5_RUN_MODE'] != 'pilot'
-            or desktop['environment'].get('MT5_PILOT_SYMBOLS', 'XAUUSD-VIP') != 'XAUUSD-VIP'):
-        raise ValueError('Expected the existing single-symbol pilot deployment')
+            or desktop['environment'].get('MT5_PILOT_SYMBOLS', 'XAUUSD-VIP') != ('XAUUSD-VIP,BTCUSD' if continuous else 'XAUUSD-VIP')):
+        raise ValueError('Existing pilot deployment does not match the migration mode')
     # Render a private override without copying resolved secrets into a new Compose file.
     compose_text = (ROOT/'compose.yml').read_text()
     if compose_text.count('      MT5_RUN_MODE:') != 1:
         raise ValueError('Compose layout changed; review before editing')
-    if 'MT5_PILOT_SYMBOLS:' in compose_text:
+    if not continuous and 'MT5_PILOT_SYMBOLS:' in compose_text:
         raise ValueError('Existing symbol configuration requires review')
-    updated = compose_text.replace('      MT5_RUN_MODE:', '      MT5_PILOT_SYMBOLS: "XAUUSD-VIP,BTCUSD"\n      MT5_RUN_MODE:')
+    updated = compose_text if continuous else compose_text.replace('      MT5_RUN_MODE:', '      MT5_PILOT_SYMBOLS: "XAUUSD-VIP,BTCUSD"\n      MT5_RUN_MODE:')
     backup = ROOT / ('two-symbol-backup-' + str(time.time_ns()))
     backup.mkdir(mode=0o700)
     for name in ('compose.yml', 'status_server.py'):
@@ -73,15 +74,15 @@ def deploy(stage, reviewed):
     target = '/home/mt5/' + stage.name
     bundle = {n:base64.b64encode((stage/n).read_bytes()).decode() for n in manifest['files']}
     run(['docker','exec','-i','--user','mt5','kwg-mt5-desktop','python3','-c',receiver,target], input=json.dumps(bundle).encode())
-    command = 'stty cols 4096; ' + shlex.join(['wine', '/opt/python/python.exe', target+'/migrate-two-symbol-pilot.py',
+    command = 'stty cols 4096; ' + shlex.join(['wine', '/opt/python/python.exe', target+('/migrate-continuous-pilot.py' if continuous else '/migrate-two-symbol-pilot.py'),
                                              '--reviewed-code-sha256', reviewed, '--apply'])
     receipt = run(['docker','exec','--user','mt5','kwg-mt5-desktop','script','-q','-e','-c',command,'/dev/null'])
     print(receipt, flush=True)
-    match = re.search(r'TWO_SYMBOL_MIGRATED (\{[^\r\n]*\})', receipt)
+    match = re.search((r'CONTINUOUS_MIGRATED ' if continuous else r'TWO_SYMBOL_MIGRATED ') + r'(\{[^\r\n]*\})', receipt)
     if match is None:
         raise ValueError('Migration receipt missing; leave runner stopped')
     migrated = json.loads(match.group(1))
-    if migrated.get('btc_status') != 'standby' or migrated.get('order_sent') is not False:
+    if (migrated.get('run_policy') != 'continuous' if continuous else migrated.get('btc_status') != 'standby') or migrated.get('order_sent') is not False:
         raise ValueError('Unexpected migration result; leave runner stopped')
     shutil.copyfile(stage/'status_server.py', ROOT/'status_server.py')
     (ROOT/'status_server.py').chmod(0o644)
@@ -92,12 +93,14 @@ def deploy(stage, reviewed):
         try:
             read = 'import json,urllib.request; print(json.dumps([json.load(urllib.request.urlopen("http://127.0.0.1:8000/status"+q,timeout=5)) for q in ("","?symbol=BTCUSD")]))'
             gold, btc = json.loads(run(['docker','exec','kwg-trading-status','python','-c',read], stderr=subprocess.DEVNULL))
-            if all(r['checked_at'] >= time.time()-30 for r in (gold,btc)) and btc.get('pilot',{}).get('status') == 'standby':
+            if all(r['checked_at'] >= time.time()-30 for r in (gold,btc)) and (all(r.get('pilot',{}).get('run_policy') == 'continuous' for r in (gold,btc)) if continuous else btc.get('pilot',{}).get('status') == 'standby'):
                 if (gold['symbol'] != 'XAUUSD-VIP' or btc['symbol'] != 'BTCUSD'
                         or gold['pilot']['ends_at'] != migrated['ends_at']
+                        or continuous and (btc['pilot']['ends_at'] is not None
+                            or migrated['btc_pause'] and btc['pilot']['reason'] != migrated['btc_pause'])
                         or migrated['gold_pause'] and gold['pilot']['reason'] != migrated['gold_pause']):
                     raise ValueError('Cross-symbol status mismatch')
-                print('TWO_SYMBOL_STANDBY_DEPLOYED', json.dumps(dict(gold=gold, btc=btc, btc_activation_performed=False)), flush=True)
+                print('CONTINUOUS_DEPLOYED' if continuous else 'TWO_SYMBOL_STANDBY_DEPLOYED', json.dumps(dict(gold=gold, btc=btc, btc_activation_performed=False)), flush=True)
                 return
         except (subprocess.SubprocessError, ValueError, KeyError):
             pass

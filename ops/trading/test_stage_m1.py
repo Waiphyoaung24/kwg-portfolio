@@ -11,17 +11,23 @@ import unittest
 
 class StageM1Test(unittest.TestCase):
     def test_isolated_python_loads_staged_modules_and_matches_manifest_identity(self):
+        self.check_staged_import('switch-pilot-m1.py')
+
+    def test_continuous_migration_loads_only_reviewed_staged_modules(self):
+        self.check_staged_import('migrate-continuous-pilot.py')
+
+    def check_staged_import(self, helper):
         source = Path(__file__).parent
-        names = ('demo_pilot.py', 'demo_one_shot.py', 'mt5_data.py', 'gold_signal.py', 'gold_experiment.py')
+        names = ('demo_pilot.py', 'demo_one_shot.py', 'mt5_data.py', 'gold_signal.py', 'gold_experiment.py', 'instruments.py')
         with tempfile.TemporaryDirectory() as directory:
             stage = Path(directory)
-            for name in (*names, 'switch-pilot-m1.py'):
+            for name in (*names, helper):
                 (stage / name).write_bytes((source / name).read_bytes().replace(b'\r\n', b'\n'))
             hashes = {name: hashlib.sha256((stage / name).read_bytes()).hexdigest() for name in names}
             expected = hashlib.sha256(json.dumps(hashes, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
             result = subprocess.run([sys.executable, '-I', '-B', '-c',
                 "import runpy,sys; p=runpy.run_path(sys.argv[1])['pilot']; print(p.__file__); print(p.identity())",
-                str(stage / 'switch-pilot-m1.py')], capture_output=True, text=True)
+                str(stage / helper)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             lines = result.stdout.splitlines()
             self.assertEqual(Path(lines[0]).resolve(), (stage / 'demo_pilot.py').resolve())

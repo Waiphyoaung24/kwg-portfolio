@@ -12,6 +12,15 @@ from status_server import Handler, read_status, sanitize_health, sanitize_pilot
 
 
 class StatusServerTest(unittest.TestCase):
+    def test_continuous_policy_requires_explicit_consistent_window(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
+        value = dict(fixture['pilot'], run_policy='continuous', ends_at=None)
+        self.assertEqual(sanitize_pilot(value, fixture['checked_at']), value)
+        for changes in ({'run_policy': None}, {'run_policy': 'forever'},
+                        {'ends_at': fixture['checked_at'] + 60}, {'status': 'expired'}, {'status': 'standby'}):
+            with self.assertRaises(ValueError):
+                sanitize_pilot(dict(value, **changes), fixture['checked_at'])
+
     def test_btc_status_never_falls_back_to_gold_snapshot_or_manual_execution(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
         with tempfile.TemporaryDirectory() as directory:

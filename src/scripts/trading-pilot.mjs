@@ -9,9 +9,12 @@ export function normalizePilot(value, now = Date.now() / 1000, symbol = 'XAUUSD-
     result[key] = number;
   }
   if (result.updated_at === null || now < result.updated_at || now - result.updated_at > 30) return null;
+  const continuous = value.run_policy === 'continuous';
+  if (value.run_policy !== undefined && !continuous) throw new Error('Invalid run policy');
+  if (continuous) result.run_policy = 'continuous';
   const start = result.started_at, end = result.ends_at;
-  if ((value.status === 'standby' && (start !== null || end !== null)) ||
-      (value.status !== 'standby' && (start === null || end === null || !(start > 0 && start <= now && end > start && end - start <= 604800)))) throw new Error('Invalid pilot window');
+  if ((value.status === 'standby' && (start !== null || end !== null || continuous)) ||
+      (value.status !== 'standby' && (start === null || !(start > 0 && start <= now) || (continuous ? end !== null || value.status === 'expired' : end === null || !(end > start && end - start <= 604800))))) throw new Error('Invalid pilot window');
   if (!Number.isInteger(result.completed_trades) || result.completed_trades < 0 ||
       typeof value.reason !== 'string' || value.reason.length > 160 ||
       !Array.isArray(value.recent_trades) || value.recent_trades.length > 10) throw new Error('Invalid pilot results');
@@ -38,7 +41,7 @@ export function pilotFields(value, now = Date.now() / 1000, symbol = 'XAUUSD-VIP
   const minutes = p.ends_at === null ? null : Math.max(0, Math.ceil((p.ends_at - now) / 60));
   return { state: ({ standby: 'Not activated', active: 'Active', paused: 'Paused', needs_attention: 'Needs attention', expired: 'Expired' })[p.status],
     reason: p.reason, realized: money(p.realized_net_usd), floating: money(p.floating_usd),
-    remaining: minutes === null ? 'Not started' : minutes === 0 ? 'Ended'
+    remaining: p.run_policy === 'continuous' ? 'Until you pause' : minutes === null ? 'Not started' : minutes === 0 ? 'Ended'
       : [minutes >= 1440 ? `${Math.floor(minutes / 1440)}d` : '', minutes >= 60 ? `${Math.floor(minutes % 1440 / 60)}h` : '', `${minutes % 60}m`].filter(Boolean).join(' '),
     count: String(p.completed_trades), canPause: p.status === 'active',
     trades: p.recent_trades.map(t => `${t.side === 'buy' ? 'Buy' : 'Sell'} · ${money(t.realized_net_usd)} net · ${new Date(t.closed_at * 1000).toISOString()}`) };

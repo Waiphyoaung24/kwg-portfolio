@@ -50,6 +50,7 @@ for (const width of [1280, 390]) {
       const canvas = document.querySelector('.apexcharts-canvas')!;
       const instances = (window as any).Apex._chartInstances;
       const chart = instances.find((entry: any) => entry.chart.el.contains(canvas)).chart;
+      if (chart.w.config.chart.animations.enabled) throw new Error('Completed results must not animate on mount or resize');
       const original = chart.updateOptions.bind(chart);
       chart.el.setAttribute('data-results-updates', '0');
       chart.updateOptions = (...args: any[]) => {

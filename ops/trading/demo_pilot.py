@@ -1,4 +1,4 @@
-"""One fixed, time-bounded autonomous demo pilot; owner activation is required."""
+"""Fixed autonomous demo strategies; owner activation is required."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -12,7 +12,7 @@ import demo_one_shot as execution
 from instruments import GOLD, BTC, BTC_STRATEGY, instrument
 from gold_experiment import digest, entry_allowed
 from gold_signal import evaluate
-from mt5_data import SERVER, SYMBOL, read_gold, validate_account, validate_tick
+from mt5_data import SERVER, SYMBOL, read_gold, validate_account, validate_tick, BrokerUnavailable
 
 STRATEGY = 'gold-ema-v1-slope-3'
 M1_STRATEGY = 'gold-ema-v1-m1-slope-3'
@@ -71,13 +71,22 @@ def save(db, value):
         db.execute('UPDATE pilot SET data=? WHERE id=1', (json.dumps(value, allow_nan=False),))
 
 
+def expired(p, now):
+    return p["end"] is not None and now >= p["end"]
+
+
+def continuous(p):
+    return bool(p and p.get("run_policy") == "continuous" and p["end"] is None)
+
+
 def account(mt5, login, *, enabled=False):
     value = mt5.account_info()
     terminal = mt5.terminal_info()
-    if (value is None or terminal is None or not terminal.connected
-            or value.trade_mode != 0 or value.login != login or value.server != SERVER
+    if value is None or terminal is None or not terminal.connected:
+        raise BrokerUnavailable("Pinned USD demo account unavailable")
+    if (value.trade_mode != 0 or value.login != login or value.server != SERVER
             or value.currency != 'USD'):
-        raise ValueError('Pinned USD demo account unavailable')
+        raise ValueError('Pinned USD demo account identity changed')
     if enabled:
         validate_account(value, terminal, login, execution=True)
     execution._positive(value.equity, 'equity')
@@ -108,6 +117,8 @@ def activate(mt5, db, login, now, end, pause_path):
 
 def limits(mt5, db, p, login, now, *, journals=None):
     candle_seconds(p)
+    if p.get('run_policy') not in (None, 'continuous') or (p["end"] is None) != (p.get("run_policy") == "continuous"):
+        raise ValueError("Invalid continuous run policy")
     value = account(mt5, login)
     if now < p['last_poll']:
         raise ValueError('Host clock moved backward')
@@ -116,8 +127,12 @@ def limits(mt5, db, p, login, now, *, journals=None):
     # A mid-day restart cannot invent the missing midnight equity observation.
     if int(now // 86400) != p['day']:
         if now - p['last_poll'] > 30 or now % 86400 > 30:
-            raise ValueError('UTC day boundary equity was not observed')
-        p.update(day=int(now // 86400), day_equity=value.equity)
+            if not continuous(p):
+                raise ValueError('UTC day boundary equity was not observed')
+            # Carry the last observed threshold across a missed midnight; do not reset loss budget.
+            p['day'] = int(now // 86400)
+        else:
+            p.update(day=int(now // 86400), day_equity=value.equity)
     p['peak'] = max(p['peak'], value.equity)
     if value.equity <= p['peak'] * .95:
         raise ValueError('Pilot drawdown limit reached')
@@ -127,7 +142,7 @@ def limits(mt5, db, p, login, now, *, journals=None):
     deals = mt5.history_deals_get(datetime.fromtimestamp(p['start'] + offset, timezone.utc),
                                  datetime.fromtimestamp(now + offset + 60, timezone.utc))
     if deals is None:
-        raise ValueError('Account history unavailable')
+        raise BrokerUnavailable('Account history unavailable')
     owned = {}
     for journal in journals or (db,):
         symbol = journal.execute('SELECT symbol FROM metadata').fetchone()[0]
@@ -190,6 +205,16 @@ def close_at_expiry(mt5, db, login, now):
     execution.process_once(mt5, db, now, allow_entry=False)
 
 
+def retry_report(mt5, db, p, report, now, login, error):
+    p['recovering'] = True
+    p['reason'] = str(error)
+    save(db, p)
+    report.update(reason=str(error), health=None,
+                  execution=execution._status(db, now),
+                  pilot=snapshot(mt5, db, p, execution._status(db, now), now, login))
+    return report
+
+
 def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
     symbol = db.execute("SELECT symbol FROM metadata").fetchone()[0]
     p = state(db)
@@ -200,7 +225,19 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
     report = dict(mode='autonomous-demo', symbol=symbol, checked_at=int(now),
                   status='blocked', signal='none', bar_time=None, health=health,
                   reason='Pilot not activated')
-    status = execution.process_once(mt5, db, now, allow_entry=False)
+    try:
+        if continuous(p):
+            account(mt5, login)
+        status = execution.process_once(mt5, db, now, allow_entry=False, retry_unavailable=continuous(p))
+    except BrokerUnavailable as exc:
+        if not continuous(p):
+            raise
+        return retry_report(mt5, db, p, report, now, login, exc)
+    except (ValueError, TypeError, OverflowError) as exc:
+        if not continuous(p):
+            raise
+        p['pause'] = p['pause'] or str(exc)
+        return retry_report(mt5, db, p, report, now, login, exc)
     if p:
         row = execution._attempt(db)
         if status['status'] == 'open' and row and status['volume'] != json.loads(row['request_json'])['volume']:
@@ -209,11 +246,18 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
             if pause_path.exists():
                 p['pause'] = p['pause'] or 'Paused by owner'
             value = shared.check(mt5, login, now) if shared else limits(mt5, db, p, login, now)
+        except BrokerUnavailable as exc:
+            if continuous(p):
+                return retry_report(mt5, db, p, report, now, login, exc)
+            p['pause'] = p['pause'] or str(exc)
         except (ValueError, TypeError, OverflowError) as exc:
             p['pause'] = p['pause'] or str(exc)
+        else:
+            if p.pop('recovering', False):
+                p['last_bar'] = None
         if status['status'] in ('needs_attention', 'submitting', 'closing'):
             p['pause'] = p['pause'] or 'Broker outcome requires review'
-        if now >= p['end']:
+        if expired(p, now):
             p['pause'] = p['pause'] or 'Pilot expired'
             if status['status'] not in ('closed', 'disarmed'):
                 try:
@@ -254,7 +298,7 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                         raise ValueError('Account exposure blocks another entry')
                     execution.arm_once(db, 'buy' if result['signal'] == 'long' else 'sell', int(now))
                     def guard(request):
-                        if pause_path.exists() or time.time() >= p['end']:
+                        if pause_path.exists() or expired(p, time.time()):
                             raise ValueError('Pause or expiry before submission')
                         fresh_tick, fresh_bars = read_gold(mt5, login, None,
                             server_offset_seconds=execution._server_offset(), execution=True, bar_seconds=seconds, trend_demo=bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY)), symbol=symbol)
@@ -269,6 +313,10 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                                 shared.check(mt5, login, time.time(), entering=db)
                             else:
                                 limits(mt5, db, p, login, time.time())
+                        except BrokerUnavailable:
+                            if not continuous(p):
+                                p['pause'] = 'Pinned USD demo account unavailable'
+                            raise
                         except ValueError as exc:
                             p['pause'] = str(exc)
                             raise
@@ -316,10 +364,10 @@ def snapshot(mt5, db, p, status, now, login):
                 floating = own[0].profit
     except (ValueError, TypeError, AttributeError):
         pass
-    label = ('standby' if not p else 'expired' if now >= p['end'] and status['status'] in ('closed', 'disarmed')
-             else 'needs_attention' if now >= p['end'] or status['status'] in ('needs_attention', 'closing', 'submitting')
+    label = ('standby' if not p else 'expired' if expired(p, now) and status['status'] in ('closed', 'disarmed')
+             else 'needs_attention' if expired(p, now) or status['status'] in ('needs_attention', 'closing', 'submitting')
              else 'paused' if p['pause'] else 'active')
-    return dict(status=label, strategy=p['strategy'] if p else BTC_STRATEGY if symbol == BTC else STRATEGY, qualification='unqualified', updated_at=now,
+    return dict(**({'run_policy': 'continuous'} if continuous(p) else {}), status=label, strategy=p['strategy'] if p else BTC_STRATEGY if symbol == BTC else STRATEGY, qualification='unqualified', updated_at=now,
                 started_at=p['start'] if p else None, ends_at=p['end'] if p else None,
                 reason=p['pause'] or p['reason'] if p else 'Owner activation required',
                 completed_trades=closed[0], realized_net_usd=closed[1], floating_usd=floating,
@@ -342,11 +390,15 @@ class SharedAccount:
                 raise ValueError(risk['pause'])
             for db in self.journals:
                 p = state(db)
-                if p and (p['code'] != identity() or p['start'] != risk['start'] or p['end'] != risk['end'] or p['offset'] != risk['offset']):
+                if p and (p['code'] != identity() or p['start'] != risk['start'] or p['end'] != risk['end'] or p['offset'] != risk['offset'] or p.get('run_policy') != risk.get('run_policy')):
                     raise ValueError('Shared pilot identity or window mismatch')
             value = limits(mt5, self.db, risk, login, now, journals=self.journals)
             self.exposure(mt5, login, now, entering=entering)
             return value
+        except BrokerUnavailable as exc:
+            if not continuous(risk):
+                risk['pause'] = str(exc)[:160]
+            raise
         except (ValueError, TypeError, OverflowError) as exc:
             risk['pause'] = str(exc)[:160]
             raise
@@ -361,8 +413,10 @@ class SharedAccount:
 
 def check_exposure(mt5, journals, login, now, *, entering=None):
     positions, orders = mt5.positions_get(), mt5.orders_get()
-    if positions is None or orders is None or orders:
-        raise ValueError('Account exposure unavailable or pending orders require review')
+    if positions is None or orders is None:
+        raise BrokerUnavailable('Account exposure unavailable')
+    if orders:
+        raise ValueError('Pending orders require review')
     owned = set()
     for db in journals:
         row = execution._attempt(db)
@@ -455,7 +509,12 @@ def main():
                 # Reconcile both journals before account-wide ownership checks.
                 if shared:
                     for journal in shared.journals:
-                        execution.process_once(mt5, journal, time.time(), allow_entry=False)
+                        try:
+                            if continuous(state(journal)):
+                                account(mt5, login)
+                            execution.process_once(mt5, journal, time.time(), allow_entry=False, retry_unavailable=continuous(state(journal)))
+                        except (ValueError, TypeError, OverflowError):
+                            pass  # Each symbol publishes its own unavailable-data report below.
                 for symbol, journal in ((GOLD, db), (BTC, btc)):
                     if journal is None:
                         continue
@@ -480,7 +539,7 @@ def activate_btc(mt5, gold, btc, login, now, home, shared):
     if state(btc) is not None or (home / 'btc-pilot.pause').exists():
         raise ValueError('BTC already activated or paused by owner')
     source = state(gold)
-    if source is None or not source['start'] <= now < source['end']:
+    if source is None or now < source['start'] or expired(source, now):
         raise ValueError('Original pilot window is not active')
     account(mt5, login, enabled=True)
     shared.check(mt5, login, now)

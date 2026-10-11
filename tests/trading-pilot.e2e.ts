@@ -13,6 +13,7 @@ test('pilot shows results and requests pause without reaching a broker', async (
   payload.pilot.updated_at += shift;
   payload.pilot.started_at += shift;
   payload.pilot.ends_at += shift;
+  Object.assign(payload.pilot, { run_policy: 'continuous', ends_at: null });
   for (const trade of payload.pilot.recent_trades) {
     trade.opened_at += shift;
     trade.closed_at += shift;
@@ -32,6 +33,7 @@ test('pilot shows results and requests pause without reaching a broker', async (
   await app.open('/vault/trading');
   await expect(screen.getByRole('heading', 'Autonomous demo pilot')).toBeVisible();
   await expect(browser.locator('#pilot-realized')).toHaveText('-4.50 USD');
+  await expect(browser.locator('#pilot-remaining')).toHaveText('Until you pause');
   await expect(browser.locator('#manual-controls')).toBeHidden();
   payload.pilot.strategy = 'gold-ema-v1-m1-trend-3';
   await screen.getByRole('button', 'Refresh status').tap();
@@ -39,6 +41,7 @@ test('pilot shows results and requests pause without reaching a broker', async (
   await expect(browser.locator('#pilot-timeframe')).toHaveText('Completed 1-minute candles only - M1 demo');
   await screen.getByRole('button', 'Pause new entries').tap();
   await expect(browser.locator('#pilot-state')).toHaveText('PAUSED');
+  await expect(browser.locator('#pilot-intent')).toHaveText('Managing a demo trade');
   assert.equal(paused, true);
   await app.screenshot('autonomous-demo-pilot-paused');
   await browser.route('**/api/trading/status', route => route.fulfill({ status: 401, body: '' }));
