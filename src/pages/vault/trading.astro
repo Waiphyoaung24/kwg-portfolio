@@ -51,7 +51,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
       <div class="desk-switch reveal" style="--i: 1">
         <nav class="desk-segment" aria-label="Demo instrument">
           <a id="instrument-gold" href="/vault/trading">Gold · M1</a>
-          <a id="instrument-btc" href="/vault/trading?symbol=BTCUSD">Bitcoin · M15</a>
+          <a id="instrument-btc" href="/vault/trading?symbol=BTCUSD">Bitcoin</a>
         </nav>
         <p class="desk-muted small m-0">Switch views, not execution. Both symbols share account loss limits.</p>
       </div>
@@ -464,8 +464,8 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
         const pilot = pilotFields(latest.pilot, Date.now() / 1000, selected.symbol);
         field('pilot-state').classList.toggle('desk-chip--solid', pilot.state === 'Active');
         field('pilot-state').dataset.state = pilot.state;
-        field('pilot-strategy').textContent = pilot.state === 'Unknown' ? 'Strategy unavailable' : ['gold-ema-v1-m1-trend-3', 'btc-ema-v1-m15-trend-3'].includes(latest.pilot?.strategy) ? 'EMA trend · 3-bar slope · 5-minute cooldown after close' : 'EMA crossover · 3-bar slope filter';
-        field('pilot-timeframe').textContent = pilot.state === 'Unknown' ? 'Strategy timeframe unavailable' : ['gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3'].includes(latest.pilot?.strategy) ? 'Completed 1-minute candles only - M1 demo' : 'Completed 15-minute candles only - M15 demo';
+        field('pilot-strategy').textContent = pilot.state === 'Unknown' ? 'Strategy unavailable' : latest.pilot?.strategy === 'btc-ema-v1-m1-scalp-60' ? 'EMA trend · 3-bar slope · 60-second exit request · 60-second cooldown' : ['gold-ema-v1-m1-trend-3', 'btc-ema-v1-m15-trend-3'].includes(latest.pilot?.strategy) ? 'EMA trend · 3-bar slope · 5-minute cooldown after close' : 'EMA crossover · 3-bar slope filter';
+        field('pilot-timeframe').textContent = pilot.state === 'Unknown' ? 'Strategy timeframe unavailable' : ['gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3', 'btc-ema-v1-m1-scalp-60'].includes(latest.pilot?.strategy) ? 'Completed 1-minute candles only - M1 demo' : 'Completed 15-minute candles only - M15 demo';
         if (pilot.state === 'Paused' && field('pilot-message').textContent?.startsWith('Pause requested.')) field('pilot-message').textContent = 'New entries are paused.';
         for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining'] as const) field(`pilot-${key}`).textContent = pilot[key];
         // render() runs every second, so the countdown ticks between status reports.

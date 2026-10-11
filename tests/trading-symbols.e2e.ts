@@ -25,7 +25,7 @@ test('Gold and Bitcoin views isolate prices, history, pause and sound baseline',
     payload.pilot.ends_at += shift;
     payload.pilot.recent_trades = [];
     payload.symbol = btc && !wrongSymbol ? 'BTCUSD' : 'XAUUSD-VIP';
-    payload.pilot.strategy = btc ? 'btc-ema-v1-m15-trend-3' : 'gold-ema-v1-m1-trend-3';
+    payload.pilot.strategy = btc ? 'btc-ema-v1-m1-scalp-60' : 'gold-ema-v1-m1-trend-3';
     if (btc && btcPaused) {
       payload.pilot.status = 'paused';
       payload.pilot.reason = 'Paused by owner';
@@ -38,13 +38,14 @@ test('Gold and Bitcoin views isolate prices, history, pause and sound baseline',
   });
   await app.open('/vault/trading');
   await expect(browser.locator('#pilot-count')).toHaveText('6');
-  await screen.getByRole('link', 'Bitcoin · M15').tap();
+  await screen.getByRole('link', 'Bitcoin').tap();
   await expect(screen.getByRole('heading', 'Bitcoin trading desk')).toBeVisible();
   await expect(browser.locator('#price')).toHaveText('82790.50 / 82807.49');
   await expect(browser.locator('#pilot-count')).toHaveText('0');
   await expect(browser.locator('#pilot-realized')).toHaveText('0.00 USD');
   await screen.getByText('Strategy & limits', { exact: false }).tap();
-  await expect(browser.locator('#pilot-timeframe')).toHaveText('Completed 15-minute candles only - M15 demo');
+  await expect(browser.locator('#pilot-timeframe')).toHaveText('Completed 1-minute candles only - M1 demo');
+  await expect(browser.locator('#pilot-strategy')).toHaveText('EMA trend · 3-bar slope · 60-second exit request · 60-second cooldown');
   await expect(screen.getByRole('button', 'Trade sound: Off')).toBeVisible();
   await expect(browser.locator('#manual-controls')).toBeHidden();
   assert.equal(btcPaused, false, 'Navigation must not change execution');

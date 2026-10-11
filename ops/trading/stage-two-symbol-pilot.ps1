@@ -1,6 +1,6 @@
-param([switch]$DryRun, [switch]$Continuous)
+param([switch]$DryRun, [switch]$Continuous, [switch]$BtcScalp)
 $ErrorActionPreference = 'Stop'
-$taskNames = @('demo_pilot.py','demo_one_shot.py','mt5_data.py','gold_signal.py','gold_experiment.py','instruments.py','migrate-two-symbol-pilot.py','status_server.py','control_server.py','cutover-m1-pilot.py','cutover-two-symbol-pilot.py','migrate-continuous-pilot.py')
+$taskNames = @('demo_pilot.py','demo_one_shot.py','mt5_data.py','gold_signal.py','gold_experiment.py','instruments.py','migrate-two-symbol-pilot.py','status_server.py','control_server.py','cutover-m1-pilot.py','cutover-two-symbol-pilot.py','migrate-continuous-pilot.py','migrate-btc-scalp.py')
 $taskBundle = @{}
 foreach ($taskName in $taskNames) {
     $taskText = [IO.File]::ReadAllText((Join-Path $PSScriptRoot $taskName)).Replace("`r`n", "`n")
@@ -22,7 +22,8 @@ hashes = {f: hashlib.sha256((stage/f).read_bytes()).hexdigest() for f in sources
 identity = hashlib.sha256(json.dumps(hashes, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 image = json.loads(subprocess.check_output(['docker','inspect','kwg-mt5-desktop']))[0]['Image']
 continuous = CONTINUOUS
-manifest = dict(code_sha256=identity, sources=hashes, previous_image=image, continuous=continuous,
+btc_scalp = BTC_SCALP
+manifest = dict(code_sha256=identity, sources=hashes, previous_image=image, continuous=continuous, btc_scalp=btc_scalp,
                 files={f:hashlib.sha256((stage/f).read_bytes()).hexdigest() for f in bundle})
 (stage/'manifest.json').write_text(json.dumps(manifest, indent=2))
 target = '/home/mt5/' + name
@@ -43,13 +44,13 @@ subprocess.run(['docker','exec','-i','--user','mt5','kwg-mt5-desktop','python3',
                input=json.dumps(transfer).encode(), check=True)
 print('TWO_SYMBOL_STAGE', str(stage), flush=True)
 print('TWO_SYMBOL_REVIEWED_CODE', identity, flush=True)
-helper = 'migrate-continuous-pilot.py' if continuous else 'migrate-two-symbol-pilot.py'
+helper = 'migrate-btc-scalp.py' if btc_scalp else 'migrate-continuous-pilot.py' if continuous else 'migrate-two-symbol-pilot.py'
 command = ('stty cols 4096; wine /opt/python/python.exe ' + target + '/' + helper + ' '
            '--reviewed-code-sha256 ' + identity)
 subprocess.run(['docker','exec','--user','mt5','kwg-mt5-desktop','script','-q','-e','-c',command,'/dev/null'], check=True)
 print('REVIEW_ONLY; runner, journal, and deployed source unchanged', flush=True)
 '@
-$taskRemote = $taskRemote.Replace('PAYLOAD', $taskPayload).Replace('CONTINUOUS', $(if ($Continuous) { 'True' } else { 'False' }))
+$taskRemote = $taskRemote.Replace('PAYLOAD', $taskPayload).Replace('CONTINUOUS', $(if ($Continuous -or $BtcScalp) { 'True' } else { 'False' })).Replace('BTC_SCALP', $(if ($BtcScalp) { 'True' } else { 'False' }))
 if ($DryRun) {
     $taskRemote | python -B -c 'import sys; compile(sys.stdin.read(), sys.argv[1], sys.argv[2])' two-symbol-stage exec
     if ($LASTEXITCODE -ne 0) { throw 'Staging syntax check failed' }

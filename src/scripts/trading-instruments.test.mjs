@@ -18,6 +18,9 @@ test('BTC is explicit; a gold payload cannot populate its view', () => {
   report.pilot.strategy = 'btc-ema-v1-m15-trend-3';
   assert.throws(() => normalizeStatus(report, report.checked_at));
   assert.equal(normalizeStatus(report, report.checked_at, 'BTCUSD').symbol, 'BTCUSD');
+  report.pilot.strategy = 'btc-ema-v1-m1-scalp-60';
+  assert.equal(normalizeStatus(report, report.checked_at, 'BTCUSD').pilot.strategy, report.pilot.strategy);
+  assert.throws(() => normalizeStatus({ ...report, symbol: 'XAUUSD-VIP' }, report.checked_at));
   assert.equal(chartSnapshot(report, report.checked_at).trades.length, report.pilot.recent_trades.length);
   const sound = entryNotifications('BTCUSD');
   assert.equal(sound(report, report.checked_at), false);

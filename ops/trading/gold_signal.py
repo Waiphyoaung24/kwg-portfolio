@@ -40,7 +40,7 @@ def evaluate(bars: list[dict], bid: float, ask: float, now: float, *, bar_second
     validate_market(symbol, bar_seconds, trend_demo)
     if type(bar_seconds) is not int or bar_seconds not in (60, 900):
         raise ValueError('Only M1 and M15 candles are supported')
-    if type(trend_demo) is not bool or trend_demo and bar_seconds != (900 if symbol == BTC else 60):
+    if type(trend_demo) is not bool or trend_demo and symbol != BTC and bar_seconds != 60:
         raise ValueError('Trend demo spread policy requires M1 candles')
     if len(bars) < 250:
         raise ValueError("Need 250 completed gold bars")

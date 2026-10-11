@@ -9,7 +9,7 @@ from pathlib import Path
 import time
 
 import demo_one_shot as execution
-from instruments import GOLD, BTC, BTC_STRATEGY, instrument
+from instruments import GOLD, BTC, BTC_STRATEGY, BTC_SCALP_STRATEGY, instrument
 from gold_experiment import digest, entry_allowed
 from gold_signal import evaluate
 from mt5_data import SERVER, SYMBOL, read_gold, validate_account, validate_tick, BrokerUnavailable
@@ -41,29 +41,29 @@ def state(db):
 def candle_seconds(p):
     if p is None or p['strategy'] in (STRATEGY, BTC_STRATEGY):
         return 900
-    if p['strategy'] in (M1_STRATEGY, TREND_STRATEGY):
+    if p['strategy'] in (M1_STRATEGY, TREND_STRATEGY, BTC_SCALP_STRATEGY):
         return 60
     raise ValueError('Unknown pilot strategy')
 
 
 def assess(bars, tick, now, p):
     result = evaluate(bars, float(tick.bid), float(tick.ask), now, bar_seconds=candle_seconds(p),
-                      trend_demo=bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY)), symbol=BTC if p and p['strategy'] == BTC_STRATEGY else GOLD)
-    if p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY) and result['signal'] != 'blocked':
+                      trend_demo=bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY)), symbol=BTC if p and p['strategy'] in (BTC_STRATEGY, BTC_SCALP_STRATEGY) else GOLD)
+    if p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY) and result['signal'] != 'blocked':
         fast, slow = result['ema20'], result['ema50']
         result['signal'] = 'long' if fast > slow else 'short' if fast < slow else 'none'
     return result
 
 
 def cooldown_remaining(db, p, now):
-    if p['strategy'] not in (TREND_STRATEGY, BTC_STRATEGY):
+    if p['strategy'] not in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY):
         return 0
     closed = db.execute("SELECT MAX(closed_at) FROM attempts WHERE state='closed'").fetchone()[0]
     if closed is None:
         return 0
     if type(closed) not in (int, float) or not math.isfinite(closed) or not 0 < closed <= now:
         raise ValueError('Invalid close time for cooldown')
-    return max(0, math.ceil(closed + 300 - now))
+    return max(0, math.ceil(closed + (60 if p['strategy'] == BTC_SCALP_STRATEGY else 300) - now))
 
 
 def save(db, value):
@@ -218,7 +218,7 @@ def retry_report(mt5, db, p, report, now, login, error):
 def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
     symbol = db.execute("SELECT symbol FROM metadata").fetchone()[0]
     p = state(db)
-    if p and (p["strategy"] == BTC_STRATEGY) != (symbol == BTC):
+    if p and (p["strategy"] in (BTC_STRATEGY, BTC_SCALP_STRATEGY)) != (symbol == BTC):
         raise ValueError("Pilot strategy and journal symbol disagree")
     seconds = candle_seconds(p)
     health = {}
@@ -265,11 +265,24 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                 except (ValueError, TypeError, OverflowError) as exc:
                     p['pause'] = str(exc)
                 status = execution._status(db, now)
+        if p['strategy'] == BTC_SCALP_STRATEGY and status['status'] == 'open':
+            opened = status['opened_at']
+            if type(opened) not in (int, float) or not math.isfinite(opened) or not 0 < opened <= now:
+                p['pause'] = p['pause'] or 'Invalid timed exit start'
+            elif p['code'] != identity() or p['offset'] != execution._server_offset():
+                p['pause'] = p['pause'] or 'Activated code or clock configuration changed'
+            elif now - opened >= 60:
+                try:
+                    # Timed exits also run while new entries are paused or spread-blocked.
+                    close_at_expiry(mt5, db, login, now)
+                except (ValueError, TypeError, OverflowError) as exc:
+                    p['pause'] = p['pause'] or str(exc)
+                status = execution._status(db, now)
         p['last_poll'] = max(now, p['last_poll'])
         save(db, p)
     try:
         tick, bars = read_gold(mt5, login, now, health,
-                              server_offset_seconds=execution._server_offset(), execution=bool(p) or shared is not None, bar_seconds=seconds, trend_demo=symbol == BTC or bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY)), symbol=symbol)
+                              server_offset_seconds=execution._server_offset(), execution=bool(p) or shared is not None, bar_seconds=seconds, trend_demo=symbol == BTC or bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY)), symbol=symbol)
         result = assess(bars, tick, now, p or ({"strategy": BTC_STRATEGY} if symbol == BTC else None))
         health.update(strategy_signal=result['signal'], strategy_reason=result['reason'])
         report.update(bar_time=result['bar_time'], status='observed', reason=result['reason'])
@@ -301,7 +314,7 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                         if pause_path.exists() or expired(p, time.time()):
                             raise ValueError('Pause or expiry before submission')
                         fresh_tick, fresh_bars = read_gold(mt5, login, None,
-                            server_offset_seconds=execution._server_offset(), execution=True, bar_seconds=seconds, trend_demo=bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY)), symbol=symbol)
+                            server_offset_seconds=execution._server_offset(), execution=True, bar_seconds=seconds, trend_demo=bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY)), symbol=symbol)
                         fresh = assess(fresh_bars, fresh_tick, time.time(), p)
                         if cooldown_remaining(db, p, time.time()):
                             raise ValueError('Cooldown before submission')
@@ -321,14 +334,14 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                             p['pause'] = str(exc)
                             raise
                         request['comment'] = 'kwg-pilot-' + execution._attempt(db)['id']
-                    status = execution.process_once(mt5, db, now, before_submit=guard, bar_seconds=seconds, trend_demo=bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY)))
+                    status = execution.process_once(mt5, db, now, before_submit=guard, bar_seconds=seconds, trend_demo=bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY)))
                     if status['status'] in ('needs_attention', 'submitting', 'closing'):
                         p['pause'] = 'Broker outcome requires review'
                     if status['status'] == 'open' and status['volume'] != .01:
                         p['pause'] = 'Partial fill requires review'
                     report['reason'] = status.get('close_reason') or 'Demo signal processed'
             else:
-                report['reason'] = ('Waiting for an eligible trend and slope' if p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY)
+                report['reason'] = ('Waiting for an eligible trend and slope' if p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY)
                                     else 'Waiting for the next eligible crossover')
     except (ValueError, TypeError, OverflowError) as exc:
         report.update(status='blocked', reason=str(exc)[:160])

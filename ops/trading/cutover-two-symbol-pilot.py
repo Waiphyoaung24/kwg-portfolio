@@ -28,6 +28,9 @@ def deploy(stage, reviewed):
         if Path(name).name != name or hashlib.sha256((stage/name).read_bytes()).hexdigest() != expected:
             raise ValueError('Stage file identity mismatch')
     continuous = manifest.get('continuous') is True
+    btc_scalp = manifest.get('btc_scalp') is True
+    if btc_scalp and not continuous:
+        raise ValueError('BTC scalping requires continuous migration')
     current = json.loads(run(['docker', 'inspect', 'kwg-mt5-desktop']))[0]
     if current['Image'] != manifest['previous_image']:
         raise ValueError('Deployment changed since review')
@@ -74,11 +77,11 @@ def deploy(stage, reviewed):
     target = '/home/mt5/' + stage.name
     bundle = {n:base64.b64encode((stage/n).read_bytes()).decode() for n in manifest['files']}
     run(['docker','exec','-i','--user','mt5','kwg-mt5-desktop','python3','-c',receiver,target], input=json.dumps(bundle).encode())
-    command = 'stty cols 4096; ' + shlex.join(['wine', '/opt/python/python.exe', target+('/migrate-continuous-pilot.py' if continuous else '/migrate-two-symbol-pilot.py'),
+    command = 'stty cols 4096; ' + shlex.join(['wine', '/opt/python/python.exe', target+('/migrate-btc-scalp.py' if btc_scalp else '/migrate-continuous-pilot.py' if continuous else '/migrate-two-symbol-pilot.py'),
                                              '--reviewed-code-sha256', reviewed, '--apply'])
     receipt = run(['docker','exec','--user','mt5','kwg-mt5-desktop','script','-q','-e','-c',command,'/dev/null'])
     print(receipt, flush=True)
-    match = re.search((r'CONTINUOUS_MIGRATED ' if continuous else r'TWO_SYMBOL_MIGRATED ') + r'(\{[^\r\n]*\})', receipt)
+    match = re.search((r'BTC_SCALP_MIGRATED ' if btc_scalp else r'CONTINUOUS_MIGRATED ' if continuous else r'TWO_SYMBOL_MIGRATED ') + r'(\{[^\r\n]*\})', receipt)
     if match is None:
         raise ValueError('Migration receipt missing; leave runner stopped')
     migrated = json.loads(match.group(1))
@@ -96,6 +99,7 @@ def deploy(stage, reviewed):
             if all(r['checked_at'] >= time.time()-30 for r in (gold,btc)) and (all(r.get('pilot',{}).get('run_policy') == 'continuous' for r in (gold,btc)) if continuous else btc.get('pilot',{}).get('status') == 'standby'):
                 if (gold['symbol'] != 'XAUUSD-VIP' or btc['symbol'] != 'BTCUSD'
                         or gold['pilot']['ends_at'] != migrated['ends_at']
+                        or btc_scalp and btc['pilot']['strategy'] != 'btc-ema-v1-m1-scalp-60'
                         or continuous and (btc['pilot']['ends_at'] is not None
                             or migrated['btc_pause'] and btc['pilot']['reason'] != migrated['btc_pause'])
                         or migrated['gold_pause'] and gold['pilot']['reason'] != migrated['gold_pause']):

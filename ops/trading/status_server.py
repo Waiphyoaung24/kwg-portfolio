@@ -77,7 +77,7 @@ def sanitize_execution(value, now: float):
 
 
 def sanitize_pilot(value, now, symbol="XAUUSD-VIP"):
-    strategies = ("btc-ema-v1-m15-trend-3",) if symbol == "BTCUSD" else ("gold-ema-v1-slope-3", "gold-ema-v1-m1-slope-3", "gold-ema-v1-m1-trend-3")
+    strategies = ("btc-ema-v1-m15-trend-3", "btc-ema-v1-m1-scalp-60") if symbol == "BTCUSD" else ("gold-ema-v1-slope-3", "gold-ema-v1-m1-slope-3", "gold-ema-v1-m1-trend-3")
     if (not isinstance(value, dict) or value.get('strategy') not in strategies
             or value.get('qualification') != 'unqualified'
             or value.get('status') not in ('standby', 'active', 'paused', 'needs_attention', 'expired')):

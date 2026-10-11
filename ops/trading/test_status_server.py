@@ -34,6 +34,10 @@ class StatusServerTest(unittest.TestCase):
             self.assertEqual(code, 200)
             self.assertEqual(report['pilot']['strategy'], 'btc-ema-v1-m15-trend-3')
             self.assertEqual(read_status(path, fixture['checked_at'])[0], 503)
+            fixture['pilot']['strategy'] = 'btc-ema-v1-m1-scalp-60'
+            path.write_text(json.dumps(fixture))
+            self.assertEqual(read_status(path, fixture['checked_at'], symbol='BTCUSD')[1]['pilot']['strategy'],
+                             'btc-ema-v1-m1-scalp-60')
             fixture['pilot']['strategy'] = 'gold-ema-v1-m1-trend-3'
             path.write_text(json.dumps(fixture))
             self.assertIsNone(read_status(path, fixture['checked_at'], symbol='BTCUSD')[1]['pilot'])
