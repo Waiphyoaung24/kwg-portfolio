@@ -46,7 +46,7 @@ export function statusFields(data, now = Date.now() / 1000) {
     candle: date(health?.history_bar_time),
     strategy: !alive ? 'Paused — no current observer report' : data.status === 'blocked' ? 'Blocked — see reason below' : pilot ? (['gold-ema-v1-m1-trend-3', 'btc-ema-v1-m15-trend-3'].includes(data.pilot?.strategy) ? 'EMA trend · slope lookback 3 · 5-minute cooldown' : 'Fixed EMA crossover · slope lookback 3') : ['armed', 'submitting', 'pending', 'open', 'closing', 'needs_attention'].includes(data.execution?.status)
       ? 'Signals only · manual demo order active' : 'Observing · signals place no orders',
-    signal: recovering ? 'Reconnecting' : filtering ? 'Waiting for setup' : ready ? ({ long: 'Long setup', short: 'Short setup', none: 'No setup yet' }[data.signal] ?? '—') : 'Paused',
+    signal: recovering ? 'Reconnecting' : waiting && pilot ? 'Waiting for fresh quotes' : filtering ? 'Waiting for setup' : ready ? ({ long: 'Long setup', short: 'Short setup', none: 'No setup yet' }[data.signal] ?? '—') : 'Paused',
     checked: date(data.checked_at),
     reason: alive ? data.reason || 'Waiting for the next completed candle.' : 'Observer report expired. Waiting for a current report.',
   };

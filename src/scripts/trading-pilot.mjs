@@ -1,3 +1,19 @@
+import { executionFields, statusFields } from './trading-status.mjs';
+
+export function entryReadiness(data, now = Date.now() / 1000, symbol = 'XAUUSD-VIP') {
+  const pilot = pilotFields(data?.pilot, now, symbol);
+  if (!data || pilot.state === 'Unknown' || !Number.isFinite(data.checked_at) || data.status === 'offline' || now - data.checked_at > 30 || now < data.checked_at) return 'Status unavailable';
+  if (pilot.state !== 'Active') return pilot.state === 'Paused' ? 'Paused — no new orders' : pilot.state;
+  const fields = statusFields(data, now);
+  const execution = executionFields(data.execution, now);
+  if (fields.connection !== 'Connected to demo' || execution.state === 'Unknown') return 'Waiting for broker checks';
+  if (['Open', 'Pending', 'Armed', 'Submitting', 'Closing'].includes(execution.state)) return 'Waiting for current trade to finish';
+  if (execution.state === 'Needs attention') return 'Needs attention';
+  if (fields.price === '—') return 'Waiting for fresh quotes';
+  if (data.status === 'blocked') return 'Waiting for entry checks';
+  return 'Enabled — awaiting an eligible setup';
+}
+
 export function normalizePilot(value, now = Date.now() / 1000, symbol = 'XAUUSD-VIP') {
   if (value === null) return null;
   if (!value || !(symbol === 'BTCUSD' ? ['btc-ema-v1-m15-trend-3'] : symbol === 'XAUUSD-VIP' ? ['gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3'] : []).includes(value.strategy) || value.qualification !== 'unqualified' ||

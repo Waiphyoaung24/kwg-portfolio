@@ -39,7 +39,7 @@ test('Gold and Bitcoin views isolate prices, history, pause and sound baseline',
   await app.open('/vault/trading');
   await expect(browser.locator('#pilot-count')).toHaveText('6');
   await screen.getByRole('link', 'Bitcoin · M15').tap();
-  await expect(screen.getByRole('heading', 'Bitcoin, under observation.')).toBeVisible();
+  await expect(screen.getByRole('heading', 'Bitcoin trading desk')).toBeVisible();
   await expect(browser.locator('#price')).toHaveText('82790.50 / 82807.49');
   await expect(browser.locator('#pilot-count')).toHaveText('0');
   await expect(browser.locator('#pilot-realized')).toHaveText('0.00 USD');

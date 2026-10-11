@@ -1,12 +1,29 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { normalizePilot, pilotFields } from './trading-pilot.mjs';
+import { entryReadiness, normalizePilot, pilotFields } from './trading-pilot.mjs';
 import { normalizeStatus } from '../../ops/trading/worker/src/index.js';
 import { statusFields } from './trading-status.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../../ops/trading/fixtures/pilot-status.json', import.meta.url)));
 const now = fixture.checked_at;
+
+test('entry readiness distinguishes open positions, pauses, filters and lost reports', () => {
+  assert.equal(entryReadiness(fixture, now), 'Waiting for current trade to finish');
+  const paused = { ...fixture, pilot: { ...fixture.pilot, status: 'paused' } };
+  assert.equal(entryReadiness(paused, now), 'Paused — no new orders');
+  for (const data of [null, { ...fixture, checked_at: undefined }, { ...fixture, status: 'offline' }]) {
+    assert.equal(entryReadiness(data, now), 'Status unavailable');
+  }
+  assert.equal(entryReadiness(fixture, now + 31), 'Status unavailable');
+  assert.equal(entryReadiness({ ...fixture, health: null }, now), 'Waiting for broker checks');
+  const flat = { ...fixture, execution: { ...fixture.execution, status: 'closed' } };
+  assert.equal(entryReadiness(flat, now), 'Enabled — awaiting an eligible setup');
+  assert.equal(entryReadiness({ ...flat, status: 'blocked' }, now), 'Waiting for entry checks');
+  const stale = { ...flat, health: { ...flat.health, quote: 'stale' } };
+  assert.equal(entryReadiness(stale, now), 'Waiting for fresh quotes');
+  assert.equal(statusFields(stale, now).signal, 'Waiting for fresh quotes');
+});
 
 test('continuous policy survives Worker without an expiry and rejects inconsistent windows', () => {
   const data = { ...fixture, pilot: { ...fixture.pilot, run_policy: 'continuous', ends_at: null } };

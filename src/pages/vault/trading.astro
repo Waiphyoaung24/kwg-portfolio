@@ -38,13 +38,13 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" />
   </head>
-  <body class="desk">
+  <body class="desk desk-monitor">
     <TradingNavigation current="demo" />
     <main class="container-xl desk-main">
       <header class="desk-intro reveal" style="--i: 0" id="trading-content" tabindex="-1">
         <p class="desk-eyebrow"><span class="desk-logo desk-logo--sm" set:html={logo} />KWG / Demo operations</p>
-        <h1 id="instrument-title">Gold, under observation.</h1>
-        <p class="desk-lede">Your demo pilot, its next move, and the evidence behind each trade.</p>
+        <h1 id="instrument-title">Gold trading desk</h1>
+        <p class="desk-lede">Follow the position. Understand the next entry. Review the results.</p>
         {import.meta.env.DEV && import.meta.env.PUBLIC_TRADING_PILOT_FIXTURE === '1' && <p class="desk-note" role="note">Local design preview. Simulated quotes update every 2 seconds. All prices and trades are sample data. Trading controls are disabled.</p>}
       </header>
 
@@ -53,8 +53,13 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
           <a id="instrument-gold" href="/vault/trading">Gold · M1</a>
           <a id="instrument-btc" href="/vault/trading?symbol=BTCUSD">Bitcoin · M15</a>
         </nav>
-        <p class="desk-muted small m-0">Each view shows one symbol. Switching views does not start, pause, or switch execution. Account loss limits cover both symbols.</p>
+        <p class="desk-muted small m-0">Switch views, not execution. Both symbols share account loss limits.</p>
       </div>
+      <dl class="desk-overview" aria-label="Pilot operating status">
+        <div><dt class="desk-kicker">Runner heartbeat</dt><dd id="heartbeat">Checking</dd></div>
+        <div><dt class="desk-kicker">New entries</dt><dd id="entry-readiness">Checking</dd></div>
+        <div><dt class="desk-kicker">Execution model</dt><dd>Fixed rules · demo only</dd></div>
+      </dl>
       <section class="desk-hero reveal" style="--i: 1" aria-labelledby="hero-price-label">
         <div class="desk-hero__price">
           <p class="desk-kicker" id="hero-price-label"><span class="desk-live" aria-hidden="true"></span>XAUUSD-VIP · Bid / ask, USD</p>
@@ -132,7 +137,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
           <div class="desk-tile__head">
             <div>
               <h2 id="pilot-title">Autonomous demo pilot</h2>
-              <p class="desk-muted small m-0">Unqualified demo</p>
+              <p class="desk-muted small m-0">Unqualified demo · entry policy</p>
             </div>
             <span class="desk-chip desk-chip--solid text-uppercase" id="pilot-state" aria-live="polite">Checking</span>
           </div>
@@ -147,7 +152,8 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
             <div class="desk-stats__wide"><dt><Fragment set:html={icon(iconTarget)} />Entry / stop / target</dt><dd class="desk-num" id="pilot-levels">—</dd></div>
           </dl>
           <div class="desk-strategy">
-            <h3>One fixed strategy</h3>
+            <h3>Strategy &amp; limits</h3>
+            <p class="desk-muted small">Rule-based execution. Strategy changes require review; this pilot does not learn or modify itself.</p>
             <p class="desk-muted small"><span id="pilot-strategy">Waiting for strategy</span><br /><span id="pilot-timeframe">Waiting for strategy timeframe</span></p>
             <ul class="desk-rules">
               <li><Fragment set:html={icon(iconShield)} />0.01 lot, one position per symbol</li>
@@ -169,7 +175,6 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
             <summary>Technical details <Fragment set:html={icon(iconChevron)} /></summary>
             <dl class="desk-stats desk-stats--plain">
               <div><dt>Status delivery</dt><dd id="delivery">Checking</dd></div>
-              <div><dt>Observer heartbeat</dt><dd id="heartbeat">Checking</dd></div>
               <div><dt>Last quote</dt><dd id="tick">—</dd></div>
               <div><dt>Quote age at check</dt><dd id="age">—</dd></div>
               <div><dt>Completed-candle history</dt><dd id="history">Checking</dd></div>
@@ -264,7 +269,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
 
     <script>
       import { executionFields, statusFields } from '../../scripts/trading-status.mjs';
-      import { pilotFields } from '../../scripts/trading-pilot.mjs';
+      import { entryReadiness, pilotFields } from '../../scripts/trading-pilot.mjs';
       import { tradeLevels } from '../../scripts/trading-levels.mjs';
       import { chartSnapshot } from '../../scripts/trading-chart.mjs';
       import { entryNotifications } from '../../scripts/trading-sound.mjs';
@@ -273,7 +278,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
       const field = (id: string) => document.getElementById(id)!;
       const selected = selectedInstrument(location.search);
       document.title = `Demo account monitor - ${selected.name} operations - KWG`;
-      field('instrument-title').textContent = `${selected.name}, under observation.`;
+      field('instrument-title').textContent = `${selected.name} trading desk`;
       field('hero-price-label').textContent = `${selected.symbol} · Bid / ask, USD`;
       field('position-symbol').textContent = selected.symbol;
       field('instrument-price-label').textContent = `${selected.name} price`;
@@ -447,9 +452,10 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
         if (!latest) return;
         const fields = statusFields(latest);
         const isPilot = latest.mode === 'autonomous-demo';
+        field('entry-readiness').textContent = isPilot ? entryReadiness(latest, Date.now() / 1000, selected.symbol) : 'Observation only';
         field('pilot-panel').hidden = !isPilot;
         field('manual-controls').hidden = isPilot || selected.symbol === 'BTCUSD';
-        field('mode-note').textContent = isPilot ? 'Demo execution mode. Review pilot state and positions below.'
+        field('mode-note').textContent = isPilot ? 'Entry filters affect new trades. Monitoring and entry permission are separate.'
           : 'Live observation only. Signals do not place orders. Keep Algo Trading off for observation.';
         const pilot = pilotFields(latest.pilot, Date.now() / 1000, selected.symbol);
         field('pilot-strategy').textContent = pilot.state === 'Unknown' ? 'Strategy unavailable' : ['gold-ema-v1-m1-trend-3', 'btc-ema-v1-m15-trend-3'].includes(latest.pilot?.strategy) ? 'EMA trend · 3-bar slope · 5-minute cooldown after close' : 'EMA crossover · 3-bar slope filter';
@@ -616,6 +622,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
           lastBid = null;
           window.dispatchEvent(new CustomEvent('trading-snapshot', { detail: chartSnapshot(null) }));
           field('pilot-intent').textContent = 'Status unavailable';
+          field('entry-readiness').textContent = 'Status unavailable';
           field('pilot-strategy').textContent = 'Strategy unavailable';
           field('pilot-timeframe').textContent = 'Strategy timeframe unavailable';
           (field('pilot-pause') as HTMLButtonElement).disabled = true;

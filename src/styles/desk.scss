@@ -193,6 +193,25 @@ body.desk {
 .desk-stages h3 { margin: .375rem 0 .125rem; font-size: 1rem; font-weight: 600; }
 .desk-stages p { margin: 0; color: var(--desk-muted); font-size: .875rem; }
 
+// Monitor tokens keep its compact operating layout separate from the overview page.
+.desk-monitor {
+  --desk-space: 1rem;
+  --desk-space-sm: .5rem;
+  --desk-touch-target: 2.75rem;
+  --desk-monitor-title: 2rem;
+  --desk-hairline: 1px;
+}
+.desk-monitor .desk-intro h1 { font-size: var(--desk-monitor-title); line-height: var(--tblr-body-line-height); }
+.desk-monitor .desk-main { padding-top: var(--desk-space); }
+.desk-overview { display: flex; flex-wrap: wrap; gap: var(--desk-space); margin-block: var(--desk-space); padding-block: var(--desk-space); border-block: var(--desk-hairline) solid var(--desk-line); }
+.desk-overview > div { flex: 1 1 auto; }
+.desk-overview dt { margin-bottom: var(--desk-space-sm); }
+.desk-overview dd { margin: 0; color: var(--desk-ink); }
+.desk-monitor .desk-hero { margin-top: 0; box-shadow: none; }
+.desk-monitor .btn, .desk-monitor .btn.btn-sm, .desk-monitor .desk-segment a, .desk-monitor .desk-nav__links a, .desk-monitor .desk-disclosure summary { min-height: var(--desk-touch-target); }
+.desk-monitor .reveal, .desk-monitor .desk-steps li:first-child { animation: none; }
+.desk-monitor .desk-tile:hover { transform: none; box-shadow: none; border-color: var(--desk-line); }
+
 // Entrance: sections rise in order on load.
 .reveal { animation: desk-rise 700ms var(--ease-out) both; animation-delay: calc(var(--i) * 80ms); }
 @keyframes desk-rise { from { opacity: 0; transform: translateY(14px); } }
@@ -201,6 +220,7 @@ body.desk {
   .desk-columns { grid-template-columns: minmax(0, 1fr); }
   .desk-side { position: static; }
   .desk-grid > *, .desk-grid > .desk-pilot { grid-column: 1 / -1; grid-row: auto; position: static; }
+  .desk-monitor .desk-grid > .desk-health { grid-row: 3; }
   .desk-hero { grid-template-columns: 1fr; gap: 1.5rem; }
   .desk-hero__idle, .desk-trade { border-left: 0; padding-left: 0; border-top: 1px solid var(--desk-line); padding-top: 1.5rem; }
 }

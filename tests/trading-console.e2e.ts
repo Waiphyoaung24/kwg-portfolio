@@ -38,6 +38,10 @@ for (const width of [1280, 390]) {
     assert.deepEqual(views, ['Live quotes', 'Trade results']);
     const layout = await browser.evaluate(() => ({ height: document.documentElement.scrollHeight, width: document.documentElement.scrollWidth, viewport: innerWidth }));
     assert.ok(layout.width <= layout.viewport, 'Console must not overflow horizontally');
+    const controls = await browser.evaluate(() => Array.from(document.querySelectorAll('.btn, .desk-segment a, .desk-nav__links a, .desk-disclosure summary'))
+      .filter(el => el.getClientRects().length > 0)
+      .map(el => ({ label: el.textContent?.trim(), height: el.getBoundingClientRect().height })));
+    assert.ok(controls.every(control => control.height >= 44), `Controls must have 44px touch targets: ${JSON.stringify(controls.filter(control => control.height < 44))}`);
     await browser.setViewport({ width, height: layout.height });
     await browser.evaluate(() => { window.scrollTo(0, 0); return null; });
     await app.screenshot(`console-quotes-${width}`);

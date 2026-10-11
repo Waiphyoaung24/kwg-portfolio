@@ -34,6 +34,7 @@ test('pilot shows results and requests pause without reaching a broker', async (
   await expect(screen.getByRole('heading', 'Autonomous demo pilot')).toBeVisible();
   await expect(browser.locator('#pilot-realized')).toHaveText('-4.50 USD');
   await expect(browser.locator('#pilot-remaining')).toHaveText('Until you pause');
+  await expect(browser.locator('#entry-readiness')).toHaveText('Waiting for current trade to finish');
   await expect(browser.locator('#manual-controls')).toBeHidden();
   payload.pilot.strategy = 'gold-ema-v1-m1-trend-3';
   await screen.getByRole('button', 'Refresh status').tap();
@@ -42,6 +43,7 @@ test('pilot shows results and requests pause without reaching a broker', async (
   await screen.getByRole('button', 'Pause new entries').tap();
   await expect(browser.locator('#pilot-state')).toHaveText('PAUSED');
   await expect(browser.locator('#pilot-intent')).toHaveText('Managing a demo trade');
+  await expect(browser.locator('#entry-readiness')).toHaveText('Paused — no new orders');
   assert.equal(paused, true);
   await app.screenshot('autonomous-demo-pilot-paused');
   await browser.route('**/api/trading/status', route => route.fulfill({ status: 401, body: '' }));
@@ -49,4 +51,5 @@ test('pilot shows results and requests pause without reaching a broker', async (
   await expect(browser.locator('#pilot-realized')).toHaveText('—');
   await expect(browser.locator('#pilot-pause')).toBeDisabled();
   await expect(browser.locator('#price')).toHaveText('—');
+  await expect(browser.locator('#entry-readiness')).toHaveText('Status unavailable');
 });
