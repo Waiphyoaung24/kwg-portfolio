@@ -36,14 +36,21 @@ test('pilot shows results and requests pause without reaching a broker', async (
   await expect(browser.locator('#pilot-remaining')).toHaveText('Until you pause');
   await expect(browser.locator('#entry-readiness')).toHaveText('Waiting for current trade to finish');
   await expect(browser.locator('#manual-controls')).toBeHidden();
+  payload.execution.updated_at -= 60;
+  await screen.getByRole('button', 'Refresh status').tap();
+  await expect(browser.locator('#position-idle-title')).toHaveText('Position status unavailable');
+  await expect(browser.locator('#position-announce')).toHaveText('');
+  payload.execution.updated_at += 60;
   payload.pilot.strategy = 'gold-ema-v1-m1-trend-3';
   await screen.getByRole('button', 'Refresh status').tap();
+  await screen.getByText('Strategy & limits', { exact: false }).tap();
   await expect(browser.locator('#pilot-strategy')).toHaveText('EMA trend \u00b7 3-bar slope \u00b7 5-minute cooldown after close');
   await expect(browser.locator('#pilot-timeframe')).toHaveText('Completed 1-minute candles only - M1 demo');
   await screen.getByRole('button', 'Pause new entries').tap();
   await expect(browser.locator('#pilot-state')).toHaveText('PAUSED');
   await expect(browser.locator('#pilot-intent')).toHaveText('Managing a demo trade');
   await expect(browser.locator('#entry-readiness')).toHaveText('Paused — no new orders');
+  assert.equal(await browser.evaluate(() => document.querySelector('#pilot-state')!.classList.contains('desk-chip--solid')), false);
   assert.equal(paused, true);
   await app.screenshot('autonomous-demo-pilot-paused');
   await browser.route('**/api/trading/status', route => route.fulfill({ status: 401, body: '' }));
@@ -52,4 +59,6 @@ test('pilot shows results and requests pause without reaching a broker', async (
   await expect(browser.locator('#pilot-pause')).toBeDisabled();
   await expect(browser.locator('#price')).toHaveText('—');
   await expect(browser.locator('#entry-readiness')).toHaveText('Status unavailable');
+  await expect(browser.locator('#position-idle-title')).toHaveText('Position status unavailable');
+  await expect(browser.locator('#position-announce')).toHaveText('');
 });

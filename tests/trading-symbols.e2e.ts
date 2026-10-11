@@ -43,6 +43,7 @@ test('Gold and Bitcoin views isolate prices, history, pause and sound baseline',
   await expect(browser.locator('#price')).toHaveText('82790.50 / 82807.49');
   await expect(browser.locator('#pilot-count')).toHaveText('0');
   await expect(browser.locator('#pilot-realized')).toHaveText('0.00 USD');
+  await screen.getByText('Strategy & limits', { exact: false }).tap();
   await expect(browser.locator('#pilot-timeframe')).toHaveText('Completed 15-minute candles only - M15 demo');
   await expect(screen.getByRole('button', 'Trade sound: Off')).toBeVisible();
   await expect(browser.locator('#manual-controls')).toBeHidden();

@@ -211,6 +211,13 @@ body.desk {
 .desk-monitor .btn, .desk-monitor .btn.btn-sm, .desk-monitor .desk-segment a, .desk-monitor .desk-nav__links a, .desk-monitor .desk-disclosure summary { min-height: var(--desk-touch-target); }
 .desk-monitor .reveal, .desk-monitor .desk-steps li:first-child { animation: none; }
 .desk-monitor .desk-tile:hover { transform: none; box-shadow: none; border-color: var(--desk-line); }
+.desk-monitor .desk-health { gap: var(--desk-space); }
+.desk-monitor .desk-guidance { background: none; padding-top: var(--desk-space); border-top: var(--desk-hairline) solid var(--desk-line); }
+.desk-monitor .desk-pilot > .desk-stats > div { padding: var(--desk-space-sm) 0; border-radius: 0; background: none; border-top: var(--desk-hairline) solid var(--desk-line); }
+.desk-monitor .desk-strategy { padding: 0; border: 0; }
+.desk-monitor .desk-strategy > p:first-of-type { margin-top: var(--desk-space); }
+.desk-monitor #pilot-state:not(.desk-chip--solid) { background: var(--desk-mint); color: var(--desk-muted); }
+.desk-monitor #pilot-state[data-state='Needs attention'] { color: var(--desk-red); border-color: var(--desk-red); }
 
 // Entrance: sections rise in order on load.
 .reveal { animation: desk-rise 700ms var(--ease-out) both; animation-delay: calc(var(--i) * 80ms); }
@@ -231,6 +238,8 @@ body.desk {
   .desk-stages li > .desk-chip { grid-column: 2; justify-self: start; }
   .desk-hero { padding: 1.25rem; border-radius: 20px; }
   .desk-health { grid-template-columns: 1fr; }
+  .desk-monitor .desk-health .desk-stat { display: flex; align-items: baseline; justify-content: space-between; gap: var(--desk-space); }
+  .desk-monitor .desk-health .desk-stat__value { text-align: right; }
   .desk-trade__pl, .desk-trade__pl .desk-kicker, .desk-pl { text-align: left; justify-content: flex-start; }
   .desk-nav__links a { padding: 0 .75rem; }
 }

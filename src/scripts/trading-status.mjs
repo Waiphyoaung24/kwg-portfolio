@@ -52,6 +52,19 @@ export function statusFields(data, now = Date.now() / 1000) {
   };
 }
 
+export function positionView(data, now = Date.now() / 1000) {
+  const execution = executionFields(data?.execution, now);
+  const known = data?.status !== 'offline' && recent(data?.checked_at, now)
+    && recent(data?.execution?.updated_at, now) && recent(data?.health?.sampled_at, now)
+    && data?.health?.terminal === 'connected' && execution.state !== 'Unknown';
+  if (!known) return { known: false, open: false, title: 'Position status unavailable',
+    detail: 'Waiting for a current broker check. An existing position may still be open.' };
+  const open = ['Open', 'Closing'].includes(execution.state);
+  const flat = ['Closed', 'Disarmed'].includes(execution.state);
+  return { known: true, open, title: flat ? 'No open position' : `${execution.state} demo attempt`,
+    detail: flat ? 'No open position in the latest report for this symbol.' : execution.guidance };
+}
+
 export function executionFields(execution, now = Date.now() / 1000) {
   if (!execution || execution.mode !== 'one-shot-demo' ||
       (!['closed', 'disarmed'].includes(execution.status) && !recent(execution.updated_at, now))) {

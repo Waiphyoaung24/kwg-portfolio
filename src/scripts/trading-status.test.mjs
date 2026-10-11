@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { normalizeStatus } from '../../ops/trading/worker/src/index.js';
 import assert from 'node:assert/strict';
-import { executionFields, statusFields } from './trading-status.mjs';
+import { executionFields, positionView, statusFields } from './trading-status.mjs';
 
 const report = { status: 'blocked', signal: 'none', checked_at: 100,
   reason: 'Gold quote is old', health: { terminal: 'connected', quote: 'stale',
@@ -53,6 +53,16 @@ assert.equal(statusFields({ ...report, health: null }, 105).state, 'Needs attent
 const execution = { mode: 'one-shot-demo', status: 'open', updated_at: 100,
   side: 'buy', volume: .01, opened_at: 99, closed_at: null, close_reason: null,
   realized_net_usd: null };
+const positionReport = { ...report, execution };
+assert.equal(positionView(positionReport, 105).open, true, 'Stale quotes do not erase a current broker position');
+for (const data of [null, { ...positionReport, health: null }, { ...positionReport, status: 'offline' },
+  { ...positionReport, execution: { ...execution, updated_at: 60 } }]) {
+  assert.equal(positionView(data, 105).known, false);
+  assert.equal(positionView(data, 105).title, 'Position status unavailable');
+}
+assert.equal(positionView(positionReport, 131).known, false);
+assert.equal(positionView({ ...positionReport, execution: { ...execution, status: 'closed' } }, 105).title, 'No open position');
+assert.equal(positionView({ ...positionReport, execution: { ...execution, status: 'pending' } }, 105).title, 'Pending demo attempt');
 assert.equal(executionFields(null, 105).state, 'Unknown');
 assert.equal(executionFields({ ...execution, status: 'disarmed' }, 105).state, 'Disarmed');
 assert.equal(executionFields(execution, 105).state, 'Open');
