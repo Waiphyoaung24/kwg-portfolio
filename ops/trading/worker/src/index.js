@@ -1,4 +1,8 @@
 import { normalizePilot } from '../../../../src/scripts/trading-pilot.mjs';
+import { jevEnabled, jevSnapshot } from './jev.js';
+import { readM15 } from './jev-m15.js';
+import { readOutcomeReport } from './jev-scorecard.js';
+export { JevObserver } from './jev.js';
 
 const noStore = { 'Cache-Control': 'no-store', 'Content-Type': 'application/json; charset=utf-8' };
 
@@ -71,6 +75,32 @@ export function normalizeStatus(value, now = Date.now() / 1000, symbol = 'XAUUSD
 }
 
 export default {
+  async scheduled(event, env, ctx) {
+    if (!jevEnabled(env) || env.JEV_M15_LIVE !== 'true') return;
+    ctx.waitUntil((async () => {
+      try {
+        let snapshot;
+        for (let attempt=0; attempt<5; attempt++) {
+          try { snapshot = await readM15(env); break; }
+          catch (error) {
+            if (attempt === 4) throw error;
+            await new Promise(resolve=>setTimeout(resolve,1000)); // Read-only polling while the collector publishes the candle.
+          }
+        }
+        const observer = env.JEV_OBSERVER.get(env.JEV_OBSERVER.idFromName('gold-preview-v1'));
+        const state = await (await observer.fetch(new Request('https://jev.internal/'))).json();
+        console.info('Jev M15 health', JSON.stringify({status:state.status,attempts:state.attempts,
+          accounted_usd:state.accounted_usd,feed_bar:snapshot.bar_time,eligible:snapshot.eligible}));
+        // One first-connection observation verifies the real feed; subsequent calls require a fresh setup.
+        if (state.attempts !== 0 && (!snapshot.eligible || Date.now()/1000 - snapshot.captured_at > 15)) return;
+        const outcome = await (await observer.fetch(new Request('https://jev.internal/',{method:'POST',body:JSON.stringify(snapshot)}))).json();
+        console.info('Jev M15 observation',JSON.stringify({status:outcome.status,attempts:outcome.attempts,
+          accounted_usd:outcome.accounted_usd,decision:outcome.result?.decision,model:outcome.result?.model,
+          input_tokens:outcome.result?.input_tokens,latency_ms:outcome.result?.latency_ms}));
+      } catch (error) { console.warn('Jev M15 feed unavailable; no paid retry.', error.name,
+        /^(Invalid|Stale|M15 origin)/.test(error.message) ? error.message : 'Origin connection failed'); }
+    })());
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const pathname = url.pathname;
@@ -79,16 +109,70 @@ export default {
     const pagePath = ['/vault/trading', '/vault/trading/', '/vault/trading-bot', '/vault/trading-bot/'].includes(pathname)
       ? pathname.replace(/\/$/, '') : null;
     const isPage = pagePath !== null;
+    const isJev = pathname === '/api/trading/jev';
+    const isScorecard = pathname === '/api/trading/jev-scorecard';
     const action = pathname === '/api/trading/preview' ? 'preview' : pathname === '/api/trading/arm' ? 'arm'
       : pathname === '/api/trading/pilot-pause' ? 'pilot-pause' : null;
-    if (!(request.method === 'GET' && (isPage || pathname === '/api/trading/status')) &&
-        !(request.method === 'POST' && action)) {
+    if (!(request.method === 'GET' && (isPage || isScorecard || pathname === '/api/trading/status')) &&
+        !(request.method === 'POST' && action) && !(isJev && ['GET', 'POST'].includes(request.method))) {
       return new Response('Not found', { status: 404 });
     }
     if (!ctx.access || !env.ALLOWED_VIEWER_EMAIL) return new Response('Access required', { status: 403 });
     const identity = await ctx.access.getIdentity();
     if (identity?.email?.toLowerCase() !== env.ALLOWED_VIEWER_EMAIL.toLowerCase()) {
       return new Response('Access required', { status: 403 });
+    }
+    if (isScorecard) {
+      if (symbol !== 'XAUUSD-VIP') return new Response('Gold only', { status: 400 });
+      try {
+        const report = await readOutcomeReport(env);
+        const observer = env.JEV_OBSERVER.get(env.JEV_OBSERVER.idFromName('gold-preview-v1'));
+        return await observer.fetch(new Request('https://jev.internal/scorecard', { method: 'POST', body: JSON.stringify(report) }));
+      } catch {
+        return Response.json({ status: 'unavailable', message: 'Evaluation report unavailable. No results have been replaced with zero.' }, { status: 503, headers: noStore });
+      }
+    }
+    if (isJev) {
+      if (symbol !== 'XAUUSD-VIP') return Response.json({ message: 'Jev observation is Gold-only.' }, { status: 400, headers: noStore });
+      if (request.method === 'POST' && (request.headers.get('Origin') !== url.origin ||
+          request.headers.get('Content-Type') !== 'application/json' ||
+          (request.headers.get('Sec-Fetch-Site') && request.headers.get('Sec-Fetch-Site') !== 'same-origin'))) {
+        return Response.json({ message: 'Same-origin JSON request required.' }, { status: 403, headers: noStore });
+      }
+      if (!jevEnabled(env) || !env.JEV_OBSERVER) return Response.json({ status: 'not_configured',
+        message: 'Jev observation is not enabled.', budget_usd: 5 }, { headers: noStore });
+      try {
+        const observer = env.JEV_OBSERVER.get(env.JEV_OBSERVER.idFromName('gold-preview-v1'));
+        if (request.method === 'GET') {
+          const response = await observer.fetch(new Request('https://jev.internal/'));
+          if (env.JEV_M15_LIVE !== 'true') return response;
+          const data = await response.json();
+          try {
+            const feed = await readM15(env);
+            return Response.json({...data,feed:{status:'ready',timeframe:'M15',checked_at:feed.checked_at,bar_time:feed.bar_time}}, {headers:noStore});
+          } catch {
+            return Response.json({...data,status:'unavailable',result:null,message:'Live Gold M15 feed is unavailable; no automatic paid retry.'},{status:503,headers:noStore});
+          }
+        }
+        if (Number(request.headers.get('Content-Length') || 0) > 2 || await request.text() !== '{}') {
+          return Response.json({ message: 'Empty observation request required.' }, { status: 400, headers: noStore });
+        }
+        if (env.JEV_M15_LIVE === 'true') {
+          const snapshot = await readM15(env);
+          return await observer.fetch(new Request('https://jev.internal/', {method:'POST',body:JSON.stringify(snapshot)}));
+        }
+        const origin = new URL(env.STATUS_ORIGIN_URL);
+        if (origin.protocol !== 'https:') throw new Error('Invalid origin');
+        origin.pathname = '/status'; origin.search = '';
+        const response = await fetch(origin, { headers: {
+          'CF-Access-Client-ID': env.STATUS_ACCESS_CLIENT_ID, 'CF-Access-Client-Secret': env.STATUS_ACCESS_CLIENT_SECRET,
+        }, redirect: 'manual', signal: AbortSignal.timeout(5000), cache: 'no-store' });
+        if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) throw new Error('Status unavailable');
+        const snapshot = jevSnapshot(normalizeStatus(await response.json()));
+        return await observer.fetch(new Request('https://jev.internal/', { method: 'POST', body: JSON.stringify(snapshot) }));
+      } catch {
+        return Response.json({ status: 'unavailable', message: 'Jev observation is unavailable. Check the Gold feed and connection.' }, { status: 503, headers: noStore });
+      }
     }
     if (isPage) {
       try {

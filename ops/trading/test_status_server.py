@@ -12,6 +12,26 @@ from status_server import Handler, read_status, sanitize_health, sanitize_pilot
 
 
 class StatusServerTest(unittest.TestCase):
+    def test_scorecard_route_refuses_stale_or_failed_exports(self):
+        with tempfile.TemporaryDirectory() as root, patch('status_server.time.time', return_value=1000):
+            path = Path(root) / 'jev-scorecard.json'
+            server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+            thread = Thread(target=server.serve_forever, daemon=True); thread.start()
+            try:
+                with patch('status_server.SNAPSHOT', Path(root) / 'latest.json'):
+                    url = f'http://127.0.0.1:{server.server_port}/jev-scorecard'
+                    for value in ({'status': 'ready', 'generated_at': 879}, {'status': 'unavailable', 'generated_at': 1000}):
+                        path.write_text(json.dumps(value))
+                        with self.assertRaises(HTTPError) as error:
+                            urlopen(url, timeout=2)
+                        self.assertEqual(error.exception.code, 503)
+                    path.write_text(json.dumps({'status': 'ready', 'generated_at': 1000}))
+                    with urlopen(url, timeout=2) as response:
+                        self.assertEqual(response.status, 200)
+                        self.assertEqual(response.headers['Cache-Control'], 'no-store')
+            finally:
+                server.shutdown(); server.server_close(); thread.join()
+
     def test_continuous_policy_requires_explicit_consistent_window(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
         value = dict(fixture['pilot'], run_policy='continuous', ends_at=None)

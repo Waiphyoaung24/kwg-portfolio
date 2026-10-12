@@ -1,0 +1,56 @@
+---
+const arms = [['baseline', 'Baseline'], ['slope', 'Slope filter'], ['jev', 'Jev selection']];
+---
+<section class="jev-scorecard" id="jev-scorecard" aria-labelledby="jev-scorecard-title">
+  <h3 id="jev-scorecard-title">Does Jev improve selection?</h3>
+  <p>Gold M15 · frozen rules · diagnostic outcomes</p>
+  <p id="scorecard-status" role="status">Loading the evaluation journal…</p>
+  <table>
+    <caption>Average net modeled outcome after costs, per resolved selected setup</caption>
+    <thead><tr><th scope="col">Approach</th><th scope="col">Net / setup</th><th scope="col">Selected / eligible</th><th scope="col">Resolved / selected</th></tr></thead>
+    <tbody>{arms.map(([key, label]) => <tr>
+      <th scope="row">{label}</th><td id={`scorecard-${key}-net`}>—</td>
+      <td id={`scorecard-${key}-coverage`}>—</td><td id={`scorecard-${key}-resolved`}>—</td>
+    </tr>)}</tbody>
+  </table>
+  <p id="scorecard-checkpoint">First review: 50 resolved baseline setups.</p>
+  <p id="scorecard-responses">Response coverage is separate from selection coverage.</p>
+  <details>
+    <summary class="pill-btn">Inspect setup evidence</summary>
+    <p id="scorecard-quality">Waiting for journal details.</p>
+    <div id="scorecard-outcomes"></div>
+  </details>
+  <p class="scorecard-limit">Independent opportunities can overlap; these averages are not portfolio returns. Costs and fill timing are unverified. This checkpoint does not qualify an edge or change trading rules.</p>
+</section>
+<script>
+  import gsap from 'gsap';
+  import { mountScorecard } from '../scripts/trading-jev-scorecard.mjs';
+  // React Bits AnimatedContent-inspired entrance, adapted to the existing Astro/GSAP stack.
+  mountScorecard(document, window, fetch, () => {
+    const panel = document.getElementById('jev-scorecard')!;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const tokens = getComputedStyle(panel);
+    gsap.fromTo(panel, { opacity: .65, y: tokens.getPropertyValue('--sp-md').trim() },
+      { opacity: 1, y: 0, duration: parseFloat(tokens.getPropertyValue('--duration-reveal')) / 1000, ease: 'expo.out' });
+  });
+</script>
+<style>
+  .jev-scorecard { margin-block-start: var(--sp-3xl); padding-block-start: var(--sp-xl); border-top: thin solid var(--c-hairline-bright); color: var(--c-body); }
+  h3 { font-size: var(--fs-5); font-weight: var(--fw-regular); color: var(--c-ink); }
+  p { margin-block: var(--sp-md); }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  caption { caption-side: top; color: var(--c-body); text-align: left; padding-block: var(--sp-lg); }
+  th, td { text-align: right; padding: var(--sp-md) var(--sp-xs); border-bottom: thin solid var(--c-hairline); font-weight: var(--fw-regular); }
+  thead th { font-size: var(--fs-micro); }
+  th:first-child { text-align: left; }
+  td { color: var(--c-ink); }
+  details { margin-block: var(--sp-lg); }
+  summary { cursor: pointer; color: var(--c-ink); background: transparent; border: thin solid var(--c-hairline-bright); border-radius: var(--r-pill); padding: var(--sp-sm) var(--sp-lg); }
+  summary:hover { background: var(--c-canvas-soft); }
+  summary:focus-visible { outline: solid var(--c-ink); outline-offset: var(--sp-xs); }
+  .scorecard-limit { font-size: var(--fs-body-sm); }
+  #scorecard-outcomes :global(details) { margin-block: var(--sp-md); }
+  #scorecard-outcomes :global(summary) { cursor: pointer; border: thin solid var(--c-hairline-bright); border-radius: var(--r-pill); padding: var(--sp-sm) var(--sp-md); overflow-wrap: anywhere; }
+  #scorecard-outcomes :global(summary:focus-visible) { outline: solid var(--c-ink); outline-offset: var(--sp-xs); }
+  #scorecard-outcomes :global(pre) { white-space: pre-wrap; overflow-wrap: anywhere; padding: var(--sp-md); color: var(--c-body); background: var(--c-canvas-soft); }
+</style>

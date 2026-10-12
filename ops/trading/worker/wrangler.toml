@@ -7,3 +7,19 @@ routes = [
   { pattern = "waiphyoaung.com/api/trading/*", zone_name = "waiphyoaung.com" },
   { pattern = "waiphyoaung.com/vault/trading*", zone_name = "waiphyoaung.com" },
 ]
+
+[[durable_objects.bindings]]
+name = "JEV_OBSERVER"
+class_name = "JevObserver"
+
+[[migrations]]
+tag = "jev-observer-v1"
+new_sqlite_classes = ["JevObserver"]
+
+# Owner approved Gold M15 market/setup data to TypeSafe, observation only.
+[vars]
+JEV_DATA_SHARING_APPROVED = "true"
+JEV_M15_LIVE = "true"
+
+[triggers]
+crons = ["* * * * *"]

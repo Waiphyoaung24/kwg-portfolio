@@ -202,6 +202,44 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(result)
 
     def do_GET(self):
+        if self.path == '/jev-scorecard':
+            try:
+                path = SNAPSHOT.with_name('jev-scorecard.json')
+                if path.stat().st_size > 8_000_000:
+                    raise ValueError('Oversized outcome report')
+                body = path.read_bytes()
+                value = json.loads(body)
+                if value.get('status') != 'ready' or not 0 <= time.time()-value['generated_at'] <= 120:
+                    raise ValueError('Outcome report unavailable')
+            except (OSError, ValueError, KeyError, TypeError):
+                self.send_error(503)
+                return
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if self.path == '/jev-m15':
+            try:
+                path = SNAPSHOT.with_name('jev-m15.json')
+                if path.stat().st_size > 100000:
+                    raise ValueError('Oversized M15 snapshot')
+                body = path.read_bytes()
+                value = json.loads(body)
+                if value.get('status') != 'ready' or not 0 <= time.time()-value['checked_at'] <= 15:
+                    raise ValueError('M15 feed unavailable')
+            except (OSError, ValueError, KeyError, TypeError):
+                self.send_error(503)
+                return
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path in ("/vault/trading", "/vault/trading-bot"):
             try:
                 body = (TRADING_BOT_PAGE if self.path == "/vault/trading-bot" else TRADING_PAGE).read_bytes()

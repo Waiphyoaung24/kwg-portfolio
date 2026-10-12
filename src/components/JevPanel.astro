@@ -1,5 +1,6 @@
 ---
 import '../styles/_vars.scss';
+import JevScorecard from './JevScorecard.astro';
 ---
 <section class="desk-tile jev-panel" id="jev-panel" aria-labelledby="jev-title" hidden>
   <div class="desk-tile__head">
@@ -24,6 +25,7 @@ import '../styles/_vars.scss';
     <p>250 completed Gold M15 candles, indicators, bid/ask, setup and slope-filter status, instrument specifications, and modeled costs and risk assumptions. No account identifiers, positions, balances, P/L or credentials.</p>
     <pre id="jev-input">No snapshot sent.</pre>
   </details>
+  <JevScorecard />
   <div class="jev-toast" id="jev-toast" role="status" aria-live="polite" aria-atomic="true" hidden>
     <span id="jev-toast-text"></span>
     <button class="btn desk-btn pill-btn" id="jev-dismiss" type="button" aria-label="Dismiss Jev notification">Dismiss</button>

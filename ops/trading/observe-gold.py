@@ -53,7 +53,7 @@ def record_observation(db: sqlite3.Connection, result: dict, observed_at: float,
 
 
 def poll_once(mt5, db: sqlite3.Connection, login: int, now: float | None, bootstrap: bool,
-              server_offset_seconds: int = 0) -> dict:
+              server_offset_seconds: int = 0, research=None) -> dict:
     health = {}
     try:
         tick, bars = read_gold(mt5, login, now, health, server_offset_seconds=server_offset_seconds)
@@ -77,9 +77,22 @@ def poll_once(mt5, db: sqlite3.Connection, login: int, now: float | None, bootst
     if result["signal"] == "blocked":
         result["status"] = "blocked"
         result["signal"] = "none"
+        capture_research(research, bars, tick, now, result)
         return result
     record_observation(db, result, now, bootstrap)
+    capture_research(research, bars, tick, now, result)
     return result
+
+
+def capture_research(research, bars, tick, now, result):
+    if research is None or result['status'] == 'duplicate':
+        return
+    if not bars[-1]['time'] + 900 <= now <= bars[-1]['time'] + 930:
+        result['research'] = 'late_capture_skipped'
+        return
+    from jev_research import capture
+    capture(research, bars, float(tick.bid), float(tick.ask), now, result['status'])
+    result['research'] = 'local_only'
 
 
 def write_snapshot(path: Path, db: sqlite3.Connection, result: dict, now: float) -> None:
@@ -100,22 +113,32 @@ def main():
     parser.add_argument("--login", required=True, type=int)
     parser.add_argument("--state", required=True, type=Path)
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--research-state", type=Path)
+    parser.add_argument("--research-spec", type=Path)
     parser.add_argument("--server-offset-seconds", type=int, choices=(0, 7200, 10800), default=0)
     args = parser.parse_args()
     state = args.state.resolve()
     if not state.is_relative_to(Path.home().resolve()) or state.is_dir():
         parser.error("--state must be a file inside the persistent MT5 home directory")
+    if bool(args.research_state) != bool(args.research_spec):
+        parser.error('--research-state and --research-spec must be supplied together')
+    if args.research_state and (not args.research_state.resolve().is_relative_to(Path.home().resolve()) or args.research_state.resolve() == state):
+        parser.error('--research-state must be a separate file inside the persistent MT5 home directory')
     import MetaTrader5 as mt5
 
     if not mt5.initialize(r"C:\Program Files\MetaTrader 5\terminal64.exe", timeout=10000):
         raise SystemExit(f"MT5 attach failed: {mt5.last_error()}")
-    db = None
+    db = research = None
     try:
         db = open_state(state, args.login)
+        if args.research_state:
+            from jev_research import open_journal
+            research = open_journal(args.research_state, json.loads(args.research_spec.read_text()))
         bootstrap = True
         while True:
             started = time.monotonic()
-            result = poll_once(mt5, db, args.login, None, bootstrap, args.server_offset_seconds)
+            extra = {'research': research} if research is not None else {}
+            result = poll_once(mt5, db, args.login, None, bootstrap, args.server_offset_seconds, **extra)
             write_snapshot(SNAPSHOT, db, result, time.time())
             print(json.dumps(result, allow_nan=False), flush=True)
             bootstrap = result["status"] == "blocked" or (bootstrap and result["status"] == "duplicate")
@@ -132,6 +155,8 @@ def main():
     finally:
         if db is not None:
             db.close()
+        if research is not None:
+            research.close()
         mt5.shutdown()
 
 
