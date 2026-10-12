@@ -3,6 +3,7 @@ import '@tabler/core/dist/css/tabler.min.css';
 import '@tabler/core/dist/css/tabler-vendors.min.css';
 import '../../styles/desk.scss';
 import TradingNavigation from '../../components/TradingNavigation.astro';
+import JevPanel from '../../components/JevPanel.astro';
 import iconDown from '@tabler/icons/outline/arrow-down-right.svg?raw';
 import iconUp from '@tabler/icons/outline/arrow-up-right.svg?raw';
 import iconRefresh from '@tabler/icons/outline/refresh.svg?raw';
@@ -186,6 +187,8 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
           </details>
         </section>
       </div>
+
+      <JevPanel />
 
       <details class="manual-controls desk-disclosure reveal" style="--i: 6" id="manual-controls">
         <summary>Manual demo order controls <Fragment set:html={icon(iconChevron)} /></summary>

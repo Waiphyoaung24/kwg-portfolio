@@ -1,0 +1,54 @@
+---
+import '../styles/_vars.scss';
+---
+<section class="desk-tile jev-panel" id="jev-panel" aria-labelledby="jev-title" hidden>
+  <div class="desk-tile__head">
+    <div><h2 id="jev-title">Jev observer</h2><p>Gold snapshot assessment · no order authority</p></div>
+    <span id="jev-state" role="status">Checking connection</span>
+  </div>
+  <p id="jev-message">Checking whether Jev is connected.</p>
+  <p class="jev-decision" id="jev-decision">No assessment yet</p>
+  <dl class="jev-facts">
+    <div><dt>Model</dt><dd id="jev-model">—</dd></div>
+    <div><dt>Model confidence</dt><dd id="jev-confidence">—</dd></div>
+    <div><dt>Response time</dt><dd id="jev-latency">—</dd></div>
+    <div><dt>Budget used / reserved</dt><dd id="jev-budget">— / $5.00</dd></div>
+    <div><dt>Snapshot captured</dt><dd id="jev-snapshot-time">—</dd></div>
+    <div><dt>Source timeframe</dt><dd id="jev-timeframe">—</dd></div>
+  </dl>
+  <p>Confidence describes this classification, not a chance of profit. Jev observes completed Gold M15 candles and eligible baseline setups before the slope filter. The frozen experiment remains unchanged.</p>
+  <button class="btn desk-btn pill-btn" id="jev-observe" type="button" disabled>Ask Jev about Gold</button>
+  <p id="jev-request-note">Eligible setups are observed automatically. Manual requests share the same $5 cap and candle deduplication. No paid retries or automatic top-ups.</p>
+  <details class="desk-disclosure">
+    <summary>Data sent to Jev</summary>
+    <p>250 completed Gold M15 candles, indicators, bid/ask, setup and slope-filter status, instrument specifications, and modeled costs and risk assumptions. No account identifiers, positions, balances, P/L or credentials.</p>
+    <pre id="jev-input">No snapshot sent.</pre>
+  </details>
+  <div class="jev-toast" id="jev-toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <span id="jev-toast-text"></span>
+    <button class="btn desk-btn pill-btn" id="jev-dismiss" type="button" aria-label="Dismiss Jev notification">Dismiss</button>
+  </div>
+</section>
+<script>
+  import { mountJevPanel } from '../scripts/trading-jev.mjs';
+  mountJevPanel(document, window);
+</script>
+<style>
+  /* The new panel follows DESIGN.md; the existing trading desk is left intact. */
+  .jev-panel { background: var(--c-canvas); color: var(--c-body); border-color: var(--c-hairline); border-radius: var(--r-sm); box-shadow: none; padding: var(--sp-xl); margin-block: var(--sp-xl); }
+  .jev-panel[hidden], .jev-toast[hidden] { display: none; }
+  .jev-panel h2, .jev-panel p, .jev-panel dd, .jev-panel summary, .jev-panel button { font-weight: var(--fw-regular); }
+  .jev-panel h2 { color: var(--c-ink); font-size: var(--fs-5); }
+  .jev-panel p { margin-block: var(--sp-md); }
+  .jev-decision { color: var(--c-ink); font-size: var(--fs-4); letter-spacing: var(--ls-4); }
+  .jev-facts { display: flex; flex-wrap: wrap; gap: var(--sp-xl); margin-block: var(--sp-xl); }
+  .jev-facts div { flex: 1 1 auto; }
+  .jev-facts dt { font: var(--fs-micro) var(--ff-mono); text-transform: uppercase; letter-spacing: var(--ls-mono); }
+  .jev-facts dd { margin: var(--sp-sm) 0 0; color: var(--c-ink); font-variant-numeric: tabular-nums; }
+  .jev-panel .pill-btn { background: transparent; color: var(--c-ink); border-color: var(--c-hairline-bright); border-radius: var(--r-pill); padding: var(--sp-md) var(--sp-xl); box-shadow: none; }
+  .jev-panel .pill-btn:focus-visible, .jev-panel summary:focus-visible { outline: solid var(--c-ink); outline-offset: var(--sp-xs); }
+  .jev-panel .desk-disclosure > summary { background: transparent; color: var(--c-ink); border-color: var(--c-hairline-bright); border-radius: var(--r-pill); }
+  .jev-panel .desk-disclosure > summary:hover { background: var(--c-canvas-soft); border-color: var(--c-ink); }
+  .jev-panel pre { background: var(--c-canvas-soft); color: var(--c-body); padding: var(--sp-lg); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .jev-toast { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-lg); position: sticky; bottom: var(--sp-lg); background: var(--c-canvas-soft); border: thin solid var(--c-hairline-bright); padding: var(--sp-lg); border-radius: var(--r-sm); }
+</style>
