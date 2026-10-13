@@ -13,6 +13,9 @@ def offenders(text):
     found = []
     for match in GROUP.finditer(text):
         group = match.group(0)
+        # demo_pilot.SOURCES lists jev_m5.py (asserted below), so spreading it ships the module.
+        if '*pilot.SOURCES' in group:
+            continue
         if any(name in group for name in SHIPPED) and "'jev_m5.py'" not in group and '"jev_m5.py"' not in group:
             found.append(group)
     return found
@@ -30,7 +33,11 @@ class StagingListTest(unittest.TestCase):
                 self.assertEqual(offenders(text), [])
         # The scan must actually reach the known staging scripts.
         self.assertLessEqual({'deploy-demo-pilot.py', 'deploy-demo-pilot.ps1', 'stage-m1-pilot.ps1',
-                              'stage-two-symbol-pilot.ps1'}, checked)
+                              'stage-two-symbol-pilot.ps1', 'stage-m5-jev.ps1', 'switch-pilot-m5.py'}, checked)
+
+    def test_runner_identity_sources_include_jev_m5(self):
+        import demo_pilot
+        self.assertIn('jev_m5.py', demo_pilot.SOURCES)
 
     def test_dockerfile_copies_jev_m5_with_the_runner(self):
         copies = [line for line in (HERE / 'Dockerfile').read_text().splitlines() if line.startswith('COPY ')]
