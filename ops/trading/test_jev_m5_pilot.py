@@ -1,3 +1,4 @@
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -77,10 +78,14 @@ class JevM5PilotTest(unittest.TestCase):
         report = self.tick(NOW + 600)                               # candidate
         self.assertEqual(report['execution']['status'], 'open')     # shadow never blocks
         feed = json.loads(self.feed.read_text())
-        self.assertEqual(set(feed), {'status', 'checked_at', 'candidate', 'state', 'input_sha256', 'bid', 'ask'})
+        self.assertEqual(set(feed), {'status', 'checked_at', 'candidate', 'state_json', 'input_sha256', 'bid', 'ask'})
         self.assertTrue(feed['candidate'])
-        self.assertEqual(feed['state']['bar_time'], NOW + 300)
-        self.assertEqual(feed['input_sha256'], pilot.jev_m5.input_sha256(feed['state']))
+        state = json.loads(feed['state_json'])
+        self.assertEqual(state['bar_time'], NOW + 300)
+        # The digest binds the exact published bytes, which are the canonical form of the state.
+        self.assertEqual(feed['input_sha256'], hashlib.sha256(feed['state_json'].encode()).hexdigest())
+        self.assertEqual(feed['input_sha256'], pilot.jev_m5.input_sha256(state))
+        self.assertEqual(feed['state_json'], json.dumps(state, sort_keys=True, separators=(',', ':')))
         self.assertEqual(self.rows(), [(NOW + 300, 'long', feed['input_sha256'], 1, None)])
         self.assertEqual(report['pilot']['strategy'], pilot.M5_JEV_STRATEGY)
         self.assertEqual(report['pilot']['jev_mode'], 'shadow')

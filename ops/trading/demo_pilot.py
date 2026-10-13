@@ -454,8 +454,10 @@ def jev_candidate(bars, tick, result, now):
     try:
         bid, ask = float(tick.bid), float(tick.ask)
         value = jev_m5.state(bars, bid, ask, result, captured_at=now)
-        candidate['input_sha256'] = jev_m5.input_sha256(value)
-        publish_jev(dict(status='ready', checked_at=int(now), candidate=True, state=value,
+        # The Worker hashes these exact bytes; re-serialising parsed numbers would differ (4000.0 vs 4000).
+        state_json = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
+        candidate['input_sha256'] = hashlib.sha256(state_json.encode()).hexdigest()
+        publish_jev(dict(status='ready', checked_at=int(now), candidate=True, state_json=state_json,
                          input_sha256=candidate['input_sha256'], bid=bid, ask=ask))
     except Exception as exc:
         # Shadow trades as the trend strategy does; a missing feed only loses the Jev sample.
