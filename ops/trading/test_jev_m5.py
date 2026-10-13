@@ -84,6 +84,14 @@ class VetoRuleTest(unittest.TestCase):
             confidence=None, probabilities=None))['status'], 'timeout')
 
 
+    def test_validate_bounds_times_and_requires_lowercase_hex_digest(self):
+        for changes in ({'bar_time': 0}, {'bar_time': -300}, {'bar_time': 300 * (2 ** 53 // 300 + 1)},
+                        {'completed_at': 0}, {'completed_at': -1}, {'completed_at': 2 ** 53},
+                        {'completed_at': 2.0 ** 53}, {'input_sha256': 'A' * 64}, {'input_sha256': 'g' * 64}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                jev_m5.validate_receipt(receipt(**changes))
+        self.assertEqual(jev_m5.validate_receipt(receipt(input_sha256='0123456789abcdef' * 4))['bar_time'], 600)
+
     def test_boundaries_and_fail_closed_inputs(self):
         allow = lambda r, side='long', bar_time=600, now=930: jev_m5.allows(
             r, side=side, bar_time=bar_time, input_sha256='a' * 64, now=now)

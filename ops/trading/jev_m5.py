@@ -78,10 +78,13 @@ def validate_receipt(value):
             'confidence', 'probabilities', 'completed_at'}
     if not isinstance(value, dict) or set(value) != keys:
         raise ValueError('Invalid receipt fields')
-    if (type(value['bar_time']) is not int or value['bar_time'] % SECONDS or value['model'] != MODEL
+    if (type(value['bar_time']) is not int or value['bar_time'] % SECONDS or not 0 < value['bar_time'] < 2**53
+            or value['model'] != MODEL
             or value['question_sha256'] != QUESTION_SHA256 or value['status'] not in STATUSES
             or not isinstance(value['input_sha256'], str) or len(value['input_sha256']) != 64
-            or type(value['completed_at']) not in (int, float) or not math.isfinite(value['completed_at'])):
+            or not all(c in '0123456789abcdef' for c in value['input_sha256'])
+            or type(value['completed_at']) not in (int, float) or not math.isfinite(value['completed_at'])
+            or not 0 < value['completed_at'] < 2**53):
         raise ValueError('Receipt does not match the frozen request')
     if value['status'] != 'ok':
         if any(value[k] is not None for k in ('choice', 'confidence', 'probabilities')):

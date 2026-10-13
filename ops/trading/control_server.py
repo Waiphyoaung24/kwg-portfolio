@@ -12,8 +12,6 @@ from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-import jev_m5
-
 STATE = Path("/home/mt5/.wine/drive_c/users/mt5/gold-one-shot.sqlite3")
 RECEIPTS = STATE.parent / "jev-m5-receipts.sqlite3"
 WINDOWS_STATE = r"C:\users\mt5\gold-one-shot.sqlite3"
@@ -38,8 +36,12 @@ def run_action(action, payload):
         if os.environ.get('MT5_RUN_MODE', 'observer') != 'pilot':
             return 409, {'error': 'Pilot mode is not available.'}
         try:
+            import jev_m5  # Lazy: pause and manual controls must not depend on this module.
+        except ImportError:
+            return 503, {'error': 'Jev receipts are unavailable.'}
+        try:
             stored = jev_m5.store_receipt(RECEIPTS, payload, received=time.time())
-        except (ValueError, TypeError, KeyError):
+        except (ValueError, TypeError, KeyError, OverflowError):
             return 400, {'error': 'Invalid Jev receipt.'}
         return (202, {'status': 'stored'}) if stored else (200, {'status': 'duplicate'})
     if action == 'pilot-pause':

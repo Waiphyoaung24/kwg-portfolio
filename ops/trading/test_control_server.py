@@ -3,6 +3,7 @@ import json
 import os
 import shlex
 import sqlite3
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -29,6 +30,43 @@ class ControlTest(unittest.TestCase):
             self.assertEqual(control.run_action('jev-receipt', receipt), (202, {'status': 'stored'}))
             self.assertEqual(control.run_action('jev-receipt', receipt), (200, {'status': 'duplicate'}))
             self.assertEqual(control.run_action('jev-receipt', {**receipt, 'model': 'x'})[0], 400)
+
+    def test_pause_survives_missing_jev_module_and_receipt_is_unavailable(self):
+        with patch.dict(os.environ, {'MT5_RUN_MODE': 'pilot'}), patch.dict(sys.modules, {'jev_m5': None}), \
+                patch.object(control, 'RECEIPTS', self.folder / 'jev-m5-receipts.sqlite3'):
+            self.assertEqual(control.run_action('pilot-pause', {})[0], 202)
+            self.assertEqual(control.run_action('jev-receipt', {}),
+                             (503, {'error': 'Jev receipts are unavailable.'}))
+        self.assertFalse((self.folder / 'jev-m5-receipts.sqlite3').exists())
+
+    def test_jev_receipt_http_requires_secret_and_object_body(self):
+        receipts = self.folder / 'jev-m5-receipts.sqlite3'
+        server = ThreadingHTTPServer(('127.0.0.1', 0), control.Handler)
+        thread = Thread(target=server.serve_forever, daemon=True); thread.start()
+        try:
+            with patch.object(control, 'SECRET', 's' * 32), patch.object(control, 'RECEIPTS', receipts), \
+                    patch.dict(os.environ, {'MT5_RUN_MODE': 'pilot'}):
+                def post(body, secret=None):
+                    headers = {'Content-Type': 'application/json'}
+                    if secret is not None:
+                        headers['X-KWG-Control-Secret'] = secret
+                    request = Request(f'http://127.0.0.1:{server.server_port}/jev-receipt',
+                                      json.dumps(body).encode(), method='POST', headers=headers)
+                    try:
+                        with urlopen(request, timeout=2) as response:
+                            return response.status
+                    except HTTPError as error:
+                        return error.code
+                receipt = dict(bar_time=600, input_sha256='a' * 64, model='jev-1.13.0',
+                               question_sha256=jev_m5.QUESTION_SHA256, status='timeout',
+                               choice=None, confidence=None, probabilities=None, completed_at=1030)
+                self.assertEqual(post(receipt), 403)
+                self.assertEqual(post(receipt, 'w' * 32), 403)
+                self.assertFalse(receipts.exists())
+                self.assertEqual(post([receipt], 's' * 32), 400)
+                self.assertFalse(receipts.exists())
+        finally:
+            server.shutdown(); server.server_close(); thread.join()
 
     def test_jev_receipt_body_limit_is_scoped_to_its_path(self):
         server = ThreadingHTTPServer(('127.0.0.1', 0), control.Handler)
