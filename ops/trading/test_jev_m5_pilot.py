@@ -252,16 +252,32 @@ class JevM5PilotTest(unittest.TestCase):
         pilot.refresh_jev(bar, 'b' * 64, NOW + 610)                 # other input
         pilot.refresh_jev(bar + 300, digest, NOW + 610)            # other candle
         self.assertEqual(checked(), NOW + 600)
-        pilot.refresh_jev(bar, digest, NOW + 650.7)
-        self.assertEqual(checked(), NOW + 650)
+        self.clock = NOW + 652.7                                   # stamped at write time, not poll start
+        pilot.refresh_jev(bar, digest, NOW + 650)
+        self.assertEqual(checked(), NOW + 652)
         self.assertEqual(json.loads(self.feed.read_text())['input_sha256'], digest)
+        self.clock = NOW + 690
         pilot.refresh_jev(bar, None, NOW + 690)                    # shadow: matches the published candle
         self.assertEqual(checked(), NOW + 690)
-        pilot.refresh_jev(bar, digest, NOW + 691)                  # after the Jev deadline
+        self.clock = NOW + 689                                     # the deadline uses the poll's own time
+        pilot.refresh_jev(bar, digest, NOW + 691)
         self.assertEqual(checked(), NOW + 690)
         self.feed.write_text(json.dumps(dict(status='ready', checked_at=NOW, candidate=False, bar_time=bar)))
         pilot.refresh_jev(bar, None, NOW + 610)
         self.assertEqual(checked(), NOW)
+
+    def test_slow_poll_stamps_feed_at_publish_time(self):
+        self.activate_m5()
+        self.fill()
+        self.tick(NOW + 300, bootstrap=True)
+        original = jev_m5.state
+        def slow(*args, **kwargs):
+            self.clock = NOW + 607                                 # the broker reads took seven seconds
+            return original(*args, **kwargs)
+        with patch('demo_pilot.jev_m5.state', side_effect=slow):
+            self.tick(NOW + 600)
+        feed = json.loads(self.feed.read_text())
+        self.assertEqual((feed['candidate'], feed['checked_at']), (True, NOW + 607))
 
     def test_refresh_never_raises(self):
         pilot.refresh_jev(NOW, 'a' * 64, NOW + 10)                 # missing feed

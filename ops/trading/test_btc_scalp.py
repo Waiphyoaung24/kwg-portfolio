@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 import runpy
+import unittest
 from types import SimpleNamespace as Record
 from unittest.mock import patch
 
@@ -169,3 +170,17 @@ class BtcScalpTest(TwoSymbolTest):
                 result = pilot.poll_once(self.mt5, self.btc, 123, self.clock, self.home/'btc.pause', shared=self.shared)
             self.assertEqual(self.mt5.order_send.call_count, sends, result)
         self.assertEqual(execution._attempt(self.btc)['position_ticket'], 89)
+
+
+class DeployedIdentityTest(unittest.TestCase):
+    def test_deployed_identity_predates_jev_m5(self):
+        # The reviewed deployed version has no jev_m5.py; hashing it would refuse every migration.
+        hashed = []
+        def capture(files):
+            hashed.extend(files)
+            raise LookupError('stop before MT5')
+        with patch('sys.argv', ['migrate', '--reviewed-code-sha256', 'x']), \
+                patch.object(Path, 'read_bytes', lambda path: path.name.encode()), \
+                patch.object(pilot, 'digest', capture), self.assertRaises(LookupError):
+            migration['main']()
+        self.assertEqual(set(hashed), set(pilot.SOURCES) - {'jev_m5.py'})

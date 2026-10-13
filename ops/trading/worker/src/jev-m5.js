@@ -124,9 +124,10 @@ export async function forwardReceipt(env, receipt) {
 export async function runM5(env) {
   try {
     let snapshot;
-    for (let attempt = 0; attempt < 5; attempt++) {
+    // Poll once a second through the first 20 s of the candle while the feed is behind (hard cap 20 reads).
+    for (let attempt = 0; attempt < 20; attempt++) {
       try { snapshot = await readM5(env); break; } catch (error) {
-        if (!error.retry || attempt === 4 || (Date.now() / 1000) % SECONDS >= 20) {
+        if (!error.retry || attempt === 19 || (Date.now() / 1000) % SECONDS >= 20) {
           console.info('Jev M5: no fresh candidate; nothing spent.', /^(Invalid|Stale|M5 origin)/.test(error.message) ? error.message : error.name);
           return;
         }

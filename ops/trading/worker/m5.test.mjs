@@ -221,21 +221,32 @@ test('behind feeds are retried briefly; a feed for the current candle without a 
   const close = bar+300;
   const behind = {status:'ready', checked_at: close-5, candidate:false, bar_time: bar-300};
   const h = harness(t, {input: () => behind});
-  h.clock.t = close; await h.run();
-  assert.equal(h.calls.feed, 5);
+  h.clock.t = close; await h.run();                    // polls once a second for the first 20 s
+  assert.equal(h.calls.feed, 20);
   h.clock.t = close+25; await h.run();                 // too late in the candle to keep polling
-  assert.equal(h.calls.feed, 6);
+  assert.equal(h.calls.feed, 21);
 });
 
-test('a candidate published after the first cron is assessed by a later cron exactly once', async t => {
-  const close = bar+300, value = state(); value.captured_at = close+8;
+test('a candidate published 12 s after close is captured by the first cron', async t => {
+  const close = bar+300, value = state(); value.captured_at = close+12;
   const published = feed(value);
   let h;
-  h = harness(t, {input: () => h.clock.t < close+8
+  h = harness(t, {input: () => h.clock.t < close+12
+    ? {status:'ready', checked_at: close-50, candidate:false, bar_time: bar-300}
+    : {...published, checked_at: Math.floor(h.clock.t)}});
+  h.clock.t = close; await h.run();
+  assert.equal(h.calls.feed, 13); assert.equal(h.calls.provider, 1); assert.equal(h.calls.forwards.length, 1);
+});
+
+test('a candidate published after the polling window is assessed by a later cron exactly once', async t => {
+  const close = bar+300, value = state(); value.captured_at = close+25;
+  const published = feed(value);
+  let h;
+  h = harness(t, {input: () => h.clock.t < close+25
     ? {status:'ready', checked_at: close-50, candidate:false, bar_time: bar-300}
     : {...published, checked_at: Math.floor(h.clock.t)}});             // the runner refreshes checked_at each poll
-  h.clock.t = close; await h.run();                                     // reads at close+0..4 all miss
-  assert.equal(h.calls.feed, 5); assert.equal(h.calls.provider, 0); assert.equal(h.db.values.get('record'), undefined);
+  h.clock.t = close; await h.run();                                     // reads at close+0..19 all miss
+  assert.equal(h.calls.feed, 20); assert.equal(h.calls.provider, 0); assert.equal(h.db.values.get('record'), undefined);
   h.clock.t = close+60; await h.run();
   assert.equal(h.calls.provider, 1); assert.equal(h.calls.forwards.length, 1);
   assert.equal(h.db.values.get('record').charged, 17+42);

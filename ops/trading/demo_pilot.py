@@ -408,7 +408,7 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                 refresh_jev(result['bar_time'], None, now)
             if new_bar and p['strategy'] == M5_JEV_STRATEGY and candidate is None and 'pending_entry' not in p:
                 try:
-                    publish_jev(dict(status='ready', checked_at=int(now), candidate=False, bar_time=result['bar_time']))
+                    publish_jev(dict(status='ready', candidate=False, bar_time=result['bar_time']))
                 except OSError:
                     pass  # Shadow trading never waits on the Jev feed.
     except (ValueError, TypeError, OverflowError) as exc:
@@ -452,6 +452,8 @@ def drop_pending(db, p, reason):
 
 
 def publish_jev(value):
+    # Stamp at write time: a slow poll must not publish an already-aged heartbeat.
+    value = dict(value, checked_at=int(time.time()))
     temporary = JEV_FEED.with_suffix('.tmp')
     temporary.write_text(json.dumps(value, allow_nan=False), encoding='utf-8')
     temporary.replace(JEV_FEED)
@@ -465,7 +467,6 @@ def refresh_jev(bar_time, input_sha256, now):
         value = json.loads(JEV_FEED.read_text(encoding='utf-8'))
         if (value.get('candidate') is True and value.get('bar_time') == bar_time
                 and input_sha256 in (None, value.get('input_sha256'))):
-            value['checked_at'] = int(now)
             publish_jev(value)
     except Exception:
         pass  # Trading never waits on the Jev feed; a stale feed only loses the Jev sample.
@@ -480,7 +481,7 @@ def jev_candidate(bars, tick, result, now, mode):
         # The Worker hashes these exact bytes; re-serialising parsed numbers would differ (4000.0 vs 4000).
         state_json = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
         candidate['input_sha256'] = hashlib.sha256(state_json.encode()).hexdigest()
-        publish_jev(dict(status='ready', checked_at=int(now), candidate=True, bar_time=value['bar_time'], state_json=state_json,
+        publish_jev(dict(status='ready', candidate=True, bar_time=value['bar_time'], state_json=state_json,
                          input_sha256=candidate['input_sha256'], bid=bid, ask=ask))
     except Exception as exc:
         # Shadow trades as the trend strategy does; a missing feed only loses the Jev sample.
