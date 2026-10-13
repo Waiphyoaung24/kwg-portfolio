@@ -21,9 +21,10 @@ well (typed classification over supplied state) and leaves every number in code.
 - **Phase 2 — veto:** Jev may block a code-signalled entry; it can never originate,
   size, place, modify or close a trade. Stop 2 ATR, target 3 ATR, 0.1% equity entry
   ceiling, 1% daily and 5% drawdown pauses and one position per symbol stay in code.
-- **Gate to Phase 2:** ≥50 closed M5 code trades with timely receipts; the subset
+- **Gate to Phase 2:** ≥50 closed shadow trades with resolved net P/L; the subset
   Jev would have kept has a higher average net realised demo P/L than all trades;
-  missing/late/invalid receipts <20% of candidates; then explicit owner approval.
+  bad receipts (anything other than an on-time valid `ok`, including no-state
+  rows) <20% of due shadow candidates; then explicit owner approval.
   Never automatic.
 - **Feedback loop:** an M5 scorecard. Jev is not retrained or fine-tuned.
 - **Why:** test the carousel's idea against real demo fills without trusting Jev
@@ -43,8 +44,10 @@ well (typed classification over supplied state) and leaves every number in code.
 4. The existing $5 Jev ledger stays (shared with the M15 observer). Raising it
    requires owner approval.
 5. The Gold runner switches from M1 to M5 at the start of Phase 1 via the existing
-   staged, reviewed-hash cutover pattern, preserving position, receipts, latched
-   pause and account limits. BTC is untouched.
+   staged, reviewed-hash cutover pattern. Implementation decision: the cutover
+   **refuses** an open Gold position or any latched pause (run it flat) and
+   preserves receipts and account limits. BTC data is untouched except its pilot
+   `code` field when BTC is active (shared identity check).
 6. ~20k input tokens per call is an estimate; actual usage is measured and shown.
    Calls happen only on candidate-entry candles, not every candle, so real spend
    is well below the 288-calls/day ceiling (~$0.24/day worst case).
@@ -145,7 +148,8 @@ owns all risk and execution.
 
 - Jev may simply have no edge on Gold M5; the gate is designed to show that, not
   to hide it. 50 trades is a minimum review sample, not proof of edge.
-- Cron latency (≤75 s) can make veto-mode entries later than shadow entries; the
-  scorecard reports entry delay so the comparison is not silently biased.
+- Cron latency (up to ~70 s) can make veto-mode entries later than shadow entries.
+  The scorecard does not measure entry delay yet; treat shadow results as an
+  optimistic upper bound for veto.
 - Shared $5 ledger can be exhausted; budget state is visible and veto fails closed.
 - Demo fills differ from live; nothing here qualifies live trading.

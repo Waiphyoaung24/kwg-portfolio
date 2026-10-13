@@ -54,7 +54,8 @@ review sample, not evidence of edge, and never automatic.
    powershell -NoProfile -ExecutionPolicy Bypass -File ops/trading/stage-m5-jev.ps1
    ```
 
-   Keep `M5_JEV_STAGE`, `M5_JEV_REVIEWED_CODE` and `M5_JEV_REVIEW_PASSED`. This
+   Keep `M5_JEV_STAGE`, `M5_JEV_REVIEWED_CODE` and `M5_JEV_REVIEW_PASSED`, and
+   confirm `M5_JEV_SCORECARD_PUBLISHER_INSTALLED`. This
    uploads files, runs the read-only journal review and installs the scorecard
    publisher (`kwg-jev-m5-scorecard.timer`). It does not stop the runner or
    change the journal. `-DryRun` checks syntax without SSH.
