@@ -2,6 +2,7 @@ import math
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import jev_m5
 
@@ -41,6 +42,14 @@ class FeatureTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             jev_m5.state(bad, 1, 1.1, dict(ema20=1, ema50=1, atr14=1), captured_at=10**9)
 
+    def test_rejects_float_times_and_non_finite_prices(self):
+        indicators = dict(ema20=102.4, ema50=102.2, atr14=.05)
+        for key, value in (('time', 300.0 + 249 * 300), ('close', math.nan), ('high', None)):
+            sample = bars()
+            sample[-1][key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                jev_m5.state(sample, 102.48, 102.49, indicators, captured_at=10**9)
+
 
 class VetoRuleTest(unittest.TestCase):
     def test_frozen_rule_table(self):
@@ -75,6 +84,27 @@ class VetoRuleTest(unittest.TestCase):
             confidence=None, probabilities=None))['status'], 'timeout')
 
 
+    def test_boundaries_and_fail_closed_inputs(self):
+        allow = lambda r, side='long', bar_time=600, now=930: jev_m5.allows(
+            r, side=side, bar_time=bar_time, input_sha256='a' * 64, now=now)
+        self.assertEqual(allow(receipt(confidence=.5)), (True, 'Jev agreed'))
+        self.assertEqual(allow(receipt(completed=600 + 390), now=600 + 390), (True, 'Jev agreed'))
+        self.assertEqual(allow(receipt(), bar_time=900, now=1230), (False, 'Receipt is for another candle'))
+        self.assertEqual(allow(receipt(completed=899)), (False, 'Receipt predates candle close'))
+        for now in (math.nan, None, math.inf, '930'):
+            self.assertEqual(allow(receipt(), now=now), (False, 'Invalid clock'))
+        self.assertEqual(allow(receipt(), side='flat'), (False, 'Invalid code side'))
+
+    def test_validate_statuses_sums_and_ties(self):
+        with self.assertRaises(ValueError):
+            jev_m5.validate_receipt(receipt(status='timeout'))
+        for status in ('unavailable', 'budget_exhausted', 'invalid'):
+            self.assertEqual(jev_m5.validate_receipt(receipt(status=status, choice=None,
+                confidence=None, probabilities=None))['status'], status)
+        for probabilities in ({'buy': .8, 'hold': .1, 'sell': .2}, {'buy': .45, 'hold': .45, 'sell': .1}):
+            with self.subTest(probabilities=probabilities), self.assertRaises(ValueError):
+                jev_m5.validate_receipt(receipt(probabilities=probabilities))
+
 class StoreTest(unittest.TestCase):
     def test_first_receipt_wins_and_reads_back(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -86,6 +116,21 @@ class StoreTest(unittest.TestCase):
             self.assertIsNone(jev_m5.load_receipt(path, 1200))
             with self.assertRaises(ValueError):
                 jev_m5.store_receipt(path, {**first, 'bar_time': 1200, 'model': 'x'}, received=1)
+
+    def test_rejects_invalid_received_time(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'r.sqlite3'
+            for received in (None, math.nan, '1031'):
+                with self.subTest(received=received), self.assertRaises(ValueError):
+                    jev_m5.store_receipt(path, receipt(), received=received)
+            self.assertIsNone(jev_m5.load_receipt(path, 600))
+
+    def test_schema_failure_closes_connection(self):
+        db = mock.MagicMock()
+        db.execute.side_effect = RuntimeError('schema')
+        with mock.patch.object(jev_m5.sqlite3, 'connect', return_value=db), self.assertRaises(RuntimeError):
+            jev_m5.store_receipt(Path('unused'), receipt(), received=1031)
+        db.close.assert_called_once()
 
 
 if __name__ == '__main__':

@@ -41,8 +41,11 @@ def _session(stamp):
 
 
 def state(bars, bid, ask, indicators, *, captured_at):
-    if len(bars) < 50 or any(b['time'] % SECONDS for b in bars[-50:]):
+    if len(bars) < 50 or any(type(b['time']) is not int or b['time'] % SECONDS for b in bars[-50:]):
         raise ValueError('Need 50 completed M5 bars')
+    if not all(type(b[k]) in (int, float) and math.isfinite(b[k])
+               for b in bars[-50:] for k in ('open', 'high', 'low', 'close')):
+        raise ValueError('Invalid M5 prices')
     if any(bars[i]['time'] - bars[i - 1]['time'] != SECONDS for i in range(len(bars) - 49, len(bars))):
         raise ValueError('M5 bars must be contiguous')
     numbers = [bid, ask, captured_at, *(indicators[k] for k in ('ema20', 'ema50', 'atr14'))]
@@ -87,13 +90,19 @@ def validate_receipt(value):
     p, c = value['probabilities'], value['confidence']
     if (value['choice'] not in CHOICES or not isinstance(p, dict) or set(p) != set(CHOICES)
             or not all(type(x) in (int, float) and math.isfinite(x) and 0 <= x <= 1 for x in [c, *p.values()])
-            or abs(sum(p.values()) - 1) > .001 or max(p, key=p.get) != value['choice']):
+            or abs(sum(p.values()) - 1) > .001
+            or p[value['choice']] <= max(v for k, v in p.items() if k != value['choice'])):
         raise ValueError('Invalid Jev decision')
     return value
 
 
 def allows(receipt, *, side, bar_time, input_sha256, now):
     """Veto rule: allow only an on-time, matching, confident, agreeing decision."""
+    if type(now) not in (int, float) or not math.isfinite(now):
+        return False, 'Invalid clock'
+    expected = {'long': 'buy', 'short': 'sell'}.get(side)
+    if expected is None:
+        return False, 'Invalid code side'
     deadline = bar_time + SECONDS + DEADLINE
     if receipt is None:
         return False, 'No Jev receipt'
@@ -103,11 +112,13 @@ def allows(receipt, *, side, bar_time, input_sha256, now):
         return False, str(error)
     if receipt['bar_time'] != bar_time or receipt['input_sha256'] != input_sha256:
         return False, 'Receipt is for another candle'
-    if now > deadline or receipt['completed_at'] > deadline:
+    if receipt['completed_at'] < bar_time + SECONDS:
+        return False, 'Receipt predates candle close'
+    if not (now <= deadline and receipt['completed_at'] <= deadline):
         return False, 'Jev receipt missed the 90-second deadline'
     if receipt['status'] != 'ok':
         return False, f"Jev {receipt['status']}"
-    if receipt['choice'] != {'long': 'buy', 'short': 'sell'}[side]:
+    if receipt['choice'] != expected:
         return False, f"Jev chose {receipt['choice']}"
     if receipt['confidence'] < THRESHOLD:
         return False, 'Jev confidence below 0.5'
@@ -116,14 +127,20 @@ def allows(receipt, *, side, bar_time, input_sha256, now):
 
 def _receipts(path):
     db = sqlite3.connect(path)
-    with db:
-        db.execute('CREATE TABLE IF NOT EXISTS receipts (bar_time INTEGER PRIMARY KEY, '
-                   'received REAL NOT NULL, payload TEXT NOT NULL)')
+    try:
+        with db:
+            db.execute('CREATE TABLE IF NOT EXISTS receipts (bar_time INTEGER PRIMARY KEY, '
+                       'received REAL NOT NULL, payload TEXT NOT NULL)')
+    except BaseException:
+        db.close()
+        raise
     return db
 
 
 def store_receipt(path, value, *, received):
     validate_receipt(value)
+    if type(received) not in (int, float) or not math.isfinite(received):
+        raise ValueError('Invalid receipt arrival time')
     with closing(_receipts(path)) as db, db:
         # Insert-only: a later or duplicate receipt never replaces the first one.
         cursor = db.execute('INSERT OR IGNORE INTO receipts VALUES (?, ?, ?)',
