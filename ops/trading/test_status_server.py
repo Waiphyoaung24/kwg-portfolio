@@ -84,6 +84,31 @@ class StatusServerTest(unittest.TestCase):
             finally:
                 server.shutdown(); server.server_close(); thread.join()
 
+    def test_m5_scorecard_route_refuses_stale_failed_or_oversized_exports(self):
+        with tempfile.TemporaryDirectory() as root, patch('status_server.time.time', return_value=1000):
+            path = Path(root) / 'jev-m5-scorecard.json'
+            server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+            thread = Thread(target=server.serve_forever, daemon=True); thread.start()
+            try:
+                with patch('status_server.SNAPSHOT', Path(root) / 'latest.json'):
+                    url = f'http://127.0.0.1:{server.server_port}/jev-m5-scorecard'
+                    with self.assertRaises(HTTPError) as error:
+                        urlopen(url, timeout=2)
+                    self.assertEqual(error.exception.code, 503)
+                    for value in ({'status': 'ready', 'generated_at': 879}, {'status': 'unavailable', 'generated_at': 1000},
+                                  {'status': 'ready', 'generated_at': 1001}, [],
+                                  {'status': 'ready', 'generated_at': 1000, 'pad': 'x' * 65536}):
+                        path.write_text(json.dumps(value))
+                        with self.assertRaises(HTTPError) as error:
+                            urlopen(url, timeout=2)
+                        self.assertEqual(error.exception.code, 503)
+                    path.write_text(json.dumps({'status': 'ready', 'generated_at': 880}))
+                    with urlopen(url, timeout=2) as response:
+                        self.assertEqual(response.read(), path.read_bytes())
+                        self.assertEqual(response.headers['Cache-Control'], 'no-store')
+            finally:
+                server.shutdown(); server.server_close(); thread.join()
+
     def test_continuous_policy_requires_explicit_consistent_window(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
         value = dict(fixture['pilot'], run_policy='continuous', ends_at=None)

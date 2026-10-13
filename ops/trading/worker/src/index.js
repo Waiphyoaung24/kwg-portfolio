@@ -114,9 +114,10 @@ export default {
     const isPage = pagePath !== null;
     const isJev = pathname === '/api/trading/jev';
     const isScorecard = pathname === '/api/trading/jev-scorecard';
+    const isM5Scorecard = pathname === '/api/trading/jev-m5-scorecard';
     const action = pathname === '/api/trading/preview' ? 'preview' : pathname === '/api/trading/arm' ? 'arm'
       : pathname === '/api/trading/pilot-pause' ? 'pilot-pause' : null;
-    if (!(request.method === 'GET' && (isPage || isScorecard || pathname === '/api/trading/status')) &&
+    if (!(request.method === 'GET' && (isPage || isScorecard || isM5Scorecard || pathname === '/api/trading/status')) &&
         !(request.method === 'POST' && action) && !(isJev && ['GET', 'POST'].includes(request.method))) {
       return new Response('Not found', { status: 404 });
     }
@@ -124,6 +125,23 @@ export default {
     const identity = await ctx.access.getIdentity();
     if (identity?.email?.toLowerCase() !== env.ALLOWED_VIEWER_EMAIL.toLowerCase()) {
       return new Response('Access required', { status: 403 });
+    }
+    if (isM5Scorecard) {
+      if (symbol !== 'XAUUSD-VIP') return new Response('Gold only', { status: 400 });
+      try {
+        const origin = new URL(env.STATUS_ORIGIN_URL);
+        if (origin.protocol !== 'https:') throw Error('Invalid origin');
+        origin.pathname = '/jev-m5-scorecard'; origin.search = '';
+        const response = await fetch(origin, { headers: { 'CF-Access-Client-ID': env.STATUS_ACCESS_CLIENT_ID,
+          'CF-Access-Client-Secret': env.STATUS_ACCESS_CLIENT_SECRET }, redirect: 'manual', signal: AbortSignal.timeout(10000), cache: 'no-store' });
+        if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) throw Error('M5 scorecard unavailable');
+        const text = await response.text();
+        if (text.length > 65536) throw Error('Oversized M5 scorecard');
+        JSON.parse(text);
+        return new Response(text, { headers: noStore });
+      } catch {
+        return Response.json({ status: 'unavailable', message: 'M5 scorecard unavailable. No results have been replaced with zero.' }, { status: 503, headers: noStore });
+      }
     }
     if (isScorecard) {
       if (symbol !== 'XAUUSD-VIP') return new Response('Gold only', { status: 400 });

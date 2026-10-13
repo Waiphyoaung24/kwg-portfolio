@@ -223,6 +223,25 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if self.path == '/jev-m5-scorecard':
+            try:
+                path = SNAPSHOT.with_name('jev-m5-scorecard.json')
+                if path.stat().st_size > 65536:
+                    raise ValueError('Oversized M5 scorecard')
+                body = path.read_bytes()
+                value = json.loads(body)
+                if value.get('status') != 'ready' or not 0 <= time.time()-value['generated_at'] <= 120:
+                    raise ValueError('M5 scorecard unavailable')
+            except (OSError, ValueError, KeyError, TypeError, AttributeError):
+                self.send_error(503)
+                return
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path == '/jev-m15':
             try:
                 path = SNAPSHOT.with_name('jev-m15.json')

@@ -243,3 +243,36 @@ test('a candidate published after the first cron is assessed by a later cron exa
   assert.equal(h.calls.provider, 1); assert.equal(h.calls.forwards.length, 1);
   assert.equal(h.db.values.get('record').charged, 17+42);
 });
+
+test('M5 scorecard route requires the owner and passes the origin report through uncached', async t => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  const env = { ALLOWED_VIEWER_EMAIL: 'owner@example.com', STATUS_ORIGIN_URL: 'https://origin.example/status',
+    STATUS_ACCESS_CLIENT_ID: 'id', STATUS_ACCESS_CLIENT_SECRET: 'secret' };
+  const as = email => ({ access: { getIdentity: async () => ({ email }) } });
+  const url = 'https://site/api/trading/jev-m5-scorecard';
+  const body = JSON.stringify({ status: 'ready', generated_at: 1, candidates: 0 });
+  let origin = () => new Response(body, { headers: { 'Content-Type': 'application/json' } }), calls = [];
+  globalThis.fetch = async (target, options) => { calls.push([String(target), options]); return origin(); };
+  assert.equal((await worker.fetch(new Request(url), env, {})).status, 403);
+  assert.equal((await worker.fetch(new Request(url), env, as('other@example.com'))).status, 403);
+  assert.equal((await worker.fetch(new Request(url, { method: 'POST' }), env, as('owner@example.com'))).status, 404);
+  assert.equal((await worker.fetch(new Request(url + '?symbol=BTCUSD'), env, as('owner@example.com'))).status, 400);
+  assert.equal(calls.length, 0);
+  const response = await worker.fetch(new Request(url), env, as('owner@example.com'));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.equal(await response.text(), body);
+  assert.equal(calls[0][0], 'https://origin.example/jev-m5-scorecard');
+  assert.equal(calls[0][1].headers['CF-Access-Client-Secret'], 'secret');
+  assert.equal(calls[0][1].redirect, 'manual');
+  for (const failure of [() => new Response('', { status: 503 }), () => new Response('<html>', { headers: { 'Content-Type': 'text/html' } }),
+    () => new Response('x'.repeat(65537), { headers: { 'Content-Type': 'application/json' } }),
+    () => new Response('not json', { headers: { 'Content-Type': 'application/json' } })]) {
+    origin = failure;
+    const failed = await worker.fetch(new Request(url), env, as('owner@example.com'));
+    assert.equal(failed.status, 503);
+    assert.equal(failed.headers.get('Cache-Control'), 'no-store');
+    assert.equal((await failed.json()).status, 'unavailable');
+  }
+});
