@@ -1,6 +1,24 @@
 # Gold trading handoff — 2026-09-28
 
-## Now / Running / Next — updated 2026-10-08
+## Now / Running / Next — updated 2026-10-13
+
+**Now:** branch `jev-integration` adds a Jev decision layer for the Gold demo
+pilot on M5 candles. Shadow first, then owner-gated veto. Jev can block an entry
+but never opens one. Runbook: [JEV-M5.md](JEV-M5.md); plan:
+[2026-10-13 Jev Gold M5](../../docs/superpowers/plans/2026-10-13-jev-gold-m5-integration.md).
+Code, tests, Worker routes, dashboard panel, cutover and promotion scripts are
+on the branch; **nothing is deployed** and the Worker ships `JEV_M5_LIVE="false"`.
+**Running on VPS (last recorded, not reverified 2026-10-13):** autonomous demo
+pilot (Gold M1 trend, BTC per `BTC-SCALPING.md`), M15 Jev observer and its
+scorecard timer, status sidecar, Worker. Algo Trading stays on only inside the
+reviewed demo pilot; there is still no live-account path.
+**Next:** merge `jev-integration` after review, then follow the
+JEV-M5.md deployment order while Gold is flat. Separate follow-up: harden the
+M15 scorecard publisher unit (same symlink pattern fixed for M5).
+
+The 2026-10-08 block below is now history.
+
+## Historical: 2026-10-08 status
 
 **Now:** Foundation implementation started from `main` at `2d031cc` (PR #9:
 demo monitor, validated bid/ask, synthetic replay).

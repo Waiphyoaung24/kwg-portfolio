@@ -123,9 +123,13 @@ follows the design system; the exhibit itself does not.
 - The signal-only observer, private status sidecar, Cloudflare Tunnel, Access
   policies, read-only API Worker, and `/vault/trading` page route are deployed.
   The signed-in page showed gold blocked with no signal on a stale quote.
-  Algo Trading stays off for observation. Manual, owner-confirmed demo pending
-  orders (preview → single-use token → arm) have been deployed since 2026-09-29;
-  there is no automatic or agent-initiated order path.
+  Manual, owner-confirmed demo pending orders (preview → single-use token → arm)
+  were deployed on 2026-09-29. Since 2026-10-09 a bounded autonomous **demo**
+  pilot places demo orders under code-owned risk limits (see
+  `ops/trading/DEMO-PILOT.md`, `TWO-SYMBOL-PILOT.md`, `BTC-SCALPING.md`). The
+  `jev-integration` branch adds a Gold M5 Jev shadow/veto layer
+  (`ops/trading/JEV-M5.md`); Jev can block but never originate an entry. There
+  is no live-account order path.
 
 ### Current VPS setup
 
