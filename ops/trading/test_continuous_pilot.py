@@ -84,9 +84,12 @@ class ContinuousTest(unittest.TestCase):
         self.assertFalse(pilot.state(self.btc).get('recovering', False))
         self.mt5.account_info.return_value.balance -= 1
         self.poll()
+        self.assertIsNone(pilot.state(self.btc)['pause'])
+        self.assertTrue(pilot.state(self.btc)['recovering'])
+        self.poll(NOW + 30)
         self.assertEqual(pilot.state(self.btc)['pause'], 'Account balance and deal history disagree')
         self.mt5.account_info.return_value.balance += 1
-        self.poll()
+        self.poll(NOW + 35)
         self.assertIsNotNone(pilot.state(self.btc)['pause'])
         self.mt5.order_send.assert_not_called()
 

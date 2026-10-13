@@ -167,9 +167,31 @@ def limits(mt5, db, p, login, now, *, journals=None):
             if type(amount) not in (int, float) or not math.isfinite(amount):
                 raise ValueError('Deal costs unavailable')
             total += amount
-    if not math.isclose(total, value.balance, rel_tol=0, abs_tol=.02):
+    # MT5 account and history calls are not one atomic snapshot. A broker-side
+    # close can settle between them; never latch or permit entry on a mixed read.
+    latest = account(mt5, login)
+    p['peak'] = max(p['peak'], latest.equity)
+    if latest.equity <= p['peak'] * .95:
+        raise ValueError('Pilot drawdown limit reached')
+    if latest.equity <= p['day_equity'] * .99:
+        raise ValueError('Daily equity loss limit reached')
+    changed = latest.balance != value.balance
+    mismatch = not math.isclose(total, latest.balance, rel_tol=0, abs_tol=.02)
+    if changed or mismatch:
+        # Keep compact evidence in the shared journal even after log rotation.
+        p['balance_check'] = dict(checked_at=now, before=value.balance, after=latest.balance,
+                                 expected=total, difference=latest.balance-total,
+                                 deal_count=len(deals), balance_changed=changed,
+                                 last_deal_time_msc=max((getattr(d, 'time_msc', d.time*1000) for d in deals), default=None))
+    if changed or mismatch:
+        # A successful MT5 history call can still return a partial cache during
+        # synchronization. Block all entries while confirming, with a persisted
+        # deadline so repeated polls/restarts cannot extend the grace period.
+        if continuous(p) and now - p.setdefault('balance_pending_since', now) < 30:
+            raise BrokerUnavailable('Account balance and deal history disagree; synchronizing with entries blocked')
         raise ValueError('Account balance and deal history disagree')
-    return value
+    p.pop('balance_pending_since', None)
+    return latest
 
 
 def close_at_expiry(mt5, db, login, now):

@@ -15,27 +15,39 @@ from instruments import GOLD, BTC, BTC_STRATEGY, BTC_SCALP_STRATEGY
 
 PREVIOUS_CODE = '7338be40752337c8ce10bb0e65ac6ac58e3d3c83bc94e395caf56fe3445feb7d'
 
+BALANCE_PREVIOUS_CODE = '77ce639ed671fdc7b9e73c69de7b94d2ff4ab88da8af6c5fb4e17c8bb0739fc2'
+SNAPSHOT_PREVIOUS_CODE = 'eb22de6c7fe66f4dba1688a485bf696654681bc49b339a46e57f51f6c47d7129'
+BALANCE_PAUSE = 'Account balance and deal history disagree'
+
 
 def review(mt5, gold, btc, login, now, reviewed, previous):
-    if reviewed != pilot.identity() or previous != PREVIOUS_CODE:
+    if reviewed != pilot.identity() or previous not in (PREVIOUS_CODE, BALANCE_PREVIOUS_CODE, SNAPSHOT_PREVIOUS_CODE):
         raise ValueError('Reviewed code identity mismatch')
     risk = json.loads(gold.execute('SELECT data FROM account_limits WHERE id=1').fetchone()[0])
     records = [pilot.state(db) for db in (gold, btc)]
-    if not pilot.continuous(risk) or risk['code'] != previous or risk['pause']:
+    allowed_pauses = (None, BALANCE_PAUSE) if previous == SNAPSHOT_PREVIOUS_CODE else (None,)
+    if not pilot.continuous(risk) or risk['code'] != previous or risk['pause'] not in allowed_pauses:
         raise ValueError('Expected the reviewed continuous deployment without account pause')
     for db, symbol, p in zip((gold, btc), (GOLD, BTC), records):
         if [tuple(r) for r in db.execute('SELECT login, server, symbol FROM metadata')] != [(login, pilot.SERVER, symbol)]:
             raise ValueError('Journal identity mismatch')
         if not pilot.continuous(p) or any(p[k] != risk[k] for k in ('code', 'start', 'end', 'offset')):
             raise ValueError('Continuous journal identity mismatch')
-    if records[1]['strategy'] != BTC_STRATEGY or records[1]['pause']:
+    expected_strategy = BTC_STRATEGY if previous == PREVIOUS_CODE else BTC_SCALP_STRATEGY
+    if records[1]['strategy'] != expected_strategy or records[1]['pause'] not in allowed_pauses:
         raise ValueError('Expected active BTC M15 without pause')
     pilot.account(mt5, login, enabled=True)
     checked = {**risk, 'code': reviewed}
     pilot.limits(mt5, gold, checked, login, now, journals=(gold, btc))
     pilot.check_exposure(mt5, (gold, btc), login, now)
+    if previous == SNAPSHOT_PREVIOUS_CODE and checked['pause'] == BALANCE_PAUSE:
+        checked['pause'] = None
     checked['last_poll'] = now
     updated = [{**p, 'code': reviewed, 'last_poll': now, 'last_bar': None} for p in records]
+    if previous == SNAPSHOT_PREVIOUS_CODE:
+        for record in updated:
+            if record['pause'] == BALANCE_PAUSE:
+                record['pause'] = None
     updated[1].update(strategy=BTC_SCALP_STRATEGY, reason='M1 timed demo selected; waiting for candle baseline')
     return checked, updated
 
@@ -70,7 +82,7 @@ def main():
     args = parser.parse_args()
     os.umask(0o077)
     old = pilot.digest({n: hashlib.sha256((Path(r'Z:\opt\trading') / n).read_bytes()).hexdigest() for n in pilot.SOURCES})
-    if old != PREVIOUS_CODE or os.environ.get('MT5_PILOT_SYMBOLS') != GOLD + ',' + BTC:
+    if old not in (PREVIOUS_CODE, BALANCE_PREVIOUS_CODE, SNAPSHOT_PREVIOUS_CODE) or os.environ.get('MT5_PILOT_SYMBOLS') != GOLD + ',' + BTC:
         raise ValueError('Deployed source/symbols differ from reviewed version')
     import MetaTrader5 as mt5
     if not mt5.initialize(r'C:\Program Files\MetaTrader 5\terminal64.exe', timeout=10000):
