@@ -12,7 +12,10 @@ from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import jev_m5
+
 STATE = Path("/home/mt5/.wine/drive_c/users/mt5/gold-one-shot.sqlite3")
+RECEIPTS = STATE.parent / "jev-m5-receipts.sqlite3"
 WINDOWS_STATE = r"C:\users\mt5\gold-one-shot.sqlite3"
 COMMAND = ["wine", "/opt/python/python.exe", "/opt/trading/demo_one_shot.py"]
 SECRET = os.environ.get("TRADING_CONTROL_SECRET", "")
@@ -31,6 +34,14 @@ def available():
 
 def run_action(action, payload):
     global pending, runner
+    if action == 'jev-receipt':
+        if os.environ.get('MT5_RUN_MODE', 'observer') != 'pilot':
+            return 409, {'error': 'Pilot mode is not available.'}
+        try:
+            stored = jev_m5.store_receipt(RECEIPTS, payload, received=time.time())
+        except (ValueError, TypeError, KeyError):
+            return 400, {'error': 'Invalid Jev receipt.'}
+        return (202, {'status': 'stored'}) if stored else (200, {'status': 'duplicate'})
     if action == 'pilot-pause':
         if (set(payload) - {'symbol'} or payload.get('symbol', 'XAUUSD-VIP') not in ('XAUUSD-VIP', 'BTCUSD')
                 or os.environ.get('MT5_RUN_MODE', 'observer') != 'pilot'):
@@ -96,7 +107,7 @@ def run_action(action, payload):
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        if self.path not in ("/preview", "/arm", "/pilot-pause"):
+        if self.path not in ("/preview", "/arm", "/pilot-pause", "/jev-receipt"):
             self.send_error(404)
             return
         if not SECRET or not secrets.compare_digest(self.headers.get("X-KWG-Control-Secret", ""), SECRET):
@@ -104,7 +115,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if not 0 < length <= 256 or self.headers.get("Content-Type") != "application/json":
+            if not 0 < length <= (1024 if self.path == "/jev-receipt" else 256) or self.headers.get("Content-Type") != "application/json":
                 raise ValueError
             payload = json.loads(self.rfile.read(length))
             if not isinstance(payload, dict):
