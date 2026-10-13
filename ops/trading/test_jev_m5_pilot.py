@@ -262,6 +262,23 @@ class JevM5PilotTest(unittest.TestCase):
         self.tick(NOW + 691)
         self.assertEqual(json.loads(self.feed.read_text())['checked_at'], NOW + 630)
 
+    def test_feed_refresh_continues_after_shadow_trade_opens(self):
+        self.activate_m5()
+        self.fill()
+        self.tick(NOW + 300, bootstrap=True)
+        self.assertEqual(self.tick(NOW + 600)['execution']['status'], 'open')
+        bar = NOW + 300
+        digest = json.loads(self.feed.read_text())['input_sha256']
+        for stamp in (NOW + 620, bar + 390):                        # same candle, position open
+            report = self.tick(stamp)
+            self.assertEqual(report['execution']['status'], 'open')
+            feed = json.loads(self.feed.read_text())
+            self.assertEqual((feed['candidate'], feed['bar_time'], feed['input_sha256'], feed['checked_at']),
+                             (True, bar, digest, stamp))
+        self.tick(bar + 391)                                        # past the Jev deadline
+        self.assertEqual(json.loads(self.feed.read_text())['checked_at'], bar + 390)
+        self.assertEqual(self.mt5.order_send.call_count, 1)
+
     def test_read_gold_maps_m5_timeframe(self):
         mt5 = fake_mt5(enabled=True)
         mt5.TIMEFRAME_M5 = 5
