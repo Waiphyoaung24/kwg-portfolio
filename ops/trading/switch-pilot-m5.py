@@ -130,6 +130,23 @@ def deploy(stage, reviewed):
     desktop = json.loads(run(compose + ['config', '--format', 'json']))['services']['desktop']
     if desktop['image'] != 'kwg-mt5-desktop:qualification' or desktop['environment']['MT5_RUN_MODE'] != 'pilot':
         raise ValueError('Existing pilot deployment does not match')
+    # Run the host-reviewed helper via stdin; do not trust an older container stage copy.
+    import base64
+    receiver = 'import base64,json,pathlib,sys; root=pathlib.Path(sys.argv[1]); root.mkdir(mode=0o700, exist_ok=True); [ (root/n).write_bytes(base64.b64decode(v)) for n,v in json.load(sys.stdin).items() ]'
+    target = '/home/mt5/' + stage.name
+    bundle = {n: base64.b64encode((stage / n).read_bytes()).decode() for n in manifest['files']}
+    run(['docker', 'exec', '-i', '--user', 'mt5', 'kwg-mt5-desktop', 'python3', '-c', receiver, target],
+        input=json.dumps(bundle).encode())
+    helper = ['wine', '/opt/python/python.exe', target + '/switch-pilot-m5.py', '--journal', '--reviewed-code-sha256', reviewed]
+    # Read-only review while the runner still runs: any refusal aborts before anything is stopped or built.
+    try:
+        reviewed_output = run(['docker', 'exec', '--user', 'mt5', 'kwg-mt5-desktop', 'script', '-q', '-e', '-c',
+                               'stty cols 4096; ' + shlex.join(helper), '/dev/null'])
+    except subprocess.CalledProcessError as exc:
+        raise ValueError('Journal review refused; runner untouched: ' + (exc.output or b'').decode(errors='replace')[-300:]) from exc
+    print(reviewed_output, flush=True)
+    if 'M5_JEV_REVIEW_PASSED' not in reviewed_output:
+        raise ValueError('Journal review receipt missing; runner untouched')
     backup = ROOT / ('m5-jev-backup-' + str(time.time_ns()))
     backup.mkdir(mode=0o700)
     shutil.copy2(ROOT / 'status_server.py', backup / 'status_server.py')
@@ -151,15 +168,7 @@ def deploy(stage, reviewed):
         raise ValueError('Built image differs from reviewed sources')
     shared = runpy.run_path(str(stage / 'cutover-m1-pilot.py'))
     print('RUNNER_STOPPED', shared['stop_runner'](), flush=True)
-    # Run the host-reviewed helper via stdin; do not trust an older container stage copy.
-    import base64
-    receiver = 'import base64,json,pathlib,sys; root=pathlib.Path(sys.argv[1]); root.mkdir(mode=0o700, exist_ok=True); [ (root/n).write_bytes(base64.b64decode(v)) for n,v in json.load(sys.stdin).items() ]'
-    target = '/home/mt5/' + stage.name
-    bundle = {n: base64.b64encode((stage / n).read_bytes()).decode() for n in manifest['files']}
-    run(['docker', 'exec', '-i', '--user', 'mt5', 'kwg-mt5-desktop', 'python3', '-c', receiver, target],
-        input=json.dumps(bundle).encode())
-    command = 'stty cols 4096; ' + shlex.join(['wine', '/opt/python/python.exe', target + '/switch-pilot-m5.py',
-                                             '--journal', '--reviewed-code-sha256', reviewed, '--apply'])
+    command = 'stty cols 4096; ' + shlex.join([*helper, '--apply'])
     receipt = run(['docker', 'exec', '--user', 'mt5', 'kwg-mt5-desktop', 'script', '-q', '-e', '-c', command, '/dev/null'])
     print(receipt, flush=True)
     match = re.search(r'M5_JEV_JOURNAL_SWITCHED (\{[^\r\n]*\})', receipt)
@@ -181,6 +190,9 @@ def deploy(stage, reviewed):
             if report.get('checked_at', 0) >= time.time() - 30 and p.get('strategy') == pilot.M5_JEV_STRATEGY:
                 if p.get('jev_mode') != 'shadow' or p.get('ends_at') != switched['ends_at']:
                     raise RuntimeError('M5 status mismatch; preserve backup and inspect')
+                if p.get('status') != 'active':
+                    # A pause latched at startup (identity, clock, limits) shows here; the switch refused all earlier pauses.
+                    raise RuntimeError('M5 runner not active after restart: ' + str(p.get('status')) + ': ' + str(p.get('reason')))
                 print('M5_JEV_SHADOW_DEPLOYED', json.dumps(dict(gold=report, order_sent=False)), flush=True)
                 return
         except (subprocess.SubprocessError, ValueError, KeyError):

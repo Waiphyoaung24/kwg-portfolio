@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import runpy
 import sqlite3
+import subprocess
 import tempfile
 import time
 import unittest
@@ -102,6 +103,18 @@ class SwitchM5Test(unittest.TestCase):
         for db in (self.gold, self.btc):
             self.assertEqual(pilot.state(db)['code'], pilot.identity())
 
+    def test_failed_btc_update_rolls_back_both_journals(self):
+        self.activate_btc()
+        with self.btc:
+            # Fail the attached BTC write after the Gold rows were updated in the same transaction.
+            self.btc.execute("CREATE TRIGGER refuse BEFORE UPDATE ON pilot BEGIN SELECT RAISE(ABORT, 'forced'); END")
+        gold_before, btc_before = dump(self.gold), dump(self.btc)
+        with self.assertRaisesRegex(sqlite3.IntegrityError, 'forced'):
+            self.switch()
+        self.assertEqual(dump(self.gold), gold_before)
+        self.assertEqual(dump(self.btc), btc_before)
+        self.assertNotIn('btc_switch', [row[1] for row in self.gold.execute('PRAGMA database_list')])
+
     def test_refusals_leave_both_journals_unchanged(self):
         cases = {
             'open': lambda: self.attempt('open'),
@@ -174,7 +187,7 @@ class DeployM5Test(unittest.TestCase):
         (root / 'status_server.py').write_text('old status')
         return stage, pilot.digest(sources)
 
-    def deploy(self, *, tamper=False, drop_jev=False, receipt_ok=True):
+    def deploy(self, *, tamper=False, drop_jev=False, receipt_ok=True, review_ok=True, pilot_status='active'):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             stage, reviewed = self.make_stage(root, tamper=tamper, drop_jev=drop_jev)
@@ -195,12 +208,17 @@ class DeployM5Test(unittest.TestCase):
                     return json.dumps({n: digest(stage / n) for n in names})
                 if 'script' in args:
                     self.assertIn('--journal', args[-2])
-                    self.assertIn('--apply', args[-2])
+                    if '--apply' not in args[-2]:
+                        if not review_ok:
+                            raise subprocess.CalledProcessError(1, args, b'Gold attempt is open or unresolved')
+                        return 'M5_JEV_REVIEW_PASSED {}'
+                    self.assertIn(['stop_runner'], calls)
                     result = dict(strategy=pilot.M5_JEV_STRATEGY, jev_mode='shadow', code=reviewed, ends_at=None, order_sent=False)
                     return 'M5_JEV_JOURNAL_SWITCHED ' + json.dumps(result) if receipt_ok else 'missing'
                 if 'kwg-trading-status' in args:
                     return json.dumps(dict(checked_at=time.time(), pilot=dict(strategy=pilot.M5_JEV_STRATEGY,
-                                                                                jev_mode='shadow', ends_at=None)))
+                                                                                jev_mode='shadow', ends_at=None,
+                                                                                status=pilot_status)))
                 return ''
 
             def stop():
@@ -213,7 +231,7 @@ class DeployM5Test(unittest.TestCase):
                 try:
                     deploy(stage, reviewed)
                     error = None
-                except ValueError as exc:
+                except (ValueError, RuntimeError) as exc:
                     error = str(exc)
             dockerfile = (stage / 'Dockerfile').read_text() if (stage / 'Dockerfile').exists() else ''
             return error, calls, output, (root / 'status_server.py').read_text(), dockerfile
@@ -234,16 +252,32 @@ class DeployM5Test(unittest.TestCase):
         self.assertEqual(status, 'old status')
         self.assertFalse(any('--force-recreate' in c for c in calls))
 
+    def test_container_review_refusal_never_stops_the_runner_or_builds(self):
+        error, calls, _, status, _ = self.deploy(review_ok=False)
+        self.assertIn('runner untouched', error)
+        self.assertNotIn(['stop_runner'], calls)
+        self.assertFalse(any('build' in c or 'tag' in c for c in calls))
+        self.assertFalse(any('--apply' in c[-2] for c in calls if 'script' in c))
+        self.assertEqual(status, 'old status')
+
+    def test_review_runs_before_stopping_the_runner(self):
+        _, calls, _, _, _ = self.deploy()
+        review = next(i for i, c in enumerate(calls) if 'script' in c and '--apply' not in c[-2])
+        self.assertLess(review, calls.index(['stop_runner']))
+
+    def test_paused_runner_after_restart_fails_verification(self):
+        for status in ('paused', 'needs_attention'):
+            with self.subTest(status), patch.object(module['time'], 'sleep'):
+                error, _, output, _, _ = self.deploy(pilot_status=status)
+                self.assertIn('not active', error)
+                self.assertFalse(any(c.args and c.args[0] == 'M5_JEV_SHADOW_DEPLOYED' for c in output.call_args_list))
+
     def test_tampered_or_incomplete_stage_never_reaches_docker(self):
         for kwargs, message in (({'tamper': True}, 'Stage file identity'), ({'drop_jev': True}, 'differs from stage')):
             with self.subTest(**kwargs):
                 error, calls, _, _, _ = self.deploy(**kwargs)
                 self.assertIn(message, error)
                 self.assertEqual(calls, [])
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 class StageM5Test(unittest.TestCase):
@@ -306,8 +340,11 @@ class StageM5Test(unittest.TestCase):
         service, timer = units['kwg-jev-m5-scorecard.service'], units['kwg-jev-m5-scorecard.timer']
         self.assertIn('Type=oneshot\n', service)
         self.assertIn('ExecStart=' + ' '.join(command) + '\n', service)
-        for line in ('ProtectSystem=strict', 'ReadWritePaths=' + status, 'PrivateNetwork=yes', 'NoNewPrivileges=yes'):
+        for line in ('ProtectSystem=strict', 'ReadWritePaths=' + status, 'PrivateNetwork=yes', 'NoNewPrivileges=yes',
+                     'PrivateTmp=yes', 'ProtectHome=yes', 'RestrictAddressFamilies=AF_UNIX',
+                     'CapabilityBoundingSet=CAP_DAC_OVERRIDE'):
             self.assertIn(line + '\n', service)
+        self.assertNotIn('User=', service)  # Root: /var/lib/docker is not traversable by uid 10001.
         self.assertIn('OnUnitActiveSec=60\n', timer)
         self.assertIn('WantedBy=timers.target\n', timer)
         self.assertIn("'enable','--now','kwg-jev-m5-scorecard.timer'", remote)
@@ -345,3 +382,7 @@ class PublisherTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(output.read_text())['status'], 'unavailable')
             self.assertFalse((Path(directory) / 'r.sqlite3').exists())
+
+
+if __name__ == '__main__':
+    unittest.main()

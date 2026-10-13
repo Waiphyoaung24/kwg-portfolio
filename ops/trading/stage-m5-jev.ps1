@@ -61,7 +61,10 @@ def units(command, writable):
     return {
      'kwg-jev-m5-scorecard.service': '[Unit]\nDescription=Read-only Gold M5 Jev shadow scorecard export\n[Service]\nType=oneshot\n'
          'ExecStart=' + ' '.join(command) + '\nNoNewPrivileges=yes\nPrivateNetwork=yes\nProtectSystem=strict\n'
-         'ReadWritePaths=' + writable + '\n',
+         'ReadWritePaths=' + writable + '\nPrivateTmp=yes\nProtectHome=yes\nRestrictAddressFamilies=AF_UNIX\n'
+         # Root is needed to traverse /var/lib/docker (0710 root); only DAC override remains, to read the
+         # mt5-owned 0600 journals and write the mt5-owned status volume, which ProtectSystem confines.
+         'CapabilityBoundingSet=CAP_DAC_OVERRIDE\n',
      'kwg-jev-m5-scorecard.timer': '[Unit]\nDescription=Refresh the Gold M5 Jev shadow scorecard every minute\n[Timer]\n'
          'OnBootSec=15\nOnUnitActiveSec=60\nAccuracySec=5\n[Install]\nWantedBy=timers.target\n',
     }

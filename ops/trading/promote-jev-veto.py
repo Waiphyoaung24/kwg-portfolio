@@ -6,12 +6,14 @@ Promotion (shadow -> veto) requires a passing read-only scorecard gate. Demotion
 (veto -> shadow) is allowed at any time. Both are audited in jev_mode_changes.
 """
 import argparse
+from contextlib import closing
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import shlex
+import sqlite3
 import subprocess
 import sys
 import time
@@ -38,34 +40,44 @@ def card(journal, receipts, now, *, demote):
     return value
 
 
-def change(db, now, value, *, owner_approved, demote):
-    if owner_approved is not True:
-        raise ValueError('Explicit owner approval is required')
-    p = pilot.state(db)
+def expect(p, code, *, demote):
     if p is None or p['strategy'] != pilot.M5_JEV_STRATEGY:
         raise ValueError('Mode change requires the Gold ' + pilot.M5_JEV_STRATEGY + ' pilot')
-    if p['code'] != pilot.identity():
+    if p['code'] != code:
         raise ValueError('Journal code does not match the staged code')
     source, target = ('veto', 'shadow') if demote else ('shadow', 'veto')
     if p.get('jev_mode') != source:
         raise ValueError('Jev mode is ' + str(p.get('jev_mode')) + ', expected ' + source)
+    return source, target
+
+
+def change(db, now, value, *, owner_approved, demote, backup):
+    if owner_approved is not True:
+        raise ValueError('Explicit owner approval is required')
+    p = pilot.state(db)
+    source, target = expect(p, pilot.identity(), demote=demote)
     if not demote and (value is None or value['gate']['passes'] is not True):
         raise ValueError('Scorecard gate does not pass')
     digest = value and hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'),
                                                  allow_nan=False).encode()).hexdigest()
+    with backup.open('xb'):
+        pass
+    with closing(sqlite3.connect(backup)) as saved:
+        db.backup(saved)
+        if saved.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
+            raise ValueError('Backup integrity check failed')
     with db:
         db.execute('CREATE TABLE IF NOT EXISTS jev_mode_changes (at REAL NOT NULL, from_mode TEXT NOT NULL, '
                    'to_mode TEXT NOT NULL, scorecard_sha256 TEXT)')
         db.execute('INSERT INTO jev_mode_changes VALUES (?, ?, ?, ?)', (now, source, target, digest))
         # Only jev_mode changes; any deferred veto entry is dropped by the runner on restart.
         db.execute('UPDATE pilot SET data=? WHERE id=1', (json.dumps({**p, 'jev_mode': target}, allow_nan=False),))
-    return dict(from_mode=source, to_mode=target, scorecard_sha256=digest, order_sent=False)
+    return dict(from_mode=source, to_mode=target, scorecard_sha256=digest, backup=str(backup), order_sent=False)
 
 
 def journal(args):
     if os.environ.get('MT5_RUN_MODE') != 'pilot':
         raise SystemExit('MT5_RUN_MODE must be pilot')
-    import sqlite3
     home = Path.home()
     path = home / 'gold-pilot.sqlite3'
     if not path.is_file():
@@ -76,7 +88,8 @@ def journal(args):
         try:
             now = time.time()
             value = card(path, home / 'jev-m5-receipts.sqlite3', now, demote=args.demote)
-            result = change(db, now, value, owner_approved=args.owner_approved, demote=args.demote)
+            result = change(db, now, value, owner_approved=args.owner_approved, demote=args.demote,
+                            backup=home / ('gold-pilot-before-jev-mode-' + str(time.time_ns()) + '.sqlite3'))
         finally:
             db.close()
     print('JEV_MODE_CHANGED', json.dumps(result))
@@ -93,8 +106,10 @@ def deploy(stage, *, demote):
     for name, expected in manifest['files'].items():
         if Path(name).name != name or hashlib.sha256((stage / name).read_bytes()).hexdigest() != expected:
             raise ValueError('Stage file identity mismatch')
+    # Refuse before stopping the runner; the container step rechecks everything under the lock.
+    with closing(sqlite3.connect((VOLUME / 'gold-pilot.sqlite3').resolve().as_uri() + '?mode=ro', uri=True)) as db:
+        expect(pilot.state(db), manifest['code_sha256'], demote=demote)
     if not demote:
-        # Refuse before stopping the runner; the container step rechecks under the lock.
         card(VOLUME / 'gold-pilot.sqlite3', VOLUME / 'jev-m5-receipts.sqlite3', time.time(), demote=False)
     import runpy
     import base64

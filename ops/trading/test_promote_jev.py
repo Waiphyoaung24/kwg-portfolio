@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import runpy
+import sqlite3
 import tempfile
 import time
 import unittest
@@ -40,7 +41,11 @@ class PromoteJevTest(unittest.TestCase):
         self.temp.cleanup()
 
     def change(self, value=PASSING, *, approved=True, demote=False):
-        return module['change'](self.db, NOW, value, owner_approved=approved, demote=demote)
+        backup = self.home / ('backup-' + str(time.time_ns()) + '.sqlite3')
+        return module['change'](self.db, NOW, value, owner_approved=approved, demote=demote, backup=backup)
+
+    def backups(self):
+        return sorted(self.home.glob('backup-*.sqlite3'))
 
     def audit(self):
         return [tuple(r) for r in self.db.execute('SELECT * FROM jev_mode_changes')]
@@ -52,7 +57,14 @@ class PromoteJevTest(unittest.TestCase):
         self.assertEqual(self.db.execute('SELECT data FROM account_limits').fetchone()[0], limits)
         digest = hashlib.sha256(json.dumps(PASSING, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         self.assertEqual(self.audit(), [(NOW, 'shadow', 'veto', digest)])
-        self.assertEqual(result, dict(from_mode='shadow', to_mode='veto', scorecard_sha256=digest, order_sent=False))
+        self.assertEqual(result['order_sent'], False)
+        self.assertEqual((result['from_mode'], result['to_mode'], result['scorecard_sha256']), ('shadow', 'veto', digest))
+        # The journal is copied with the backup API before the flip and passes an integrity check.
+        [backup] = self.backups()
+        self.assertEqual(result['backup'], str(backup))
+        with sqlite3.connect(backup) as saved:
+            self.assertEqual(saved.execute('PRAGMA integrity_check').fetchall(), [('ok',)])
+            self.assertEqual(json.loads(saved.execute('SELECT data FROM pilot').fetchone()[0])['jev_mode'], 'shadow')
 
     def test_demotion_is_allowed_any_time_and_audited(self):
         self.change()
@@ -88,6 +100,7 @@ class PromoteJevTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     self.change(**kwargs)
                 self.assertEqual(dump(self.db), before)
+                self.assertEqual(self.backups(), [])
 
     def test_real_scorecard_gate_refuses_an_empty_shadow_journal(self):
         with self.assertRaisesRegex(ValueError, 'Need 50 closed shadow trades'):
@@ -110,14 +123,21 @@ class PromoteJevTest(unittest.TestCase):
 
 
 class PromoteDeployTest(unittest.TestCase):
-    def deploy(self, *, gate=True, receipt_ok=True, demote=False):
+    def deploy(self, *, gate=True, receipt_ok=True, demote=False, journal=None):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             stage = root / 'm5-jev-review-test'
             stage.mkdir()
             (stage / 'promote-jev-veto.py').write_text('x')
-            (stage / 'manifest.json').write_text(json.dumps(dict(files={
+            (stage / 'manifest.json').write_text(json.dumps(dict(code_sha256=pilot.identity(), files={
                 'promote-jev-veto.py': hashlib.sha256(b'x').hexdigest()})))
+            volume = root / 'volume'
+            volume.mkdir()
+            db = pilot.open_state(volume / 'gold-pilot.sqlite3', 123)
+            record = dict(strategy=pilot.M5_JEV_STRATEGY, jev_mode='veto' if demote else 'shadow', code=pilot.identity())
+            with db:
+                db.execute('INSERT INTO pilot VALUES (1, ?)', (json.dumps({**record, **(journal or {})}),))
+            db.close()
             calls = []
 
             def run(args, **kwargs):
@@ -139,7 +159,7 @@ class PromoteDeployTest(unittest.TestCase):
                 calls.append(['stop_runner'])
                 return '{}'
             deploy = module['deploy']
-            with patch.dict(deploy.__globals__, ROOT=root, run=run), \
+            with patch.dict(deploy.__globals__, ROOT=root, run=run, VOLUME=volume), \
                     patch.object(module['scorecard'], 'export', export), \
                     patch('runpy.run_path', return_value={'stop_runner': stop}), patch('builtins.print') as output:
                 try:
@@ -153,6 +173,17 @@ class PromoteDeployTest(unittest.TestCase):
         error, calls, _ = self.deploy(gate=False)
         self.assertIn('gate does not pass', error)
         self.assertEqual(calls, [['export']])
+
+    def test_host_journal_refusals_never_stop_the_runner(self):
+        cases = (({'strategy': pilot.TREND_STRATEGY}, False, 'requires the Gold'),
+                 ({'jev_mode': 'veto'}, False, 'expected shadow'),
+                 ({'jev_mode': 'shadow'}, True, 'expected veto'),
+                 ({'code': '0' * 64}, False, 'staged code'))
+        for journal, demote, message in cases:
+            with self.subTest(journal=journal, demote=demote):
+                error, calls, _ = self.deploy(journal=journal, demote=demote)
+                self.assertIn(message, error)
+                self.assertEqual(calls, [])
 
     def test_promotion_order_and_receipt_before_restart(self):
         error, calls, output = self.deploy()
