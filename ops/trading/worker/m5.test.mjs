@@ -41,7 +41,7 @@ test('hash is over the exact UTF-8 string, so Python float formatting is accepte
 
 test('snapshot rejects stale, malformed, mismatched or extended feeds', async () => {
   const bad = [
-    f=>f.checked_at=now-16, f=>f.checked_at=now+1, f=>f.candidate=false, f=>f.status='blocked',
+    f=>f.checked_at=now-16, f=>f.checked_at=now+3, f=>f.candidate=false, f=>f.status='blocked',
     f=>f.input_sha256='0'.repeat(64), f=>f.input_sha256=f.input_sha256.toUpperCase(),
     f=>f.state_json=f.state_json.replace('"tight"','"wide"'), // hash mismatch
     f=>{f.state_json=f.state_json+' '.repeat(60001); f.input_sha256=hex(f.state_json);},
@@ -55,13 +55,16 @@ test('snapshot rejects stale, malformed, mismatched or extended feeds', async ()
     s=>s.bars.at(-1).time+=300, s=>{s.bars=s.bars.map(b=>({...b,time:b.time-300})); s.bar_time-=300;}, // stale candle
     s=>s.bars.pop(), s=>s.bars[3].time+=1, s=>s.bars[3].time=s.bars[2].time, s=>s.bars[5].high=3998,
     s=>s.bars[5].low=4000.6, s=>s.bars[5].close=NaN, s=>s.bar_time+=300, s=>s.captured_at=bar+299,
-    s=>s.captured_at=now+1,
+    s=>s.captured_at=now+3,
   ];
   for (const mutate of badState) { const s=state(); mutate(s); await assert.rejects(m5Snapshot(feed(s), now)); }
-  // Same candle interval, but the capture is older than the 90-second decision window.
-  const old = state(); old.captured_at = bar+300; const late = feed(old); late.checked_at = bar+300+91;
-  await assert.rejects(m5Snapshot(late, bar+300+91));
-  late.checked_at = bar+300+90; assert.equal((await m5Snapshot(late, bar+300+90)).bar_time, bar);
+  // Same candle interval, but within 20 s of the 90-second decision deadline: no paid call.
+  const old = state(); old.captured_at = bar+300; const late = feed(old); late.checked_at = bar+300+71;
+  await assert.rejects(m5Snapshot(late, bar+300+71));
+  late.checked_at = bar+300+70; assert.equal((await m5Snapshot(late, bar+300+70)).bar_time, bar);
+  // Up to 2 s of clock skew between the VPS and the Worker is tolerated.
+  const skew = state(); skew.captured_at = now+2; const ahead = feed(skew); ahead.checked_at = now+2;
+  assert.equal((await m5Snapshot(ahead, now)).bar_time, bar);
   // Gaps are allowed when the feature says so; the grid is still required.
   const gapped = state(); gapped.bars = gapped.bars.map((b,i)=>i<10?{...b,time:b.time-600}:b); gapped.features.gap_in_window = true;
   assert.equal((await m5Snapshot(feed(gapped), now)).bar_time, bar);
@@ -98,8 +101,9 @@ function memory(seed) {
   return db;
 }
 function harness(t, {record, provider, control, input = feed()} = {}) {
-  t.mock.method(Date, 'now', () => now*1000);
-  t.mock.method(timing, 'sleep', async () => {});
+  const clock = {t: now};
+  t.mock.method(Date, 'now', () => clock.t*1000);
+  t.mock.method(timing, 'sleep', async ms => { clock.t += ms/1000; });
   const db = memory(record), calls = {feed: 0, provider: 0, forwards: []};
   const env = {TYPESAFE_API_KEY:'fake-test-key', JEV_DATA_SHARING_APPROVED:'true', JEV_M5_LIVE:'true',
     STATUS_ORIGIN_URL:'https://status.example/status', STATUS_ACCESS_CLIENT_ID:'id', STATUS_ACCESS_CLIENT_SECRET:'secret',
@@ -118,13 +122,13 @@ function harness(t, {record, provider, control, input = feed()} = {}) {
     throw new Error(`Unexpected fetch ${url}`);
   });
   const run = async () => { let pending = []; await worker.scheduled({}, env, {waitUntil: p => pending.push(p)}); await Promise.all(pending); };
-  return {db, env, calls, run};
+  return {db, env, calls, run, clock};
 }
 
 test('no candidate spends nothing and forwards nothing', async t => {
-  const {db, calls, run} = harness(t, {input: {status:'ready', checked_at: now, candidate: false, bar_time: bar}});
-  await run();
-  assert.equal(calls.feed, 5); assert.equal(calls.provider, 0); assert.equal(calls.forwards.length, 0);
+  const {db, calls, run, clock} = harness(t, {input: {status:'ready', checked_at: bar+300, candidate: false, bar_time: bar}});
+  clock.t = bar+300; await run();                      // current candle, no candidate: no polling retries
+  assert.equal(calls.feed, 1); assert.equal(calls.provider, 0); assert.equal(calls.forwards.length, 0);
   assert.equal(db.values.get('record'), undefined);
 });
 
@@ -201,4 +205,41 @@ test('JEV_M5_LIVE unset leaves the M5 branch inert', async t => {
   delete env.JEV_M5_LIVE;
   await run();
   assert.equal(calls.feed + calls.provider + calls.forwards.length, 0);
+});
+
+test('the Durable Object refuses a candle inside the deadline margin before reserving', async t => {
+  const {db, calls, clock} = harness(t);
+  const snapshot = await m5Snapshot(feed(), now);
+  clock.t = bar+300+71;
+  const observer = new JevObserver({storage: db}, {TYPESAFE_API_KEY:'fake-test-key', JEV_DATA_SHARING_APPROVED:'true'});
+  const response = await observer.fetch(new Request('https://jev.internal/m5', {method:'POST', body: JSON.stringify(snapshot)}));
+  assert.ok(!response.ok); assert.equal(calls.provider, 0);
+  assert.equal(db.values.get('record'), undefined); assert.equal(db.values.get(`m5:${bar}`), undefined);
+});
+
+test('behind feeds are retried briefly; a feed for the current candle without a candidate is not', async t => {
+  const close = bar+300;
+  const behind = {status:'ready', checked_at: close-5, candidate:false, bar_time: bar-300};
+  const h = harness(t, {input: () => behind});
+  h.clock.t = close; await h.run();
+  assert.equal(h.calls.feed, 5);
+  h.clock.t = close+25; await h.run();                 // too late in the candle to keep polling
+  assert.equal(h.calls.feed, 6);
+});
+
+test('a candidate published after the first cron is assessed by a later cron exactly once', async t => {
+  const close = bar+300, value = state(); value.captured_at = close+8;
+  const published = feed(value);
+  let h;
+  h = harness(t, {input: () => h.clock.t < close+8
+    ? {status:'ready', checked_at: close-50, candidate:false, bar_time: bar-300}
+    : {...published, checked_at: Math.floor(h.clock.t)}});             // the runner refreshes checked_at each poll
+  h.clock.t = close; await h.run();                                     // reads at close+0..4 all miss
+  assert.equal(h.calls.feed, 5); assert.equal(h.calls.provider, 0); assert.equal(h.db.values.get('record'), undefined);
+  h.clock.t = close+60; await h.run();
+  assert.equal(h.calls.provider, 1); assert.equal(h.calls.forwards.length, 1);
+  assert.equal(h.db.values.get('record').charged, 17+42);
+  h.clock.t = close+65; await h.run();
+  assert.equal(h.calls.provider, 1); assert.equal(h.calls.forwards.length, 1);
+  assert.equal(h.db.values.get('record').charged, 17+42);
 });

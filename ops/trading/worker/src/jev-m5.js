@@ -1,7 +1,9 @@
 // Gold M5 candidate boundary: only the runner's canonical state may leave the private origin.
 import { JEV_MODEL } from './jev.js';
 
-const SECONDS = 300, DEADLINE = 90;
+const SECONDS = 300, DEADLINE = 90, SKEW = 2;
+// Leave 20 s of the runner's 90-second deadline for the provider call and the receipt forward.
+export const LATEST = SECONDS + DEADLINE - 20;
 const CHOICES = ['buy', 'hold', 'sell'];
 // Byte-identical to ops/trading/jev_m5.py QUESTION; a test pins the Python digest.
 export const QUESTION = {type:'choice',
@@ -34,7 +36,7 @@ const exactKeys = (value, keys) => value && typeof value === 'object' && !Array.
 export async function m5Snapshot(feed, now = Date.now() / 1000) {
   const finite = x => typeof x === 'number' && Number.isFinite(x);
   if (feed?.status !== 'ready' || feed.candidate !== true || !finite(feed.checked_at) ||
-      now - feed.checked_at < 0 || now - feed.checked_at > 15 ||
+      now - feed.checked_at < -SKEW || now - feed.checked_at > 15 ||
       typeof feed.state_json !== 'string' || feed.state_json.length > 60000 ||
       typeof feed.input_sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(feed.input_sha256)) throw Error('Invalid M5 feed');
   // Hash the exact published bytes: re-serialising parsed numbers would turn 4000.0 into 4000.
@@ -52,8 +54,8 @@ export async function m5Snapshot(feed, now = Date.now() / 1000) {
       !Object.entries(FEATURES).every(([k, names]) => names.includes(f[k])) || typeof f.gap_in_window !== 'boolean' ||
       !Array.isArray(f.last_5) || f.last_5.length !== 5 || !f.last_5.every(x => ['up','down','flat'].includes(x))) throw Error('Invalid M5 features');
   if (s.bar_time !== Math.floor(now / SECONDS) * SECONDS - SECONDS || s.bars.at(-1).time !== s.bar_time ||
-      !finite(s.captured_at) || s.captured_at > now || s.captured_at < s.bar_time + SECONDS ||
-      now - s.captured_at > DEADLINE || now > s.bar_time + SECONDS + DEADLINE) throw Error('Stale M5 candle');
+      !finite(s.captured_at) || s.captured_at > now + SKEW || s.captured_at < s.bar_time + SECONDS ||
+      now - s.captured_at > DEADLINE || now > s.bar_time + LATEST) throw Error('Stale M5 candle');
   return { bar_time: s.bar_time, input_sha256: feed.input_sha256, state: s };
 }
 
@@ -89,11 +91,19 @@ function origin(env, pathname) {
   return url;
 }
 
-export async function readM5(env) {
-  const response = await fetch(origin(env, '/jev-m5'), { headers: accessHeaders(env), redirect: 'manual',
-    signal: AbortSignal.timeout(5000) });
-  if (!response.ok) throw Error(`M5 origin HTTP ${response.status}`);
-  return m5Snapshot(await response.json());
+// error.retry marks a feed that may still catch up: origin failure or a feed behind the current candle.
+export async function readM5(env, now = Date.now() / 1000) {
+  let response;
+  try {
+    response = await fetch(origin(env, '/jev-m5'), { headers: accessHeaders(env), redirect: 'manual',
+      signal: AbortSignal.timeout(5000) });
+  } catch { throw Object.assign(Error('M5 origin unreachable'), { retry: true }); }
+  if (!response.ok) throw Object.assign(Error(`M5 origin HTTP ${response.status}`), { retry: true });
+  const feed = await response.json();
+  try { return await m5Snapshot(feed, now); } catch (error) {
+    error.retry = !(Number.isInteger(feed?.bar_time) && feed.bar_time >= Math.floor(now / SECONDS) * SECONDS - SECONDS);
+    throw error;
+  }
 }
 
 // The runner fails closed without a receipt, so a lost forward only loses this candle.
@@ -116,7 +126,7 @@ export async function runM5(env) {
     let snapshot;
     for (let attempt = 0; attempt < 5; attempt++) {
       try { snapshot = await readM5(env); break; } catch (error) {
-        if (attempt === 4) {
+        if (!error.retry || attempt === 4 || (Date.now() / 1000) % SECONDS >= 20) {
           console.info('Jev M5: no fresh candidate; nothing spent.', /^(Invalid|Stale|M5 origin)/.test(error.message) ? error.message : error.name);
           return;
         }

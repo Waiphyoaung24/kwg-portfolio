@@ -1,5 +1,5 @@
 import { scorecard } from './jev-scorecard.js';
-import { m5Request, parseM5, QUESTION_SHA256 } from './jev-m5.js';
+import { LATEST, m5Request, parseM5, QUESTION_SHA256 } from './jev-m5.js';
 export const JEV_MODEL = 'jev-1.13.0';
 const LIMIT = 5_000_000; // USD microdollars, including the earlier 17-microdollar smoke test.
 const RESERVE = 3_000; // Covers 65,536 input tokens at the pinned $0.042/M price; output is free.
@@ -122,6 +122,7 @@ export class JevObserver {
     const key = `m5:${snapshot.bar_time}`, body = JSON.stringify(m5Request(snapshot));
     if (body.length > 64000) return json({ status: 'unavailable', message: 'Snapshot too large.' }, 400);
     const question_sha256 = await QUESTION_SHA256, now = Date.now();
+    if (now / 1000 > snapshot.bar_time + LATEST) return json({ status: 'too_late', message: 'Too close to the Jev deadline. No request sent.' }, 400);
     const receipt = (status, result = null) => ({ bar_time: snapshot.bar_time, input_sha256: snapshot.input_sha256,
       model: JEV_MODEL, question_sha256, status, choice: result?.choice ?? null, confidence: result?.confidence ?? null,
       probabilities: result?.probabilities ?? null, completed_at: Date.now() / 1000 });

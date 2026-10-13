@@ -78,7 +78,7 @@ class JevM5PilotTest(unittest.TestCase):
         report = self.tick(NOW + 600)                               # candidate
         self.assertEqual(report['execution']['status'], 'open')     # shadow never blocks
         feed = json.loads(self.feed.read_text())
-        self.assertEqual(set(feed), {'status', 'checked_at', 'candidate', 'state_json', 'input_sha256', 'bid', 'ask'})
+        self.assertEqual(set(feed), {'status', 'checked_at', 'candidate', 'bar_time', 'state_json', 'input_sha256', 'bid', 'ask'})
         self.assertTrue(feed['candidate'])
         state = json.loads(feed['state_json'])
         self.assertEqual(state['bar_time'], NOW + 300)
@@ -223,6 +223,45 @@ class JevM5PilotTest(unittest.TestCase):
         self.assertNotIn('jev_mode', report['pilot'])
         self.assertEqual(self.rows(), [])
 
+    def test_refresh_keeps_matching_candidate_visible_until_deadline(self):
+        bar, digest = NOW + 300, 'a' * 64
+        self.feed.write_text(json.dumps(dict(status='ready', checked_at=NOW + 600, candidate=True, bar_time=bar,
+                                             state_json='{}', input_sha256=digest, bid=1, ask=2)))
+        checked = lambda: json.loads(self.feed.read_text())['checked_at']
+        pilot.refresh_jev(bar, 'b' * 64, NOW + 610)                 # other input
+        pilot.refresh_jev(bar + 300, digest, NOW + 610)            # other candle
+        self.assertEqual(checked(), NOW + 600)
+        pilot.refresh_jev(bar, digest, NOW + 650.7)
+        self.assertEqual(checked(), NOW + 650)
+        self.assertEqual(json.loads(self.feed.read_text())['input_sha256'], digest)
+        pilot.refresh_jev(bar, None, NOW + 690)                    # shadow: matches the published candle
+        self.assertEqual(checked(), NOW + 690)
+        pilot.refresh_jev(bar, digest, NOW + 691)                  # after the Jev deadline
+        self.assertEqual(checked(), NOW + 690)
+        self.feed.write_text(json.dumps(dict(status='ready', checked_at=NOW, candidate=False, bar_time=bar)))
+        pilot.refresh_jev(bar, None, NOW + 610)
+        self.assertEqual(checked(), NOW)
+
+    def test_refresh_never_raises(self):
+        pilot.refresh_jev(NOW, 'a' * 64, NOW + 10)                 # missing feed
+        self.feed.write_text('{not json')
+        pilot.refresh_jev(NOW, 'a' * 64, NOW + 10)
+        self.feed.write_text('[]')
+        pilot.refresh_jev(NOW, 'a' * 64, NOW + 10)
+        self.assertEqual(self.feed.read_text(), '[]')
+
+    def test_shadow_polls_refresh_candidate_feed_until_deadline(self):
+        self.activate_m5()
+        self.fill()
+        self.tick(NOW + 300, bootstrap=True)
+        self.tick(NOW + 600)
+        self.assertEqual(json.loads(self.feed.read_text())['bar_time'], NOW + 300)
+        self.tick(NOW + 630)
+        feed = json.loads(self.feed.read_text())
+        self.assertEqual((feed['candidate'], feed['checked_at']), (True, NOW + 630))
+        self.tick(NOW + 691)
+        self.assertEqual(json.loads(self.feed.read_text())['checked_at'], NOW + 630)
+
     def test_read_gold_maps_m5_timeframe(self):
         mt5 = fake_mt5(enabled=True)
         mt5.TIMEFRAME_M5 = 5
@@ -270,6 +309,12 @@ class JevVetoTest(unittest.TestCase):
         self.assertEqual(self.rows(), [(NOW + 300, 'long', pending['input_sha256'], 1, None)])
         self.tick(NOW + 640)
         self.mt5.order_send.assert_called_once()
+
+    def test_waiting_entry_refreshes_candidate_feed(self):
+        self.pending()
+        self.assertEqual(self.tick(NOW + 650)['reason'], 'Waiting for Jev')
+        feed = json.loads(self.feed.read_text())
+        self.assertEqual((feed['candidate'], feed['bar_time'], feed['checked_at']), (True, NOW + 300, NOW + 650))
 
     def test_hold_receipt_drops_entry(self):
         self.pending()
