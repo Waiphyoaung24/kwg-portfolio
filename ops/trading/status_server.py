@@ -77,12 +77,14 @@ def sanitize_execution(value, now: float):
 
 
 def sanitize_pilot(value, now, symbol="XAUUSD-VIP"):
-    strategies = ("btc-ema-v1-m15-trend-3", "btc-ema-v1-m1-scalp-60") if symbol == "BTCUSD" else ("gold-ema-v1-slope-3", "gold-ema-v1-m1-slope-3", "gold-ema-v1-m1-trend-3")
+    strategies = ("btc-ema-v1-m15-trend-3", "btc-ema-v1-m1-scalp-60") if symbol == "BTCUSD" else ("gold-ema-v1-slope-3", "gold-ema-v1-m1-slope-3", "gold-ema-v1-m1-trend-3", "gold-ema-v1-m5-trend-jev")
     if (not isinstance(value, dict) or value.get('strategy') not in strategies
             or value.get('qualification') != 'unqualified'
             or value.get('status') not in ('standby', 'active', 'paused', 'needs_attention', 'expired')):
         raise ValueError('Invalid pilot state')
     result = {k: value[k] for k in ('strategy', 'qualification', 'status')}
+    if value['strategy'] == 'gold-ema-v1-m5-trend-jev' and value.get('jev_mode') in ('shadow', 'veto'):
+        result['jev_mode'] = value['jev_mode']
     for k in ('updated_at', 'started_at', 'ends_at', 'realized_net_usd', 'floating_usd', 'completed_trades'):
         number = value.get(k)
         if number is not None and (type(number) not in (int, float) or not math.isfinite(number) or abs(number) > 1e12):

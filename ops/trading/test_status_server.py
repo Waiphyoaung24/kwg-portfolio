@@ -124,6 +124,19 @@ class StatusServerTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             sanitize_pilot(fixture['pilot'], fixture['checked_at'])
 
+    def test_m5_jev_strategy_survives_status_boundary_with_known_mode_only(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
+        now = fixture['checked_at']
+        for mode in ('shadow', 'veto'):
+            value = dict(fixture['pilot'], strategy='gold-ema-v1-m5-trend-jev', jev_mode=mode)
+            self.assertEqual(sanitize_pilot(value, now), value)
+        for mode in ('live', None, 1):
+            value = dict(fixture['pilot'], strategy='gold-ema-v1-m5-trend-jev', jev_mode=mode)
+            self.assertNotIn('jev_mode', sanitize_pilot(value, now))
+        self.assertNotIn('jev_mode', sanitize_pilot(dict(fixture['pilot'], jev_mode='veto'), now))
+        with self.assertRaises(ValueError):
+            sanitize_pilot(dict(fixture['pilot'], strategy='gold-ema-v1-m5-trend-jev'), now, 'BTCUSD')
+
     def test_pilot_contract_and_expiry_do_not_mix_manual_execution(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
         with tempfile.TemporaryDirectory() as root:

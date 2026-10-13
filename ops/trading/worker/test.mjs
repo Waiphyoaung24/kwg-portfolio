@@ -34,6 +34,25 @@ test('BTC status forwards an explicit selector and rejects a gold response', asy
   assert.equal((await worker.fetch(new Request(url+'?symbol=unknown'), env, { access })).status, 400);
 });
 
+test('gold status keeps the M5 Jev strategy and drops an unknown Jev mode', async (t) => {
+  const original = globalThis.fetch;
+  t.after(() => { globalThis.fetch = original; });
+  const payload = JSON.parse(readFileSync(new URL('../fixtures/pilot-status.json', import.meta.url)));
+  const now = Math.floor(Date.now()/1000), shift = now-payload.checked_at;
+  payload.checked_at = payload.pilot.updated_at = payload.execution.updated_at = now;
+  payload.pilot.started_at += shift;
+  payload.pilot.ends_at += shift;
+  payload.pilot.recent_trades = [];
+  payload.pilot.strategy = 'gold-ema-v1-m5-trend-jev';
+  globalThis.fetch = async () => Response.json(payload);
+  payload.pilot.jev_mode = 'shadow';
+  assert.equal((await (await worker.fetch(new Request(url), env, { access })).json()).pilot.jev_mode, 'shadow');
+  payload.pilot.jev_mode = 'live';
+  const pilot = (await (await worker.fetch(new Request(url), env, { access })).json()).pilot;
+  assert.equal(pilot.strategy, 'gold-ema-v1-m5-trend-jev');
+  assert.equal('jev_mode' in pilot, false);
+});
+
 test('operations page requires exact Access identity and supports only fixed GET paths', async (t) => {
   const original = globalThis.fetch;
   t.after(() => { globalThis.fetch = original; });

@@ -51,6 +51,20 @@ test('M1 trend survives Worker and identifies its cooldown', () => {
   assert.equal(pilotFields(trend.pilot, now).canPause, true);
 });
 
+test('M5 Jev strategy survives Worker with a known mode only and labels five-minute candles', () => {
+  for (const jev_mode of ['shadow', 'veto']) {
+    const m5 = { ...fixture, pilot: { ...fixture.pilot, strategy: 'gold-ema-v1-m5-trend-jev', jev_mode } };
+    assert.deepEqual(normalizeStatus(m5, now), m5);
+    assert.match(statusFields(m5, now).guidance, /completed 5-minute candles/);
+    assert.match(statusFields(m5, now).strategy, new RegExp(`EMA trend.*Jev ${jev_mode}`));
+  }
+  for (const jev_mode of ['live', null, 1]) {
+    assert.equal('jev_mode' in normalizePilot({ ...fixture.pilot, strategy: 'gold-ema-v1-m5-trend-jev', jev_mode }, now), false);
+  }
+  assert.equal('jev_mode' in normalizePilot({ ...fixture.pilot, jev_mode: 'veto' }, now), false);
+  assert.throws(() => normalizePilot({ ...fixture.pilot, strategy: 'gold-ema-v1-m5-trend-jev' }, now, 'BTCUSD'));
+});
+
 test('pilot contract survives Worker and produces truthful demo fields', () => {
   assert.deepEqual(normalizeStatus(fixture, now), fixture);
   assert.equal(statusFields(fixture, now).state, 'Demo pilot');
