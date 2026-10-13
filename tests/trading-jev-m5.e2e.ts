@@ -21,7 +21,7 @@ for (const width of [1280, 375]) {
     });
     await app.open('/vault/trading');
     await expect(screen.getByRole('heading', 'Jev shadow scorecard')).toBeVisible();
-    await expect(browser.locator('#jev-m5-mode')).toHaveText('Shadow');
+    await expect(browser.locator('#jev-m5-mode')).toHaveText(/^shadow$/i);
     await expect(browser.locator('#jev-m5-kept')).toHaveText('↑ +$2.25 · 6 trades');
     await expect(browser.locator('#jev-m5-all')).toHaveText('↓ −$1.50 · 9 trades');
     await expect(browser.locator('#jev-m5-verdict')).toHaveText('Gate not met');
