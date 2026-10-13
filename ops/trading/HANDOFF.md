@@ -10,8 +10,7 @@ Code, tests, Worker routes, dashboard panel, cutover and promotion scripts are
 on the branch; **nothing is deployed** and the Worker ships `JEV_M5_LIVE="false"`.
 **Running on VPS (last recorded, not reverified 2026-10-13):** autonomous demo
 pilot (Gold M1 trend, BTC per `BTC-SCALPING.md`), M15 Jev observer and its
-scorecard timer, status sidecar, Worker. Algo Trading stays on only inside the
-reviewed demo pilot; there is still no live-account path.
+scorecard timer, status sidecar, Worker. There is still no live-account path.
 **Next:** merge `jev-integration` after review, then follow the
 JEV-M5.md deployment order while Gold is flat. Separate follow-up: harden the
 M15 scorecard publisher unit (same symlink pattern fixed for M5).
