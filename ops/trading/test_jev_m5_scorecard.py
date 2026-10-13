@@ -174,5 +174,22 @@ class M5ScorecardTest(unittest.TestCase):
         self.assertFalse(output.with_suffix('.tmp').exists())
 
 
+class PublishSafetyTest(unittest.TestCase):
+    def test_planted_temp_symlink_is_not_followed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / 'jev-m5-scorecard.json'
+            victim = root / 'victim.txt'
+            victim.write_text('keep')
+            planted = root / f'.{output.name}.{os.getpid()}.tmp'
+            planted.symlink_to(victim)
+            publish(root / 'missing.sqlite3', root / 'r.sqlite3', output)
+            self.assertEqual(victim.read_text(), 'keep')
+            self.assertFalse(planted.exists() or planted.is_symlink())
+            self.assertEqual(json.loads(output.read_text())['status'], 'unavailable')
+            self.assertEqual(output.stat().st_mode & 0o777, 0o644)
+            self.assertFalse(output.is_symlink())
+
+
 if __name__ == '__main__':
     unittest.main()

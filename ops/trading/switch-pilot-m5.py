@@ -182,6 +182,7 @@ def deploy(stage, reviewed):
     (ROOT / 'status_server.py').chmod(0o644)
     run(['docker', 'tag', image, 'kwg-mt5-desktop:qualification'])
     run(compose + ['up', '-d', '--no-build', '--pull', 'never', '--no-deps', '--force-recreate', 'desktop', 'status'], timeout=120)
+    seen = None
     for _ in range(18):
         try:
             read = 'import urllib.request; print(urllib.request.urlopen("http://127.0.0.1:8000/status",timeout=5).read().decode())'
@@ -193,6 +194,11 @@ def deploy(stage, reviewed):
                 if p.get('status') != 'active':
                     # A pause latched at startup (identity, clock, limits) shows here; the switch refused all earlier pauses.
                     raise RuntimeError('M5 runner not active after restart: ' + str(p.get('status')) + ': ' + str(p.get('reason')))
+                # Require two consecutive active polls, so a pause latched on the second poll is not missed.
+                if seen is None or report['checked_at'] == seen:
+                    seen = report['checked_at']
+                    time.sleep(5)
+                    continue
                 print('M5_JEV_SHADOW_DEPLOYED', json.dumps(dict(gold=report, order_sent=False)), flush=True)
                 return
         except (subprocess.SubprocessError, ValueError, KeyError):

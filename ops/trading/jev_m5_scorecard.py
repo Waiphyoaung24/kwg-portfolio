@@ -13,6 +13,7 @@ import argparse
 from contextlib import closing
 import json
 import math
+import os
 from pathlib import Path
 import sqlite3
 import time
@@ -122,9 +123,17 @@ def publish(journal, receipts, output):
         body = json.dumps(export(journal, receipts), allow_nan=False, separators=(',', ':'))
     except Exception as error:
         body = json.dumps(dict(status='unavailable', generated_at=time.time(), error=type(error).__name__))
-    temporary = output.with_suffix('.tmp')
-    temporary.write_text(body, encoding='utf-8')
-    temporary.replace(output)
+    # Root writes into a container-writable volume: never follow a planted symlink at the temp path.
+    temporary = output.with_name(f'.{output.name}.{os.getpid()}.tmp')
+    try:
+        os.unlink(temporary)  # unlink removes a symlink itself, not its target.
+    except FileNotFoundError:
+        pass
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0), 0o644)
+    with os.fdopen(descriptor, 'w', encoding='utf-8') as handle:
+        os.fchmod(handle.fileno(), 0o644)
+        handle.write(body)
+    os.replace(temporary, output)
 
 
 if __name__ == '__main__':

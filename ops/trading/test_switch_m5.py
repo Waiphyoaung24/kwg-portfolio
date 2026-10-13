@@ -187,7 +187,7 @@ class DeployM5Test(unittest.TestCase):
         (root / 'status_server.py').write_text('old status')
         return stage, pilot.digest(sources)
 
-    def deploy(self, *, tamper=False, drop_jev=False, receipt_ok=True, review_ok=True, pilot_status='active'):
+    def deploy(self, *, tamper=False, drop_jev=False, receipt_ok=True, review_ok=True, pilot_status='active', stamps=None):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             stage, reviewed = self.make_stage(root, tamper=tamper, drop_jev=drop_jev)
@@ -216,7 +216,8 @@ class DeployM5Test(unittest.TestCase):
                     result = dict(strategy=pilot.M5_JEV_STRATEGY, jev_mode='shadow', code=reviewed, ends_at=None, order_sent=False)
                     return 'M5_JEV_JOURNAL_SWITCHED ' + json.dumps(result) if receipt_ok else 'missing'
                 if 'kwg-trading-status' in args:
-                    return json.dumps(dict(checked_at=time.time(), pilot=dict(strategy=pilot.M5_JEV_STRATEGY,
+                    stamp = time.time() if stamps is None else stamps.pop(0) if len(stamps) > 1 else stamps[0]
+                    return json.dumps(dict(checked_at=stamp, pilot=dict(strategy=pilot.M5_JEV_STRATEGY,
                                                                                 jev_mode='shadow', ends_at=None,
                                                                                 status=pilot_status)))
                 return ''
@@ -227,7 +228,7 @@ class DeployM5Test(unittest.TestCase):
             deploy = module['deploy']
             with patch.dict(deploy.__globals__, ROOT=root, run=run), \
                     patch.object(module['runpy'], 'run_path', return_value={'stop_runner': stop}), \
-                    patch('builtins.print') as output:
+                    patch.object(module['time'], 'sleep'), patch('builtins.print') as output:
                 try:
                     deploy(stage, reviewed)
                     error = None
@@ -264,6 +265,18 @@ class DeployM5Test(unittest.TestCase):
         _, calls, _, _, _ = self.deploy()
         review = next(i for i, c in enumerate(calls) if 'script' in c and '--apply' not in c[-2])
         self.assertLess(review, calls.index(['stop_runner']))
+
+    def test_deployed_only_after_two_distinct_fresh_active_reports(self):
+        now = int(time.time())
+        with patch.object(module['time'], 'sleep'):
+            error, calls, output, _, _ = self.deploy(stamps=[now, now, now + 5])
+        self.assertIsNone(error)
+        self.assertEqual(sum('kwg-trading-status' in c for c in calls), 3)
+        self.assertTrue(any(c.args and c.args[0] == 'M5_JEV_SHADOW_DEPLOYED' for c in output.call_args_list))
+        with patch.object(module['time'], 'sleep'):
+            error, _, output, _, _ = self.deploy(stamps=[now])
+        self.assertIn('not verified', error)
+        self.assertFalse(any(c.args and c.args[0] == 'M5_JEV_SHADOW_DEPLOYED' for c in output.call_args_list))
 
     def test_paused_runner_after_restart_fails_verification(self):
         for status in ('paused', 'needs_attention'):
@@ -342,7 +355,8 @@ class StageM5Test(unittest.TestCase):
         self.assertIn('ExecStart=' + ' '.join(command) + '\n', service)
         for line in ('ProtectSystem=strict', 'ReadWritePaths=' + status, 'PrivateNetwork=yes', 'NoNewPrivileges=yes',
                      'PrivateTmp=yes', 'ProtectHome=yes', 'RestrictAddressFamilies=AF_UNIX',
-                     'CapabilityBoundingSet=CAP_DAC_OVERRIDE'):
+                     'CapabilityBoundingSet=CAP_DAC_OVERRIDE', 'PrivateDevices=yes', 'ProtectKernelTunables=yes',
+                     'ProtectKernelModules=yes', 'ProtectControlGroups=yes', 'ProtectProc=invisible'):
             self.assertIn(line + '\n', service)
         self.assertNotIn('User=', service)  # Root: /var/lib/docker is not traversable by uid 10001.
         self.assertIn('OnUnitActiveSec=60\n', timer)
