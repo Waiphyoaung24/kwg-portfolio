@@ -359,6 +359,8 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                     if candidate:
                         candidate['attempt'] = execution._attempt(db)['id']
                     def guard(request):
+                        if pending and time.time() > pending['bar_time'] + jev_m5.SECONDS + jev_m5.DEADLINE:
+                            raise ValueError('Jev deadline passed before submission')
                         if pause_path.exists() or expired(p, time.time()):
                             raise ValueError('Pause or expiry before submission')
                         fresh_tick, fresh_bars = read_gold(mt5, login, None,
@@ -432,8 +434,8 @@ def require_flat(mt5, login, now, symbol, shared):
 def read_receipt(bar_time):
     try:
         return jev_m5.load_receipt(RECEIPTS, bar_time)
-    except (sqlite3.Error, OSError):
-        return None  # Another process may hold the receipt store; wait until the deadline.
+    except Exception:
+        return None  # A locked or corrupt receipt store means no receipt yet; wait until the deadline.
 
 
 def drop_pending(db, p, reason):

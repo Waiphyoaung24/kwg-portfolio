@@ -367,3 +367,22 @@ class JevVetoTest(unittest.TestCase):
                              received=NOW + 300)
         self.assertEqual(self.tick(NOW + 600)['execution']['status'], 'open')
         self.mt5.order_send.assert_called_once()
+
+    def test_deadline_rechecked_at_submission(self):
+        self.pending()
+        self.store()
+        def late(request):
+            self.clock = NOW + 691
+            return Record(retcode=0)
+        self.mt5.order_check.side_effect = late
+        self.tick(NOW + 630)
+        self.mt5.order_send.assert_not_called()
+        self.assertEqual(self.rows()[0][3:], (0, 'disarmed: Jev deadline passed before submission'))
+
+    def test_corrupt_receipt_keeps_waiting(self):
+        self.pending()
+        with sqlite3.connect(self.receipts) as db:
+            db.execute('CREATE TABLE receipts (bar_time INTEGER PRIMARY KEY, received REAL NOT NULL, payload TEXT NOT NULL)')
+            db.execute('INSERT INTO receipts VALUES (?, ?, ?)', (NOW + 300, NOW + 620, '{corrupt'))
+        self.assertEqual(self.tick(NOW + 630)['reason'], 'Waiting for Jev')
+        self.mt5.order_send.assert_not_called()
