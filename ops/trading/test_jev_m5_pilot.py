@@ -1,13 +1,16 @@
 import json
+import sqlite3
 from pathlib import Path
 from types import SimpleNamespace as Record
 import unittest
 from unittest.mock import Mock, patch
 
 import demo_pilot as pilot
+import jev_m5
 import mt5_data
 from mt5_data import BrokerUnavailable
 from test_demo_one_shot import fake_mt5, NOW  # NOW is also on the M5 grid
+from test_jev_m5 import receipt
 import test_demo_pilot
 
 
@@ -19,9 +22,10 @@ class JevM5PilotTest(unittest.TestCase):
     def setUp(self):
         test_demo_pilot.PilotTest.setUp(self)
         self.feed = Path(self.temp.name) / 'jev-m5.json'
-        p = patch.object(pilot, 'JEV_FEED', self.feed)
-        p.start()
-        self.addCleanup(p.stop)
+        self.receipts = Path(self.temp.name) / 'jev-m5-receipts.sqlite3'
+        for p in (patch.object(pilot, 'JEV_FEED', self.feed), patch.object(pilot, 'RECEIPTS', self.receipts)):
+            p.start()
+            self.addCleanup(p.stop)
 
     def activate_m5(self, mode='shadow'):
         self.start()
@@ -40,7 +44,7 @@ class JevM5PilotTest(unittest.TestCase):
         self.mt5.copy_rates_from_pos.return_value = [dict(time=(stamp // seconds - 250 + i) * seconds,
             open=100, high=101, low=99, close=100) for i in range(250)]
         with patch('demo_pilot.evaluate', return_value={'bar_time': stamp // seconds * seconds - seconds,
-                   'signal': signal, 'reason': 'evaluated', 'ema20': 101 if signal == 'long' else 99,
+                   'signal': signal, 'reason': 'evaluated', 'ema20': {'long': 101, 'short': 99}.get(signal, 100),
                    'ema50': 100, 'atr14': 2.0}), \
                 patch('demo_pilot.entry_allowed', return_value=allowed):
             return pilot.poll_once(self.mt5, self.db, 123, stamp, self.pause, **kwargs)
@@ -201,9 +205,6 @@ class JevM5PilotTest(unittest.TestCase):
     def test_unknown_mode_pauses_without_orders(self):
         self.assert_paused('live', 'Invalid Jev mode')
 
-    def test_veto_mode_pauses_until_implemented(self):
-        self.assert_paused('veto', 'Veto mode not implemented')
-
     def test_other_strategies_never_publish_feed_or_jev_mode(self):
         self.start()
         p = pilot.state(self.db)
@@ -228,3 +229,141 @@ class JevM5PilotTest(unittest.TestCase):
         _, bars = mt5_data.read_gold(mt5, 123, stamp, execution=True, bar_seconds=300, trend_demo=True)
         self.assertEqual(mt5.copy_rates_from_pos.call_args[0][1], 5)
         self.assertIs(type(bars[-1]['time']), int)
+
+
+class JevVetoTest(unittest.TestCase):
+    setUp, start, fill = JevM5PilotTest.setUp, JevM5PilotTest.start, JevM5PilotTest.fill
+    activate_m5, tick, rows = JevM5PilotTest.activate_m5, JevM5PilotTest.tick, JevM5PilotTest.rows
+
+    # Candidate candle closes at T = NOW + 600 (bar_time NOW + 300); deadline T + 90.
+    def pending(self, signal='long'):
+        self.activate_m5('veto')
+        self.fill()
+        self.tick(NOW + 300, bootstrap=True)
+        report = self.tick(NOW + 600, signal=signal)
+        self.mt5.order_send.assert_not_called()
+        return report
+
+    def store(self, choice='buy', completed=NOW + 620, digest=None):
+        digest = digest or pilot.state(self.db)['pending_entry']['input_sha256']
+        jev_m5.store_receipt(self.receipts, receipt(choice, completed=completed, bar_time=NOW + 300,
+                                                    input_sha256=digest), received=completed)
+
+    def test_candidate_defers_and_agreeing_receipt_submits_next_poll(self):
+        report = self.pending()
+        self.assertEqual(report['reason'], 'Waiting for Jev')
+        pending = pilot.state(self.db)['pending_entry']
+        feed = json.loads(self.feed.read_text())
+        self.assertTrue(feed['candidate'])
+        self.assertEqual(pending, {'bar_time': NOW + 300, 'side': 'long', 'input_sha256': feed['input_sha256']})
+        self.assertEqual(self.rows(), [])
+        self.store()
+        report = self.tick(NOW + 630)
+        self.assertEqual(report['execution']['status'], 'open')
+        self.mt5.order_send.assert_called_once()
+        self.assertNotIn('pending_entry', pilot.state(self.db))
+        self.assertEqual(self.rows(), [(NOW + 300, 'long', pending['input_sha256'], 1, None)])
+        self.tick(NOW + 640)
+        self.mt5.order_send.assert_called_once()
+
+    def test_hold_receipt_drops_entry(self):
+        self.pending()
+        self.store('hold')
+        self.tick(NOW + 630)
+        self.mt5.order_send.assert_not_called()
+        self.assertNotIn('pending_entry', pilot.state(self.db))
+        self.assertEqual(self.rows()[0][3:], (0, 'Jev chose hold'))
+
+    def test_no_receipt_by_deadline_drops_entry(self):
+        self.pending()
+        self.assertEqual(self.tick(NOW + 690)['reason'], 'Waiting for Jev')
+        self.tick(NOW + 691)
+        self.mt5.order_send.assert_not_called()
+        self.assertNotIn('pending_entry', pilot.state(self.db))
+        self.assertEqual(self.rows()[0][3:], (0, 'No Jev receipt'))
+
+    def test_receipt_for_other_input_drops_entry(self):
+        self.pending()
+        self.store(digest='b' * 64)
+        self.tick(NOW + 630)
+        self.mt5.order_send.assert_not_called()
+        self.assertEqual(self.rows()[0][3:], (0, 'Receipt is for another candle'))
+
+    def test_new_candle_drops_pending_without_replay(self):
+        self.pending()
+        self.store()
+        self.tick(NOW + 900)              # next candle: the old receipt must not be replayed
+        self.mt5.order_send.assert_not_called()
+        self.assertEqual(self.rows()[0][0::3], (NOW + 300, 0))
+        self.assertEqual(self.rows()[0][4], 'Jev receipt missed the 90-second deadline')
+        self.assertEqual(pilot.state(self.db)['pending_entry']['bar_time'], NOW + 600)
+
+    def test_pause_drops_pending(self):
+        self.pending()
+        self.store()
+        self.pause.write_text('owner pause')
+        self.tick(NOW + 630)
+        self.mt5.order_send.assert_not_called()
+        self.assertNotIn('pending_entry', pilot.state(self.db))
+        self.assertEqual(self.rows()[0][3:], (0, 'Paused by owner'))
+
+    def test_signal_change_drops_pending(self):
+        self.pending()
+        self.store()
+        self.tick(NOW + 630, signal='short')
+        self.mt5.order_send.assert_not_called()
+        self.assertEqual(self.rows()[0][3:], (0, 'Signal changed'))
+
+    def test_jev_never_originates(self):
+        self.pending(signal='none')
+        self.assertNotIn('pending_entry', pilot.state(self.db))
+        self.store(digest='a' * 64)
+        self.tick(NOW + 630, signal='none')
+        self.tick(NOW + 640, signal='long')
+        self.mt5.order_send.assert_not_called()
+        self.assertEqual(self.rows(), [])
+
+    def test_receipt_read_error_keeps_waiting_until_valid(self):
+        self.pending()
+        self.store()
+        with patch('demo_pilot.jev_m5.load_receipt', side_effect=sqlite3.OperationalError('database is locked')):
+            self.assertEqual(self.tick(NOW + 630)['reason'], 'Waiting for Jev')
+        self.mt5.order_send.assert_not_called()
+        self.assertEqual(self.tick(NOW + 640)['execution']['status'], 'open')
+        self.assertEqual(self.rows()[0][3], 1)
+
+    def test_restart_drops_pending(self):
+        self.pending()
+        self.store()
+        self.tick(NOW + 700, bootstrap=True)
+        self.mt5.order_send.assert_not_called()
+        self.assertNotIn('pending_entry', pilot.state(self.db))
+        self.assertEqual(self.rows()[0][3:], (0, 'Runner restarted'))
+
+    def test_state_failure_fails_closed(self):
+        self.activate_m5('veto')
+        self.fill()
+        self.tick(NOW + 300, bootstrap=True)
+        with patch('demo_pilot.jev_m5.state', side_effect=ValueError('Need 50 completed M5 bars')):
+            self.tick(NOW + 600)
+        self.mt5.order_send.assert_not_called()
+        self.assertNotIn('pending_entry', pilot.state(self.db))
+        self.assertEqual(self.rows(), [(NOW + 300, 'long', '', 0, 'Jev feed unavailable: Need 50 completed M5 bars')])
+
+    def test_exposure_while_waiting_drops_entry(self):
+        self.pending()
+        self.store()
+        self.mt5.positions_get.return_value = (Record(ticket=5, symbol='XAUUSD-VIP'),)
+        self.tick(NOW + 630)
+        self.mt5.order_send.assert_not_called()
+        self.assertNotIn('pending_entry', pilot.state(self.db))
+        self.assertEqual(self.rows()[0][3:], (0, 'Account exposure blocks another entry'))
+
+    def test_shadow_ignores_disagreeing_receipt(self):
+        self.activate_m5('shadow')
+        self.fill()
+        self.tick(NOW + 300, bootstrap=True)
+        jev_m5.store_receipt(self.receipts, receipt('sell', completed=NOW + 300, bar_time=NOW + 300),
+                             received=NOW + 300)
+        self.assertEqual(self.tick(NOW + 600)['execution']['status'], 'open')
+        self.mt5.order_send.assert_called_once()

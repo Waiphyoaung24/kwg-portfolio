@@ -22,6 +22,7 @@ TREND_STRATEGY = 'gold-ema-v1-m1-trend-3'
 M5_JEV_STRATEGY = 'gold-ema-v1-m5-trend-jev'
 SNAPSHOT = Path(r'Z:\opt\status\latest.json')
 JEV_FEED = SNAPSHOT.with_name('jev-m5.json')
+RECEIPTS = Path.home() / 'jev-m5-receipts.sqlite3'
 SOURCES = ('demo_pilot.py', 'demo_one_shot.py', 'mt5_data.py', 'gold_signal.py', 'gold_experiment.py', 'instruments.py', 'jev_m5.py')
 
 
@@ -267,9 +268,8 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
         else:
             if p.pop('recovering', False):
                 p['last_bar'] = None
-        if p['strategy'] == M5_JEV_STRATEGY and p.get('jev_mode') != 'shadow':
-            # Task 7 adds veto; until then no M5 entry runs without a supported mode.
-            p['pause'] = p['pause'] or ('Veto mode not implemented' if p.get('jev_mode') == 'veto' else 'Invalid Jev mode')
+        if p['strategy'] == M5_JEV_STRATEGY and p.get('jev_mode') not in ('shadow', 'veto'):
+            p['pause'] = p['pause'] or 'Invalid Jev mode'
         if status['status'] in ('needs_attention', 'submitting', 'closing'):
             p['pause'] = p['pause'] or 'Broker outcome requires review'
         if expired(p, now):
@@ -295,7 +295,20 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                 status = execution._status(db, now)
         p['last_poll'] = max(now, p['last_poll'])
         save(db, p)
-    candidate = None
+    candidate = approved = kept = None
+    pending = p and p.get('pending_entry')
+    if pending:
+        # A deferred veto entry is never replayed across a pause, restart, mode change or candle.
+        if p['pause'] or bootstrap or p.get('jev_mode') != 'veto':
+            drop_pending(db, p, p['pause'] or ('Runner restarted' if bootstrap else 'Jev mode changed'))
+            pending = None
+        else:
+            receipt = read_receipt(pending['bar_time'])
+            approved, why = jev_m5.allows(receipt, side=pending['side'], bar_time=pending['bar_time'],
+                                          input_sha256=pending['input_sha256'], now=now)
+            if not approved and (receipt is not None or now > pending['bar_time'] + jev_m5.SECONDS + jev_m5.DEADLINE):
+                drop_pending(db, p, why)
+                pending = None
     try:
         tick, bars = read_gold(mt5, login, now, health,
                               server_offset_seconds=execution._server_offset(), execution=bool(p) or shared is not None, bar_seconds=seconds, trend_demo=symbol == BTC or trending(p), symbol=symbol)
@@ -309,6 +322,9 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
             if new_bar:
                 p['last_bar'] = result['bar_time']
                 save(db, p)
+            if pending and (result['bar_time'] != pending['bar_time'] or result['signal'] != pending['side']):
+                drop_pending(db, p, 'New candle' if result['bar_time'] != pending['bar_time'] else 'Signal changed')
+                pending = None
             if result['signal'] == 'blocked':
                 report.update(status='blocked', reason=result['reason'])
             elif p['pause']:
@@ -317,17 +333,28 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                 report.update(status='baseline', reason='Startup or missed candle baseline')
             elif cooldown:
                 report.update(reason=f'Cooldown after close: {cooldown} seconds remaining')
-            elif new_bar and result['signal'] in ('long', 'short') and entry_allowed(bars, result['signal'], 3):
+            elif (new_bar or pending) and result['signal'] in ('long', 'short') and entry_allowed(bars, result['signal'], 3):
                 report['signal'] = result['signal']
-                if status['status'] in ('closed', 'disarmed'):
-                    if shared:
-                        shared.exposure(mt5, login, now)
-                    positions, orders = mt5.positions_get(symbol=symbol) if shared else mt5.positions_get(), mt5.orders_get(symbol=symbol) if shared else mt5.orders_get()
-                    if positions is None or orders is None or positions or orders:
-                        raise ValueError('Account exposure blocks another entry')
-                    if p['strategy'] == M5_JEV_STRATEGY:
+                if pending and not approved:
+                    kept = True
+                    report['reason'] = 'Waiting for Jev'
+                elif status['status'] in ('closed', 'disarmed') and p['strategy'] == M5_JEV_STRATEGY and p['jev_mode'] == 'veto' and not pending:
+                    require_flat(mt5, login, now, symbol, shared)
+                    deferred = jev_candidate(bars, tick, result, now)
+                    if deferred['error']:
+                        journal_jev(db, deferred, None)  # Veto fails closed without a published state.
+                        report['reason'] = deferred['error'][:160]
+                    else:
+                        p['pending_entry'] = {k: deferred[k] for k in ('bar_time', 'side', 'input_sha256')}
+                        save(db, p)
+                        report['reason'] = 'Waiting for Jev'
+                elif status['status'] in ('closed', 'disarmed'):
+                    require_flat(mt5, login, now, symbol, shared)
+                    if pending:
+                        candidate = dict(p.pop('pending_entry'), error=None, attempt=None)
+                        save(db, p)
+                    elif p['strategy'] == M5_JEV_STRATEGY:
                         candidate = jev_candidate(bars, tick, result, now)
-                        # Task 7: veto mode defers the entry here instead of submitting.
                     execution.arm_once(db, 'buy' if result['signal'] == 'long' else 'sell', int(now))
                     if candidate:
                         candidate['attempt'] = execution._attempt(db)['id']
@@ -367,7 +394,9 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
             else:
                 report['reason'] = ('Waiting for an eligible trend and slope' if trending(p)
                                     else 'Waiting for the next eligible crossover')
-            if new_bar and p['strategy'] == M5_JEV_STRATEGY and candidate is None:
+            if pending and not kept and 'pending_entry' in p:
+                drop_pending(db, p, report['reason'])
+            if new_bar and p['strategy'] == M5_JEV_STRATEGY and candidate is None and 'pending_entry' not in p:
                 try:
                     publish_jev(dict(status='ready', checked_at=int(now), candidate=False, bar_time=result['bar_time']))
                 except OSError:
@@ -376,6 +405,8 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
         report.update(status='blocked', reason=str(exc)[:160])
         if candidate:
             journal_jev(db, candidate, str(exc))
+        if p and 'pending_entry' in p:
+            drop_pending(db, p, str(exc))
     if health.get('tick_time') is not None:
         health['tick_time'] -= execution._server_offset()
     if health.get('tick_time_msc') is not None:
@@ -388,6 +419,26 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
     report['execution'] = status
     report['pilot'] = snapshot(mt5, db, p, status, now, login)
     return report
+
+
+def require_flat(mt5, login, now, symbol, shared):
+    if shared:
+        shared.exposure(mt5, login, now)
+    positions, orders = mt5.positions_get(symbol=symbol) if shared else mt5.positions_get(), mt5.orders_get(symbol=symbol) if shared else mt5.orders_get()
+    if positions is None or orders is None or positions or orders:
+        raise ValueError('Account exposure blocks another entry')
+
+
+def read_receipt(bar_time):
+    try:
+        return jev_m5.load_receipt(RECEIPTS, bar_time)
+    except (sqlite3.Error, OSError):
+        return None  # Another process may hold the receipt store; wait until the deadline.
+
+
+def drop_pending(db, p, reason):
+    journal_jev(db, dict(p.pop('pending_entry'), error=None, attempt=None), reason)
+    save(db, p)
 
 
 def publish_jev(value):
