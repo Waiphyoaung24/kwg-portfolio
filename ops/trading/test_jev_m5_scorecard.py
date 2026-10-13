@@ -47,6 +47,30 @@ class M5ScorecardTest(unittest.TestCase):
                 value.update(choice=None, confidence=None, probabilities=None)
             jev_m5.store_receipt(self.receipts, value, received=bar + 300 + (completed if received is None else received))
 
+    def test_frontend_contract_fixtures_match_export(self):
+        """The dashboard test (src/scripts/trading-jev-m5.test.mjs) maps these exact exports.
+
+        Regenerate after a deliberate scorecard change: REGENERATE_M5_FIXTURES=1 python3 -B -m pytest -q test_jev_m5_scorecard.py
+        """
+        folder = Path(__file__).parent / 'fixtures'
+        cases = {'empty': export(self.journal, self.receipts, now=5)}
+        self.add(-3.0, state=False)                                # no Jev state: a bad receipt
+        self.add(-3.0, receipt_status='timeout')
+        self.add(5.0)
+        self.add(-3.0, completed=91)                               # late
+        self.add(2.0, closed=False)
+        cases['bad-receipt'] = export(self.journal, self.receipts, now=LATER)
+        for i in range(56):
+            self.add(5.0 if i % 2 else -3.0, choice='buy' if i % 2 else 'hold')
+        cases['passing'] = export(self.journal, self.receipts, now=LATER)
+        self.assertTrue(cases['passing']['gate']['passes'])
+        self.assertIn('Bad receipts 3/5 reach the 20% limit', cases['bad-receipt']['gate']['reasons'])
+        for name, value in cases.items():
+            path = folder / f'jev-m5-scorecard-{name}.json'
+            if os.environ.get('REGENERATE_M5_FIXTURES') == '1':
+                path.write_text(json.dumps(value, indent=2, allow_nan=False) + '\n', encoding='utf-8')
+            self.assertEqual(json.loads(path.read_text(encoding='utf-8')), value)
+
     def test_empty_journal_fails_with_three_reasons(self):
         result = export(self.journal, self.receipts, now=5)
         self.assertEqual((result['status'], result['generated_at'], result['candidates']), ('ready', 5, 0))

@@ -3,7 +3,7 @@ const STRATEGY = 'gold-ema-v1-m5-trend-jev';
 const QUALIFICATION = 'demo fills; unqualified; not a profitability claim';
 const RECEIPTS = [['ok', 'OK'], ['timeout', 'Timeout'], ['unavailable', 'Unavailable'], ['budget_exhausted', 'Budget exhausted'],
   ['invalid', 'Invalid'], ['missing', 'Missing'], ['late', 'Late']];
-// Each gate check owns the fixed reason prefixes written by ops/trading/jev_m5_scorecard.py.
+// Each gate check owns the fixed reason prefixes written by ops/trading/jev_m5_scorecard.py; others become 'Other' rows.
 const CHECKS = [['closed', 'Closed trades', ['Need ']], ['receipts', 'Receipt health', ['No due shadow', 'Bad receipts ']],
   ['kept', 'Jev-kept beats all', ['Jev-kept ']]];
 const count = x => Number.isInteger(x) && x >= 0;
@@ -24,12 +24,12 @@ function group(value) {
 }
 
 export function m5ScorecardView(data) {
-  if (data?.status === 'unavailable') return { available: false, summary: 'Scorecard unavailable. Check your sign-in and the runner journal; results are not zero.',
+  if (data?.status === 'unavailable') return { available: false, summary: 'Scorecard unavailable or older than 2 minutes; results are not zero.', updated: '',
     kept: blank, all: blank, vetoed: blank, receipts: '—', counts: '—', verdict: 'Gate unavailable', checks: [] };
   const gate = data?.gate, r = data?.receipts;
   if (data?.status !== 'ready' || data.qualification !== QUALIFICATION || !Number.isFinite(data.generated_at) ||
       !['candidates', 'pending', 'no_state', 'closed', 'unresolved'].every(k => count(data[k])) ||
-      !r || !RECEIPTS.every(([k]) => count(r[k])) || !gate || !count(gate.min_closed) || !Array.isArray(gate.reasons) ||
+      !r || !RECEIPTS.every(([k]) => count(r[k])) || !gate || !count(gate.min_closed) || !Number.isFinite(gate.bad_receipt_max) || !Array.isArray(gate.reasons) ||
       !gate.reasons.every(reason => typeof reason === 'string') || gate.passes !== (gate.reasons.length === 0)) throw Error('Invalid scorecard');
   const kept = group(data.jev_kept), all = group(data.all), vetoed = group(data.jev_vetoed);
   if (RECEIPTS.reduce((sum, [k]) => sum + r[k], 0) + data.no_state !== data.candidates ||
@@ -46,10 +46,11 @@ export function m5ScorecardView(data) {
     const reason = index < 0 ? null : reasons.splice(index, 1)[0];
     return { label, detail: details[key], met: reason === null, reason };
   });
-  if (reasons.length) throw Error('Unknown gate reason');
-  const summary = (data.candidates ? `${data.candidates} due shadow candidates · ${data.closed} closed trades.` : 'No due shadow candidates yet.') +
-    ` Report updated ${time(data.generated_at)}.`;
+  // A reason added to the scorecard later stays visible rather than blanking the panel.
+  checks.push(...reasons.map(reason => ({ label: 'Other', detail: 'Reported by the scorecard', met: false, reason })));
+  const summary = data.candidates ? `${data.candidates} due shadow candidates · ${data.closed} closed trades.` : 'No due shadow candidates yet.';
   return { available: true, summary: data.synthetic ? `Synthetic local preview — not trading results. ${summary}` : summary,
+    updated: `Report updated ${time(data.generated_at)}.`,
     kept, all, vetoed, receipts: RECEIPTS.map(([k, label]) => `${label} ${r[k]}`).join(' · '),
     counts: `Pending ${data.pending} · No Jev state ${data.no_state} · Closed without P/L ${data.unresolved}`,
     verdict: gate.passes ? 'Gate met · owner review required before veto' : 'Gate not met', checks };
@@ -83,7 +84,9 @@ export function mountJevM5(doc, win, fetcher = fetch) {
       const [scorecard, budget] = await Promise.allSettled([get('/api/trading/jev-m5-scorecard'), get('/api/trading/jev')]);
       let view;
       try { view = m5ScorecardView(scorecard.status === 'fulfilled' ? scorecard.value : null); } catch { view = m5ScorecardView({ status: 'unavailable' }); }
-      field('summary').textContent = view.summary;
+      // Only the live region's changes are announced; the report time updates silently beside it.
+      if (field('summary').textContent !== view.summary) field('summary').textContent = view.summary;
+      field('updated').textContent = view.updated;
       for (const key of ['kept', 'all', 'vetoed']) { field(key).textContent = view[key].text; field(key).dataset.tone = view[key].tone; }
       field('verdict').textContent = view.verdict;
       field('receipts').textContent = view.receipts;

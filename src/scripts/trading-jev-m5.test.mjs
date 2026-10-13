@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { budgetText, m5Mode, m5ScorecardView, mountJevM5 } from './trading-jev-m5.mjs';
 
 const receipts = (ok = 0, rest = {}) => ({ ok, timeout: 0, unavailable: 0, budget_exhausted: 0, invalid: 0, missing: 0, late: 0, ...rest });
@@ -60,10 +61,11 @@ test('unavailable or malformed reports never show numbers', () => {
   const view = m5ScorecardView({ status: 'unavailable', generated_at: 1, error: 'OSError' });
   assert.equal(view.available, false);
   assert.equal(view.kept.text, '—');
-  assert.match(view.summary, /unavailable.*not zero/i);
+  assert.equal(view.summary, 'Scorecard unavailable or older than 2 minutes; results are not zero.');
+  assert.equal(view.updated, '');
   for (const change of [{ candidates: -1 }, { qualification: 'qualified' }, { receipts: receipts(1) },
     { all: { trades: 0, avg_net_usd: 0 } }, { gate: { ...empty().gate, passes: true } }, { gate: { ...empty().gate, reasons: 'x' } },
-    { gate: { ...empty().gate, reasons: ['Unexpected reason'] } }, { closed: 1 }]) {
+    { closed: 1 }, { gate: { ...empty().gate, bad_receipt_max: null } }, { gate: { ...empty().gate, bad_receipt_max: Infinity } }]) {
     assert.throws(() => m5ScorecardView({ ...empty(), ...change }));
   }
 });
@@ -109,4 +111,33 @@ test('panel polls with GET only, skips Bitcoin and clears numbers after a failur
   assert.match(get('jev-m5-summary').textContent, /unavailable/);
   assert.ok(calls.every(call => call.startsWith('GET ')));
   assert.deepEqual([...new Set(calls)].sort(), ['GET /api/trading/jev', 'GET /api/trading/jev-m5-scorecard']);
+});
+
+test('an unknown gate reason stays visible as an unmet Other row', () => {
+  const data = empty(); data.gate.reasons = [...data.gate.reasons, 'Owner paused veto review'];
+  const view = m5ScorecardView(data);
+  assert.equal(view.checks.length, 4);
+  assert.deepEqual(view.checks[3], { label: 'Other', detail: 'Reported by the scorecard', met: false, reason: 'Owner paused veto review' });
+});
+
+test('report time stays outside the live summary', () => {
+  const view = m5ScorecardView(populated());
+  assert.doesNotMatch(view.summary, /updated/i);
+  assert.equal(view.updated, 'Report updated 2026-10-12 19:15:00 UTC.');
+});
+
+test('real scorecard exports map through the view', () => {
+  const load = name => JSON.parse(readFileSync(new URL(`../../ops/trading/fixtures/jev-m5-scorecard-${name}.json`, import.meta.url)));
+  const none = m5ScorecardView(load('empty'));
+  assert.equal(none.verdict, 'Gate not met');
+  assert.deepEqual(none.checks.map(c => c.met), [false, false, false]);
+  const bad = m5ScorecardView(load('bad-receipt'));
+  assert.equal(bad.checks[1].detail, '3 / 5 bad (60%), limit under 20%');
+  assert.equal(bad.checks[1].reason, 'Bad receipts 3/5 reach the 20% limit');
+  assert.equal(bad.kept.text, '↑ +$5.00 · 1 trade');
+  assert.equal(bad.counts, 'Pending 0 · No Jev state 1 · Closed without P/L 0');
+  const pass = m5ScorecardView(load('passing'));
+  assert.equal(pass.verdict, 'Gate met · owner review required before veto');
+  assert.deepEqual(pass.checks.map(c => c.met), [true, true, true]);
+  assert.equal(pass.all.text, '↑ +$0.87 · 60 trades');
 });

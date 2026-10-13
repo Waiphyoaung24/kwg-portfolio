@@ -1,0 +1,44 @@
+{
+  "status": "ready",
+  "generated_at": 1801000000,
+  "candidates": 5,
+  "pending": 0,
+  "no_state": 1,
+  "mode_counts": {
+    "shadow": 5
+  },
+  "closed": 4,
+  "unresolved": 0,
+  "receipts": {
+    "ok": 2,
+    "timeout": 1,
+    "unavailable": 0,
+    "budget_exhausted": 0,
+    "invalid": 0,
+    "missing": 0,
+    "late": 1
+  },
+  "all": {
+    "trades": 4,
+    "avg_net_usd": -1.0
+  },
+  "jev_kept": {
+    "trades": 1,
+    "avg_net_usd": 5.0
+  },
+  "jev_vetoed": {
+    "trades": 3,
+    "avg_net_usd": -3.0
+  },
+  "gate": {
+    "min_closed": 50,
+    "bad_receipt_max": 0.2,
+    "bad_receipt_rate": 0.6,
+    "passes": false,
+    "reasons": [
+      "Need 50 closed shadow trades with resolved P/L; have 4",
+      "Bad receipts 3/5 reach the 20% limit"
+    ]
+  },
+  "qualification": "demo fills; unqualified; not a profitability claim"
+}

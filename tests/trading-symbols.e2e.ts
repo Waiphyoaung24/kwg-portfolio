@@ -57,7 +57,7 @@ test('Gold and Bitcoin views isolate prices, history, pause and sound baseline',
   await expect(browser.locator('#price')).toHaveText('—');
   await expect(browser.locator('#pilot-pause')).toBeDisabled();
   wrongSymbol = false;
-  await screen.getByRole('link', 'Gold · M1').tap();
+  await screen.getByRole('link', 'Gold').tap();
   await expect(browser.locator('#price')).toHaveText('4100.25 / 4100.50');
   await expect(browser.locator('#pilot-count')).toHaveText('6');
   assert.ok(selected.includes('BTCUSD') && selected.includes('XAUUSD-VIP'));
