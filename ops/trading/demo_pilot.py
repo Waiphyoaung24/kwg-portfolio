@@ -36,7 +36,7 @@ def open_state(path, login, symbol=SYMBOL):
     with db:
         db.execute('CREATE TABLE IF NOT EXISTS pilot (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)')
         db.execute('CREATE TABLE IF NOT EXISTS jev_candidates (bar_time INTEGER PRIMARY KEY, side TEXT NOT NULL, '
-                   'input_sha256 TEXT NOT NULL, submitted INTEGER NOT NULL, reason TEXT)')
+                   'input_sha256 TEXT NOT NULL, submitted INTEGER NOT NULL, reason TEXT, jev_mode TEXT, attempt TEXT)')
     return db
 
 
@@ -340,7 +340,7 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                     report['reason'] = 'Waiting for Jev'
                 elif status['status'] in ('closed', 'disarmed') and p['strategy'] == M5_JEV_STRATEGY and p['jev_mode'] == 'veto' and not pending:
                     require_flat(mt5, login, now, symbol, shared)
-                    deferred = jev_candidate(bars, tick, result, now)
+                    deferred = jev_candidate(bars, tick, result, now, 'veto')
                     if deferred['error']:
                         journal_jev(db, deferred, None)  # Veto fails closed without a published state.
                         report['reason'] = deferred['error'][:160]
@@ -351,10 +351,10 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                 elif status['status'] in ('closed', 'disarmed'):
                     require_flat(mt5, login, now, symbol, shared)
                     if pending:
-                        candidate = dict(p.pop('pending_entry'), error=None, attempt=None)
+                        candidate = dict(p.pop('pending_entry'), error=None, attempt=None, jev_mode='veto')
                         save(db, p)
                     elif p['strategy'] == M5_JEV_STRATEGY:
-                        candidate = jev_candidate(bars, tick, result, now)
+                        candidate = jev_candidate(bars, tick, result, now, p['jev_mode'])
                     execution.arm_once(db, 'buy' if result['signal'] == 'long' else 'sell', int(now))
                     if candidate:
                         candidate['attempt'] = execution._attempt(db)['id']
@@ -443,7 +443,7 @@ def read_receipt(bar_time):
 
 
 def drop_pending(db, p, reason):
-    journal_jev(db, dict(p.pop('pending_entry'), error=None, attempt=None), reason)
+    journal_jev(db, dict(p.pop('pending_entry'), error=None, attempt=None, jev_mode='veto'), reason)
     save(db, p)
 
 
@@ -467,8 +467,9 @@ def refresh_jev(bar_time, input_sha256, now):
         pass  # Trading never waits on the Jev feed; a stale feed only loses the Jev sample.
 
 
-def jev_candidate(bars, tick, result, now):
-    candidate = dict(bar_time=result['bar_time'], side=result['signal'], input_sha256='', error=None, attempt=None)
+def jev_candidate(bars, tick, result, now, mode):
+    candidate = dict(bar_time=result['bar_time'], side=result['signal'], input_sha256='', error=None, attempt=None,
+                     jev_mode=mode)
     try:
         bid, ask = float(tick.bid), float(tick.ask)
         value = jev_m5.state(bars, bid, ask, result, captured_at=now)
@@ -490,9 +491,12 @@ def journal_jev(db, candidate, reason):
         # Submitted means order_send was reached: request_json is written just before it.
         submitted = row is not None and row['id'] == candidate['attempt'] and row['request_json'] is not None
         with db:
-            db.execute('INSERT OR IGNORE INTO jev_candidates VALUES (?, ?, ?, ?, ?)',
+            # The scorecard reads jev_mode (shadow rows only) and joins attempt to its closed P/L.
+            db.execute('INSERT OR IGNORE INTO jev_candidates (bar_time, side, input_sha256, submitted, reason, '
+                       'jev_mode, attempt) VALUES (?, ?, ?, ?, ?, ?, ?)',
                        (candidate['bar_time'], candidate['side'], candidate['input_sha256'],
-                        int(submitted), reason and reason[:160]))
+                        int(submitted), reason and reason[:160], candidate['jev_mode'],
+                        candidate['attempt'] if submitted else None))
     except sqlite3.Error:
         pass  # The shadow journal must never disrupt the runner after a trade.
 

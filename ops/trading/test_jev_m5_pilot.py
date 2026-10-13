@@ -51,7 +51,11 @@ class JevM5PilotTest(unittest.TestCase):
             return pilot.poll_once(self.mt5, self.db, 123, stamp, self.pause, **kwargs)
 
     def rows(self):
-        return [tuple(r) for r in self.db.execute('SELECT * FROM jev_candidates ORDER BY bar_time')]
+        return [tuple(r) for r in self.db.execute(
+            'SELECT bar_time, side, input_sha256, submitted, reason FROM jev_candidates ORDER BY bar_time')]
+
+    def provenance(self):
+        return [tuple(r) for r in self.db.execute('SELECT jev_mode, attempt FROM jev_candidates ORDER BY bar_time')]
 
     def test_m5_candle_cooldown_trend_and_sources(self):
         self.activate_m5()
@@ -94,6 +98,7 @@ class JevM5PilotTest(unittest.TestCase):
         self.assertFalse(json.loads(self.feed.read_text())['candidate'])
         self.assertEqual(self.mt5.order_send.call_count, 1)
         self.assertEqual(len(self.rows()), 1)
+        self.assertEqual(self.provenance(), [('shadow', self.db.execute('SELECT id FROM attempts').fetchone()[0])])
 
     def test_shadow_journals_unsubmitted_candidate_with_reason(self):
         self.activate_m5()
@@ -295,6 +300,7 @@ class JevM5PilotTest(unittest.TestCase):
 class JevVetoTest(unittest.TestCase):
     setUp, start, fill = JevM5PilotTest.setUp, JevM5PilotTest.start, JevM5PilotTest.fill
     activate_m5, tick, rows = JevM5PilotTest.activate_m5, JevM5PilotTest.tick, JevM5PilotTest.rows
+    provenance = JevM5PilotTest.provenance
 
     # Candidate candle closes at T = NOW + 600 (bar_time NOW + 300); deadline T + 90.
     def pending(self, signal='long'):
@@ -324,6 +330,7 @@ class JevVetoTest(unittest.TestCase):
         self.mt5.order_send.assert_called_once()
         self.assertNotIn('pending_entry', pilot.state(self.db))
         self.assertEqual(self.rows(), [(NOW + 300, 'long', pending['input_sha256'], 1, None)])
+        self.assertEqual(self.provenance(), [('veto', self.db.execute('SELECT id FROM attempts').fetchone()[0])])
         self.tick(NOW + 640)
         self.mt5.order_send.assert_called_once()
 
@@ -340,6 +347,7 @@ class JevVetoTest(unittest.TestCase):
         self.mt5.order_send.assert_not_called()
         self.assertNotIn('pending_entry', pilot.state(self.db))
         self.assertEqual(self.rows()[0][3:], (0, 'Jev chose hold'))
+        self.assertEqual(self.provenance(), [('veto', None)])
 
     def test_no_receipt_by_deadline_drops_entry(self):
         self.pending()
