@@ -1,6 +1,7 @@
 import { normalizePilot } from '../../../../src/scripts/trading-pilot.mjs';
 import { jevEnabled, jevSnapshot } from './jev.js';
 import { readM15 } from './jev-m15.js';
+import { runM5 } from './jev-m5.js';
 import { readOutcomeReport } from './jev-scorecard.js';
 export { JevObserver } from './jev.js';
 
@@ -76,7 +77,9 @@ export function normalizeStatus(value, now = Date.now() / 1000, symbol = 'XAUUSD
 
 export default {
   async scheduled(event, env, ctx) {
-    if (!jevEnabled(env) || env.JEV_M15_LIVE !== 'true') return;
+    if (!jevEnabled(env)) return;
+    if (env.JEV_M5_LIVE === 'true') ctx.waitUntil(runM5(env)); // Independent of the M15 branch below.
+    if (env.JEV_M15_LIVE !== 'true') return;
     ctx.waitUntil((async () => {
       try {
         let snapshot;

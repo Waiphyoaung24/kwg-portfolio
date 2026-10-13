@@ -20,6 +20,8 @@ new_sqlite_classes = ["JevObserver"]
 [vars]
 JEV_DATA_SHARING_APPROVED = "true"
 JEV_M15_LIVE = "true"
+# Gold M5 candidate assessment; the owner flips this at rollout.
+JEV_M5_LIVE = "false"
 
 [triggers]
 crons = ["* * * * *"]

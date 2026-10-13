@@ -1,4 +1,5 @@
 import { scorecard } from './jev-scorecard.js';
+import { m5Request, parseM5, QUESTION_SHA256 } from './jev-m5.js';
 export const JEV_MODEL = 'jev-1.13.0';
 const LIMIT = 5_000_000; // USD microdollars, including the earlier 17-microdollar smoke test.
 const RESERVE = 3_000; // Covers 65,536 input tokens at the pinned $0.042/M price; output is free.
@@ -64,6 +65,7 @@ export class JevObserver {
       return json({ ...result, accounted_usd: record.charged / 1e6, budget_usd: 5 });
     }
     if (!jevEnabled(this.env)) return json({ status: 'not_configured', message: 'Jev observation is not enabled.', budget_usd: 5 });
+    if (new URL(request.url).pathname === '/m5' && request.method === 'POST') return this.m5(await request.json());
     if (request.method === 'GET') {
       const record = await this.storage.get('record') ?? initial();
       if (record.status === 'running' && Date.now() - record.requested_at > 30000) {
@@ -113,6 +115,50 @@ export class JevObserver {
       return value;
     });
     return json(this.view(record), result ? 200 : 503);
+  }
+
+  // One paid call per Gold M5 candle. Shares only the spend ledger with M15, never its cooldown fields.
+  async m5(snapshot) {
+    const key = `m5:${snapshot.bar_time}`, body = JSON.stringify(m5Request(snapshot));
+    if (body.length > 64000) return json({ status: 'unavailable', message: 'Snapshot too large.' }, 400);
+    const question_sha256 = await QUESTION_SHA256, now = Date.now();
+    const receipt = (status, result = null) => ({ bar_time: snapshot.bar_time, input_sha256: snapshot.input_sha256,
+      model: JEV_MODEL, question_sha256, status, choice: result?.choice ?? null, confidence: result?.confidence ?? null,
+      probabilities: result?.probabilities ?? null, completed_at: Date.now() / 1000 });
+    const reserved = await this.storage.transaction(async tx => {
+      if (await tx.get(key)) return { duplicate: true };
+      const record = await tx.get('record') ?? initial();
+      if (record.charged + RESERVE > LIMIT) {
+        const final = receipt('budget_exhausted');
+        await tx.put(key, { status: final.status, receipt: final, requested_at: now });
+        return { final };
+      }
+      record.charged += RESERVE;
+      await tx.put('record', record);
+      await tx.put(key, { status: 'running', input_sha256: snapshot.input_sha256, requested_at: now });
+      return {};
+    });
+    if (reserved.duplicate) return json({ status: 'duplicate', message: 'This candle was already assessed. No request sent.' }, 409);
+    if (reserved.final) return json(reserved.final);
+    let result = null, status = 'unavailable';
+    try {
+      const response = await fetch('https://api.typesafe.ai/v1/systemone', {
+        method: 'POST', headers: { Authorization: `Bearer ${this.env.TYPESAFE_API_KEY}`, 'Content-Type': 'application/json' },
+        body, redirect: 'manual', signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) throw new Error('Provider unavailable');
+      try { result = parseM5(await response.json()); status = 'ok'; } catch { status = 'invalid'; }
+    } catch (error) {
+      if (['TimeoutError', 'AbortError'].includes(error.name)) status = 'timeout';
+    }
+    const final = receipt(status, result);
+    await this.storage.transaction(async tx => {
+      const record = await tx.get('record');
+      // As for M15: only a parsed usage figure refunds; unknown outcomes keep the whole reservation.
+      if (result) { record.charged -= RESERVE - Math.ceil(result.input_tokens * .042); await tx.put('record', record); }
+      await tx.put(key, { status, receipt: final, input_tokens: result?.input_tokens ?? null, requested_at: now });
+    });
+    return json(final);
   }
 
   view(record) {

@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {m5Snapshot, m5Request, parseM5, canonical, sha256Hex, QUESTION, QUESTION_SHA256} from './src/jev-m5.js';
-import {JEV_MODEL} from './src/jev.js';
+import {m5Snapshot, m5Request, parseM5, canonical, sha256Hex, QUESTION, QUESTION_SHA256, timing} from './src/jev-m5.js';
+import {JEV_MODEL, JevObserver} from './src/jev.js';
+import worker from './src/index.js';
 
 // Printed by: cd ops/trading && python3 -B -c "import jev_m5; print(jev_m5.QUESTION_SHA256)"
 const PY_QUESTION_SHA256 = 'e0a4c467d735e43a74fd7bd15b7bad168ad3b7c8af785929af7aa54bfe943e42';
@@ -81,4 +82,123 @@ test('parser enforces model, choices, probability sum, argmax and usage', () => 
       a=>a.usage.input_tokens=70000, a=>a.answers.decision.confidence=1.2, a=>{a.answers.observation=a.answers.decision; delete a.answers.decision;}]) {
     const a = ok(); mutate(a); assert.throws(() => parseM5(a));
   }
+});
+
+test('a candle past the 90-second decision deadline is never sent', async () => {
+  const s = state(); s.captured_at = bar+300+60; const f = feed(s); f.checked_at = bar+300+91;
+  await assert.rejects(m5Snapshot(f, bar+300+91));
+});
+
+const RECEIPT_KEYS = ['bar_time','completed_at','confidence','choice','input_sha256','model','probabilities','question_sha256','status'];
+function memory(seed) {
+  const values = new Map(seed ? [['record', seed]] : []);
+  const db = {values, get: async k => structuredClone(values.get(k)), put: async (k, v) => { values.set(k, structuredClone(v)); }};
+  let lock = Promise.resolve();
+  db.transaction = fn => { const next = lock.then(() => fn(db)); lock = next.catch(() => {}); return next; };
+  return db;
+}
+function harness(t, {record, provider, control, input = feed()} = {}) {
+  t.mock.method(Date, 'now', () => now*1000);
+  t.mock.method(timing, 'sleep', async () => {});
+  const db = memory(record), calls = {feed: 0, provider: 0, forwards: []};
+  const env = {TYPESAFE_API_KEY:'fake-test-key', JEV_DATA_SHARING_APPROVED:'true', JEV_M5_LIVE:'true',
+    STATUS_ORIGIN_URL:'https://status.example/status', STATUS_ACCESS_CLIENT_ID:'id', STATUS_ACCESS_CLIENT_SECRET:'secret',
+    TRADING_CONTROL_SECRET:'control-secret'};
+  env.JEV_OBSERVER = {idFromName: () => 'one', get: () => new JevObserver({storage: db}, env)};
+  const answer = {model:JEV_MODEL,usage:{input_tokens:1000},answers:{decision:{type:'choice',choice:'buy',confidence:.7,
+    probabilities:{buy:.7,hold:.2,sell:.1}}}};
+  t.mock.method(globalThis, 'fetch', async (target, options = {}) => {
+    const url = new URL(target instanceof Request ? target.url : target);
+    if (url.hostname === 'api.typesafe.ai') { calls.provider++; return provider ? provider() : Response.json(answer); }
+    if (url.pathname === '/jev-m5') { calls.feed++; return Response.json(typeof input === 'function' ? input() : input); }
+    if (url.pathname === '/control/jev-receipt') {
+      calls.forwards.push({url, options});
+      return control ? control(calls.forwards.length) : Response.json({status:'stored'}, {status:202});
+    }
+    throw new Error(`Unexpected fetch ${url}`);
+  });
+  const run = async () => { let pending = []; await worker.scheduled({}, env, {waitUntil: p => pending.push(p)}); await Promise.all(pending); };
+  return {db, env, calls, run};
+}
+
+test('no candidate spends nothing and forwards nothing', async t => {
+  const {db, calls, run} = harness(t, {input: {status:'ready', checked_at: now, candidate: false, bar_time: bar}});
+  await run();
+  assert.equal(calls.feed, 5); assert.equal(calls.provider, 0); assert.equal(calls.forwards.length, 0);
+  assert.equal(db.values.get('record'), undefined);
+});
+
+test('a candidate is assessed once per candle and the receipt is forwarded exactly', async t => {
+  const {db, calls, run} = harness(t, {record: {status:'ready', charged:100, attempts:3, last_sample:now, requested_at:now*1000, result:null}});
+  await run(); await run();
+  assert.equal(calls.provider, 1); assert.equal(calls.forwards.length, 1);
+  const record = db.values.get('record');
+  assert.equal(record.charged, 100 + 42);
+  // M15 bookkeeping is untouched, so its one-minute cooldown neither blocks nor is blocked by M5.
+  assert.deepEqual([record.attempts, record.last_sample, record.requested_at], [3, now, now*1000]);
+  const {url, options} = calls.forwards[0];
+  assert.equal(url.pathname, '/control/jev-receipt'); assert.equal(options.method, 'POST');
+  assert.equal(options.redirect, 'manual'); assert.ok(options.signal);
+  assert.equal(options.headers['X-KWG-Control-Secret'], 'control-secret');
+  assert.equal(options.headers['CF-Access-Client-ID'], 'id'); assert.equal(options.headers['Content-Type'], 'application/json');
+  assert.ok(options.body.length <= 1024); assert.ok(!options.body.includes('fake-test-key'));
+  const body = JSON.parse(options.body);
+  assert.deepEqual(Object.keys(body).sort(), [...RECEIPT_KEYS].sort());
+  assert.deepEqual(body, {bar_time:bar, input_sha256:feed().input_sha256, model:JEV_MODEL, question_sha256:PY_QUESTION_SHA256,
+    status:'ok', choice:'buy', confidence:.7, probabilities:{buy:.7,hold:.2,sell:.1}, completed_at:now});
+  assert.equal(db.values.get(`m5:${bar}`).receipt.status, 'ok');
+});
+
+test('budget near the limit forwards budget_exhausted without a provider call', async t => {
+  const {db, calls, run} = harness(t, {record: {status:'ready', charged:4_998_000, attempts:1, last_sample:0, requested_at:0, result:null}});
+  await run();
+  assert.equal(calls.provider, 0); assert.equal(db.values.get('record').charged, 4_998_000);
+  const body = JSON.parse(calls.forwards[0].options.body);
+  assert.equal(body.status, 'budget_exhausted');
+  assert.deepEqual([body.choice, body.confidence, body.probabilities], [null, null, null]);
+});
+
+test('timeout keeps the reservation and forwards a timeout receipt', async t => {
+  const {db, calls, run} = harness(t, {provider: () => { throw new DOMException('fake', 'TimeoutError'); }});
+  await run(); await run();
+  assert.equal(calls.provider, 1); assert.equal(db.values.get('record').charged, 17 + 3000);
+  assert.equal(JSON.parse(calls.forwards[0].options.body).status, 'timeout');
+});
+
+test('an unparseable provider answer forwards invalid', async t => {
+  const {calls, run} = harness(t, {provider: () => new Response('not json', {status: 200})});
+  await run();
+  assert.equal(JSON.parse(calls.forwards[0].options.body).status, 'invalid');
+});
+
+test('provider HTTP failure is unavailable', async t => {
+  const {calls, run} = harness(t, {provider: () => new Response('down', {status: 502})});
+  await run();
+  const body = JSON.parse(calls.forwards[0].options.body);
+  assert.equal(body.status, 'unavailable'); assert.equal(body.choice, null);
+});
+
+test('a busy runner (409) is retried twice; other failures are not retried', async t => {
+  const busy = harness(t, {control: n => new Response('{}', {status: n < 3 ? 409 : 202})});
+  await busy.run();
+  assert.equal(busy.calls.forwards.length, 3);
+  t.mock.restoreAll();
+  const failing = harness(t, {control: () => new Response('{}', {status: 400})});
+  await failing.run();
+  assert.equal(failing.calls.forwards.length, 1);
+});
+
+test('missing control secret skips the forward but keeps the receipt', async t => {
+  const {db, env, calls, run} = harness(t);
+  delete env.TRADING_CONTROL_SECRET;
+  await run();
+  assert.equal(calls.provider, 1); assert.equal(calls.forwards.length, 0);
+  assert.equal(db.values.get(`m5:${bar}`).receipt.status, 'ok');
+});
+
+test('JEV_M5_LIVE unset leaves the M5 branch inert', async t => {
+  const {env, calls, run} = harness(t);
+  delete env.JEV_M5_LIVE;
+  await run();
+  assert.equal(calls.feed + calls.provider + calls.forwards.length, 0);
 });
