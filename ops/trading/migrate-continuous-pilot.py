@@ -75,7 +75,9 @@ def main():
     parser.add_argument('--apply', action='store_true')
     args = parser.parse_args()
     os.umask(0o077)
-    old = pilot.digest({n: hashlib.sha256((Path(r'Z:\opt\trading') / n).read_bytes()).hexdigest() for n in pilot.SOURCES})
+    # The reviewed deployed identity predates the Jev M5 module.
+    old = pilot.digest({n: hashlib.sha256((Path(r'Z:\opt\trading') / n).read_bytes()).hexdigest()
+                        for n in pilot.SOURCES if n != 'jev_m5.py'})
     if old != PREVIOUS_CODE or os.environ.get('MT5_PILOT_SYMBOLS') != GOLD + ',' + BTC:
         raise ValueError('Deployed source/symbols differ from reviewed starting version')
     import MetaTrader5 as mt5

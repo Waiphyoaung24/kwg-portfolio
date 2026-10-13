@@ -4,6 +4,7 @@ import '@tabler/core/dist/css/tabler-vendors.min.css';
 import '../../styles/desk.scss';
 import TradingNavigation from '../../components/TradingNavigation.astro';
 import JevPanel from '../../components/JevPanel.astro';
+import JevM5Panel from '../../components/JevM5Panel.astro';
 import iconDown from '@tabler/icons/outline/arrow-down-right.svg?raw';
 import iconUp from '@tabler/icons/outline/arrow-up-right.svg?raw';
 import iconRefresh from '@tabler/icons/outline/refresh.svg?raw';
@@ -51,7 +52,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
 
       <div class="desk-switch reveal" style="--i: 1">
         <nav class="desk-segment" aria-label="Demo instrument">
-          <a id="instrument-gold" href="/vault/trading">Gold · M1</a>
+          <a id="instrument-gold" href="/vault/trading">Gold</a>
           <a id="instrument-btc" href="/vault/trading?symbol=BTCUSD">Bitcoin</a>
         </nav>
         <p class="desk-muted small m-0">Switch views, not execution. Both symbols share account loss limits.</p>
@@ -190,6 +191,8 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
 
       <JevPanel />
 
+      <JevM5Panel />
+
       <details class="manual-controls desk-disclosure reveal" style="--i: 6" id="manual-controls">
         <summary>Manual demo order controls <Fragment set:html={icon(iconChevron)} /></summary>
         <section class="desk-tile mt-3" aria-labelledby="control-title">
@@ -278,6 +281,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
       import { entryNotifications } from '../../scripts/trading-sound.mjs';
       import { positionRail } from '../../scripts/trading-position.mjs';
       import { selectedInstrument } from '../../scripts/trading-instruments.mjs';
+      import { m5Mode } from '../../scripts/trading-jev-m5.mjs';
       const field = (id: string) => document.getElementById(id)!;
       const selected = selectedInstrument(location.search);
       document.title = `Demo account monitor - ${selected.name} operations - KWG`;
@@ -467,8 +471,9 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
         const pilot = pilotFields(latest.pilot, Date.now() / 1000, selected.symbol);
         field('pilot-state').classList.toggle('desk-chip--solid', pilot.state === 'Active');
         field('pilot-state').dataset.state = pilot.state;
-        field('pilot-strategy').textContent = pilot.state === 'Unknown' ? 'Strategy unavailable' : latest.pilot?.strategy === 'btc-ema-v1-m1-scalp-60' ? 'EMA trend · 3-bar slope · 60-second exit request · 60-second cooldown' : ['gold-ema-v1-m1-trend-3', 'btc-ema-v1-m15-trend-3'].includes(latest.pilot?.strategy) ? 'EMA trend · 3-bar slope · 5-minute cooldown after close' : 'EMA crossover · 3-bar slope filter';
-        field('pilot-timeframe').textContent = pilot.state === 'Unknown' ? 'Strategy timeframe unavailable' : ['gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3', 'btc-ema-v1-m1-scalp-60'].includes(latest.pilot?.strategy) ? 'Completed 1-minute candles only - M1 demo' : 'Completed 15-minute candles only - M15 demo';
+        field('pilot-strategy').textContent = pilot.state === 'Unknown' ? 'Strategy unavailable' : latest.pilot?.strategy === 'gold-ema-v1-m5-trend-jev' ? ({ shadow: 'M5 trend · Jev shadow', veto: 'M5 trend · Jev veto' } as Record<string, string>)[latest.pilot.jev_mode] ?? 'M5 trend · Jev mode unknown' : latest.pilot?.strategy === 'btc-ema-v1-m1-scalp-60' ? 'EMA trend · 3-bar slope · 60-second exit request · 60-second cooldown' : ['gold-ema-v1-m1-trend-3', 'btc-ema-v1-m15-trend-3'].includes(latest.pilot?.strategy) ? 'EMA trend · 3-bar slope · 5-minute cooldown after close' : 'EMA crossover · 3-bar slope filter';
+        field('pilot-timeframe').textContent = pilot.state === 'Unknown' ? 'Strategy timeframe unavailable' : ['gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3', 'btc-ema-v1-m1-scalp-60'].includes(latest.pilot?.strategy) ? 'Completed 1-minute candles only - M1 demo' : latest.pilot?.strategy === 'gold-ema-v1-m5-trend-jev' ? 'Completed 5-minute candles only - M5 demo' : 'Completed 15-minute candles only - M15 demo';
+        field('jev-m5-mode').textContent = m5Mode(pilot.state, latest.pilot);
         if (pilot.state === 'Paused' && field('pilot-message').textContent?.startsWith('Pause requested.')) field('pilot-message').textContent = 'New entries are paused.';
         for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining'] as const) field(`pilot-${key}`).textContent = pilot[key];
         // render() runs every second, so the countdown ticks between status reports.

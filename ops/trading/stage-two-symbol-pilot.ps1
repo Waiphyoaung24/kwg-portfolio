@@ -1,6 +1,6 @@
 param([switch]$DryRun, [switch]$Continuous, [switch]$BtcScalp)
 $ErrorActionPreference = 'Stop'
-$taskNames = @('demo_pilot.py','demo_one_shot.py','mt5_data.py','gold_signal.py','gold_experiment.py','instruments.py','migrate-two-symbol-pilot.py','status_server.py','control_server.py','cutover-m1-pilot.py','cutover-two-symbol-pilot.py','migrate-continuous-pilot.py','migrate-btc-scalp.py')
+$taskNames = @('demo_pilot.py','demo_one_shot.py','mt5_data.py','gold_signal.py','gold_experiment.py','instruments.py','jev_m5.py','migrate-two-symbol-pilot.py','status_server.py','control_server.py','cutover-m1-pilot.py','cutover-two-symbol-pilot.py','migrate-continuous-pilot.py','migrate-btc-scalp.py')
 $taskBundle = @{}
 foreach ($taskName in $taskNames) {
     $taskText = [IO.File]::ReadAllText((Join-Path $PSScriptRoot $taskName)).Replace("`r`n", "`n")
@@ -17,7 +17,7 @@ stage.mkdir(mode=0o700)
 for filename, data in bundle.items():
     assert pathlib.Path(filename).name == filename
     (stage / filename).write_bytes(base64.b64decode(data, validate=True))
-sources = ('demo_pilot.py','demo_one_shot.py','mt5_data.py','gold_signal.py','gold_experiment.py','instruments.py')
+sources = ('demo_pilot.py','demo_one_shot.py','mt5_data.py','gold_signal.py','gold_experiment.py','instruments.py','jev_m5.py')
 hashes = {f: hashlib.sha256((stage/f).read_bytes()).hexdigest() for f in sources}
 identity = hashlib.sha256(json.dumps(hashes, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 image = json.loads(subprocess.check_output(['docker','inspect','kwg-mt5-desktop']))[0]['Image']

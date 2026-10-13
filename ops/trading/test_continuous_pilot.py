@@ -188,5 +188,19 @@ class ContinuousTest(unittest.TestCase):
         self.mt5.order_send.assert_not_called()
 
 
+class DeployedIdentityTest(unittest.TestCase):
+    def test_deployed_identity_predates_jev_m5(self):
+        # The reviewed deployed version has no jev_m5.py; hashing it would refuse every migration.
+        hashed = []
+        def capture(files):
+            hashed.extend(files)
+            raise LookupError('stop before MT5')
+        with patch('sys.argv', ['migrate', '--reviewed-code-sha256', 'x']), \
+                patch.object(Path, 'read_bytes', lambda path: path.name.encode()), \
+                patch.object(pilot, 'digest', capture), self.assertRaises(LookupError):
+            migration['main']()
+        self.assertEqual(set(hashed), set(pilot.SOURCES) - {'jev_m5.py'})
+
+
 if __name__ == '__main__':
     unittest.main()

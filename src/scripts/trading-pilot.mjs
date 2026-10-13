@@ -16,9 +16,10 @@ export function entryReadiness(data, now = Date.now() / 1000, symbol = 'XAUUSD-V
 
 export function normalizePilot(value, now = Date.now() / 1000, symbol = 'XAUUSD-VIP') {
   if (value === null) return null;
-  if (!value || !(symbol === 'BTCUSD' ? ['btc-ema-v1-m15-trend-3', 'btc-ema-v1-m1-scalp-60'] : symbol === 'XAUUSD-VIP' ? ['gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3'] : []).includes(value.strategy) || value.qualification !== 'unqualified' ||
+  if (!value || !(symbol === 'BTCUSD' ? ['btc-ema-v1-m15-trend-3', 'btc-ema-v1-m1-scalp-60'] : symbol === 'XAUUSD-VIP' ? ['gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3', 'gold-ema-v1-m5-trend-jev'] : []).includes(value.strategy) || value.qualification !== 'unqualified' ||
       !['standby', 'active', 'paused', 'needs_attention', 'expired'].includes(value.status)) throw new Error('Invalid pilot');
   const result = { strategy: value.strategy, qualification: value.qualification, status: value.status };
+  if (value.strategy === 'gold-ema-v1-m5-trend-jev' && ['shadow', 'veto'].includes(value.jev_mode)) result.jev_mode = value.jev_mode;
   for (const key of ['updated_at', 'started_at', 'ends_at', 'realized_net_usd', 'floating_usd', 'completed_trades']) {
     const number = value[key] ?? null;
     if (number !== null && (typeof number !== 'number' || !Number.isFinite(number) || Math.abs(number) > 1e12)) throw new Error('Invalid pilot number');

@@ -64,6 +64,15 @@ class GoldSignalTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             evaluate(sample, 100, 100.1, NOW)
 
+    def test_gold_m5_trend_demo_uses_quarter_atr_spread(self):
+        sample = [{**bar, 'time': bar['time'] // 3} for bar in bars(101)]
+        now = NOW // 3
+        self.assertEqual(evaluate(sample, 100, 100.5, now, bar_seconds=300, trend_demo=True)['signal'], 'long')
+        self.assertEqual(evaluate(sample, 100, 100.5001, now, bar_seconds=300, trend_demo=True)['signal'], 'blocked')
+        self.assertEqual(evaluate(sample, 100, 100.5, now + 300, bar_seconds=300, trend_demo=True)['signal'], 'blocked')
+        # M5 without the trend policy keeps the strict 10% ceiling.
+        self.assertEqual(evaluate(sample, 100, 100.5, now, bar_seconds=300)['signal'], 'blocked')
+
 
 if __name__ == "__main__":
     unittest.main()

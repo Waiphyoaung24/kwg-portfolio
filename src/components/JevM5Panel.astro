@@ -1,0 +1,48 @@
+---
+import iconChevron from '@tabler/icons/outline/chevron-down.svg?raw';
+const chevron = iconChevron.replace('<svg', '<svg aria-hidden="true" focusable="false"');
+---
+<section class="desk-tile jev-m5 reveal" style="--i: 6" id="jev-m5-panel" aria-labelledby="jev-m5-title" hidden>
+  <div class="desk-tile__head">
+    <div>
+      <p class="desk-kicker">Gold M5 · Jev decision layer</p>
+      <h2 id="jev-m5-title">Jev shadow scorecard</h2>
+      <p class="desk-muted small m-0">Jev's shadow decisions scored against closed demo trades</p>
+    </div>
+    <p class="m-0"><span class="visually-hidden">Jev mode: </span><span class="desk-chip" id="jev-m5-mode">Checking mode</span></p>
+  </div>
+  <p id="jev-m5-summary" role="status">Loading the M5 scorecard…</p>
+  <p class="desk-muted small" id="jev-m5-updated"></p>
+  <dl class="desk-stats">
+    <div><dt>Jev kept · avg net / trade</dt><dd class="desk-num jev-m5-pl" id="jev-m5-kept" data-tone="none">—</dd></div>
+    <div><dt>All trades · avg net / trade</dt><dd class="desk-num jev-m5-pl" id="jev-m5-all" data-tone="none">—</dd></div>
+    <div><dt>Jev vetoed · avg net / trade</dt><dd class="desk-num jev-m5-pl" id="jev-m5-vetoed" data-tone="none">—</dd></div>
+    <div><dt>Shared Jev budget</dt><dd class="desk-num" id="jev-m5-budget">— of $5.00 left</dd></div>
+  </dl>
+  <h3 class="desk-subhead">Veto gate</h3>
+  <p class="m-0" id="jev-m5-verdict">Gate unavailable</p>
+  <ul class="desk-gates jev-m5-checks" id="jev-m5-checks"></ul>
+  <details class="desk-disclosure">
+    <summary>Receipt health <Fragment set:html={chevron} /></summary>
+    <p class="desk-num small" id="jev-m5-receipts">—</p>
+    <p class="desk-num small" id="jev-m5-counts">—</p>
+  </details>
+  <p class="desk-callout small mb-0">Demo only. Jev can block an entry; it never opens one.</p>
+</section>
+<script>
+  import { mountJevM5 } from '../scripts/trading-jev-m5.mjs';
+  mountJevM5(document, window);
+</script>
+<style>
+  /* Desk tokens only (DESIGN.md, Trading exception). Colour always pairs with a sign, arrow or Met / Not met text. */
+  .jev-m5[hidden] { display: none; }
+  .jev-m5-pl[data-tone='up'] { color: var(--desk-green); }
+  .jev-m5-pl[data-tone='down'] { color: var(--desk-red); }
+  .jev-m5-pl[data-tone='none'] { color: var(--desk-muted); }
+  .jev-m5-checks { list-style: none; padding-left: 0; }
+  .jev-m5-checks :global(li::before) { margin-inline-end: var(--desk-space-sm); }
+  .jev-m5-checks :global(li[data-met='true']::before) { content: '✓' / ''; color: var(--desk-green); }
+  .jev-m5-checks :global(li[data-met='false']::before) { content: '✗' / ''; color: var(--desk-muted); }
+  .jev-m5 summary { min-height: var(--desk-touch-target); }
+  .jev-m5 summary:focus-visible { outline: calc(var(--desk-hairline) * 2) solid var(--desk-green); outline-offset: var(--desk-hairline); }
+</style>

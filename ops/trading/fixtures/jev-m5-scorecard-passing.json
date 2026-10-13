@@ -1,0 +1,41 @@
+{
+  "status": "ready",
+  "generated_at": 1801000000,
+  "candidates": 61,
+  "pending": 0,
+  "no_state": 1,
+  "mode_counts": {
+    "shadow": 61
+  },
+  "closed": 60,
+  "unresolved": 0,
+  "receipts": {
+    "ok": 58,
+    "timeout": 1,
+    "unavailable": 0,
+    "budget_exhausted": 0,
+    "invalid": 0,
+    "missing": 0,
+    "late": 1
+  },
+  "all": {
+    "trades": 60,
+    "avg_net_usd": 0.8667
+  },
+  "jev_kept": {
+    "trades": 29,
+    "avg_net_usd": 5.0
+  },
+  "jev_vetoed": {
+    "trades": 31,
+    "avg_net_usd": -3.0
+  },
+  "gate": {
+    "min_closed": 50,
+    "bad_receipt_max": 0.2,
+    "bad_receipt_rate": 0.0492,
+    "passes": true,
+    "reasons": []
+  },
+  "qualification": "demo fills; unqualified; not a profitability claim"
+}

@@ -6,7 +6,7 @@ const enabled = import.meta.env.DEV && import.meta.env.PUBLIC_TRADING_FIXTURE ==
 let observed = 0;
 const response = () => Response.json({ status: observed ? 'connected' : 'ready',
   message: 'Local synthetic Jev preview. No provider request or broker order.',
-  accounted_usd: observed ? .000017 : 0, budget_usd: 5,
+  accounted_usd: observed ? .000017 : 0, remaining_usd: observed ? 4.999983 : 5, budget_usd: 5,
   snapshot: observed ? { symbol: 'XAUUSD-VIP', timeframe: 'M15', checked_at: observed,
     bid: 4100.25, ask: 4100.5, signal: 'none', strategy_status: 'blocked' } : null,
   result: observed ? { model: 'jev-1.13.0 (synthetic)', decision: 'insufficient_data', confidence: .97, latency_ms: 500 } : null,

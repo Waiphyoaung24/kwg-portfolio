@@ -18,7 +18,7 @@ class StageM1Test(unittest.TestCase):
 
     def check_staged_import(self, helper):
         source = Path(__file__).parent
-        names = ('demo_pilot.py', 'demo_one_shot.py', 'mt5_data.py', 'gold_signal.py', 'gold_experiment.py', 'instruments.py')
+        names = ('demo_pilot.py', 'demo_one_shot.py', 'mt5_data.py', 'gold_signal.py', 'gold_experiment.py', 'instruments.py', 'jev_m5.py')
         with tempfile.TemporaryDirectory() as directory:
             stage = Path(directory)
             for name in (*names, helper):

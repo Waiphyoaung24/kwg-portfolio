@@ -1,0 +1,160 @@
+"""Frozen Gold M5 Jev state, question and veto rule; pure code, no broker or network."""
+from datetime import datetime, timezone
+import hashlib
+import json
+import math
+import sqlite3
+from contextlib import closing
+
+MODEL = 'jev-1.13.0'
+SECONDS = 300
+DEADLINE = 90          # seconds after candle close
+THRESHOLD = .5         # frozen before shadow; see design decision 8
+CHOICES = ('buy', 'hold', 'sell')
+STATUSES = ('ok', 'timeout', 'unavailable', 'budget_exhausted', 'invalid')
+QUESTION = {'type': 'choice',
+    'instructions': ('Using only the supplied Gold M5 state at captured_at, choose whether conditions '
+                     'favour a long entry, a short entry, or no entry now. Do not infer missing data. '
+                     'Ordinary code owns all risk, sizing and execution; this is a demo assessment.'),
+    'criteria': {'buy': 'Conditions favour a long entry now.',
+                 'hold': 'No clear edge, or the evidence conflicts.',
+                 'sell': 'Conditions favour a short entry now.'}}
+
+
+def digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'),
+                                     allow_nan=False).encode()).hexdigest()
+
+
+QUESTION_SHA256 = digest(QUESTION)
+
+
+def _bucket(value, low, high, names):
+    return names[0] if value < low else names[2] if value > high else names[1]
+
+
+def _session(stamp):
+    hour = datetime.fromtimestamp(stamp, timezone.utc).hour
+    if 12 <= hour < 16:
+        return 'overlap'
+    return 'london' if 7 <= hour < 12 else 'new_york' if 16 <= hour < 21 else 'asia'
+
+
+def state(bars, bid, ask, indicators, *, captured_at):
+    if len(bars) < 50 or any(type(b['time']) is not int or b['time'] % SECONDS for b in bars[-50:]):
+        raise ValueError('Need 50 completed M5 bars')
+    if not all(type(b[k]) in (int, float) and math.isfinite(b[k])
+               for b in bars[-50:] for k in ('open', 'high', 'low', 'close')):
+        raise ValueError('Invalid M5 prices')
+    if any(bars[i]['time'] <= bars[i - 1]['time'] for i in range(len(bars) - 49, len(bars))):
+        raise ValueError('M5 bars must be strictly increasing')
+    numbers = [bid, ask, captured_at, *(indicators[k] for k in ('ema20', 'ema50', 'atr14'))]
+    if not all(type(x) in (int, float) and math.isfinite(x) for x in numbers) or ask < bid or indicators['atr14'] <= 0:
+        raise ValueError('Invalid market numbers')
+    recent = [{k: b[k] for k in ('time', 'open', 'high', 'low', 'close')} for b in bars[-50:]]
+    close, atr = recent[-1]['close'], indicators['atr14']
+    ranges = sorted(b['high'] - b['low'] for b in recent)
+    median = ranges[len(ranges) // 2] or atr
+    closes = [b['close'] for b in recent]
+    slope = [closes[-1] - closes[-2], closes[-2] - closes[-3], closes[-3] - closes[-4]]
+    features = dict(
+        trend='up' if indicators['ema20'] > indicators['ema50'] else 'down' if indicators['ema20'] < indicators['ema50'] else 'flat',
+        slope_3='rising' if all(x > 0 for x in slope) else 'falling' if all(x < 0 for x in slope) else 'mixed',
+        price_vs_ema20=_bucket(close - indicators['ema20'], -.1 * atr, .1 * atr, ('below', 'at', 'above')),
+        volatility=_bucket(atr / median, .75, 1.25, ('low', 'normal', 'high')),
+        spread=_bucket((ask - bid) / atr, .05, .15, ('tight', 'normal', 'wide')),
+        session=_session(recent[-1]['time'] + SECONDS),
+        gap_in_window=any(recent[i]['time'] - recent[i - 1]['time'] != SECONDS for i in range(1, len(recent))),
+        last_5=['up' if b['close'] > b['open'] else 'down' if b['close'] < b['open'] else 'flat' for b in recent[-5:]])
+    return dict(symbol='XAUUSD-VIP', timeframe='M5', bar_time=recent[-1]['time'],
+                captured_at=captured_at, features=features, bars=recent)
+
+
+def input_sha256(value):
+    return digest(value)
+
+
+def validate_receipt(value):
+    keys = {'bar_time', 'input_sha256', 'model', 'question_sha256', 'status', 'choice',
+            'confidence', 'probabilities', 'completed_at'}
+    if not isinstance(value, dict) or set(value) != keys:
+        raise ValueError('Invalid receipt fields')
+    if (type(value['bar_time']) is not int or value['bar_time'] % SECONDS or not 0 < value['bar_time'] < 2**53
+            or value['model'] != MODEL
+            or value['question_sha256'] != QUESTION_SHA256 or value['status'] not in STATUSES
+            or not isinstance(value['input_sha256'], str) or len(value['input_sha256']) != 64
+            or not all(c in '0123456789abcdef' for c in value['input_sha256'])
+            or type(value['completed_at']) not in (int, float) or not math.isfinite(value['completed_at'])
+            or not 0 < value['completed_at'] < 2**53):
+        raise ValueError('Receipt does not match the frozen request')
+    if value['status'] != 'ok':
+        if any(value[k] is not None for k in ('choice', 'confidence', 'probabilities')):
+            raise ValueError('Failed receipt carries a decision')
+        return value
+    p, c = value['probabilities'], value['confidence']
+    if (value['choice'] not in CHOICES or not isinstance(p, dict) or set(p) != set(CHOICES)
+            or not all(type(x) in (int, float) and math.isfinite(x) and 0 <= x <= 1 for x in [c, *p.values()])
+            or abs(sum(p.values()) - 1) > .001
+            or p[value['choice']] <= max(v for k, v in p.items() if k != value['choice'])):
+        raise ValueError('Invalid Jev decision')
+    return value
+
+
+def allows(receipt, *, side, bar_time, input_sha256, now):
+    """Veto rule: allow only an on-time, matching, confident, agreeing decision."""
+    if type(now) not in (int, float) or not math.isfinite(now):
+        return False, 'Invalid clock'
+    expected = {'long': 'buy', 'short': 'sell'}.get(side)
+    if expected is None:
+        return False, 'Invalid code side'
+    deadline = bar_time + SECONDS + DEADLINE
+    if receipt is None:
+        return False, 'No Jev receipt'
+    try:
+        validate_receipt(receipt)
+    except ValueError as error:
+        return False, str(error)
+    if receipt['bar_time'] != bar_time or receipt['input_sha256'] != input_sha256:
+        return False, 'Receipt is for another candle'
+    if receipt['completed_at'] < bar_time + SECONDS:
+        return False, 'Receipt predates candle close'
+    if not (now <= deadline and receipt['completed_at'] <= deadline):
+        return False, 'Jev receipt missed the 90-second deadline'
+    if receipt['status'] != 'ok':
+        return False, f"Jev {receipt['status']}"
+    if receipt['choice'] != expected:
+        return False, f"Jev chose {receipt['choice']}"
+    if receipt['confidence'] < THRESHOLD:
+        return False, 'Jev confidence below 0.5'
+    return True, 'Jev agreed'
+
+
+def _receipts(path):
+    db = sqlite3.connect(path)
+    try:
+        with db:
+            db.execute('CREATE TABLE IF NOT EXISTS receipts (bar_time INTEGER PRIMARY KEY, '
+                       'received REAL NOT NULL, payload TEXT NOT NULL)')
+    except BaseException:
+        db.close()
+        raise
+    return db
+
+
+def store_receipt(path, value, *, received):
+    validate_receipt(value)
+    if type(received) not in (int, float) or not math.isfinite(received):
+        raise ValueError('Invalid receipt arrival time')
+    with closing(_receipts(path)) as db, db:
+        # Insert-only: a later or duplicate receipt never replaces the first one.
+        cursor = db.execute('INSERT OR IGNORE INTO receipts VALUES (?, ?, ?)',
+                            (value['bar_time'], received, json.dumps(value, sort_keys=True, allow_nan=False)))
+        return cursor.rowcount == 1
+
+
+def load_receipt(path, bar_time):
+    if not path.exists():
+        return None
+    with closing(sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)) as db:
+        row = db.execute('SELECT payload FROM receipts WHERE bar_time=?', (bar_time,)).fetchone()
+    return json.loads(row[0]) if row else None

@@ -63,9 +63,9 @@ def main():
     parser.add_argument('--apply', action='store_true')
     args = parser.parse_args()
     os.umask(0o077)
-    # The deployed five-file identity predates the instrument allowlist module.
+    # The deployed five-file identity predates the instrument allowlist and Jev M5 modules.
     old = pilot.digest({name: hashlib.sha256((Path(r'Z:\opt\trading') / name).read_bytes()).hexdigest()
-                        for name in pilot.SOURCES if name != 'instruments.py'})
+                        for name in pilot.SOURCES if name not in ('instruments.py', 'jev_m5.py')})
     if old != PREVIOUS_CODE:
         raise ValueError('Deployed source differs from the reviewed starting version')
     import MetaTrader5 as mt5

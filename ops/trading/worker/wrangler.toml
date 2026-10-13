@@ -17,9 +17,13 @@ tag = "jev-observer-v1"
 new_sqlite_classes = ["JevObserver"]
 
 # Owner approved Gold M15 market/setup data to TypeSafe, observation only.
+# Gold M5 (JEV_M5_LIVE) sends 50 OHLC bars plus categorical features; confirm
+# owner approval for that payload before setting JEV_M5_LIVE to true.
 [vars]
 JEV_DATA_SHARING_APPROVED = "true"
 JEV_M15_LIVE = "true"
+# Gold M5 candidate assessment; the owner flips this at rollout.
+JEV_M5_LIVE = "false"
 
 [triggers]
 crons = ["* * * * *"]
