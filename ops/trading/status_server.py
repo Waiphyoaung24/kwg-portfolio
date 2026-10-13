@@ -175,12 +175,12 @@ def read_status(path: Path, now: float, *, execution_path: Path = EXECUTION, sym
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        if self.path not in ("/control/preview", "/control/arm", "/control/pilot-pause"):
+        if self.path not in ("/control/preview", "/control/arm", "/control/pilot-pause", "/control/jev-receipt"):
             self.send_error(404)
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if not 0 < length <= 256 or self.headers.get("Content-Type") != "application/json":
+            if not 0 < length <= (1024 if self.path == "/control/jev-receipt" else 256) or self.headers.get("Content-Type") != "application/json":
                 raise ValueError
             body = self.rfile.read(length)
             request = Request("http://desktop:8001/" + self.path.rsplit("/", 1)[-1], body,
@@ -230,6 +230,25 @@ class Handler(BaseHTTPRequestHandler):
                 value = json.loads(body)
                 if value.get('status') != 'ready' or not 0 <= time.time()-value['checked_at'] <= 15:
                     raise ValueError('M15 feed unavailable')
+            except (OSError, ValueError, KeyError, TypeError):
+                self.send_error(503)
+                return
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if self.path == '/jev-m5':
+            try:
+                path = SNAPSHOT.with_name('jev-m5.json')
+                if path.stat().st_size > 100000:
+                    raise ValueError('Oversized M5 snapshot')
+                body = path.read_bytes()
+                value = json.loads(body)
+                if value.get('status') != 'ready' or not 0 <= time.time()-value['checked_at'] <= 15:
+                    raise ValueError('M5 feed unavailable')
             except (OSError, ValueError, KeyError, TypeError):
                 self.send_error(503)
                 return

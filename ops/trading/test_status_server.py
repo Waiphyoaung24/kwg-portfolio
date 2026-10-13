@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from http.server import ThreadingHTTPServer
 from threading import Thread
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 from unittest.mock import patch
 
@@ -12,6 +12,58 @@ from status_server import Handler, read_status, sanitize_health, sanitize_pilot
 
 
 class StatusServerTest(unittest.TestCase):
+    def test_jev_m5_feed_refuses_stale_failed_or_oversized_exports(self):
+        with tempfile.TemporaryDirectory() as root, patch('status_server.time.time', return_value=1000):
+            path = Path(root) / 'jev-m5.json'
+            server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+            thread = Thread(target=server.serve_forever, daemon=True); thread.start()
+            try:
+                with patch('status_server.SNAPSHOT', Path(root) / 'latest.json'):
+                    url = f'http://127.0.0.1:{server.server_port}/jev-m5'
+                    for value in ({'status': 'ready', 'checked_at': 984}, {'status': 'blocked', 'checked_at': 1000},
+                                  {'status': 'ready', 'checked_at': 1000, 'pad': 'x' * 100000}):
+                        path.write_text(json.dumps(value))
+                        with self.assertRaises(HTTPError) as error:
+                            urlopen(url, timeout=2)
+                        self.assertEqual(error.exception.code, 503)
+                    path.write_text(json.dumps({'status': 'ready', 'checked_at': 985}))
+                    with urlopen(url, timeout=2) as response:
+                        self.assertEqual(response.read(), path.read_bytes())
+                        self.assertEqual(response.headers['Cache-Control'], 'no-store')
+            finally:
+                server.shutdown(); server.server_close(); thread.join()
+
+    def test_jev_m5_receipt_is_forwarded_with_secret_and_its_own_body_limit(self):
+        class Reply:
+            status = 202
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, size): return b'{"status":"stored"}'
+        server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        thread = Thread(target=server.serve_forever, daemon=True); thread.start()
+        try:
+            with patch('status_server.urlopen', return_value=Reply()) as forward:
+                def post(path, size):
+                    body = json.dumps({'pad': 'x' * (size - 11)}).encode()
+                    request = Request(f'http://127.0.0.1:{server.server_port}{path}', body, method='POST',
+                                      headers={'Content-Type': 'application/json', 'X-KWG-Control-Secret': 'secret'})
+                    try:
+                        with urlopen(request, timeout=2) as response:
+                            return response.status, body
+                    except HTTPError as error:
+                        return error.code, body
+                status, body = post('/control/jev-receipt', 1024)
+                self.assertEqual(status, 202)
+                sent = forward.call_args.args[0]
+                self.assertEqual(sent.full_url, 'http://desktop:8001/jev-receipt')
+                self.assertEqual(sent.data, body)
+                self.assertEqual(sent.get_header('X-kwg-control-secret'), 'secret')
+                self.assertEqual(post('/control/jev-receipt', 1025)[0], 503)
+                self.assertEqual(post('/control/pilot-pause', 257)[0], 503)
+                self.assertEqual(forward.call_count, 1)
+        finally:
+            server.shutdown(); server.server_close(); thread.join()
+
     def test_scorecard_route_refuses_stale_or_failed_exports(self):
         with tempfile.TemporaryDirectory() as root, patch('status_server.time.time', return_value=1000):
             path = Path(root) / 'jev-scorecard.json'
