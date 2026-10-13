@@ -892,6 +892,16 @@ or `control_server.py` must also ship `jev_m5.py`. That includes `Dockerfile`,
 `stage-two-symbol-pilot.ps1`, `migrate-two-symbol-pilot.py` and the new
 `stage-m5-jev.ps1`. Add a test that fails if one ships without the other.
 
+The stage script must also install a scorecard publisher: copy
+`jev_m5_scorecard.py` and `jev_m5.py` beside the frozen bundle and add a
+one-minute systemd timer (`kwg-jev-m5-scorecard.timer`). The timer runs
+`python3 jev_m5_scorecard.py --journal <gold journal> --receipts <receipts db> --output /opt/status/jev-m5-scorecard.json`
+read-only on the host. Model it on `stage-jev-scorecard.ps1`. Without it the
+panel always shows "unavailable" (120-second freshness check).
+
+The "last receipt" panel item from Task 11 is waived for now. Receipts are
+visible in Worker logs and the scorecard counts; record the waiver in `JEV-M5.md`.
+
 Model both on `switch-pilot-m1.py`, `stage-m1-pilot.ps1`,
 `cutover-two-symbol-pilot.py` and their tests. Read them fully first.
 
