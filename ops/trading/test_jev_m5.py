@@ -51,6 +51,29 @@ class FeatureTest(unittest.TestCase):
                 jev_m5.state(sample, 102.48, 102.49, indicators, captured_at=10**9)
 
 
+    def test_gapped_window_is_flagged_but_disorder_is_rejected(self):
+        indicators = dict(ema20=102.4, ema50=102.2, atr14=.05)
+        flag = lambda b: jev_m5.state(b, 102.48, 102.49, indicators, captured_at=10**9)['features']['gap_in_window']
+        self.assertIs(flag(bars()), False)
+        early = bars()
+        for bar in early[-60:]:
+            bar['time'] += 3600                   # daily break before the 50-bar window
+        self.assertIs(flag(early), False)
+        gapped = bars()
+        for bar in gapped[-10:]:
+            bar['time'] += 3600                   # daily break inside the window
+        self.assertIs(flag(gapped), True)
+        self.assertEqual(jev_m5.state(gapped, 102.48, 102.49, indicators, captured_at=10**9)['bar_time'],
+                         gapped[-1]['time'])
+        unordered, duplicate, off_grid = bars(), bars(), bars()
+        unordered[-1], unordered[-2] = unordered[-2], unordered[-1]
+        duplicate[-1]['time'] = duplicate[-2]['time']
+        off_grid[-30]['time'] += 60
+        for name, sample in (('unordered', unordered), ('duplicate', duplicate), ('off_grid', off_grid)):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                jev_m5.state(sample, 102.48, 102.49, indicators, captured_at=10**9)
+
+
 class VetoRuleTest(unittest.TestCase):
     def test_frozen_rule_table(self):
         allow = lambda r, side='long': jev_m5.allows(r, side=side, bar_time=600,

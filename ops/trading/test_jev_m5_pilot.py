@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 import demo_pilot as pilot
 import mt5_data
+from mt5_data import BrokerUnavailable
 from test_demo_one_shot import fake_mt5, NOW  # NOW is also on the M5 grid
 import test_demo_pilot
 
@@ -95,6 +96,73 @@ class JevM5PilotTest(unittest.TestCase):
         self.assertEqual((bar_time, side, submitted), (NOW + 300, 'long', 0))
         self.assertEqual(len(digest), 64)
         self.assertTrue(reason)
+
+    def candidate_tick(self):
+        self.activate_m5()
+        self.tick(NOW + 300, bootstrap=True)
+        return self.tick(NOW + 600)
+
+    def test_unknown_broker_outcome_counts_as_submitted(self):
+        self.mt5.order_send.return_value = None
+        report = self.candidate_tick()
+        self.assertEqual(report['execution']['status'], 'needs_attention')
+        self.mt5.order_send.assert_called_once()
+        (_, _, _, submitted, reason), = self.rows()
+        self.assertEqual(submitted, 1)
+        self.assertTrue(reason.startswith('needs_attention'))
+
+    def test_broker_unavailable_after_send_counts_as_submitted(self):
+        self.activate_m5()
+        p = pilot.state(self.db)
+        p.update(run_policy='continuous', end=None)
+        pilot.save(self.db, p)
+        self.fill()
+        self.tick(NOW + 300, bootstrap=True)
+        with patch('demo_one_shot._reconcile', side_effect=BrokerUnavailable('Broker reconciliation data unavailable.')):
+            report = self.tick(NOW + 600)
+        self.mt5.order_send.assert_called_once()
+        self.assertEqual(report['status'], 'blocked')
+        self.assertEqual(self.rows()[0][3:], (1, 'Broker reconciliation data unavailable.'))
+
+    def test_guard_refusal_before_send_is_not_submitted(self):
+        def pause(request):
+            self.pause.write_text('owner pause')
+            return Record(retcode=0)
+        self.mt5.order_check.side_effect = pause
+        report = self.candidate_tick()
+        self.mt5.order_send.assert_not_called()
+        self.assertEqual(report['execution']['status'], 'disarmed')
+        self.assertEqual(self.rows()[0][3:], (0, 'disarmed: Pause or expiry before submission'))
+
+    def test_exception_after_arm_is_journaled_unsubmitted(self):
+        original = pilot.execution.process_once
+        def process(*args, **kwargs):
+            if kwargs.get('before_submit'):
+                raise ValueError('Unexpected entry failure')
+            return original(*args, **kwargs)
+        self.activate_m5()
+        self.tick(NOW + 300, bootstrap=True)
+        with patch.object(pilot.execution, 'process_once', side_effect=process):
+            report = self.tick(NOW + 600)
+        self.assertEqual((report['status'], report['reason']), ('blocked', 'Unexpected entry failure'))
+        self.assertEqual(self.rows()[0][3:], (0, 'Unexpected entry failure'))
+
+    def test_journal_failure_never_disrupts_the_runner(self):
+        self.activate_m5()
+        self.fill()
+        self.tick(NOW + 300, bootstrap=True)
+        self.db.execute('DROP TABLE jev_candidates')
+        report = self.tick(NOW + 600)
+        self.assertEqual(report['execution']['status'], 'open')
+
+    def test_unexpected_state_error_never_blocks_shadow_trading(self):
+        self.activate_m5()
+        self.fill()
+        self.tick(NOW + 300, bootstrap=True)
+        with patch('demo_pilot.jev_m5.state', side_effect=KeyError('atr14')):
+            report = self.tick(NOW + 600)
+        self.assertEqual(report['execution']['status'], 'open')
+        self.assertEqual(self.rows()[0][2:4], ('', 1))
 
     def test_feed_failure_never_blocks_shadow_trading(self):
         self.activate_m5()

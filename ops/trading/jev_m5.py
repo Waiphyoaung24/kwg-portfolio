@@ -46,8 +46,8 @@ def state(bars, bid, ask, indicators, *, captured_at):
     if not all(type(b[k]) in (int, float) and math.isfinite(b[k])
                for b in bars[-50:] for k in ('open', 'high', 'low', 'close')):
         raise ValueError('Invalid M5 prices')
-    if any(bars[i]['time'] - bars[i - 1]['time'] != SECONDS for i in range(len(bars) - 49, len(bars))):
-        raise ValueError('M5 bars must be contiguous')
+    if any(bars[i]['time'] <= bars[i - 1]['time'] for i in range(len(bars) - 49, len(bars))):
+        raise ValueError('M5 bars must be strictly increasing')
     numbers = [bid, ask, captured_at, *(indicators[k] for k in ('ema20', 'ema50', 'atr14'))]
     if not all(type(x) in (int, float) and math.isfinite(x) for x in numbers) or ask < bid or indicators['atr14'] <= 0:
         raise ValueError('Invalid market numbers')
@@ -64,6 +64,7 @@ def state(bars, bid, ask, indicators, *, captured_at):
         volatility=_bucket(atr / median, .75, 1.25, ('low', 'normal', 'high')),
         spread=_bucket((ask - bid) / atr, .05, .15, ('tight', 'normal', 'wide')),
         session=_session(recent[-1]['time'] + SECONDS),
+        gap_in_window=any(recent[i]['time'] - recent[i - 1]['time'] != SECONDS for i in range(1, len(recent))),
         last_5=['up' if b['close'] > b['open'] else 'down' if b['close'] < b['open'] else 'flat' for b in recent[-5:]])
     return dict(symbol='XAUUSD-VIP', timeframe='M5', bar_time=recent[-1]['time'],
                 captured_at=captured_at, features=features, bars=recent)

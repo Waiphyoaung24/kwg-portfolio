@@ -6,6 +6,7 @@ import json
 import math
 import os
 from pathlib import Path
+import sqlite3
 import time
 
 import demo_one_shot as execution
@@ -328,6 +329,8 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                         candidate = jev_candidate(bars, tick, result, now)
                         # Task 7: veto mode defers the entry here instead of submitting.
                     execution.arm_once(db, 'buy' if result['signal'] == 'long' else 'sell', int(now))
+                    if candidate:
+                        candidate['attempt'] = execution._attempt(db)['id']
                     def guard(request):
                         if pause_path.exists() or expired(p, time.time()):
                             raise ValueError('Pause or expiry before submission')
@@ -359,8 +362,8 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                         p['pause'] = 'Partial fill requires review'
                     report['reason'] = status.get('close_reason') or 'Demo signal processed'
                     if candidate:
-                        opened = status['status'] == 'open'
-                        journal_jev(db, candidate, opened, None if opened else report['reason'])
+                        journal_jev(db, candidate, None if status['status'] in ('open', 'closed') else
+                                    ': '.join(x for x in (status['status'], status.get('close_reason')) if x))
             else:
                 report['reason'] = ('Waiting for an eligible trend and slope' if trending(p)
                                     else 'Waiting for the next eligible crossover')
@@ -372,7 +375,7 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
     except (ValueError, TypeError, OverflowError) as exc:
         report.update(status='blocked', reason=str(exc)[:160])
         if candidate:
-            journal_jev(db, candidate, False, str(exc)[:160])
+            journal_jev(db, candidate, str(exc))
     if health.get('tick_time') is not None:
         health['tick_time'] -= execution._server_offset()
     if health.get('tick_time_msc') is not None:
@@ -394,25 +397,31 @@ def publish_jev(value):
 
 
 def jev_candidate(bars, tick, result, now):
-    candidate = dict(bar_time=result['bar_time'], side=result['signal'], input_sha256='', error=None)
+    candidate = dict(bar_time=result['bar_time'], side=result['signal'], input_sha256='', error=None, attempt=None)
     try:
         bid, ask = float(tick.bid), float(tick.ask)
         value = jev_m5.state(bars, bid, ask, result, captured_at=now)
         candidate['input_sha256'] = jev_m5.input_sha256(value)
         publish_jev(dict(status='ready', checked_at=int(now), candidate=True, state=value,
                          input_sha256=candidate['input_sha256'], bid=bid, ask=ask))
-    except (ValueError, OSError) as exc:
+    except Exception as exc:
         # Shadow trades as the trend strategy does; a missing feed only loses the Jev sample.
         candidate['error'] = f'Jev feed unavailable: {exc}'
     return candidate
 
 
-def journal_jev(db, candidate, submitted, reason):
+def journal_jev(db, candidate, reason):
     reason = '; '.join(x for x in (candidate['error'], reason) if x) or None
-    with db:
-        db.execute('INSERT OR IGNORE INTO jev_candidates VALUES (?, ?, ?, ?, ?)',
-                   (candidate['bar_time'], candidate['side'], candidate['input_sha256'],
-                    int(submitted), reason and reason[:160]))
+    try:
+        row = execution._attempt(db)
+        # Submitted means order_send was reached: request_json is written just before it.
+        submitted = row is not None and row['id'] == candidate['attempt'] and row['request_json'] is not None
+        with db:
+            db.execute('INSERT OR IGNORE INTO jev_candidates VALUES (?, ?, ?, ?, ?)',
+                       (candidate['bar_time'], candidate['side'], candidate['input_sha256'],
+                        int(submitted), reason and reason[:160]))
+    except sqlite3.Error:
+        pass  # The shadow journal must never disrupt the runner after a trade.
 
 
 def snapshot(mt5, db, p, status, now, login):
