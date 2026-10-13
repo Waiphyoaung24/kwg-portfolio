@@ -111,7 +111,7 @@ well (typed classification over supplied state) and leaves every number in code.
 State: categorical features computed in code — `trend` (up/down/flat),
 `slope_3` (rising/falling/mixed), `price_vs_ema20` (above/below/at), volatility
 regime (low/normal/high vs 50-bar ATR median), spread bucket (tight/normal/wide
-vs ATR), session (asia/london/new_york/overlap), last-5-candle body pattern — plus
+vs ATR), session (asia/london/new_york/overlap), last-5-candle body pattern, `gap_in_window` (any missing candle in the 50-bar window) — plus
 the last 50 OHLC bars. No account, P/L, position, code side or credentials.
 
 Question `decision` (choice): `buy` — conditions favour a long entry now;

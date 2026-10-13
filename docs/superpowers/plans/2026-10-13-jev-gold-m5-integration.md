@@ -685,8 +685,9 @@ hash a small fixture with the Python script and assert the same digest in JS.
 - `m5Snapshot(feed, now)`: requires `status:'ready'`, `candidate:true`,
   `0 <= now-checked_at <= 15`, symbol/timeframe, `bar_time === floor(now/300)*300-300`,
   `captured_at >= bar_time+300`, and `now - captured_at <= 90`. Requires 50
-  contiguous M5 bars with valid OHLC, and every feature value in its allowed
-  enum. Rebuilds `state` from allowlisted keys only, recomputes `input_sha256` and
+  strictly increasing, int-timed M5-grid bars with valid OHLC (gaps allowed;
+  `features.gap_in_window` is a boolean), and every feature value in its allowed
+  enum. A stale `candidate:true` feed (old `bar_time`/`checked_at`) must be rejected. Rebuilds `state` from allowlisted keys only, recomputes `input_sha256` and
   rejects a mismatch. Returns `{bar_time, input_sha256, state}`.
 - `m5Request(snapshot)` → `{model:'jev-1.13.0', state:snapshot.state, questions:{decision:QUESTION}}`.
 - `parseM5(value)`: like `parseJev`, with keys `buy|hold|sell`, the question key
@@ -860,12 +861,36 @@ git commit -m "feat(trading): show Gold M5 Jev shadow scorecard on the vault des
 
 ---
 
+### Task 11b: Accept the M5 strategy in status allowlists and labels
+
+Added during execution (Task 6 review). Without it, M5 pilot snapshots are
+rejected as `Invalid pilot state`.
+
+**Files:**
+- Modify: `ops/trading/status_server.py` (`sanitize_pilot` gold strategy tuple; pass
+  through `jev_mode` only when it is `shadow` or `veto`)
+- Modify: `src/scripts/trading-pilot.mjs` (`normalizePilot`, same rules) + its test
+- Modify: `src/pages/vault/trading.astro` (strategy description and timeframe labels for
+  `gold-ema-v1-m5-trend-jev`: "M5 trend · Jev shadow/veto")
+- Modify: `ops/trading/fixtures/status-contract.json` if the shared contract lists strategies
+- Test: `test_status_server.py`, `src/scripts/trading-pilot.test.mjs`, `ops/trading/worker/test.mjs`
+
+TDD each. Commit: `feat(trading): accept Gold M5 Jev strategy in status contract`.
+
+---
+
 ### Task 12: Staged cutover to M5 shadow, and owner-gated promotion
 
 **Files:**
 - Create: `ops/trading/switch-pilot-m5.py`, `ops/trading/stage-m5-jev.ps1`
 - Create: `ops/trading/promote-jev-veto.py`
 - Test: `ops/trading/test_switch_m5.py`, `ops/trading/test_promote_jev.py`
+
+Every staging list, manifest and generated Dockerfile that ships `demo_pilot.py`
+or `control_server.py` must also ship `jev_m5.py`. That includes `Dockerfile`,
+`deploy-demo-pilot.py`, `deploy-demo-pilot.ps1`, `stage-m1-pilot.ps1`,
+`stage-two-symbol-pilot.ps1`, `migrate-two-symbol-pilot.py` and the new
+`stage-m5-jev.ps1`. Add a test that fails if one ships without the other.
 
 Model both on `switch-pilot-m1.py`, `stage-m1-pilot.ps1`,
 `cutover-two-symbol-pilot.py` and their tests. Read them fully first.
