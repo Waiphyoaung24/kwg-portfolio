@@ -37,6 +37,10 @@ def open_state(path, login, symbol=SYMBOL):
         db.execute('CREATE TABLE IF NOT EXISTS pilot (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)')
         db.execute('CREATE TABLE IF NOT EXISTS jev_candidates (bar_time INTEGER PRIMARY KEY, side TEXT NOT NULL, '
                    'input_sha256 TEXT NOT NULL, submitted INTEGER NOT NULL, reason TEXT, jev_mode TEXT, attempt TEXT)')
+        columns = {row[1] for row in db.execute('PRAGMA table_info(jev_candidates)')}
+        for column in ('jev_mode', 'attempt'):
+            if column not in columns:
+                db.execute(f'ALTER TABLE jev_candidates ADD COLUMN {column} TEXT')
     return db
 
 

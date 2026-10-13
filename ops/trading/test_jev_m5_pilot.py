@@ -100,6 +100,22 @@ class JevM5PilotTest(unittest.TestCase):
         self.assertEqual(len(self.rows()), 1)
         self.assertEqual(self.provenance(), [('shadow', self.db.execute('SELECT id FROM attempts').fetchone()[0])])
 
+    def test_open_state_migrates_old_candidate_table(self):
+        path = Path(self.temp.name) / 'old.sqlite3'
+        db = pilot.open_state(path, 123)
+        with db:
+            db.execute('DROP TABLE jev_candidates')
+            db.execute('CREATE TABLE jev_candidates (bar_time INTEGER PRIMARY KEY, side TEXT NOT NULL, '
+                       'input_sha256 TEXT NOT NULL, submitted INTEGER NOT NULL, reason TEXT)')
+            db.execute("INSERT INTO jev_candidates VALUES (1, 'long', '', 0, 'old')")
+        db.close()
+        db = pilot.open_state(path, 123)
+        self.addCleanup(db.close)
+        pilot.journal_jev(db, dict(bar_time=2, side='short', input_sha256='', error=None, attempt=None,
+                                   jev_mode='shadow'), 'new')
+        self.assertEqual([tuple(r) for r in db.execute('SELECT bar_time, reason, jev_mode, attempt FROM jev_candidates')],
+                         [(1, 'old', None, None), (2, 'new', 'shadow', None)])
+
     def test_shadow_journals_unsubmitted_candidate_with_reason(self):
         self.activate_m5()
         self.tick(NOW + 300, bootstrap=True)
