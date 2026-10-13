@@ -86,8 +86,8 @@ def read_contract(mt5) -> dict:
 def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
               *, server_offset_seconds: int = 0, execution: bool = False, bar_seconds: int = 900, trend_demo: bool = False, symbol: str = SYMBOL) -> tuple[object, list[dict]]:
     validate_market(symbol, bar_seconds, trend_demo)
-    if type(bar_seconds) is not int or bar_seconds not in (60, 900):
-        raise ValueError('Only M1 and M15 candles are supported')
+    if type(bar_seconds) is not int or bar_seconds not in (60, 300, 900):
+        raise ValueError('Only M1, M5 and M15 candles are supported')
     if server_offset_seconds not in (0, 7200, 10800):
         raise ValueError("Unsupported server clock offset.")
     evidence = evidence if evidence is not None else {}
@@ -128,7 +128,7 @@ def read_gold(mt5, login: int, now: float | None, evidence: dict | None = None,
         validate_tick(tick, sampled_at, evidence, server_offset_seconds=server_offset_seconds, symbol=symbol)
     except ValueError as exc:
         quote_error = exc
-    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M1 if bar_seconds == 60 else mt5.TIMEFRAME_M15, 1, 250)
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M1 if bar_seconds == 60 else mt5.TIMEFRAME_M5 if bar_seconds == 300 else mt5.TIMEFRAME_M15, 1, 250)
     if rates is not None:
         evidence["history_count"] = len(rates)
         if len(rates):

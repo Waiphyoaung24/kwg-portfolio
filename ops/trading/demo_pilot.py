@@ -9,6 +9,7 @@ from pathlib import Path
 import time
 
 import demo_one_shot as execution
+import jev_m5
 from instruments import GOLD, BTC, BTC_STRATEGY, BTC_SCALP_STRATEGY, instrument
 from gold_experiment import digest, entry_allowed
 from gold_signal import evaluate
@@ -17,8 +18,10 @@ from mt5_data import SERVER, SYMBOL, read_gold, validate_account, validate_tick,
 STRATEGY = 'gold-ema-v1-slope-3'
 M1_STRATEGY = 'gold-ema-v1-m1-slope-3'
 TREND_STRATEGY = 'gold-ema-v1-m1-trend-3'
+M5_JEV_STRATEGY = 'gold-ema-v1-m5-trend-jev'
 SNAPSHOT = Path(r'Z:\opt\status\latest.json')
-SOURCES = ('demo_pilot.py', 'demo_one_shot.py', 'mt5_data.py', 'gold_signal.py', 'gold_experiment.py', 'instruments.py')
+JEV_FEED = SNAPSHOT.with_name('jev-m5.json')
+SOURCES = ('demo_pilot.py', 'demo_one_shot.py', 'mt5_data.py', 'gold_signal.py', 'gold_experiment.py', 'instruments.py', 'jev_m5.py')
 
 
 def identity():
@@ -30,6 +33,8 @@ def open_state(path, login, symbol=SYMBOL):
     db = execution.open_journal(path, login, symbol)
     with db:
         db.execute('CREATE TABLE IF NOT EXISTS pilot (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)')
+        db.execute('CREATE TABLE IF NOT EXISTS jev_candidates (bar_time INTEGER PRIMARY KEY, side TEXT NOT NULL, '
+                   'input_sha256 TEXT NOT NULL, submitted INTEGER NOT NULL, reason TEXT)')
     return db
 
 
@@ -38,25 +43,31 @@ def state(db):
     return json.loads(row[0]) if row else None
 
 
+def trending(p):
+    return bool(p and p['strategy'] in (TREND_STRATEGY, M5_JEV_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY))
+
+
 def candle_seconds(p):
     if p is None or p['strategy'] in (STRATEGY, BTC_STRATEGY):
         return 900
     if p['strategy'] in (M1_STRATEGY, TREND_STRATEGY, BTC_SCALP_STRATEGY):
         return 60
+    if p['strategy'] == M5_JEV_STRATEGY:
+        return 300
     raise ValueError('Unknown pilot strategy')
 
 
 def assess(bars, tick, now, p):
     result = evaluate(bars, float(tick.bid), float(tick.ask), now, bar_seconds=candle_seconds(p),
-                      trend_demo=bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY)), symbol=BTC if p and p['strategy'] in (BTC_STRATEGY, BTC_SCALP_STRATEGY) else GOLD)
-    if p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY) and result['signal'] != 'blocked':
+                      trend_demo=trending(p), symbol=BTC if p and p['strategy'] in (BTC_STRATEGY, BTC_SCALP_STRATEGY) else GOLD)
+    if trending(p) and result['signal'] != 'blocked':
         fast, slow = result['ema20'], result['ema50']
         result['signal'] = 'long' if fast > slow else 'short' if fast < slow else 'none'
     return result
 
 
 def cooldown_remaining(db, p, now):
-    if p['strategy'] not in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY):
+    if not trending(p):
         return 0
     closed = db.execute("SELECT MAX(closed_at) FROM attempts WHERE state='closed'").fetchone()[0]
     if closed is None:
@@ -255,6 +266,9 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
         else:
             if p.pop('recovering', False):
                 p['last_bar'] = None
+        if p['strategy'] == M5_JEV_STRATEGY and p.get('jev_mode') != 'shadow':
+            # Task 7 adds veto; until then no M5 entry runs without a supported mode.
+            p['pause'] = p['pause'] or ('Veto mode not implemented' if p.get('jev_mode') == 'veto' else 'Invalid Jev mode')
         if status['status'] in ('needs_attention', 'submitting', 'closing'):
             p['pause'] = p['pause'] or 'Broker outcome requires review'
         if expired(p, now):
@@ -280,9 +294,10 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                 status = execution._status(db, now)
         p['last_poll'] = max(now, p['last_poll'])
         save(db, p)
+    candidate = None
     try:
         tick, bars = read_gold(mt5, login, now, health,
-                              server_offset_seconds=execution._server_offset(), execution=bool(p) or shared is not None, bar_seconds=seconds, trend_demo=symbol == BTC or bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY)), symbol=symbol)
+                              server_offset_seconds=execution._server_offset(), execution=bool(p) or shared is not None, bar_seconds=seconds, trend_demo=symbol == BTC or trending(p), symbol=symbol)
         result = assess(bars, tick, now, p or ({"strategy": BTC_STRATEGY} if symbol == BTC else None))
         health.update(strategy_signal=result['signal'], strategy_reason=result['reason'])
         report.update(bar_time=result['bar_time'], status='observed', reason=result['reason'])
@@ -309,12 +324,15 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                     positions, orders = mt5.positions_get(symbol=symbol) if shared else mt5.positions_get(), mt5.orders_get(symbol=symbol) if shared else mt5.orders_get()
                     if positions is None or orders is None or positions or orders:
                         raise ValueError('Account exposure blocks another entry')
+                    if p['strategy'] == M5_JEV_STRATEGY:
+                        candidate = jev_candidate(bars, tick, result, now)
+                        # Task 7: veto mode defers the entry here instead of submitting.
                     execution.arm_once(db, 'buy' if result['signal'] == 'long' else 'sell', int(now))
                     def guard(request):
                         if pause_path.exists() or expired(p, time.time()):
                             raise ValueError('Pause or expiry before submission')
                         fresh_tick, fresh_bars = read_gold(mt5, login, None,
-                            server_offset_seconds=execution._server_offset(), execution=True, bar_seconds=seconds, trend_demo=bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY)), symbol=symbol)
+                            server_offset_seconds=execution._server_offset(), execution=True, bar_seconds=seconds, trend_demo=trending(p), symbol=symbol)
                         fresh = assess(fresh_bars, fresh_tick, time.time(), p)
                         if cooldown_remaining(db, p, time.time()):
                             raise ValueError('Cooldown before submission')
@@ -334,17 +352,27 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
                             p['pause'] = str(exc)
                             raise
                         request['comment'] = 'kwg-pilot-' + execution._attempt(db)['id']
-                    status = execution.process_once(mt5, db, now, before_submit=guard, bar_seconds=seconds, trend_demo=bool(p and p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY)))
+                    status = execution.process_once(mt5, db, now, before_submit=guard, bar_seconds=seconds, trend_demo=trending(p))
                     if status['status'] in ('needs_attention', 'submitting', 'closing'):
                         p['pause'] = 'Broker outcome requires review'
                     if status['status'] == 'open' and status['volume'] != .01:
                         p['pause'] = 'Partial fill requires review'
                     report['reason'] = status.get('close_reason') or 'Demo signal processed'
+                    if candidate:
+                        opened = status['status'] == 'open'
+                        journal_jev(db, candidate, opened, None if opened else report['reason'])
             else:
-                report['reason'] = ('Waiting for an eligible trend and slope' if p['strategy'] in (TREND_STRATEGY, BTC_STRATEGY, BTC_SCALP_STRATEGY)
+                report['reason'] = ('Waiting for an eligible trend and slope' if trending(p)
                                     else 'Waiting for the next eligible crossover')
+            if new_bar and p['strategy'] == M5_JEV_STRATEGY and candidate is None:
+                try:
+                    publish_jev(dict(status='ready', checked_at=int(now), candidate=False, bar_time=result['bar_time']))
+                except OSError:
+                    pass  # Shadow trading never waits on the Jev feed.
     except (ValueError, TypeError, OverflowError) as exc:
         report.update(status='blocked', reason=str(exc)[:160])
+        if candidate:
+            journal_jev(db, candidate, False, str(exc)[:160])
     if health.get('tick_time') is not None:
         health['tick_time'] -= execution._server_offset()
     if health.get('tick_time_msc') is not None:
@@ -357,6 +385,34 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
     report['execution'] = status
     report['pilot'] = snapshot(mt5, db, p, status, now, login)
     return report
+
+
+def publish_jev(value):
+    temporary = JEV_FEED.with_suffix('.tmp')
+    temporary.write_text(json.dumps(value, allow_nan=False), encoding='utf-8')
+    temporary.replace(JEV_FEED)
+
+
+def jev_candidate(bars, tick, result, now):
+    candidate = dict(bar_time=result['bar_time'], side=result['signal'], input_sha256='', error=None)
+    try:
+        bid, ask = float(tick.bid), float(tick.ask)
+        value = jev_m5.state(bars, bid, ask, result, captured_at=now)
+        candidate['input_sha256'] = jev_m5.input_sha256(value)
+        publish_jev(dict(status='ready', checked_at=int(now), candidate=True, state=value,
+                         input_sha256=candidate['input_sha256'], bid=bid, ask=ask))
+    except (ValueError, OSError) as exc:
+        # Shadow trades as the trend strategy does; a missing feed only loses the Jev sample.
+        candidate['error'] = f'Jev feed unavailable: {exc}'
+    return candidate
+
+
+def journal_jev(db, candidate, submitted, reason):
+    reason = '; '.join(x for x in (candidate['error'], reason) if x) or None
+    with db:
+        db.execute('INSERT OR IGNORE INTO jev_candidates VALUES (?, ?, ?, ?, ?)',
+                   (candidate['bar_time'], candidate['side'], candidate['input_sha256'],
+                    int(submitted), reason and reason[:160]))
 
 
 def snapshot(mt5, db, p, status, now, login):
@@ -380,7 +436,8 @@ def snapshot(mt5, db, p, status, now, login):
     label = ('standby' if not p else 'expired' if expired(p, now) and status['status'] in ('closed', 'disarmed')
              else 'needs_attention' if expired(p, now) or status['status'] in ('needs_attention', 'closing', 'submitting')
              else 'paused' if p['pause'] else 'active')
-    return dict(**({'run_policy': 'continuous'} if continuous(p) else {}), status=label, strategy=p['strategy'] if p else BTC_STRATEGY if symbol == BTC else STRATEGY, qualification='unqualified', updated_at=now,
+    return dict(**({'run_policy': 'continuous'} if continuous(p) else {}),
+                **({'jev_mode': p.get('jev_mode')} if p and p['strategy'] == M5_JEV_STRATEGY else {}), status=label, strategy=p['strategy'] if p else BTC_STRATEGY if symbol == BTC else STRATEGY, qualification='unqualified', updated_at=now,
                 started_at=p['start'] if p else None, ends_at=p['end'] if p else None,
                 reason=p['pause'] or p['reason'] if p else 'Owner activation required',
                 completed_trades=closed[0], realized_net_usd=closed[1], floating_usd=floating,
