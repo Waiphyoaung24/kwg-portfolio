@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import math
+import sqlite3
+from contextlib import closing
 
 MODEL = 'jev-1.13.0'
 SECONDS = 300
@@ -110,3 +112,28 @@ def allows(receipt, *, side, bar_time, input_sha256, now):
     if receipt['confidence'] < THRESHOLD:
         return False, 'Jev confidence below 0.5'
     return True, 'Jev agreed'
+
+
+def _receipts(path):
+    db = sqlite3.connect(path)
+    with db:
+        db.execute('CREATE TABLE IF NOT EXISTS receipts (bar_time INTEGER PRIMARY KEY, '
+                   'received REAL NOT NULL, payload TEXT NOT NULL)')
+    return db
+
+
+def store_receipt(path, value, *, received):
+    validate_receipt(value)
+    with closing(_receipts(path)) as db, db:
+        # Insert-only: a later or duplicate receipt never replaces the first one.
+        cursor = db.execute('INSERT OR IGNORE INTO receipts VALUES (?, ?, ?)',
+                            (value['bar_time'], received, json.dumps(value, sort_keys=True, allow_nan=False)))
+        return cursor.rowcount == 1
+
+
+def load_receipt(path, bar_time):
+    if not path.exists():
+        return None
+    with closing(sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)) as db:
+        row = db.execute('SELECT payload FROM receipts WHERE bar_time=?', (bar_time,)).fetchone()
+    return json.loads(row[0]) if row else None

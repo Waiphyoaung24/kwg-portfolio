@@ -1,5 +1,7 @@
 import math
+import tempfile
 import unittest
+from pathlib import Path
 
 import jev_m5
 
@@ -71,6 +73,19 @@ class VetoRuleTest(unittest.TestCase):
                 jev_m5.validate_receipt(value)
         self.assertEqual(jev_m5.validate_receipt(receipt(status='timeout', choice=None,
             confidence=None, probabilities=None))['status'], 'timeout')
+
+
+class StoreTest(unittest.TestCase):
+    def test_first_receipt_wins_and_reads_back(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'r.sqlite3'
+            first = receipt('buy')
+            self.assertTrue(jev_m5.store_receipt(path, first, received=1031))
+            self.assertFalse(jev_m5.store_receipt(path, receipt('sell'), received=1032))
+            self.assertEqual(jev_m5.load_receipt(path, 600)['choice'], 'buy')
+            self.assertIsNone(jev_m5.load_receipt(path, 1200))
+            with self.assertRaises(ValueError):
+                jev_m5.store_receipt(path, {**first, 'bar_time': 1200, 'model': 'x'}, received=1)
 
 
 if __name__ == '__main__':
