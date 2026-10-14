@@ -4,11 +4,16 @@
 
 Gold M5 shadow is deployed and verified active after recovering the manual-deal
 acknowledgement regression. BTC remains paused by owner. Shared account pause is
-clear; existing limits and acknowledged receipts are preserved. The scorecard
-is ready with zero candidates and an unmet veto gate. Website `main` and Worker
-are deployed; `JEV_M5_LIVE="false"` remains deployed. No M5 provider enablement
-or veto promotion was performed. Recovery evidence, source identity and preserved
-backup paths: [M5-ACCOUNT-RECOVERY.md](M5-ACCOUNT-RECOVERY.md).
+clear; existing limits and acknowledged receipts are preserved. The owner approved
+sending the last 50 M5 candles and trend labels/categorical features to TypeSafe
+within the shared $5 budget on 2026-10-14. `JEV_M5_LIVE="true"` is deployed in
+Worker version `6f5f282a-601b-4a65-9cef-74773eb88484`; shadow mode is unchanged.
+The first receipt is verified in Worker logs and the runner journal: candle
+2026-10-14 00:00 UTC, `ok`, sell, confidence 0.52, received 16.780 seconds after
+close, matching the candidate hash. The code disarmed that candidate for price
+deviation; no order was submitted. Veto gate remains unmet; no promotion occurred.
+Recovery evidence, source identity and preserved backup paths:
+[M5-ACCOUNT-RECOVERY.md](M5-ACCOUNT-RECOVERY.md).
 
 Original journal backups remain intact. The original M1 base image was already
 absent from Docker during investigation; the pre-recovery M5 image is separately

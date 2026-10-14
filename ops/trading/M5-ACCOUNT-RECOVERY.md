@@ -52,3 +52,19 @@ Two distinct fresh reports confirmed M5 shadow active after restart. Subsequent
 quotes and M5 history were fresh/valid; shared pause was null. The ready scorecard
 reported zero candidates and an unmet veto gate. Worker version
 `2bc6b99f-fdaa-4667-acc6-136155466fc8` still has `JEV_M5_LIVE=false`.
+
+## Subsequent owner-approved step 6
+
+After recovery verification, the owner explicitly approved the last 50 M5 candles
+and trend labels/categorical features to TypeSafe within the shared $5 budget.
+Commit `8848f5b` enabled M5 calls; both it and recovery commit `010840d` were pushed
+to main. Worker version `6f5f282a-601b-4a65-9cef-74773eb88484` is deployed with
+`JEV_M5_LIVE=true`. Gold remains shadow; BTC remains paused by owner.
+
+First receipt: bar_time `1791936000` (2026-10-14 00:00 UTC), model `jev-1.13.0`,
+status `ok`, choice `sell`, confidence `0.52`, completed_at `1791936316.198`,
+received `1791936316.7798202`. The input hash matches the shadow candidate:
+`3eba3ed7387972573c857a6eadd6fcbb1d89f8824b1ac8093fd79528843bb60d`.
+Arrival was 16.780 seconds after candle close, within the 90-second deadline.
+The strategy disarmed this candidate for checked-entry price deviation; it did
+not submit an order. Thirty Worker tests passed before enablement.
