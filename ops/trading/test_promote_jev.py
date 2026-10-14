@@ -102,6 +102,53 @@ class PromoteJevTest(unittest.TestCase):
                 self.assertEqual(dump(self.db), before)
                 self.assertEqual(self.backups(), [])
 
+    def test_explicit_demo_test_bypasses_only_qualification_and_is_audited(self):
+        failing = dict(PASSING, closed=0, gate=dict(passes=False, reasons=['Need 50']))
+        backup = self.home / 'demo-test-backup.sqlite3'
+        result = module['change'](self.db, NOW, failing, owner_approved=True,
+            demote=False, demo_test=True, backup=backup)
+        self.assertTrue(result['demo_test'])
+        self.assertEqual(pilot.state(self.db), {**self.record, 'jev_mode': 'veto'})
+        audit = self.db.execute('SELECT at, scorecard_json FROM jev_demo_tests').fetchone()
+        self.assertEqual(audit[0], NOW)
+        self.assertEqual(json.loads(audit[1]), failing)
+        self.assertEqual(json.loads(self.db.execute('SELECT data FROM account_limits').fetchone()[0]), self.record)
+
+    def test_demo_test_still_requires_owner_ready_scorecard_and_unpaused_pilot(self):
+        failing = dict(PASSING, gate=dict(passes=False, reasons=['Need 50']))
+        cases = [(False, failing, None), (True, None, None),
+                 (True, dict(failing, status='unavailable'), None),
+                 (True, failing, 'Paused by owner')]
+        for approved, value, pause in cases:
+            with self.subTest(approved=approved, value=value, pause=pause):
+                pilot.save(self.db, {**self.record, 'pause': pause})
+                before = dump(self.db)
+                with self.assertRaises(ValueError):
+                    module['change'](self.db, NOW, value, owner_approved=approved,
+                        demote=False, demo_test=True, backup=self.home/'refused.sqlite3')
+                self.assertEqual(dump(self.db), before)
+                self.assertFalse((self.home/'refused.sqlite3').exists())
+
+    def test_demo_test_rejects_unresolved_orders(self):
+        pilot.execution.arm_once(self.db, 'buy', NOW)
+        before = dump(self.db)
+        with self.assertRaisesRegex(ValueError, 'flat'):
+            module['change'](self.db, NOW, PASSING, owner_approved=True, demote=False,
+                             demo_test=True, backup=self.home/'refused.sqlite3')
+        self.assertEqual(dump(self.db), before)
+
+    def test_demo_test_rejects_non_demo_journal(self):
+        self.db.execute("UPDATE metadata SET server='Other-Live'")
+        self.db.commit()
+        with self.assertRaisesRegex(ValueError, 'demo journal'):
+            module['change'](self.db, NOW, PASSING, owner_approved=True, demote=False,
+                             demo_test=True, backup=self.home/'refused.sqlite3')
+
+    def test_demo_test_reads_failing_scorecard_without_faking_gate(self):
+        value = module['card'](self.path, self.home/'receipts.sqlite3', NOW,
+                               demote=False, demo_test=True)
+        self.assertFalse(value['gate']['passes'])
+
     def test_real_scorecard_gate_refuses_an_empty_shadow_journal(self):
         with self.assertRaisesRegex(ValueError, 'Need 50 closed shadow trades'):
             module['card'](self.path, self.home / 'jev-m5-receipts.sqlite3', NOW, demote=False)
@@ -123,7 +170,7 @@ class PromoteJevTest(unittest.TestCase):
 
 
 class PromoteDeployTest(unittest.TestCase):
-    def deploy(self, *, gate=True, receipt_ok=True, demote=False, journal=None):
+    def deploy(self, *, gate=True, receipt_ok=True, demote=False, journal=None, demo_test=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             stage = root / 'm5-jev-review-test'
@@ -137,6 +184,9 @@ class PromoteDeployTest(unittest.TestCase):
             record = dict(strategy=pilot.M5_JEV_STRATEGY, jev_mode='veto' if demote else 'shadow', code=pilot.identity())
             with db:
                 db.execute('INSERT INTO pilot VALUES (1, ?)', (json.dumps({**record, **(journal or {})}),))
+            with db:
+                db.execute('CREATE TABLE account_limits (id INTEGER PRIMARY KEY, data TEXT)')
+                db.execute('INSERT INTO account_limits VALUES (1, ?)', (json.dumps(dict(pause=None)),))
             db.close()
             calls = []
 
@@ -145,6 +195,7 @@ class PromoteDeployTest(unittest.TestCase):
                 if 'script' in args:
                     self.assertIn('--owner-approved', args[-2])
                     self.assertEqual('--demote' in args[-2], demote)
+                    self.assertEqual('--demo-test' in args[-2], demo_test)
                     target = 'shadow' if demote else 'veto'
                     return 'JEV_MODE_CHANGED ' + json.dumps(dict(to_mode=target)) if receipt_ok else 'missing'
                 if 'kwg-trading-status' in args:
@@ -163,11 +214,22 @@ class PromoteDeployTest(unittest.TestCase):
                     patch.object(module['scorecard'], 'export', export), \
                     patch('runpy.run_path', return_value={'stop_runner': stop}), patch('builtins.print') as output:
                 try:
-                    deploy(stage, demote=demote)
+                    deploy(stage, demote=demote, demo_test=demo_test)
                     error = None
                 except ValueError as exc:
                     error = str(exc)
             return error, calls, output
+
+    def test_explicit_demo_override_reaches_container_with_failed_gate(self):
+        error, calls, _ = self.deploy(gate=False, demo_test=True)
+        self.assertIsNone(error)
+        self.assertIn(['stop_runner'], calls)
+        self.assertTrue(any('script' in c and '--demo-test' in c[-2] for c in calls))
+
+    def test_demo_override_does_not_bypass_pause_before_stop(self):
+        error, calls, _ = self.deploy(gate=False, demo_test=True, journal={'pause': 'Paused by owner'})
+        self.assertIn('pause', error)
+        self.assertNotIn(['stop_runner'], calls)
 
     def test_failing_gate_refuses_before_stopping_the_runner(self):
         error, calls, _ = self.deploy(gate=False)

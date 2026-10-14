@@ -1,8 +1,9 @@
 """Owner-approved Gold M5 Jev mode change; never automatic and never contacts the broker.
 
-Host:      promote-jev-veto.py <stage> --owner-approved [--demote]
-Container: promote-jev-veto.py --journal --owner-approved [--demote]
-Promotion (shadow -> veto) requires a passing read-only scorecard gate. Demotion
+Host:      promote-jev-veto.py <stage> --owner-approved [--demote | --demo-test]
+Container: promote-jev-veto.py --journal --owner-approved [--demote | --demo-test]
+Normal promotion requires a passing read-only scorecard gate. An explicit
+--demo-test records an unqualified demo override without changing risk limits. Demotion
 (veto -> shadow) is allowed at any time. Both are audited in jev_mode_changes.
 """
 import argparse
@@ -28,14 +29,14 @@ PREFIX = 'm5-jev-review-'
 VOLUME = Path('/var/lib/docker/volumes/kwg-mt5-qualification_mt5-home/_data/.wine/drive_c/users/mt5')
 
 
-def card(journal, receipts, now, *, demote):
+def card(journal, receipts, now, *, demote, demo_test=False):
     try:
         value = scorecard.export(journal, receipts, now)
     except Exception:
         if demote:
             return None  # Demotion never waits on the scorecard.
         raise
-    if not demote and not value['gate']['passes']:
+    if not demote and not demo_test and not value['gate']['passes']:
         raise ValueError('Scorecard gate does not pass: ' + '; '.join(value['gate']['reasons']))
     return value
 
@@ -51,12 +52,27 @@ def expect(p, code, *, demote):
     return source, target
 
 
-def change(db, now, value, *, owner_approved, demote, backup):
+def check_demo_test(db, p, value, *, demote):
+    if demote or value is None or value.get('status') != 'ready':
+        raise ValueError('Demo test requires promotion and a ready scorecard')
+    metadata = db.execute('SELECT server, symbol FROM metadata').fetchall()
+    if [tuple(r) for r in metadata] != [(pilot.SERVER, pilot.GOLD)]:
+        raise ValueError('Demo test requires the pinned Gold demo journal')
+    risk = json.loads(db.execute('SELECT data FROM account_limits WHERE id=1').fetchone()[0])
+    if p.get('pause') or risk.get('pause'):
+        raise ValueError('Demo test cannot clear or bypass a pause')
+    if db.execute("SELECT count(*) FROM attempts WHERE state NOT IN ('closed','disarmed')").fetchone()[0]:
+        raise ValueError('Demo test requires Gold flat with no unresolved attempts')
+
+
+def change(db, now, value, *, owner_approved, demote, backup, demo_test=False):
     if owner_approved is not True:
         raise ValueError('Explicit owner approval is required')
     p = pilot.state(db)
     source, target = expect(p, pilot.identity(), demote=demote)
-    if not demote and (value is None or value['gate']['passes'] is not True):
+    if demo_test:
+        check_demo_test(db, p, value, demote=demote)
+    if not demote and not demo_test and (value is None or value['gate']['passes'] is not True):
         raise ValueError('Scorecard gate does not pass')
     digest = value and hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'),
                                                  allow_nan=False).encode()).hexdigest()
@@ -70,15 +86,21 @@ def change(db, now, value, *, owner_approved, demote, backup):
         db.execute('CREATE TABLE IF NOT EXISTS jev_mode_changes (at REAL NOT NULL, from_mode TEXT NOT NULL, '
                    'to_mode TEXT NOT NULL, scorecard_sha256 TEXT)')
         db.execute('INSERT INTO jev_mode_changes VALUES (?, ?, ?, ?)', (now, source, target, digest))
+        if demo_test:
+            db.execute('CREATE TABLE IF NOT EXISTS jev_demo_tests (at REAL NOT NULL, scorecard_json TEXT NOT NULL)')
+            db.execute('INSERT INTO jev_demo_tests VALUES (?, ?)',
+                       (now, json.dumps(value, sort_keys=True, allow_nan=False)))
         # Only jev_mode changes; any deferred veto entry is dropped by the runner on restart.
         db.execute('UPDATE pilot SET data=? WHERE id=1', (json.dumps({**p, 'jev_mode': target}, allow_nan=False),))
-    return dict(from_mode=source, to_mode=target, scorecard_sha256=digest, backup=str(backup), order_sent=False)
+    return dict(from_mode=source, to_mode=target, scorecard_sha256=digest, backup=str(backup), order_sent=False, demo_test=demo_test)
 
 
 def journal(args):
     if os.environ.get('MT5_RUN_MODE') != 'pilot':
         raise SystemExit('MT5_RUN_MODE must be pilot')
     home = Path.home()
+    if args.demo_test and (home / 'gold-pilot.pause').exists():
+        raise ValueError('Owner pause exists')
     path = home / 'gold-pilot.sqlite3'
     if not path.is_file():
         raise ValueError('Gold pilot journal missing')
@@ -87,8 +109,8 @@ def journal(args):
         db.row_factory = sqlite3.Row
         try:
             now = time.time()
-            value = card(path, home / 'jev-m5-receipts.sqlite3', now, demote=args.demote)
-            result = change(db, now, value, owner_approved=args.owner_approved, demote=args.demote,
+            value = card(path, home / 'jev-m5-receipts.sqlite3', now, demote=args.demote, demo_test=args.demo_test)
+            result = change(db, now, value, owner_approved=args.owner_approved, demote=args.demote, demo_test=args.demo_test,
                             backup=home / ('gold-pilot-before-jev-mode-' + str(time.time_ns()) + '.sqlite3'))
         finally:
             db.close()
@@ -99,7 +121,7 @@ def run(args, **kwargs):
     return subprocess.check_output(args, timeout=kwargs.pop('timeout', 60), **kwargs).decode().strip()
 
 
-def deploy(stage, *, demote):
+def deploy(stage, *, demote, demo_test=False):
     if stage.parent != ROOT or not stage.name.startswith(PREFIX) or stage.is_symlink():
         raise ValueError('Expected a private M5 Jev review stage')
     manifest = json.loads((stage / 'manifest.json').read_text())
@@ -110,7 +132,12 @@ def deploy(stage, *, demote):
     with closing(sqlite3.connect((VOLUME / 'gold-pilot.sqlite3').resolve().as_uri() + '?mode=ro', uri=True)) as db:
         expect(pilot.state(db), manifest['code_sha256'], demote=demote)
     if not demote:
-        card(VOLUME / 'gold-pilot.sqlite3', VOLUME / 'jev-m5-receipts.sqlite3', time.time(), demote=False)
+        value = card(VOLUME / 'gold-pilot.sqlite3', VOLUME / 'jev-m5-receipts.sqlite3', time.time(), demote=False, demo_test=demo_test)
+        if demo_test:
+            if (VOLUME / 'gold-pilot.pause').exists():
+                raise ValueError('Owner pause exists')
+            with closing(sqlite3.connect((VOLUME / 'gold-pilot.sqlite3').resolve().as_uri() + '?mode=ro', uri=True)) as db:
+                check_demo_test(db, pilot.state(db), value, demote=False)
     import runpy
     import base64
     print('RUNNER_STOPPED', runpy.run_path(str(stage / 'cutover-m1-pilot.py'))['stop_runner'](), flush=True)
@@ -120,7 +147,8 @@ def deploy(stage, *, demote):
     run(['docker', 'exec', '-i', '--user', 'mt5', 'kwg-mt5-desktop', 'python3', '-c', receiver, target],
         input=json.dumps(bundle).encode())
     command = 'stty cols 4096; ' + shlex.join(['wine', '/opt/python/python.exe', target + '/promote-jev-veto.py',
-                                             '--journal', '--owner-approved', *(['--demote'] if demote else [])])
+                                             '--journal', '--owner-approved', *(['--demote'] if demote else []),
+                                             *(['--demo-test'] if demo_test else [])])
     receipt = run(['docker', 'exec', '--user', 'mt5', 'kwg-mt5-desktop', 'script', '-q', '-e', '-c', command, '/dev/null'])
     print(receipt, flush=True)
     match = re.search(r'JEV_MODE_CHANGED (\{[^\r\n]*\})', receipt)
@@ -147,7 +175,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('stage', nargs='?', type=Path)
     parser.add_argument('--owner-approved', action='store_true')
-    parser.add_argument('--demote', action='store_true', help='Return veto to shadow; allowed at any time')
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--demo-test', action='store_true', help='Explicit unqualified demo veto test; audit the unmet gate')
+    modes.add_argument('--demote', action='store_true', help='Return veto to shadow; allowed at any time')
     parser.add_argument('--journal', action='store_true', help='Run the journal step inside the MT5 container')
     args = parser.parse_args()
     if not args.owner_approved:
@@ -159,7 +189,7 @@ def main():
         journal(args)
         return
     try:
-        deploy(args.stage.resolve(), demote=args.demote)
+        deploy(args.stage.resolve(), demote=args.demote, demo_test=args.demo_test)
     except Exception:
         print('MODE_CHANGE_INCOMPLETE; if RUNNER_STOPPED was printed, inspect before restarting the desktop', flush=True)
         raise

@@ -2,16 +2,34 @@
 
 ## Now / Running / Next — updated 2026-10-14
 
-Gold M5 shadow is deployed and verified active after recovering the manual-deal
+Gold M5 demo veto test is deployed and verified active after recovering the manual-deal
 acknowledgement regression. BTC remains paused by owner. Shared account pause is
 clear; existing limits and acknowledged receipts are preserved. The owner approved
 sending the last 50 M5 candles and trend labels/categorical features to TypeSafe
 within the shared $5 budget on 2026-10-14. `JEV_M5_LIVE="true"` is deployed in
-Worker version `6f5f282a-601b-4a65-9cef-74773eb88484`; shadow mode is unchanged.
+Worker version `6f5f282a-601b-4a65-9cef-74773eb88484`.
 The first receipt is verified in Worker logs and the runner journal: candle
 2026-10-14 00:00 UTC, `ok`, sell, confidence 0.52, received 16.780 seconds after
 close, matching the candidate hash. The code disarmed that candidate for price
-deviation; no order was submitted. Veto gate remains unmet; no promotion occurred.
+deviation; no order was submitted. The normal veto gate remains unmet.
+
+The owner explicitly approved an unqualified demo veto test on 2026-10-14.
+At 00:28:35 UTC, `--owner-approved --demo-test` changed only Gold's mode from
+shadow to veto, recording the unmet scorecard in `jev_demo_tests`. Before the
+switch, the pinned demo account and flat Gold exposure were independently
+verified through MT5. After restart, fresh reports show active veto with no
+position; risk limits, acknowledged manual deals and BTC's owner pause are
+unchanged. No natural veto candidate had occurred as of 00:30:40 UTC; the first
+veto receipt/entry remains pending. The existing strategy must produce a setup.
+All 82 relevant Python tests pass, including the explicit override guards.
+
+- Reviewed stage: `/opt/kwg-mt5-qualification/m5-jev-review-demo-test-1791937695852822155`.
+- Pre-switch backup: `C:\users\mt5\gold-pilot-before-jev-mode-1791937715441145800.sqlite3`
+  (SQLite integrity check passed).
+- The shared $5 budget remains unchanged. Test veto trades do not count toward
+  the 50 closed shadow trades. Use the stage's promotion script with
+  `--owner-approved --demote` to return to shadow when directed by the owner.
+
 Recovery evidence, source identity and preserved backup paths:
 [M5-ACCOUNT-RECOVERY.md](M5-ACCOUNT-RECOVERY.md).
 

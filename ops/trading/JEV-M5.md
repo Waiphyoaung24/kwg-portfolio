@@ -33,7 +33,7 @@ closes a trade. Design and decision log:
 
 ## Veto gate (frozen)
 
-Veto may be enabled only when all of these hold, and then only by the owner:
+Normal veto promotion requires all of these, and explicit owner approval:
 
 - ≥ 50 closed **shadow** trades with resolved net P/L (`realized_net_usd`, net of
   profit, commission, swap and fee);
@@ -45,6 +45,25 @@ Veto may be enabled only when all of these hold, and then only by the owner:
 
 These are demo fills on an unqualified strategy. Passing the gate is a minimum
 review sample, not evidence of edge, and never automatic.
+
+## Explicit unqualified demo veto test
+
+The owner may separately approve a demo-only functional test before the frozen
+qualification gate passes. Use the current reviewed source stage, then:
+
+```sh
+python3 -B "$stage/promote-jev-veto.py" "$stage" --owner-approved --demo-test
+```
+
+This opt-in bypasses only the qualification gate. It requires a ready scorecard,
+the pinned Gold demo journal, no Gold/shared pause, and no unresolved Gold
+attempt. Verify the actual pinned demo account and flat Gold exposure before
+running it. It backs up the journal, records the mode change and the unmodified
+scorecard in `jev_demo_tests`, then runs the existing veto behavior. Risk limits,
+trade sizing, receipt validation and the shared $5 budget do not change. The UI
+shows VETO; this is not a claim that the qualification gate passed. It persists
+until owner-directed demotion with `--owner-approved --demote`. Test-mode trades
+are veto trades, not closed shadow trades toward the 50-trade gate.
 
 ## Deployment (owner-run, in this order)
 
