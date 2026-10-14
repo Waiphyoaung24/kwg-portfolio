@@ -36,7 +36,7 @@ Three kinds of work sit here: sites where the interface carries the argument, in
 
 - Built with Astro on Node, deployed via Docker Compose to Dokploy. Postgres backs the vault tools.
 - Public surfaces: Home, Works, Catalog (copyable components and demos), Services (a sector directory: an index plus one page per sector), About. The 3D constellation remains at `/my-portfolio` but is no longer in the navbar and is excluded from the sitemap; it is an unmodified third-party template and is not presented as work.
-- Private surfaces under `/vault`: local Dashboard, Trading, and launches into self-hosted openGym (Fitness), FigCraft, Notes, and Finance. The legacy workout generator remains at `/vault/fitness/generate` for existing bookmarks.
+- Private surfaces under `/vault`: local Dashboard, Trading, launches into self-hosted openGym (Fitness), Notes, and Finance, and desktop launch links for FigCraft and Sagar. The legacy workout generator remains at `/vault/fitness/generate` for existing bookmarks.
 - Contact is a single email address. There is no CRM integration, booking tool, or contact form on the site.
 
 ## Capabilities and Constraints
@@ -45,6 +45,7 @@ Three kinds of work sit here: sites where the interface carries the argument, in
 - The Kage landing page under Catalog is a standalone piece of exhibited work with its own typeface and palette. It does not adopt the site design system.
 - Vault pages own their own `<html>` and do not use the shared Layout. They share the global tokens and typography but render no site header or footer.
 - Fitness and FigCraft are runtime redirects to independent self-hosted apps. Their upstream interfaces stay intact by owner approval; openGym stores profiles and workouts in its own persistent volume, while FigCraft's browser editor runs on the visitor's device without server file storage or sync. FigCraft's alpha browser build has incomplete file-dialog support.
+- The Vault dock opens FigCraft and Sagar on the owner's Mac through the installed Rust-based KWG Vault Launcher (`kwg-vault://figcraft` and `kwg-vault://sagar`). Both retain upstream desktop UI and local files. Other devices need their own installation; there is no sync. `/vault/figcraft` remains the browser fallback for existing bookmarks. Sagar is an EPUB translation studio, not a general text translator.
 - Social profile URLs are not yet supplied. Footer links to GitHub and LinkedIn are placeholders until they are.
 - Undecided: whether a booking link or contact form will ever be added. Until decided, email is the only contact path.
 

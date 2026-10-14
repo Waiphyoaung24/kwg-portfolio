@@ -518,6 +518,10 @@ upstream applications and keep their own UI. The Vault dock retains its existing
 site styling; `/vault/fitness` and `/vault/figcraft` redirect to those apps.
 This exception covers upstream app interfaces only, not new portfolio chrome.
 
+Owner-approved desktop continuation on 2026-10-14: FigCraft and Sagar launch
+their installed macOS apps from the existing Vault dock, retaining upstream UI.
+The dock keeps its existing styling; `/vault/figcraft` retains the web fallback.
+
 ### Do
 - Reserve `{colors.canvas}` (`#0a0a0a`) as the only page surface. The brand is dark-canvas only.
 - Set hero headlines in `{typography.display-xl}` Universal Sans weight 400 with `-2.4 px` tracking. The precision IS the voice.

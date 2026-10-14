@@ -37,8 +37,9 @@ DESIGN.md       color, typography, components, motion, breakpoints
 
 ## Self-hosted Vault apps
 
-Fitness launches **openGym 1.4.1** with its own UI and profile login. FigCraft
-launches the unmodified **FigCraft 0.5.1 browser release**. Neither app is ported
+Fitness launches **openGym 1.4.1** with its own UI and profile login.
+`/vault/figcraft` retains the unmodified **FigCraft 0.5.1 browser release** as a
+fallback; the Vault dock opens the desktop app (see below). Neither app is ported
 into Astro. The old workout generator remains at `/vault/fitness/generate`.
 
 For local use, copy `.env.example` to `.env` if you haven't configured it yet,
@@ -49,7 +50,7 @@ docker compose up -d --build opengym figcraft
 yarn dev
 ```
 
-Open the Vault and choose Fitness or FigCraft. Direct local URLs are
+Open the Vault and choose Fitness, or visit `/vault/figcraft` for the web editor. Direct local URLs are
 `http://localhost:8091` and `http://localhost:8092`. Create your own openGym
 profile on first use; the first profile is the administrator. openGym's API is
 only reachable through its web container. Its exercise media ships in the
@@ -89,6 +90,37 @@ is an upstream feature and may contact FigCraft's public server; this setup
 does not run a collaboration server. Upgrades are deliberate: change openGym's
 two image tags together; for FigCraft update the release URL, checksum, and
 extracted directory in `ops/figcraft/Dockerfile` together.
+
+## Desktop Vault apps (macOS)
+
+The FigCraft and Sagar dock entries say **Open on Mac**. They open installed
+apps through `kwg-vault://figcraft` and `kwg-vault://sagar`, with the browser's
+normal external-app confirmation. Install both apps in `/Applications` first,
+then install the local Rust launcher:
+
+```bash
+bash ops/vault-launcher/install.sh
+```
+
+The installer needs Rust (`rustup`, minimal stable profile) and macOS developer
+tools. Rust validates two exact links and calls `/usr/bin/open` with fixed app
+paths. A tiny AppleScript adapter receives macOS URL events. There is no daemon,
+open port, document upload, or cross-device sync. A second Mac needs its own
+installation. To uninstall, move `KWG Vault Launcher.app` to Trash; this does
+not delete app documents. To update, move the old launcher aside and rerun.
+
+FigCraft uses the official **0.5.1 universal macOS release**. The five upstream
+example files are downloaded locally under `downloads/figcraft-examples/` and
+opened as native editor tabs; these downloads are not deployed or committed.
+
+Sagar **0.1.0** is built from upstream commit
+`b7b5fb062d5010b274b5410e04424b2ea7729689` with `bun install --frozen-lockfile`
+and `bun tauri build --bundles app`, then copied from
+`src-tauri/target/release/bundle/macos/Sagar.app` into `/Applications`.
+It keeps its upstream UI and Rust backend. It translates DRM-free EPUB books;
+it is not a general text translation page. Local translations live under
+`~/Library/Application Support/app.myanmars.sagar`; back up that folder.
+AI provider setup and actual translation are separate from installation.
 
 ## Brand rules at a glance
 
