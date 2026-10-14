@@ -511,6 +511,13 @@ highlight) collapses under reduced motion. WCAG 2.2 AA, visible focus and
 `TradingNavigation.astro`; change the theme there, not per page. The
 exception covers these two routes only; public pages keep the incumbent system.
 
+### Self-hosted Vault apps exception
+
+Owner-approved on 2026-10-14: Fitness and FigCraft launch independent, unmodified
+upstream applications and keep their own UI. The Vault dock retains its existing
+site styling; `/vault/fitness` and `/vault/figcraft` redirect to those apps.
+This exception covers upstream app interfaces only, not new portfolio chrome.
+
 ### Do
 - Reserve `{colors.canvas}` (`#0a0a0a`) as the only page surface. The brand is dark-canvas only.
 - Set hero headlines in `{typography.display-xl}` Universal Sans weight 400 with `-2.4 px` tracking. The precision IS the voice.

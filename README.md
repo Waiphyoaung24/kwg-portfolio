@@ -35,6 +35,61 @@ PRODUCT.md      register, audience, brand personality, anti-references, design p
 DESIGN.md       color, typography, components, motion, breakpoints
 ```
 
+## Self-hosted Vault apps
+
+Fitness launches **openGym 1.4.1** with its own UI and profile login. FigCraft
+launches the unmodified **FigCraft 0.5.1 browser release**. Neither app is ported
+into Astro. The old workout generator remains at `/vault/fitness/generate`.
+
+For local use, copy `.env.example` to `.env` if you haven't configured it yet,
+then start just the new services:
+
+```bash
+docker compose up -d --build opengym figcraft
+yarn dev
+```
+
+Open the Vault and choose Fitness or FigCraft. Direct local URLs are
+`http://localhost:8091` and `http://localhost:8092`. Create your own openGym
+profile on first use; the first profile is the administrator. openGym's API is
+only reachable through its web container. Its exercise media ships in the
+official image. FigCraft's Docker build downloads the release ZIP, verifies its
+SHA-256, and keeps the bundled licences and notices.
+
+### Production (Dokploy / existing tunnel)
+
+Set these variables in Dokploy's environment, using your actual HTTPS domains:
+
+```dotenv
+PUBLIC_OPENGYM_URL=https://fitness.waiphyoaung.com
+OPENGYM_RP_ID=fitness.waiphyoaung.com
+PUBLIC_FIGCRAFT_URL=https://figcraft.waiphyoaung.com
+BIND_HOST=172.17.0.1
+```
+
+Route the Fitness hostname to host port **8091**, and FigCraft to **8092**, using
+the existing tunnel convention (for example `http://172.17.0.1:8091`). If using
+Dokploy service routing instead, target services `opengym:80` and `figcraft:80`.
+Redeploy the Compose stack, including `app`, so the Vault reads its new runtime
+URLs. openGym's URL is also its API's allowed origin: use an origin only, with
+no path or trailing slash. Configure the final hostname before creating
+passkeys; passkeys are bound to `OPENGYM_RP_ID`. HTTPS is required outside
+localhost. The Vault's client-side gate is obscurity, not authentication;
+openGym uses its own login.
+
+Back up the Compose **opengym_data** volume: it holds profiles, workout history,
+settings, session secrets, and uploaded media. The apps do not share the site's
+Postgres. Do not use `docker compose down -v` when retaining workout data.
+
+FigCraft runs on the visitor's device, requiring WebGPU or WebGL2. It has no
+server file storage or cross-device sync in this setup; its upstream browser
+build is alpha and native file dialogs are not wired up. Use the desktop app
+for file workflows the browser build does not support. Optional online sharing
+is an upstream feature and may contact FigCraft's public server; this setup
+does not run a collaboration server. Upgrades are deliberate: change openGym's
+two image tags together; for FigCraft update the release URL, checksum, and
+extracted directory in `ops/figcraft/Dockerfile` together.
+
 ## Brand rules at a glance
 
 The full system is in [`DESIGN.md`](./DESIGN.md). For quick reference when editing:

@@ -1,0 +1,8 @@
+---
+export const prerender = false;
+
+return Astro.redirect(
+  process.env.PUBLIC_FIGCRAFT_URL || 'http://localhost:8092',
+  302,
+);
+---

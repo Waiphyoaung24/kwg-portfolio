@@ -31,8 +31,48 @@ services:
       # Vault tool links, read at request time by /vault (empty → localhost fallback)
       PUBLIC_MEMOS_URL: ${PUBLIC_MEMOS_URL:-}
       PUBLIC_FIREFLY_URL: ${PUBLIC_FIREFLY_URL:-}
+      PUBLIC_OPENGYM_URL: ${PUBLIC_OPENGYM_URL:-}
+      PUBLIC_FIGCRAFT_URL: ${PUBLIC_FIGCRAFT_URL:-}
     ports:
       - "3069:3000"
+
+  # ── openGym — Fitness (upstream UI, same-origin web/API for passkeys) ──
+  opengym-api:
+    image: ghcr.io/duartesantos8/opengym-api:1.4.1
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      DATA_DIR: /data
+      RP_ID: ${OPENGYM_RP_ID:-localhost}
+      ORIGIN: ${PUBLIC_OPENGYM_URL:-http://localhost:8091}
+      TRUST_PROXY: "1"
+      FIRST_USER_ADMIN: "1"
+      ALLOW_GUEST: "0"
+    volumes:
+      - opengym_data:/data
+
+  opengym:
+    image: ghcr.io/duartesantos8/opengym-web:1.4.1
+    restart: unless-stopped
+    depends_on:
+      - opengym-api
+    environment:
+      NGINX_PORT: "80"
+      BACKEND: opengym-api
+      PORT: "3000"
+      RESOLVER: "127.0.0.11"
+      BASE_PATH: ""
+      CF_CONNECTING_IP: ""
+      MEDIA_UPLOAD_MAX: 48m
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:8091:80"
+
+  # ── FigCraft — published browser build, no collaboration server ───────
+  figcraft:
+    build: ./ops/figcraft
+    restart: unless-stopped
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:8092:80"
 
   # ── Memos — note-taking (Vault → Notes) ──────────────────────────────
   # Single-user, so SQLite (default) in a volume — no DB container needed.
@@ -103,6 +143,7 @@ services:
 
 volumes:
   pgdata:
+  opengym_data:
   memos_data:
   firefly_upload:
   firefly_db:
