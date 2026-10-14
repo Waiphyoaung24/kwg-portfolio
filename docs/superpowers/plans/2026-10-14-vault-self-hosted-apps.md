@@ -57,10 +57,21 @@ Files: `src/pages/vault.astro`, `src/pages/vault/fitness.astro`,
 ## Production deployment
 
 - [x] Save the approved fitness.waiphyoaung.com and figcraft.waiphyoaung.com runtime URLs in the existing Dokploy service, preserving other settings.
-- [ ] Add the two public hostnames to the existing Cloudflare tunnel.
-- [ ] Publish the reviewed changes and verify the Dokploy deployment and live app responses.
+- [x] Add the two public hostnames to the existing Cloudflare tunnel.
+- [x] Publish the reviewed changes and verify the Dokploy deployment and live app responses.
 
 Local checks passed: build, Astro diagnostics (only two existing trading hints),
 workout picker/presets, production-runtime redirects, Compose interpolation,
 FigCraft checksum, nginx syntax/headers, and Chrome rendering. The local Docker
 engine is unresponsive; container runtime validation moves to Dokploy.
+
+Production verification completed on 2026-10-14 for commit `f2f1a66`:
+Dokploy built and started all three new containers, created the persistent
+openGym volume, and finished successfully. NexApex-Tunnel routes Fitness to
+`http://172.17.0.1:8091` and FigCraft to `http://172.17.0.1:8092`; Cloudflare
+created both DNS records. Live HTTPS health/config and both Vault redirects
+passed. An isolated Chrome smoke test loaded openGym's passkey login and
+rendered FigCraft without page errors, using the public DNS addresses only
+in that test process because this Mac retains cached initial NXDOMAINs.
+No accounts or passkeys were created; the owner completes first sign-in.
+FigCraft's browser file-dialog limitations remain upstream.
