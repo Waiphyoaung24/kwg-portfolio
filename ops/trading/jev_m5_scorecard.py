@@ -56,6 +56,45 @@ def _classify(value, received, bar_time, digest):
     return value['status']
 
 
+def veto_activity(db, stored):
+    """Actual veto outcomes; never use these selected trades in the shadow gate."""
+    rows = db.execute('SELECT c.bar_time, c.side, c.input_sha256, c.submitted, c.reason, '
+                      'a.state, a.realized_net_usd FROM jev_candidates c '
+                      "LEFT JOIN attempts a ON a.id=c.attempt WHERE c.jev_mode='veto' ORDER BY c.bar_time DESC").fetchall()
+    counts = dict.fromkeys(('ok', *jev_m5.STATUSES[1:], 'missing', 'late'), 0)
+    recent, nets = [], []
+    submitted_count = no_state = unresolved = 0
+    for bar, side, digest, submitted, reason, state, net in rows:
+        received, raw = stored.get(bar, (None, None))
+        try:
+            value = json.loads(raw) if raw is not None else None
+        except ValueError:
+            value = {}
+        status = _classify(value, received, bar, digest) if digest else 'no_state'
+        if status == 'no_state':
+            no_state += 1
+        else:
+            counts[status] += 1
+        submitted_count += bool(submitted)
+        resolved = submitted and state == 'closed' and type(net) in (int, float) and math.isfinite(net)
+        if resolved:
+            nets.append(net)
+        elif submitted and state == 'closed':
+            unresolved += 1
+        if len(recent) < 20:
+            recent.append(dict(bar_time=bar, side=side, receipt=status,
+                               choice=value['choice'] if status == 'ok' else None,
+                               confidence=value['confidence'] if status == 'ok' else None,
+                               submitted=bool(submitted), state=state,
+                               net_usd=net if resolved else None, reason=reason))
+    record = db.execute('SELECT data FROM pilot WHERE id=1').fetchone()
+    pilot = json.loads(record[0]) if record else {}
+    pending = int(pilot.get('jev_mode') == 'veto' and bool(pilot.get('pending_entry')))
+    return dict(candidates=len(rows), submitted=submitted_count, blocked=len(rows)-submitted_count,
+                pending=pending, no_state=no_state, unresolved=unresolved, receipts=counts,
+                results={**_summary(nets), 'net_usd': round(sum(nets), 4) if nets else None}, recent=recent)
+
+
 def export(journal, receipts, now=None):
     now = time.time() if now is None else now
     with closing(connect(journal)) as db:
@@ -97,6 +136,8 @@ def export(journal, receipts, now=None):
         kept, _ = jev_m5.allows(value, side=side, bar_time=bar_time, input_sha256=digest, now=clock)
         groups['all'].append(net)
         groups['jev_kept' if kept else 'jev_vetoed'].append(net)
+    with closing(connect(journal)) as db:
+        veto = veto_activity(db, stored)
     bad = candidates - counts['ok']
     rate = round(bad / candidates, 4) if candidates else None
     summary = {name: _summary(values) for name, values in groups.items()}
@@ -112,7 +153,7 @@ def export(journal, receipts, now=None):
         reasons.append('Jev-kept average net P/L does not beat all trades')
     return dict(status='ready', generated_at=now,
                 candidates=candidates, pending=pending, no_state=no_state, mode_counts=modes,
-                closed=closed, unresolved=unresolved, receipts=counts, **summary,
+                closed=closed, unresolved=unresolved, receipts=counts, veto=veto, **summary,
                 gate=dict(min_closed=MIN_CLOSED, bad_receipt_max=BAD_RECEIPT_MAX, bad_receipt_rate=rate,
                           passes=not reasons, reasons=reasons),
                 qualification=QUALIFICATION)

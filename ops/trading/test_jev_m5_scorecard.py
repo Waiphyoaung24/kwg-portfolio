@@ -47,6 +47,46 @@ class M5ScorecardTest(unittest.TestCase):
                 value.update(choice=None, confidence=None, probabilities=None)
             jev_m5.store_receipt(self.receipts, value, received=bar + 300 + (completed if received is None else received))
 
+    def test_veto_activity_keeps_gate_separate_and_links_results(self):
+        self.add(8.3, mode='veto')
+        self.add(-2, mode='veto', receipt_status='timeout')
+        with sqlite3.connect(self.journal) as db:
+            db.execute("UPDATE jev_candidates SET submitted=0, attempt=NULL, reason='Jev timeout' WHERE bar_time=?", (BASE + 300,))
+        result = export(self.journal, self.receipts, now=LATER)
+        veto = result['veto']
+        self.assertEqual((veto['candidates'], veto['submitted'], veto['blocked']), (2, 1, 1))
+        self.assertEqual(veto['receipts']['ok'], 1)
+        self.assertEqual(veto['receipts']['timeout'], 1)
+        self.assertEqual(veto['results'], dict(trades=1, avg_net_usd=8.3, net_usd=8.3))
+        self.assertEqual(veto['recent'][0]['reason'], 'Jev timeout')
+        self.assertEqual(veto['recent'][1]['net_usd'], 8.3)
+        self.assertEqual(result['all']['trades'], 0)
+        self.assertFalse(result['gate']['passes'])
+
+    def test_veto_activity_preserves_other_blocks_and_missing_results(self):
+        self.add(None, mode='veto')
+        self.add(0, mode='veto')
+        with sqlite3.connect(self.journal) as db:
+            db.execute("UPDATE jev_candidates SET submitted=0, attempt=NULL, reason='Entry deviation' WHERE bar_time=?", (BASE + 300,))
+        veto = export(self.journal, self.receipts, now=LATER)['veto']
+        self.assertEqual(veto['unresolved'], 1)
+        self.assertIsNone(veto['results']['net_usd'])
+        self.assertEqual(veto['recent'][0]['reason'], 'Entry deviation')
+        self.assertEqual(veto['recent'][0]['receipt'], 'ok')
+        self.assertEqual(veto['recent'][0]['choice'], 'buy')
+
+    def test_veto_recent_is_bounded_and_pending_is_separate(self):
+        for _ in range(22):
+            self.add(1, mode='veto', state=False)
+        with sqlite3.connect(self.journal) as db:
+            db.execute('INSERT INTO pilot (id,data) VALUES (1,?)',
+                       (json.dumps(dict(jev_mode='veto', pending_entry=dict(bar_time=BASE + 22 * 300))),))
+        veto = export(self.journal, self.receipts, now=LATER)['veto']
+        self.assertEqual(veto['pending'], 1)
+        self.assertEqual(veto['no_state'], 22)
+        self.assertEqual(len(veto['recent']), 20)
+        self.assertEqual(veto['recent'][0]['receipt'], 'no_state')
+
     def test_frontend_contract_fixtures_match_export(self):
         """The dashboard test (src/scripts/trading-jev-m5.test.mjs) maps these exact exports.
 
@@ -65,6 +105,12 @@ class M5ScorecardTest(unittest.TestCase):
         cases['passing'] = export(self.journal, self.receipts, now=LATER)
         self.assertTrue(cases['passing']['gate']['passes'])
         self.assertIn('Bad receipts 3/5 reach the 20% limit', cases['bad-receipt']['gate']['reasons'])
+        self.add(8.3, mode='veto')
+        self.add(-2.5, mode='veto')
+        self.add(0, mode='veto', receipt_status='timeout')
+        with sqlite3.connect(self.journal) as db:
+            db.execute("UPDATE jev_candidates SET submitted=0, attempt=NULL, reason='Jev timeout' WHERE bar_time=?", (BASE + 300 * (self.n - 1),))
+        cases['veto'] = export(self.journal, self.receipts, now=LATER)
         for name, value in cases.items():
             path = folder / f'jev-m5-scorecard-{name}.json'
             if os.environ.get('REGENERATE_M5_FIXTURES') == '1':

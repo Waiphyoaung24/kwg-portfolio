@@ -1,7 +1,7 @@
 import math
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from mt5_data import read_gold, validate_account, validate_tick
 
@@ -69,6 +69,26 @@ class GoldDataTest(unittest.TestCase):
             with self.subTest(bid=bid, ask=ask), self.assertRaises(ValueError):
                 validate_tick(SimpleNamespace(bid=bid, ask=ask, time=1000, time_msc=0), 1000)
         self.assertEqual(validate_tick(SimpleNamespace(bid=100, ask=101, time=0, time_msc=1000500), 1001), .5)
+
+    def test_quote_arriving_after_poll_start_requires_post_read_clock(self):
+        sdk = Mock(TIMEFRAME_M15=15)
+        sdk.account_info.return_value = SimpleNamespace(trade_mode=0, login=123, server="VTMarkets-Demo")
+        sdk.terminal_info.return_value = SimpleNamespace(connected=True, trade_allowed=False)
+        sdk.symbol_select.return_value = True
+        sdk.symbol_info.return_value = SimpleNamespace(point=.01)
+        started = 251 * 900
+        sdk.symbol_info_tick.return_value = SimpleNamespace(bid=100, ask=100.1, time=started, time_msc=(started + .2) * 1000)
+        sdk.copy_rates_from_pos.return_value = [dict(time=(i + 1) * 900, open=100, high=101, low=99, close=100) for i in range(250)]
+        with self.assertRaisesRegex(ValueError, 'ahead of the checking clock'):
+            read_gold(sdk, 123, started)
+        evidence = {}
+        with patch('mt5_data.time.time', return_value=started + .3):
+            read_gold(sdk, 123, None, evidence)
+        self.assertAlmostEqual(evidence['quote_age_seconds'], .1)
+        # Genuine clock skew still fails; do not introduce a future-time tolerance.
+        with patch('mt5_data.time.time', return_value=started + .1):
+            with self.assertRaisesRegex(ValueError, 'ahead of the checking clock'):
+                read_gold(sdk, 123, None)
 
     def test_read_gold_exact_request_and_fail_closed(self):
         sdk = Mock(TIMEFRAME_M15=15)

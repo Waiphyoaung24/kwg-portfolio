@@ -141,3 +141,45 @@ are veto trades, not closed shadow trades toward the 50-trade gate.
   `no_state`, which counts as a bad receipt.
 - **Costs:** about 288 calls/day at most on M5. Calls happen only on candidate
   candles, from the shared $5 ledger with the M15 observer.
+
+## Veto dashboard reporting — 2026-10-14
+
+The read-only publisher now exports `veto` separately from the frozen shadow
+qualification fields. It joins veto candidates to their actual order attempts
+and stored receipts. Counts cover all recorded veto decisions; the latest 20
+show receipt status, validated choice/confidence, submission/outcome, recorded
+block reason and resolved net P/L. A submitted request is not necessarily a fill.
+Blocked means no submission, including non-Jev safeguards; missing P/L is never
+zero. Pending entries come from the pilot journal. Veto results never contribute
+to the shadow gate. This reporting makes no paid requests and changes no limits.
+
+Deployment requires both the website and the host publisher update. After
+restoring SSH access, inspect `systemctl cat kwg-jev-m5-scorecard.service` and
+back up its current root-owned publisher file before replacing only
+`/opt/kwg-mt5-qualification/jev-m5-scorecard/jev_m5_scorecard.py` with the reviewed
+version. Run the existing scorecard service and verify the JSON's `veto` section
+and fresh timestamp, then check the dashboard. Do not rerun bot cutover or
+restart the trading container for this reporting update. The Worker already
+passes the scorecard through; its budget/configuration need no changes. An older
+publisher remains compatible, but the new panel explicitly marks veto activity
+unavailable. Publisher deployment was blocked by SSH authentication during this
+change; it has not been claimed live.
+
+## Clock warning investigation — 2026-10-14
+
+`poll_once` receives a timestamp captured at the beginning of the poll. It does
+broker reconciliation and guard reads before passing that same timestamp to
+`read_gold`. A newer tick can therefore legitimately have a timestamp later
+than that supplied checking time. The regression in `test_verify_demo.py`
+reproduces a tick arriving 200 ms after poll start: the explicit old timestamp
+fails, while the existing `read_gold(..., now=None)` path samples after the tick
+read and correctly accepts it. A genuinely future tick still fails.
+
+This establishes a local timing defect mechanism, not proof that every VPS
+warning has that cause. SSH was unavailable, so VPS NTP synchronization and
+actual tick/host skew could not be checked. Runtime files and the strict
+future/stale guards remain unchanged. Before a runner fix, capture host NTP
+status and tick receipt timing, then review how post-read time affects candle
+boundaries and pending-entry deadlines. Deploying runner source also requires
+its pinned code-identity migration; do not hot-edit the running container or
+clear its safety pause.

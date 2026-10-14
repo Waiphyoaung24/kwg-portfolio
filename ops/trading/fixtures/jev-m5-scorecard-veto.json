@@ -1,0 +1,99 @@
+{
+  "status": "ready",
+  "generated_at": 1801000000,
+  "candidates": 61,
+  "pending": 0,
+  "no_state": 1,
+  "mode_counts": {
+    "shadow": 61,
+    "veto": 3
+  },
+  "closed": 60,
+  "unresolved": 0,
+  "receipts": {
+    "ok": 58,
+    "timeout": 1,
+    "unavailable": 0,
+    "budget_exhausted": 0,
+    "invalid": 0,
+    "missing": 0,
+    "late": 1
+  },
+  "veto": {
+    "candidates": 3,
+    "submitted": 2,
+    "blocked": 1,
+    "pending": 0,
+    "no_state": 0,
+    "unresolved": 0,
+    "receipts": {
+      "ok": 2,
+      "timeout": 1,
+      "unavailable": 0,
+      "budget_exhausted": 0,
+      "invalid": 0,
+      "missing": 0,
+      "late": 0
+    },
+    "results": {
+      "trades": 2,
+      "avg_net_usd": 2.9,
+      "net_usd": 5.8
+    },
+    "recent": [
+      {
+        "bar_time": 1800018900,
+        "side": "long",
+        "receipt": "timeout",
+        "choice": null,
+        "confidence": null,
+        "submitted": false,
+        "state": null,
+        "net_usd": null,
+        "reason": "Jev timeout"
+      },
+      {
+        "bar_time": 1800018600,
+        "side": "long",
+        "receipt": "ok",
+        "choice": "buy",
+        "confidence": 0.8,
+        "submitted": true,
+        "state": "closed",
+        "net_usd": -2.5,
+        "reason": null
+      },
+      {
+        "bar_time": 1800018300,
+        "side": "long",
+        "receipt": "ok",
+        "choice": "buy",
+        "confidence": 0.8,
+        "submitted": true,
+        "state": "closed",
+        "net_usd": 8.3,
+        "reason": null
+      }
+    ]
+  },
+  "all": {
+    "trades": 60,
+    "avg_net_usd": 0.8667
+  },
+  "jev_kept": {
+    "trades": 29,
+    "avg_net_usd": 5.0
+  },
+  "jev_vetoed": {
+    "trades": 31,
+    "avg_net_usd": -3.0
+  },
+  "gate": {
+    "min_closed": 50,
+    "bad_receipt_max": 0.2,
+    "bad_receipt_rate": 0.0492,
+    "passes": true,
+    "reasons": []
+  },
+  "qualification": "demo fills; unqualified; not a profitability claim"
+}

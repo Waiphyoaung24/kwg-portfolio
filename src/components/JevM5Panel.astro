@@ -6,11 +6,23 @@ const chevron = iconChevron.replace('<svg', '<svg aria-hidden="true" focusable="
   <div class="desk-tile__head">
     <div>
       <p class="desk-kicker">Gold M5 · Jev decision layer</p>
-      <h2 id="jev-m5-title">Jev shadow scorecard</h2>
-      <p class="desk-muted small m-0">Jev's shadow decisions scored against closed demo trades</p>
+      <h2 id="jev-m5-title">Jev decisions & results</h2>
+      <p class="desk-muted small m-0">Veto activity and separate shadow qualification</p>
     </div>
     <p class="m-0"><span class="visually-hidden">Jev mode: </span><span class="desk-chip" id="jev-m5-mode">Checking mode</span></p>
   </div>
+  <h3 class="desk-subhead">Demo veto activity</h3>
+  <p id="jev-m5-veto-summary" role="status">Loading veto activity…</p>
+  <p class="desk-num" id="jev-m5-veto-results">—</p>
+  <p class="desk-muted small">Blocked means no order was submitted. The reason distinguishes Jev decisions from other entry safeguards. Submitted does not guarantee a fill.</p>
+  <details class="desk-disclosure">
+    <summary>Veto receipts and recent decisions <Fragment set:html={chevron} /></summary>
+    <p class="desk-num small" id="jev-m5-veto-receipts">—</p>
+    <ol class="small" id="jev-m5-veto-recent"></ol>
+    <p class="desk-muted small">Latest 20 decisions, newest first; times identify the M5 candle in UTC. Missing P/L is not zero.</p>
+  </details>
+  <h3 class="desk-subhead">Shadow qualification</h3>
+  <p class="desk-muted small">Veto trades are excluded from this comparison and do not advance the 50-trade gate.</p>
   <p id="jev-m5-summary" role="status">Loading the M5 scorecard…</p>
   <p class="desk-muted small" id="jev-m5-updated"></p>
   <dl class="desk-stats">
@@ -23,7 +35,7 @@ const chevron = iconChevron.replace('<svg', '<svg aria-hidden="true" focusable="
   <p class="m-0" id="jev-m5-verdict">Gate unavailable</p>
   <ul class="desk-gates jev-m5-checks" id="jev-m5-checks"></ul>
   <details class="desk-disclosure">
-    <summary>Receipt health <Fragment set:html={chevron} /></summary>
+    <summary>Shadow receipt health <Fragment set:html={chevron} /></summary>
     <p class="desk-num small" id="jev-m5-receipts">—</p>
     <p class="desk-num small" id="jev-m5-counts">—</p>
   </details>

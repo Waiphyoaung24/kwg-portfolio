@@ -56,6 +56,33 @@ export function m5ScorecardView(data) {
     verdict: gate.passes ? 'Gate met · owner review required before veto' : 'Gate not met', checks };
 }
 
+export function vetoActivityView(data) {
+  const unavailable = { summary: 'Veto activity unavailable; the publisher may need updating. Results are not zero.', results: '—', receipts: '—', rows: [] };
+  if (!data || !['candidates', 'submitted', 'blocked', 'pending', 'no_state', 'unresolved'].every(k => count(data[k])) ||
+      data.submitted + data.blocked !== data.candidates || !data.receipts || !RECEIPTS.every(([k]) => count(data.receipts[k])) ||
+      RECEIPTS.reduce((sum, [k]) => sum + data.receipts[k], 0) + data.no_state !== data.candidates ||
+      !data.results || !count(data.results.trades) || (data.results.trades ? !Number.isFinite(data.results.net_usd) : data.results.net_usd !== null) ||
+      !Array.isArray(data.recent) || data.recent.length > 20) return unavailable;
+  const rows = [];
+  for (const row of data.recent) {
+    if (!Number.isFinite(row.bar_time) || !['long', 'short'].includes(row.side) ||
+        ![...RECEIPTS.map(([k]) => k), 'no_state'].includes(row.receipt) || typeof row.submitted !== 'boolean' ||
+        (row.reason !== null && typeof row.reason !== 'string') ||
+        (row.state !== null && typeof row.state !== 'string') ||
+        (row.net_usd !== null && !Number.isFinite(row.net_usd)) ||
+        (row.choice !== null && !['buy', 'sell', 'hold'].includes(row.choice)) ||
+        (row.confidence !== null && (!Number.isFinite(row.confidence) || row.confidence < 0 || row.confidence > 1))) return unavailable;
+    rows.push(`${time(row.bar_time)} · ${row.side === 'long' ? 'Buy' : 'Sell'} setup · Receipt: ${row.receipt}` +
+      (row.choice ? ` · Jev ${row.choice}${row.confidence === null ? '' : ` (${Math.round(row.confidence * 100)}%)`}` : '') +
+      ` · ${row.submitted ? `Submitted · ${row.state ?? 'outcome unknown'}` : 'Blocked before submission'}` +
+      (row.net_usd === null ? '' : ` · ${signed(row.net_usd).text} net`) + (row.reason ? ` · ${row.reason}` : ''));
+  }
+  return { summary: `${data.candidates} completed decisions · ${data.submitted} submitted · ${data.blocked} blocked · ${data.pending} awaiting Jev.`,
+    results: `${data.results.trades ? signed(data.results.net_usd).text : '—'} net · ${trades(data.results.trades)} closed with P/L · ${data.unresolved} closed without P/L`,
+    receipts: RECEIPTS.map(([k, label]) => `${label} ${data.receipts[k]}`).join(' · ') + ` · No Jev state ${data.no_state}`,
+    rows };
+}
+
 export function m5Mode(pilotState, pilot) {
   if (pilotState === 'Unknown') return 'Mode unavailable';
   if (pilot?.strategy !== STRATEGY) return 'Not running';
@@ -96,6 +123,12 @@ export function mountJevM5(doc, win, fetcher = fetch) {
         item.dataset.met = String(check.met);
         item.textContent = `${check.met ? 'Met' : 'Not met'} · ${check.label}: ${check.detail}${check.reason ? `. ${check.reason}` : ''}`;
         return item;
+      }));
+      const veto = vetoActivityView(view.available && scorecard.status === 'fulfilled' ? scorecard.value.veto : null);
+      if (scorecard.status === 'fulfilled' && scorecard.value.synthetic) veto.summary = `Synthetic local preview — not trading results. ${veto.summary}`;
+      for (const key of ['summary', 'results', 'receipts']) field(`veto-${key}`).textContent = veto[key];
+      field('veto-recent').replaceChildren(...veto.rows.map(text => {
+        const item = doc.createElement('li'); item.textContent = text; return item;
       }));
       field('budget').textContent = budgetText(budget.status === 'fulfilled' ? budget.value : null);
     } finally { busy = false; }

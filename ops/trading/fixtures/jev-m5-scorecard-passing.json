@@ -18,6 +18,29 @@
     "missing": 0,
     "late": 1
   },
+  "veto": {
+    "candidates": 0,
+    "submitted": 0,
+    "blocked": 0,
+    "pending": 0,
+    "no_state": 0,
+    "unresolved": 0,
+    "receipts": {
+      "ok": 0,
+      "timeout": 0,
+      "unavailable": 0,
+      "budget_exhausted": 0,
+      "invalid": 0,
+      "missing": 0,
+      "late": 0
+    },
+    "results": {
+      "trades": 0,
+      "avg_net_usd": null,
+      "net_usd": null
+    },
+    "recent": []
+  },
   "all": {
     "trades": 60,
     "avg_net_usd": 0.8667

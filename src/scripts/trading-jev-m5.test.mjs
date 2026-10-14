@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { budgetText, m5Mode, m5ScorecardView, mountJevM5 } from './trading-jev-m5.mjs';
+import { vetoActivityView, budgetText, m5Mode, m5ScorecardView, mountJevM5 } from './trading-jev-m5.mjs';
 
 const receipts = (ok = 0, rest = {}) => ({ ok, timeout: 0, unavailable: 0, budget_exhausted: 0, invalid: 0, missing: 0, late: 0, ...rest });
 const empty = () => ({
@@ -140,4 +140,35 @@ test('real scorecard exports map through the view', () => {
   assert.equal(pass.verdict, 'Gate met · owner review required before veto');
   assert.deepEqual(pass.checks.map(c => c.met), [true, true, true]);
   assert.equal(pass.all.text, '↑ +$0.87 · 60 trades');
+});
+
+
+test('veto activity renders results and block reasons independently of qualification', () => {
+  const data = { candidates: 2, submitted: 1, blocked: 1, pending: 0, no_state: 0,
+    unresolved: 0, receipts: receipts(1, { timeout: 1 }),
+    results: { trades: 1, avg_net_usd: 8.3, net_usd: 8.3 },
+    recent: [{ bar_time: 1791936000, side: 'short', receipt: 'timeout', choice: null,
+      confidence: null, submitted: false, state: null, net_usd: null, reason: 'Jev timeout' }] };
+  const view = vetoActivityView(data);
+  assert.match(view.summary, /1 submitted.*1 blocked/);
+  assert.match(view.results, /8.30/);
+  assert.match(view.rows[0], /Jev timeout/);
+  assert.match(view.rows[0], /Blocked/);
+  assert.match(vetoActivityView(null).summary, /unavailable/i);
+  assert.equal(vetoActivityView(null).rows.length, 0);
+  assert.match(vetoActivityView({ ...data, blocked: -1 }).summary, /unavailable/i);
+});
+
+test('real veto export shows receipts, linked P/L, and the recorded block reason', () => {
+  const data = JSON.parse(readFileSync(new URL('../../ops/trading/fixtures/jev-m5-scorecard-veto.json', import.meta.url)));
+  const view = vetoActivityView(data.veto);
+  assert.match(view.summary, /3 completed decisions · 2 submitted · 1 blocked/);
+  assert.match(view.results, /5.80/);
+  assert.match(view.receipts, /OK 2 · Timeout 1/);
+  assert.match(view.rows[0], /Jev timeout/);
+  assert.match(view.rows[1], /2.50/);
+  assert.match(view.rows[2], /8.30/);
+  const shadow = JSON.parse(readFileSync(new URL('../../ops/trading/fixtures/jev-m5-scorecard-passing.json', import.meta.url)));
+  assert.deepEqual(data.gate, shadow.gate);
+  assert.deepEqual(data.all, shadow.all);
 });
