@@ -208,3 +208,20 @@ This supports the early poll timestamp mechanism reproduced by the regression,
 but does not rule out intermittent broker skew outside the sample. A runtime
 fix still needs candle-boundary/deadline tests and a reviewed code-identity
 migration; strict future/stale guards remain unchanged.
+
+### Clock sampling fix on main — 2026-10-14
+
+The pilot now calls the existing post-read clock path in `read_gold` and uses
+that sampled time for candle assessment and subsequent entry decisions. Pending
+Jev receipts are evaluated after the quote read, against the refreshed time;
+a slow read cannot extend the 90-second deadline. The final submission deadline
+check remains in place. Negative quote ages and quotes older than 30 seconds
+are still rejected without tolerance. Risk limits, sizing and budget are unchanged.
+Regression tests cover a quote arriving after poll start, a read crossing a
+candle boundary and a read crossing the Jev deadline.
+
+This is a source fix, not a live runner upgrade. The desktop runs a pinned
+source identity; deploying this change needs a reviewed migration of the
+existing M5 journals and preserved backups. Do not copy the file into the live
+container or restart with mismatched journal hashes. The website deployment
+and read-only publisher do not replace the trading runner.

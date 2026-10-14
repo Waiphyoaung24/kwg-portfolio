@@ -62,6 +62,38 @@ class PilotTest(unittest.TestCase):
             return Record(retcode=10009, order=77, deal=78)
         self.mt5.order_send.side_effect = send
 
+    def test_poll_checks_quote_against_post_read_time(self):
+        self.start()
+        original = pilot.read_gold
+        def delayed_read(mt5, login, now, health, **kwargs):
+            self.clock += .3
+            mt5.symbol_info_tick.return_value.time_msc = (self.clock - .1) * 1000
+            return original(mt5, login, now, health, **kwargs)
+        with patch('demo_pilot.read_gold', side_effect=delayed_read), patch('demo_pilot.assess', wraps=pilot.assess) as assessment:
+            report = self.tick(NOW + 900, bootstrap=True)
+        self.assertEqual(report['health']['quote'], 'fresh')
+        self.assertAlmostEqual(report['health']['quote_age_seconds'], .1)
+        self.assertEqual(assessment.call_args.args[2], self.clock)
+        self.mt5.order_send.assert_not_called()
+
+    def test_quote_read_crossing_candle_boundary_uses_sampled_clock(self):
+        self.start()
+        original = pilot.read_gold
+        self.clock = NOW + 899.9
+        def delayed_read(mt5, login, now, health, **kwargs):
+            self.clock += .3
+            mt5.symbol_info_tick.return_value.time = int(self.clock)
+            mt5.symbol_info_tick.return_value.time_msc = self.clock * 1000
+            mt5.copy_rates_from_pos.return_value = [dict(time=(int(self.clock // 900) - 250 + i) * 900,
+                open=100, high=101, low=99, close=100) for i in range(250)]
+            return original(mt5, login, now, health, **kwargs)
+        with patch('demo_pilot.read_gold', side_effect=delayed_read):
+            report = pilot.poll_once(self.mt5, self.db, 123, self.clock, self.pause, bootstrap=True)
+        self.assertEqual(report['bar_time'], NOW)
+        self.assertTrue(report['health']['history_valid'])
+        self.assertEqual(report['health']['expected_bar_time'], NOW)
+        self.mt5.order_send.assert_not_called()
+
     def test_account_recovery_preserves_risk_window_and_backs_up_pause(self):
         self.start()
         p = pilot.state(self.db)

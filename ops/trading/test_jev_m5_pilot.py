@@ -475,6 +475,19 @@ class JevVetoTest(unittest.TestCase):
         self.assertEqual(self.tick(NOW + 600)['execution']['status'], 'open')
         self.mt5.order_send.assert_called_once()
 
+    def test_slow_quote_read_cannot_extend_jev_deadline(self):
+        self.pending()
+        self.store()
+        original = pilot.read_gold
+        def delayed_read(*args, **kwargs):
+            self.clock = NOW + 691
+            return original(*args, **kwargs)
+        with patch('demo_pilot.read_gold', side_effect=delayed_read):
+            self.tick(NOW + 689)
+        self.mt5.order_send.assert_not_called()
+        self.assertNotIn('pending_entry', pilot.state(self.db))
+        self.assertEqual(self.rows()[0][3:], (0, 'Jev receipt missed the 90-second deadline'))
+
     def test_deadline_rechecked_at_submission(self):
         self.pending()
         self.store()

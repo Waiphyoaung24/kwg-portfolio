@@ -342,16 +342,19 @@ def poll_once(mt5, db, login, now, pause_path, *, bootstrap=False, shared=None):
         if p['pause'] or bootstrap or p.get('jev_mode') != 'veto':
             drop_pending(db, p, p['pause'] or ('Runner restarted' if bootstrap else 'Jev mode changed'))
             pending = None
-        else:
+    try:
+        # The poll timestamp predates reconciliation and broker reads. A quote can
+        # legitimately arrive later; validate against the clock sampled after its read.
+        tick, bars = read_gold(mt5, login, None, health,
+                              server_offset_seconds=execution._server_offset(), execution=bool(p) or shared is not None, bar_seconds=seconds, trend_demo=symbol == BTC or trending(p), symbol=symbol)
+        now = health['sampled_at']
+        if pending:
             receipt = read_receipt(pending['bar_time'])
             approved, why = jev_m5.allows(receipt, side=pending['side'], bar_time=pending['bar_time'],
                                           input_sha256=pending['input_sha256'], now=now)
             if not approved and (receipt is not None or now > pending['bar_time'] + jev_m5.SECONDS + jev_m5.DEADLINE):
                 drop_pending(db, p, why)
                 pending = None
-    try:
-        tick, bars = read_gold(mt5, login, now, health,
-                              server_offset_seconds=execution._server_offset(), execution=bool(p) or shared is not None, bar_seconds=seconds, trend_demo=symbol == BTC or trending(p), symbol=symbol)
         result = assess(bars, tick, now, p or ({"strategy": BTC_STRATEGY} if symbol == BTC else None))
         health.update(strategy_signal=result['signal'], strategy_reason=result['reason'])
         report.update(bar_time=result['bar_time'], status='observed', reason=result['reason'])
