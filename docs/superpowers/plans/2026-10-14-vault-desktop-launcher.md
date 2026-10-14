@@ -28,7 +28,7 @@ handled by a Rust executable inside a small macOS app bundle. Reuse the Vault do
   Run `rustc --test` and the resulting test executable before installing.
 - [x] Point the existing FigCraft dock item at `kwg-vault://figcraft`; add
   Sagar with `kwg-vault://sagar` and “Open on Mac” hints. Update PRODUCT and README.
-- [ ] Run portfolio build, test both browser links against installed apps,
+- [x] Run portfolio build, test both browser links against installed apps,
   review the diff, deploy and verify both production link targets.
 
 ## Evidence / decisions
@@ -46,3 +46,6 @@ handled by a Rust executable inside a small macOS app bundle. Reuse the Vault do
   clicked both exact URLs on a local verification page and confirmed each app opens.
 - Reopened FigCraft examples with absolute paths so Recent Files works from
   subsequent desktop launches. No example contents were changed.
+- Deployed `0aa2ac3` through Dokploy; log finished with `Docker Compose Deployed: ✅`.
+  Fetched production `/vault` and asserted both exact desktop URLs and both
+  “Open on Mac” hints. Temporary local verification servers were stopped.
