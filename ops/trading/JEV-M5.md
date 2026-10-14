@@ -162,8 +162,8 @@ and fresh timestamp, then check the dashboard. Do not rerun bot cutover or
 restart the trading container for this reporting update. The Worker already
 passes the scorecard through; its budget/configuration need no changes. An older
 publisher remains compatible, but the new panel explicitly marks veto activity
-unavailable. Publisher deployment was blocked by SSH authentication during this
-change; it has not been claimed live.
+unavailable. Publisher deployment initially required restoring SSH access; deployment
+evidence is recorded below.
 
 ## Clock warning investigation — 2026-10-14
 
@@ -183,3 +183,28 @@ status and tick receipt timing, then review how post-read time affects candle
 boundaries and pending-entry deadlines. Deploying runner source also requires
 its pinned code-identity migration; do not hot-edit the running container or
 clear its safety pause.
+
+
+### Publisher deployment and live clock evidence — 2026-10-14
+
+At 08:50:50 UTC (15:50 Bangkok), deployed the publisher from `e058686`;
+SHA-256 `289fc021c81cbde2d42fb0036ec203eceba83a65a4323eb2cec81f6263094450`.
+Preserved backup:
+`/opt/kwg-mt5-qualification/jev-m5-scorecard/jev_m5_scorecard.before-e058686-1791967849874602729.py`.
+The timer remains active; a subsequent automatic report at 08:52:59 UTC was
+ready. It reported 33 veto decisions, 6 submitted, 27 blocked; 24 OK receipts,
+9 missing; 5 closed trades net -$3.37 and one open trade. Block reasons were
+18 clock warnings (including two disarmed attempts), 5 Jev hold choices and
+4 confidence-below-0.5 decisions. No runner restart, journal edit, risk limit
+change or budget change was performed. The website still served the old panel
+at verification and requires deployment of main's reporting UI.
+
+Host `timedatectl` reported `NTPSynchronized=yes`. A live runner warning had
+sampled_at 1791967872.563731 versus normalized tick time 1791967872.596:
+quote age -0.032269 seconds. The immediately following samples were fresh.
+A separate read-only MT5 probe applied the existing 10800-second server offset:
+40 quotes, 2–7 ms read latency, 157–920 ms post-read quote age, no future ticks.
+This supports the early poll timestamp mechanism reproduced by the regression,
+but does not rule out intermittent broker skew outside the sample. A runtime
+fix still needs candle-boundary/deadline tests and a reviewed code-identity
+migration; strict future/stale guards remain unchanged.
