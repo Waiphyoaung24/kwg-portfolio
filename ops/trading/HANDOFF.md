@@ -1,6 +1,20 @@
 # Gold trading handoff — 2026-09-28
 
-## Now / Running / Next — updated 2026-10-13
+## Now / Running / Next — updated 2026-10-14
+
+Gold M5 shadow is deployed and verified active after recovering the manual-deal
+acknowledgement regression. BTC remains paused by owner. Shared account pause is
+clear; existing limits and acknowledged receipts are preserved. The scorecard
+is ready with zero candidates and an unmet veto gate. Website `main` and Worker
+are deployed; `JEV_M5_LIVE="false"` remains deployed. No M5 provider enablement
+or veto promotion was performed. Recovery evidence, source identity and preserved
+backup paths: [M5-ACCOUNT-RECOVERY.md](M5-ACCOUNT-RECOVERY.md).
+
+Original journal backups remain intact. The original M1 base image was already
+absent from Docker during investigation; the pre-recovery M5 image is separately
+preserved. Do not restart old M1 against the switched journals.
+
+## Historical: pre-deployment 2026-10-13
 
 **Now:** branch `jev-integration` adds a Jev decision layer for the Gold demo
 pilot on M5 candles. Shadow first, then owner-gated veto. Jev can block an entry

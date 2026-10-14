@@ -132,6 +132,13 @@ def activate(mt5, db, login, now, end, pause_path):
     return record
 
 
+def deal_receipt(deal):
+    return {key: getattr(deal, key, None) for key in (
+        'ticket', 'order', 'position_id', 'symbol', 'type', 'entry', 'reason',
+        'magic', 'comment', 'time', 'time_msc', 'volume', 'price',
+        'profit', 'commission', 'swap', 'fee')}
+
+
 def limits(mt5, db, p, login, now, *, journals=None):
     candle_seconds(p)
     if p.get('run_policy') not in (None, 'continuous') or (p["end"] is None) != (p.get("run_policy") == "continuous"):
@@ -170,7 +177,14 @@ def limits(mt5, db, p, login, now, *, journals=None):
             raise ValueError('Journal request symbol mismatch')
         owned[symbol] = ({request['comment'] for request in requests},
                          {row['position_ticket'] for row in attempts if row['position_ticket']})
+    acknowledged = p.get('acknowledged_manual_deals', [])
+    observed = [deal_receipt(deal) for deal in deals]
+    if any(receipt not in observed for receipt in acknowledged):
+        raise ValueError('Acknowledged manual deal history changed or unavailable')
     for deal in deals:
+        # Reviewed manual deals still count toward balance and loss limits below.
+        if deal_receipt(deal) in acknowledged:
+            continue
         comments, tickets = owned.get(getattr(deal, 'symbol', None), (set(), set()))
         if (getattr(deal, 'type', None) not in (0, 1)
                 or journals is not None and getattr(deal, 'magic', None) != execution.MAGIC
