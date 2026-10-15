@@ -46,7 +46,8 @@ class UpgradeTest(unittest.TestCase):
         risk = json.loads(self.gold.execute('SELECT data FROM account_limits').fetchone()[0])
         (self.home / 'btc-pilot.pause').write_text('owner requested')
         before = [dump(db, skip_pilot=True) for db in (self.gold, self.btc)]
-        self.upgrade(owner_approved=True)
+        with patch.object(module['shutil'], 'copy2', side_effect=RuntimeError('Wine CopyFile2 unavailable')):
+            self.upgrade(owner_approved=True)
         self.assertEqual(pilot.state(self.gold), {**gold, 'code': self.reviewed})
         updated = pilot.state(self.btc)
         for k, v in btc.items():

@@ -103,7 +103,8 @@ def switch(gold, btc, home, now, reviewed, previous, backup_dir, owner_approved=
                 raise ValueError('Backup integrity check failed')
     pause = home / 'btc-pilot.pause'
     if pause.exists():
-        shutil.copy2(pause, backup_dir / pause.name)
+        # Wine may crash in Windows CopyFile2; preserve pause bytes without that API.
+        (backup_dir / pause.name).write_bytes(pause.read_bytes())
     gold.execute('ATTACH DATABASE ? AS btc_upgrade', (btc.execute('PRAGMA database_list').fetchone()[2],))
     try:
         with gold:
