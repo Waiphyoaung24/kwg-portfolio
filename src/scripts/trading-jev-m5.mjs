@@ -1,5 +1,6 @@
-// Gold M5 Jev shadow scorecard view. Pure mapping plus a GET-only poller; no paid calls.
-const STRATEGY = 'gold-ema-v1-m5-trend-jev';
+// M5 Jev shadow scorecard view. Pure mapping plus a GET-only poller; no paid calls.
+import { selectedInstrument } from './trading-instruments.mjs';
+const STRATEGIES = ['gold-ema-v1-m5-trend-jev', 'btc-ema-v1-m5-trend-jev'];
 const QUALIFICATION = 'demo fills; unqualified; not a profitability claim';
 const RECEIPTS = [['ok', 'OK'], ['timeout', 'Timeout'], ['unavailable', 'Unavailable'], ['budget_exhausted', 'Budget exhausted'],
   ['invalid', 'Invalid'], ['missing', 'Missing'], ['late', 'Late']];
@@ -63,6 +64,8 @@ export function vetoActivityView(data) {
       RECEIPTS.reduce((sum, [k]) => sum + data.receipts[k], 0) + data.no_state !== data.candidates ||
       !data.results || !count(data.results.trades) || (data.results.trades ? !Number.isFinite(data.results.net_usd) : data.results.net_usd !== null) ||
       !Array.isArray(data.recent) || data.recent.length > 20) return unavailable;
+  if ((data.reporting_start !== undefined || data.reporting_end !== undefined) &&
+      (!Number.isFinite(data.reporting_start) || !Number.isFinite(data.reporting_end) || data.reporting_start <= 0 || data.reporting_end - data.reporting_start !== 172800)) return unavailable;
   const rows = [];
   for (const row of data.recent) {
     if (!Number.isFinite(row.bar_time) || !['long', 'short'].includes(row.side) ||
@@ -77,7 +80,8 @@ export function vetoActivityView(data) {
       ` · ${row.submitted ? `Submitted · ${row.state ?? 'outcome unknown'}` : 'Blocked before submission'}` +
       (row.net_usd === null ? '' : ` · ${signed(row.net_usd).text} net`) + (row.reason ? ` · ${row.reason}` : ''));
   }
-  return { summary: `${data.candidates} completed decisions · ${data.submitted} submitted · ${data.blocked} blocked · ${data.pending} awaiting Jev.`,
+  const window = data.reporting_start === undefined ? '' : `Reporting window ${time(data.reporting_start)} to ${time(data.reporting_end)}. `;
+  return { summary: `${window}${data.candidates} completed decisions · ${data.submitted} submitted · ${data.blocked} blocked · ${data.pending} awaiting Jev.`,
     results: `${data.results.trades ? signed(data.results.net_usd).text : '—'} net · ${trades(data.results.trades)} closed with P/L · ${data.unresolved} closed without P/L`,
     receipts: RECEIPTS.map(([k, label]) => `${label} ${data.receipts[k]}`).join(' · ') + ` · No Jev state ${data.no_state}`,
     rows };
@@ -85,7 +89,7 @@ export function vetoActivityView(data) {
 
 export function m5Mode(pilotState, pilot) {
   if (pilotState === 'Unknown') return 'Mode unavailable';
-  if (pilot?.strategy !== STRATEGY) return 'Not running';
+  if (!STRATEGIES.includes(pilot?.strategy)) return 'Not running';
   return ({ shadow: 'Shadow', veto: 'Veto' })[pilot.jev_mode] ?? 'Mode unknown';
 }
 
@@ -95,9 +99,11 @@ export function budgetText(data) {
 
 export function mountJevM5(doc, win, fetcher = fetch) {
   const panel = doc.getElementById('jev-m5-panel');
-  if (!panel || new URLSearchParams(win.location.search).get('symbol') === 'BTCUSD') return;
+  if (!panel) return;
+  const selected = selectedInstrument(win.location.search);
   panel.hidden = false;
   const field = key => doc.getElementById(`jev-m5-${key}`);
+  field('instrument').textContent = `${selected.name} M5 · Jev decision layer`;
   const get = async url => {
     const response = await fetcher(url, { credentials: 'same-origin', cache: 'no-store', redirect: 'manual', signal: AbortSignal.timeout(15000) });
     if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) throw Error('Unavailable');
@@ -108,9 +114,11 @@ export function mountJevM5(doc, win, fetcher = fetch) {
     if (busy) return;
     busy = true;
     try {
-      const [scorecard, budget] = await Promise.allSettled([get('/api/trading/jev-m5-scorecard'), get('/api/trading/jev')]);
+      const [scorecard, budget] = await Promise.allSettled([get(`/api/trading/jev-m5-scorecard${selected.query}`), get('/api/trading/jev')]);
       let view;
-      try { view = m5ScorecardView(scorecard.status === 'fulfilled' ? scorecard.value : null); } catch { view = m5ScorecardView({ status: 'unavailable' }); }
+      try {
+        if (scorecard.status === 'fulfilled' && (scorecard.value.symbol ?? 'XAUUSD-VIP') !== selected.symbol) throw Error('Wrong symbol');
+        view = m5ScorecardView(scorecard.status === 'fulfilled' ? scorecard.value : null); } catch { view = m5ScorecardView({ status: 'unavailable' }); }
       // Only the live region's changes are announced; the report time updates silently beside it.
       if (field('summary').textContent !== view.summary) field('summary').textContent = view.summary;
       field('updated').textContent = view.updated;

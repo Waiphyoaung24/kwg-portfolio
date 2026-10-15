@@ -1,5 +1,5 @@
 import { scorecard } from './jev-scorecard.js';
-import { LATEST, m5Request, parseM5, QUESTION_SHA256 } from './jev-m5.js';
+import { LATEST, m5Request, parseM5, QUESTION_SHA256, BTC_QUESTION_SHA256 } from './jev-m5.js';
 export const JEV_MODEL = 'jev-1.13.0';
 const LIMIT = 5_000_000; // USD microdollars, including the earlier 17-microdollar smoke test.
 const RESERVE = 3_000; // Covers 65,536 input tokens at the pinned $0.042/M price; output is free.
@@ -117,13 +117,17 @@ export class JevObserver {
     return json(this.view(record), result ? 200 : 503);
   }
 
-  // One paid call per Gold M5 candle. Shares only the spend ledger with M15, never its cooldown fields.
+  // One paid call per symbol per M5 candle. Shares only the spend ledger with M15, never its cooldown fields.
   async m5(snapshot) {
-    const key = `m5:${snapshot.bar_time}`, body = JSON.stringify(m5Request(snapshot));
+    const symbol = snapshot.state?.symbol;
+    if (!['XAUUSD-VIP', 'BTCUSD'].includes(symbol)) return json({ status: 'invalid' }, 400);
+    // Preserve historical Gold reservations so a deployment cannot replay a paid candle.
+    const key = symbol === 'BTCUSD' ? `m5:BTCUSD:${snapshot.bar_time}` : `m5:${snapshot.bar_time}`;
+    const body = JSON.stringify(m5Request(snapshot));
     if (body.length > 64000) return json({ status: 'unavailable', message: 'Snapshot too large.' }, 400);
-    const question_sha256 = await QUESTION_SHA256, now = Date.now();
+    const question_sha256 = await (symbol === 'BTCUSD' ? BTC_QUESTION_SHA256 : QUESTION_SHA256), now = Date.now();
     if (now / 1000 > snapshot.bar_time + LATEST) return json({ status: 'too_late', message: 'Too close to the Jev deadline. No request sent.' }, 400);
-    const receipt = (status, result = null) => ({ bar_time: snapshot.bar_time, input_sha256: snapshot.input_sha256,
+    const receipt = (status, result = null) => ({ ...(symbol === 'BTCUSD' ? {symbol} : {}), bar_time: snapshot.bar_time, input_sha256: snapshot.input_sha256,
       model: JEV_MODEL, question_sha256, status, choice: result?.choice ?? null, confidence: result?.confidence ?? null,
       probabilities: result?.probabilities ?? null, completed_at: Date.now() / 1000 });
     const reserved = await this.storage.transaction(async tx => {

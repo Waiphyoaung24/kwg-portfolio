@@ -47,6 +47,50 @@ class M5ScorecardTest(unittest.TestCase):
                 value.update(choice=None, confidence=None, probabilities=None)
             jev_m5.store_receipt(self.receipts, value, received=bar + 300 + (completed if received is None else received))
 
+    def test_reporting_window_filters_veto_decisions_and_opened_trades_only(self):
+        self.add(11, mode='shadow')
+        self.add(12, mode='veto')
+        self.add(13, mode='veto')
+        self.add(14, mode='veto')
+        start = BASE + 900
+        end = start + 172800
+        with sqlite3.connect(self.journal) as db:
+            db.execute('INSERT INTO pilot (id,data) VALUES (1,?)',
+                       (json.dumps(dict(jev_mode='veto', reporting_start=start, reporting_end=end)),))
+            db.execute('UPDATE attempts SET opened_at=? WHERE id=?', (start, 'a3'))
+            db.execute('UPDATE attempts SET opened_at=? WHERE id=?', (end, 'a4'))
+        result = export(self.journal, self.receipts, now=LATER)
+        self.assertEqual(result['all']['trades'], 1)  # historical shadow stays frozen
+        self.assertEqual(result['veto']['candidates'], 2)
+        self.assertEqual(result['veto']['results']['net_usd'], 13)
+        self.assertEqual(result['veto']['reporting_end'], end)
+        self.assertIsNone(result['veto']['recent'][0]['net_usd'])
+
+    def test_btc_journal_rejects_gold_receipts(self):
+        self.add(5, mode='veto')
+        with sqlite3.connect(self.journal) as db:
+            db.execute("UPDATE metadata SET symbol='BTCUSD'")
+        result = export(self.journal, self.receipts, now=LATER)
+        self.assertEqual(result['symbol'], 'BTCUSD')
+        self.assertEqual(result['veto']['receipts']['invalid'], 1)
+        self.assertFalse(result['gate']['passes'])
+
+    def test_btc_matching_receipt_is_classified_without_changing_gold_format(self):
+        self.add(5, mode='veto')
+        with sqlite3.connect(self.journal) as db:
+            db.execute("UPDATE metadata SET symbol='BTCUSD'")
+        with sqlite3.connect(self.receipts) as db:
+            value = json.loads(db.execute('SELECT payload FROM receipts').fetchone()[0])
+            value.update(symbol='BTCUSD', question_sha256=jev_m5.BTC_QUESTION_SHA256)
+            db.execute('UPDATE receipts SET payload=?', (json.dumps(value),))
+        result = export(self.journal, self.receipts, now=LATER)
+        self.assertEqual(result['veto']['receipts']['ok'], 1)
+        with sqlite3.connect(self.journal) as db:
+            db.execute("UPDATE metadata SET symbol='XAUUSD-VIP'")
+        result = export(self.journal, self.receipts, now=LATER)
+        self.assertNotIn('symbol', result)
+        self.assertEqual(result['veto']['receipts']['invalid'], 1)
+
     def test_veto_activity_keeps_gate_separate_and_links_results(self):
         self.add(8.3, mode='veto')
         self.add(-2, mode='veto', receipt_status='timeout')

@@ -100,7 +100,7 @@ function memory(seed) {
   db.transaction = fn => { const next = lock.then(() => fn(db)); lock = next.catch(() => {}); return next; };
   return db;
 }
-function harness(t, {record, provider, control, input = feed()} = {}) {
+function harness(t, {record, provider, control, dual = false, input = feed()} = {}) {
   const clock = {t: now};
   t.mock.method(Date, 'now', () => clock.t*1000);
   t.mock.method(timing, 'sleep', async ms => { clock.t += ms/1000; });
@@ -108,13 +108,13 @@ function harness(t, {record, provider, control, input = feed()} = {}) {
   const env = {TYPESAFE_API_KEY:'fake-test-key', JEV_DATA_SHARING_APPROVED:'true', JEV_M5_LIVE:'true',
     STATUS_ORIGIN_URL:'https://status.example/status', STATUS_ACCESS_CLIENT_ID:'id', STATUS_ACCESS_CLIENT_SECRET:'secret',
     TRADING_CONTROL_SECRET:'control-secret'};
-  env.JEV_OBSERVER = {idFromName: () => 'one', get: () => new JevObserver({storage: db}, env)};
+  env.JEV_OBSERVER = {idFromName: name => { assert.equal(name, 'gold-preview-v1'); return 'one'; }, get: () => new JevObserver({storage: db}, env)};
   const answer = {model:JEV_MODEL,usage:{input_tokens:1000},answers:{decision:{type:'choice',choice:'buy',confidence:.7,
     probabilities:{buy:.7,hold:.2,sell:.1}}}};
   t.mock.method(globalThis, 'fetch', async (target, options = {}) => {
     const url = new URL(target instanceof Request ? target.url : target);
     if (url.hostname === 'api.typesafe.ai') { calls.provider++; return provider ? provider() : Response.json(answer); }
-    if (url.pathname === '/jev-m5') { calls.feed++; return Response.json(typeof input === 'function' ? input() : input); }
+    if (url.pathname === '/jev-m5') { if (url.search && !dual) return Response.json({status:'ready', candidate:false, bar_time:bar, checked_at:clock.t}); if (!url.search) calls.feed++; return Response.json(typeof input === 'function' ? input(url) : input); }
     if (url.pathname === '/control/jev-receipt') {
       calls.forwards.push({url, options});
       return control ? control(calls.forwards.length) : Response.json({status:'stored'}, {status:202});
@@ -268,7 +268,7 @@ test('M5 scorecard route requires the owner and passes the origin report through
   assert.equal((await worker.fetch(new Request(url), env, {})).status, 403);
   assert.equal((await worker.fetch(new Request(url), env, as('other@example.com'))).status, 403);
   assert.equal((await worker.fetch(new Request(url, { method: 'POST' }), env, as('owner@example.com'))).status, 404);
-  assert.equal((await worker.fetch(new Request(url + '?symbol=BTCUSD'), env, as('owner@example.com'))).status, 400);
+  assert.equal((await worker.fetch(new Request(url + '?symbol=ETHUSD'), env, as('owner@example.com'))).status, 400);
   assert.equal(calls.length, 0);
   const response = await worker.fetch(new Request(url), env, as('owner@example.com'));
   assert.equal(response.status, 200);
@@ -277,6 +277,11 @@ test('M5 scorecard route requires the owner and passes the origin report through
   assert.equal(calls[0][0], 'https://origin.example/jev-m5-scorecard');
   assert.equal(calls[0][1].headers['CF-Access-Client-Secret'], 'secret');
   assert.equal(calls[0][1].redirect, 'manual');
+  origin = () => Response.json({status:'ready', symbol:'BTCUSD', candidates:3});
+  const btcResponse = await worker.fetch(new Request(url + '?symbol=BTCUSD'), env, as('owner@example.com'));
+  assert.equal(btcResponse.status, 200);
+  assert.deepEqual(await btcResponse.json(), {status:'ready', symbol:'BTCUSD', candidates:3});
+  assert.equal(calls[1][0], 'https://origin.example/jev-m5-scorecard?symbol=BTCUSD');
   for (const failure of [() => new Response('', { status: 503 }), () => new Response('<html>', { headers: { 'Content-Type': 'text/html' } }),
     () => new Response('x'.repeat(65537), { headers: { 'Content-Type': 'application/json' } }),
     () => new Response('not json', { headers: { 'Content-Type': 'application/json' } })]) {
@@ -286,4 +291,47 @@ test('M5 scorecard route requires the owner and passes the origin report through
     assert.equal(failed.headers.get('Cache-Control'), 'no-store');
     assert.equal((await failed.json()).status, 'unavailable');
   }
+});
+
+test('BTC snapshot and question are isolated from Gold', async () => {
+  const btc = feed({...state(), symbol:'BTCUSD'});
+  const snapshot = await m5Snapshot(btc, now, 'BTCUSD');
+  assert.equal(m5Request(snapshot).questions.decision.instructions, QUESTION.instructions.replace('Gold M5', 'BTC M5'));
+  await assert.rejects(m5Snapshot(btc, now));
+  await assert.rejects(m5Snapshot(feed(), now, 'BTCUSD'));
+  await assert.rejects(m5Snapshot(btc, now, 'ETHUSD'));
+});
+
+test('both symbols share the historical ledger but deduplicate independently', async t => {
+  const h = harness(t, {dual:true, input: url => feed({...state(), symbol: url.searchParams.get('symbol') ?? 'XAUUSD-VIP'})});
+  await h.run(); await h.run();
+  assert.equal(h.calls.provider, 2);
+  assert.equal(h.db.values.get('record').charged, 17+42+42);
+  assert.equal(h.calls.forwards.length, 2);
+  const receipts = h.calls.forwards.map(x=>JSON.parse(x.options.body));
+  assert.equal(receipts.filter(x=>x.symbol === undefined).length, 1);
+  const btc = receipts.find(x=>x.symbol === 'BTCUSD');
+  assert.equal(btc.question_sha256, hex(canonical({...QUESTION, instructions:QUESTION.instructions.replace('Gold M5','BTC M5')})));
+  assert.equal(h.db.values.get(`m5:${bar}`).receipt.status, 'ok');
+  assert.equal(h.db.values.get(`m5:BTCUSD:${bar}`).receipt.status, 'ok');
+});
+
+test('concurrent symbols cannot spend past the one shared budget', async t => {
+  const h = harness(t, {dual:true, record:{status:'ready',charged:4_995_000,attempts:0,last_sample:0,requested_at:0,result:null},
+    input: url=>feed({...state(),symbol:url.searchParams.get('symbol') ?? 'XAUUSD-VIP'}),
+    provider:()=>{throw new DOMException('timeout','TimeoutError');}});
+  await h.run(); await h.run();
+  assert.equal(h.calls.provider, 1);
+  assert.equal(h.db.values.get('record').charged, 4_998_000);
+  assert.deepEqual(h.calls.forwards.map(x=>JSON.parse(x.options.body).status).sort(), ['budget_exhausted','timeout']);
+});
+
+test('historic Gold reservation survives rollout while BTC can assess the same candle', async t => {
+  const h = harness(t, {dual:true, input:url=>feed({...state(),symbol:url.searchParams.get('symbol') ?? 'XAUUSD-VIP'})});
+  h.db.values.set(`m5:${bar}`, {status:'running',requested_at:now*1000});
+  await h.run();
+  assert.equal(h.calls.provider, 1);
+  assert.equal(h.calls.forwards.length, 1);
+  assert.equal(JSON.parse(h.calls.forwards[0].options.body).symbol, 'BTCUSD');
+  assert.equal(h.db.values.get(`m5:${bar}`).status, 'running');
 });

@@ -77,19 +77,27 @@ def sanitize_execution(value, now: float):
 
 
 def sanitize_pilot(value, now, symbol="XAUUSD-VIP"):
-    strategies = ("btc-ema-v1-m15-trend-3", "btc-ema-v1-m1-scalp-60") if symbol == "BTCUSD" else ("gold-ema-v1-slope-3", "gold-ema-v1-m1-slope-3", "gold-ema-v1-m1-trend-3", "gold-ema-v1-m5-trend-jev")
+    strategies = ("btc-ema-v1-m15-trend-3", "btc-ema-v1-m1-scalp-60", "btc-ema-v1-m5-trend-jev") if symbol == "BTCUSD" else ("gold-ema-v1-slope-3", "gold-ema-v1-m1-slope-3", "gold-ema-v1-m1-trend-3", "gold-ema-v1-m5-trend-jev")
     if (not isinstance(value, dict) or value.get('strategy') not in strategies
             or value.get('qualification') != 'unqualified'
             or value.get('status') not in ('standby', 'active', 'paused', 'needs_attention', 'expired')):
         raise ValueError('Invalid pilot state')
     result = {k: value[k] for k in ('strategy', 'qualification', 'status')}
-    if value['strategy'] == 'gold-ema-v1-m5-trend-jev' and value.get('jev_mode') in ('shadow', 'veto'):
+    if value['strategy'] in ('gold-ema-v1-m5-trend-jev', 'btc-ema-v1-m5-trend-jev') and value.get('jev_mode') in ('shadow', 'veto'):
         result['jev_mode'] = value['jev_mode']
     for k in ('updated_at', 'started_at', 'ends_at', 'realized_net_usd', 'floating_usd', 'completed_trades'):
         number = value.get(k)
         if number is not None and (type(number) not in (int, float) or not math.isfinite(number) or abs(number) > 1e12):
             raise ValueError('Invalid pilot number')
         result[k] = number
+    if 'reporting_start' in value or 'reporting_end' in value:
+        start, end = value.get('reporting_start'), value.get('reporting_end')
+        if not ('reporting_start' in value and 'reporting_end' in value):
+            raise ValueError('Invalid reporting window')
+        if (any(type(n) not in (int, float) or not math.isfinite(n) or not 0 < n <= 1e12 for n in (start, end))
+                or start > now or end - start != 172800):
+            raise ValueError('Invalid reporting window')
+        result.update(reporting_start=start, reporting_end=end)
     if (result['updated_at'] is None or not 0 <= now - result['updated_at'] <= 30):
         return None
     if type(result['completed_trades']) is not int or result['completed_trades'] < 0:
@@ -204,6 +212,14 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(result)
 
     def do_GET(self):
+        url = urlsplit(self.path)
+        query = parse_qs(url.query, keep_blank_values=True)
+        symbol = query.get("symbol", ["XAUUSD-VIP"])[0]
+        if url.path in ('/jev-m5', '/jev-m5-scorecard') and (
+                set(query) - {'symbol'} or len(query.get('symbol', [symbol])) != 1
+                or symbol not in ('XAUUSD-VIP', 'BTCUSD')):
+            self.send_error(404)
+            return
         if self.path == '/jev-scorecard':
             try:
                 path = SNAPSHOT.with_name('jev-scorecard.json')
@@ -223,9 +239,9 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        if self.path == '/jev-m5-scorecard':
+        if url.path == '/jev-m5-scorecard':
             try:
-                path = SNAPSHOT.with_name('jev-m5-scorecard.json')
+                path = SNAPSHOT.with_name('btc-jev-m5-scorecard.json' if symbol == 'BTCUSD' else 'jev-m5-scorecard.json')
                 if path.stat().st_size > 65536:
                     raise ValueError('Oversized M5 scorecard')
                 body = path.read_bytes()
@@ -261,9 +277,9 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        if self.path == '/jev-m5':
+        if url.path == '/jev-m5':
             try:
-                path = SNAPSHOT.with_name('jev-m5.json')
+                path = SNAPSHOT.with_name('btc-jev-m5.json' if symbol == 'BTCUSD' else 'jev-m5.json')
                 if path.stat().st_size > 100000:
                     raise ValueError('Oversized M5 snapshot')
                 body = path.read_bytes()

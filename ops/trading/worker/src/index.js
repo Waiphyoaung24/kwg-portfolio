@@ -78,7 +78,7 @@ export function normalizeStatus(value, now = Date.now() / 1000, symbol = 'XAUUSD
 export default {
   async scheduled(event, env, ctx) {
     if (!jevEnabled(env)) return;
-    if (env.JEV_M5_LIVE === 'true') ctx.waitUntil(runM5(env)); // Independent of the M15 branch below.
+    if (env.JEV_M5_LIVE === 'true') ctx.waitUntil(Promise.all(['XAUUSD-VIP', 'BTCUSD'].map(symbol => runM5(env, symbol)))); // Independent of the M15 branch below.
     if (env.JEV_M15_LIVE !== 'true') return;
     ctx.waitUntil((async () => {
       try {
@@ -127,11 +127,11 @@ export default {
       return new Response('Access required', { status: 403 });
     }
     if (isM5Scorecard) {
-      if (symbol !== 'XAUUSD-VIP') return new Response('Gold only', { status: 400 });
       try {
         const origin = new URL(env.STATUS_ORIGIN_URL);
         if (origin.protocol !== 'https:') throw Error('Invalid origin');
         origin.pathname = '/jev-m5-scorecard'; origin.search = '';
+        if (symbol === 'BTCUSD') origin.searchParams.set('symbol', symbol);
         const response = await fetch(origin, { headers: { 'CF-Access-Client-ID': env.STATUS_ACCESS_CLIENT_ID,
           'CF-Access-Client-Secret': env.STATUS_ACCESS_CLIENT_SECRET }, redirect: 'manual', signal: AbortSignal.timeout(10000), cache: 'no-store' });
         if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) throw Error('M5 scorecard unavailable');

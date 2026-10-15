@@ -19,10 +19,11 @@ new_sqlite_classes = ["JevObserver"]
 # Owner approved Gold M15 market/setup data to TypeSafe, observation only.
 # Owner approved Gold M5's last 50 OHLC bars and trend labels/categorical
 # features to TypeSafe on 2026-10-14, in shadow mode within the shared $5 cap.
+# Owner approved dual Gold/BTC M5 demo veto on 2026-10-15 using that same cap.
 [vars]
 JEV_DATA_SHARING_APPROVED = "true"
 JEV_M15_LIVE = "true"
-# Gold M5 candidate assessment; the owner flips this at rollout.
+# Gold and BTC M5 candidate assessments share the existing budget object.
 JEV_M5_LIVE = "true"
 
 [triggers]

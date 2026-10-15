@@ -16,10 +16,10 @@ export function entryReadiness(data, now = Date.now() / 1000, symbol = 'XAUUSD-V
 
 export function normalizePilot(value, now = Date.now() / 1000, symbol = 'XAUUSD-VIP') {
   if (value === null) return null;
-  if (!value || !(symbol === 'BTCUSD' ? ['btc-ema-v1-m15-trend-3', 'btc-ema-v1-m1-scalp-60'] : symbol === 'XAUUSD-VIP' ? ['gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3', 'gold-ema-v1-m5-trend-jev'] : []).includes(value.strategy) || value.qualification !== 'unqualified' ||
+  if (!value || !(symbol === 'BTCUSD' ? ['btc-ema-v1-m15-trend-3', 'btc-ema-v1-m1-scalp-60', 'btc-ema-v1-m5-trend-jev'] : symbol === 'XAUUSD-VIP' ? ['gold-ema-v1-slope-3', 'gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3', 'gold-ema-v1-m5-trend-jev'] : []).includes(value.strategy) || value.qualification !== 'unqualified' ||
       !['standby', 'active', 'paused', 'needs_attention', 'expired'].includes(value.status)) throw new Error('Invalid pilot');
   const result = { strategy: value.strategy, qualification: value.qualification, status: value.status };
-  if (value.strategy === 'gold-ema-v1-m5-trend-jev' && ['shadow', 'veto'].includes(value.jev_mode)) result.jev_mode = value.jev_mode;
+  if (['gold-ema-v1-m5-trend-jev', 'btc-ema-v1-m5-trend-jev'].includes(value.strategy) && ['shadow', 'veto'].includes(value.jev_mode)) result.jev_mode = value.jev_mode;
   for (const key of ['updated_at', 'started_at', 'ends_at', 'realized_net_usd', 'floating_usd', 'completed_trades']) {
     const number = value[key] ?? null;
     if (number !== null && (typeof number !== 'number' || !Number.isFinite(number) || Math.abs(number) > 1e12)) throw new Error('Invalid pilot number');
@@ -32,6 +32,12 @@ export function normalizePilot(value, now = Date.now() / 1000, symbol = 'XAUUSD-
   const start = result.started_at, end = result.ends_at;
   if ((value.status === 'standby' && (start !== null || end !== null || continuous)) ||
       (value.status !== 'standby' && (start === null || !(start > 0 && start <= now) || (continuous ? end !== null || value.status === 'expired' : end === null || !(end > start && end - start <= 604800))))) throw new Error('Invalid pilot window');
+  if (value.reporting_start !== undefined || value.reporting_end !== undefined) {
+    const start = value.reporting_start, end = value.reporting_end;
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start <= 0 || start > now || end - start !== 172800) throw new Error('Invalid reporting window');
+    result.reporting_start = start;
+    result.reporting_end = end;
+  }
   if (!Number.isInteger(result.completed_trades) || result.completed_trades < 0 ||
       typeof value.reason !== 'string' || value.reason.length > 160 ||
       !Array.isArray(value.recent_trades) || value.recent_trades.length > 10) throw new Error('Invalid pilot results');
@@ -53,10 +59,11 @@ export function pilotFields(value, now = Date.now() / 1000, symbol = 'XAUUSD-VIP
   let p;
   try { p = normalizePilot(value ?? null, now, symbol); } catch { p = null; }
   if (!p) return { state: 'Unknown', reason: 'No current pilot report.', realized: '—', floating: '—',
-    remaining: '—', count: '—', canPause: false, trades: [] };
+    reporting: '—', remaining: '—', count: '—', canPause: false, trades: [] };
   const money = number => typeof number === 'number' ? `${number.toFixed(2)} USD` : 'Unknown';
   const minutes = p.ends_at === null ? null : Math.max(0, Math.ceil((p.ends_at - now) / 60));
   return { state: ({ standby: 'Not activated', active: 'Active', paused: 'Paused', needs_attention: 'Needs attention', expired: 'Expired' })[p.status],
+    reporting: p.reporting_start === undefined ? 'No reporting window set' : `${Math.floor(Math.min(172800, Math.max(0, now - p.reporting_start)) / 3600)}h ${Math.floor(Math.min(172800, Math.max(0, now - p.reporting_start)) % 3600 / 60)}m / 48h elapsed · Ends ${new Date(p.reporting_end * 1000).toISOString().replace('T', ' ').replace('.000Z', ' UTC')}`,
     reason: p.reason, realized: money(p.realized_net_usd), floating: money(p.floating_usd),
     remaining: p.run_policy === 'continuous' ? 'Until you pause' : minutes === null ? 'Not started' : minutes === 0 ? 'Ended'
       : [minutes >= 1440 ? `${Math.floor(minutes / 1440)}d` : '', minutes >= 60 ? `${Math.floor(minutes % 1440 / 60)}h` : '', `${minutes % 60}m`].filter(Boolean).join(' '),

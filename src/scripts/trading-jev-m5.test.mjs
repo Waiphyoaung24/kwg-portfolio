@@ -85,8 +85,7 @@ test('budget shows the remaining shared Jev budget or a dash', () => {
   assert.equal(budgetText(null), '— of $5.00 left');
 });
 
-test('panel polls with GET only, skips Bitcoin and clears numbers after a failure', async () => {
-  mountJevM5({ getElementById: () => ({}) }, { location: { search: '?symbol=BTCUSD' } }, () => assert.fail());
+test('panel polls with GET only and clears numbers after a failure', async () => {
   const elements = new Map();
   const get = id => {
     if (!elements.has(id)) elements.set(id, { textContent: '', dataset: {}, hidden: false, replaceChildren(...items) { this.items = items; } });
@@ -171,4 +170,30 @@ test('real veto export shows receipts, linked P/L, and the recorded block reason
   const shadow = JSON.parse(readFileSync(new URL('../../ops/trading/fixtures/jev-m5-scorecard-passing.json', import.meta.url)));
   assert.deepEqual(data.gate, shadow.gate);
   assert.deepEqual(data.all, shadow.all);
+});
+
+test('Bitcoin polls its own scorecard and rejects a Gold payload', async () => {
+  const elements = new Map();
+  const get = id => { if (!elements.has(id)) elements.set(id, { textContent: '', dataset: {}, replaceChildren() {} }); return elements.get(id); };
+  const doc = { getElementById: get, hidden: false, createElement: () => ({ dataset: {} }) };
+  let poll, wrong = false; const calls = [];
+  mountJevM5(doc, { location: { search: '?symbol=BTCUSD' }, setInterval(fn) { poll = fn; }, addEventListener() {} }, async url => {
+    calls.push(url);
+    return Response.json(url.endsWith('/jev') ? { remaining_usd: 4 } : { ...populated(), ...(wrong ? {} : { symbol: 'BTCUSD' }) });
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(get('jev-m5-panel').hidden, false);
+  assert.match(get('jev-m5-instrument').textContent, /Bitcoin/);
+  assert.ok(calls.includes('/api/trading/jev-m5-scorecard?symbol=BTCUSD'));
+  assert.equal(get('jev-m5-kept').textContent, '↑ +$2.25 · 6 trades');
+  assert.equal(m5Mode('Active', { strategy: 'btc-ema-v1-m5-trend-jev', jev_mode: 'veto' }), 'Veto');
+  wrong = true; await poll(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(get('jev-m5-kept').textContent, '—');
+});
+
+test('veto reporting bounds are displayed and malformed bounds clear activity', () => {
+  const data = JSON.parse(readFileSync(new URL('../../ops/trading/fixtures/jev-m5-scorecard-veto.json', import.meta.url))).veto;
+  const window = { ...data, reporting_start: 1800000000, reporting_end: 1800172800 };
+  assert.match(vetoActivityView(window).summary, /Reporting window .* UTC to .* UTC/);
+  assert.match(vetoActivityView({ ...window, reporting_end: null }).summary, /unavailable/);
 });

@@ -150,6 +150,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
             <div><dt>Floating profit</dt><dd class="desk-num" id="pilot-floating">—</dd></div>
             <div><dt>Completed trades</dt><dd class="desk-num" id="pilot-count">—</dd></div>
             <div><dt><Fragment set:html={icon(iconClock)} />Run duration</dt><dd class="desk-num" id="pilot-remaining">—</dd></div>
+            <div class="desk-stats__wide"><dt>Reporting window</dt><dd class="desk-num" id="pilot-reporting">—</dd></div>
             <div class="desk-stats__wide"><dt>Position / latest attempt</dt><dd id="pilot-position">—</dd></div>
             <div class="desk-stats__wide"><dt><Fragment set:html={icon(iconTarget)} />Entry / stop / target</dt><dd class="desk-num" id="pilot-levels">—</dd></div>
           </dl>
@@ -164,7 +165,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
             </ul>
           </details>
           <button class="btn btn-primary w-100" id="pilot-pause" type="button" disabled><Fragment set:html={icon(iconPause)} />Pause new entries</button>
-          <p class="desk-muted small mt-3">Pausing stops new entries; the runner continues checking existing positions. A continuous run has no scheduled expiry. Bounded pilots request closure at expiry. Unresolved positions need owner attention. Floating profit excludes costs not yet booked.</p>
+          <p class="desk-muted small mt-3">Pausing stops new entries; the runner continues checking existing positions. A continuous run has no scheduled expiry. Bounded pilots request closure at expiry. Unresolved positions need owner attention. The 48-hour reporting window counts trades opened within it; it does not force a close or reset risk limits. Floating profit reflects current positions and excludes costs not yet booked.</p>
           <p class="small" id="pilot-message" role="status"></p>
           <details class="desk-disclosure"><summary>Recent completed trades <Fragment set:html={icon(iconChevron)} /></summary><ol class="desk-list" id="pilot-trades"></ol></details>
         </section>
@@ -471,11 +472,11 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
         const pilot = pilotFields(latest.pilot, Date.now() / 1000, selected.symbol);
         field('pilot-state').classList.toggle('desk-chip--solid', pilot.state === 'Active');
         field('pilot-state').dataset.state = pilot.state;
-        field('pilot-strategy').textContent = pilot.state === 'Unknown' ? 'Strategy unavailable' : latest.pilot?.strategy === 'gold-ema-v1-m5-trend-jev' ? ({ shadow: 'M5 trend · Jev shadow', veto: 'M5 trend · Jev veto' } as Record<string, string>)[latest.pilot.jev_mode] ?? 'M5 trend · Jev mode unknown' : latest.pilot?.strategy === 'btc-ema-v1-m1-scalp-60' ? 'EMA trend · 3-bar slope · 60-second exit request · 60-second cooldown' : ['gold-ema-v1-m1-trend-3', 'btc-ema-v1-m15-trend-3'].includes(latest.pilot?.strategy) ? 'EMA trend · 3-bar slope · 5-minute cooldown after close' : 'EMA crossover · 3-bar slope filter';
-        field('pilot-timeframe').textContent = pilot.state === 'Unknown' ? 'Strategy timeframe unavailable' : ['gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3', 'btc-ema-v1-m1-scalp-60'].includes(latest.pilot?.strategy) ? 'Completed 1-minute candles only - M1 demo' : latest.pilot?.strategy === 'gold-ema-v1-m5-trend-jev' ? 'Completed 5-minute candles only - M5 demo' : 'Completed 15-minute candles only - M15 demo';
+        field('pilot-strategy').textContent = pilot.state === 'Unknown' ? 'Strategy unavailable' : ['gold-ema-v1-m5-trend-jev', 'btc-ema-v1-m5-trend-jev'].includes(latest.pilot?.strategy) ? ({ shadow: 'M5 trend · Jev shadow', veto: 'M5 trend · Jev veto' } as Record<string, string>)[latest.pilot.jev_mode] ?? 'M5 trend · Jev mode unknown' : latest.pilot?.strategy === 'btc-ema-v1-m1-scalp-60' ? 'EMA trend · 3-bar slope · 60-second exit request · 60-second cooldown' : ['gold-ema-v1-m1-trend-3', 'btc-ema-v1-m15-trend-3'].includes(latest.pilot?.strategy) ? 'EMA trend · 3-bar slope · 5-minute cooldown after close' : 'EMA crossover · 3-bar slope filter';
+        field('pilot-timeframe').textContent = pilot.state === 'Unknown' ? 'Strategy timeframe unavailable' : ['gold-ema-v1-m1-slope-3', 'gold-ema-v1-m1-trend-3', 'btc-ema-v1-m1-scalp-60'].includes(latest.pilot?.strategy) ? 'Completed 1-minute candles only - M1 demo' : ['gold-ema-v1-m5-trend-jev', 'btc-ema-v1-m5-trend-jev'].includes(latest.pilot?.strategy) ? 'Completed 5-minute candles only - M5 demo' : 'Completed 15-minute candles only - M15 demo';
         field('jev-m5-mode').textContent = m5Mode(pilot.state, latest.pilot);
         if (pilot.state === 'Paused' && field('pilot-message').textContent?.startsWith('Pause requested.')) field('pilot-message').textContent = 'New entries are paused.';
-        for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining'] as const) field(`pilot-${key}`).textContent = pilot[key];
+        for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining', 'reporting'] as const) field(`pilot-${key}`).textContent = pilot[key];
         // render() runs every second, so the countdown ticks between status reports.
         const left = typeof latest.pilot?.ends_at === 'number' ? Math.floor(latest.pilot.ends_at - Date.now() / 1000) : 0;
         if (pilot.state !== 'Unknown' && left > 0) field('pilot-remaining').textContent = `${left >= 86400 ? `${Math.floor(left / 86400)}d ` : ''}${String(Math.floor(left % 86400 / 3600)).padStart(2, '0')}h ${String(Math.floor(left % 3600 / 60)).padStart(2, '0')}m ${String(left % 60).padStart(2, '0')}s`;
@@ -642,7 +643,7 @@ const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><pat
           const pilot = pilotFields(null);
           field('pilot-state').classList.remove('desk-chip--solid');
           field('pilot-state').dataset.state = 'Unknown';
-          for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining'] as const) field(`pilot-${key}`).textContent = pilot[key];
+          for (const key of ['state', 'reason', 'realized', 'floating', 'count', 'remaining', 'reporting'] as const) field(`pilot-${key}`).textContent = pilot[key];
           field('pilot-position').textContent = 'Unknown';
           field('pilot-levels').textContent = '—';
           field('pilot-trades').replaceChildren();

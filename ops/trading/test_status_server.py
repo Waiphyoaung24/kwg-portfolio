@@ -109,6 +109,48 @@ class StatusServerTest(unittest.TestCase):
             finally:
                 server.shutdown(); server.server_close(); thread.join()
 
+    def test_m5_routes_select_symbol_files_without_fallback(self):
+        with tempfile.TemporaryDirectory() as root, patch('status_server.time.time', return_value=1000):
+            server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+            thread = Thread(target=server.serve_forever, daemon=True); thread.start()
+            try:
+                with patch('status_server.SNAPSHOT', Path(root) / 'latest.json'):
+                    for route, stamp in (('jev-m5', 'checked_at'), ('jev-m5-scorecard', 'generated_at')):
+                        gold = {'status': 'ready', stamp: 1000, 'source': 'gold'}
+                        btc = {'status': 'ready', stamp: 1000, 'source': 'btc'}
+                        (Path(root) / (route + '.json')).write_text(json.dumps(gold))
+                        url = f'http://127.0.0.1:{server.server_port}/{route}'
+                        with self.assertRaises(HTTPError) as error:
+                            urlopen(url + '?symbol=BTCUSD', timeout=2)
+                        self.assertEqual(error.exception.code, 503)
+                        (Path(root) / ('btc-' + route + '.json')).write_text(json.dumps(btc))
+                        for query, expected in (('', gold), ('?symbol=XAUUSD-VIP', gold), ('?symbol=BTCUSD', btc)):
+                            with urlopen(url + query, timeout=2) as response:
+                                self.assertEqual(json.load(response), expected)
+                        for query in ('?symbol=ETHUSD', '?symbol=BTCUSD&symbol=XAUUSD-VIP', '?extra=x', '?symbol='):
+                            with self.assertRaises(HTTPError) as error:
+                                urlopen(url + query, timeout=2)
+                            self.assertEqual(error.exception.code, 404)
+            finally:
+                server.shutdown(); server.server_close(); thread.join()
+
+    def test_btc_m5_and_reporting_window_are_sanitized_independently_of_activation(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
+        now = fixture['checked_at']
+        value = dict(fixture['pilot'], strategy='btc-ema-v1-m5-trend-jev', jev_mode='veto',
+                     reporting_start=now-10, reporting_end=now-10+172800)
+        self.assertEqual(sanitize_pilot(value, now, 'BTCUSD'), value)
+        for changes in ({'reporting_end': None}, {'reporting_end': now+172800},
+                        {'reporting_start': True}, {'reporting_start': float('nan')},
+                        {'reporting_start': 0, 'reporting_end': 172800},
+                        {'reporting_start': None, 'reporting_end': None},
+                        {'reporting_start': now+1, 'reporting_end': now+1+172800}):
+            with self.assertRaises(ValueError):
+                sanitize_pilot(dict(value, **changes), now, 'BTCUSD')
+        missing = dict(value); del missing['reporting_start']
+        with self.assertRaises(ValueError):
+            sanitize_pilot(missing, now, 'BTCUSD')
+
     def test_continuous_policy_requires_explicit_consistent_window(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures' / 'pilot-status.json').read_bytes())
         value = dict(fixture['pilot'], run_policy='continuous', ends_at=None)

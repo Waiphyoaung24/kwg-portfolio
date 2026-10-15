@@ -35,15 +35,16 @@ def _direction_type(mt5, request):
     raise ValueError("Unknown journal order direction.")
 
 
-def build_entry_request(mt5, login: int, side: str, now: float,
+def build_entry_request(mt5, login: int, side: str, now: float | None,
                         server_offset_seconds: int, *, execution: bool, levels=None, bar_seconds=900, trend_demo=False, symbol=SYMBOL) -> dict:
     """Return one locally checked protected request without submitting it."""
     instrument(symbol)
     if side not in ("buy", "sell"):
         raise ValueError("Operator must choose buy or sell.")
-    tick, bars = read_gold(mt5, login, now,
+    health = {}
+    tick, bars = read_gold(mt5, login, now, health,
                            server_offset_seconds=server_offset_seconds, execution=execution, bar_seconds=bar_seconds, trend_demo=trend_demo, symbol=symbol)
-    assessment = evaluate(bars, float(tick.bid), float(tick.ask), now, bar_seconds=bar_seconds, trend_demo=trend_demo, symbol=symbol)
+    assessment = evaluate(bars, float(tick.bid), float(tick.ask), health["sampled_at"], bar_seconds=bar_seconds, trend_demo=trend_demo, symbol=symbol)
     if assessment["signal"] == "blocked":
         raise ValueError(assessment["reason"])
     account, terminal = mt5.account_info(), mt5.terminal_info()
@@ -570,7 +571,7 @@ def _final_entry_guard(mt5, login, request):
     return account.equity
 
 
-def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, before_submit=None, bar_seconds=900, trend_demo=False, retry_unavailable=False) -> dict:
+def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, before_submit=None, bar_seconds=900, trend_demo=False, retry_unavailable=False, entry_deadline=None) -> dict:
     """Advance one journal state; only a fresh arm may submit an entry."""
     symbol = db.execute("SELECT symbol FROM metadata").fetchone()[0]
     instrument(symbol)
@@ -586,7 +587,7 @@ def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, b
         login = db.execute("SELECT login FROM metadata").fetchone()[0]
         try:
             levels = json.loads(row["plan_json"]) if row["plan_json"] else None
-            request = build_entry_request(mt5, login, row["side"], now,
+            request = build_entry_request(mt5, login, row["side"], None,
                                           _server_offset(), execution=True, levels=levels, bar_seconds=bar_seconds, trend_demo=trend_demo, symbol=symbol)
             check = mt5.order_check(request)
             if check is None or getattr(check, "retcode", None) != 0:
@@ -600,6 +601,8 @@ def process_once(mt5, db: sqlite3.Connection, now: float, *, allow_entry=True, b
             if request["symbol"] != symbol:
                 raise ValueError("Entry symbol differs from journal")
             entry_equity = _final_entry_guard(mt5, login, request)
+            if entry_deadline is not None and time.time() > entry_deadline:
+                raise ValueError('Jev deadline passed before submission')
         except ValueError as exc:
             _update(db, state="disarmed", close_reason=str(exc))
             return _status(db, now)

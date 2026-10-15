@@ -1,7 +1,9 @@
+import { selectedInstrument } from '../../../scripts/trading-instruments.mjs';
 import type { APIRoute } from 'astro';
 export const prerender = false;
 const enabled = import.meta.env.DEV && import.meta.env.PUBLIC_TRADING_FIXTURE === '1';
-export const GET: APIRoute = () => enabled ? Response.json({
+export const GET: APIRoute = ({ url }) => enabled ? Response.json({
+  ...(selectedInstrument(url.search).symbol === 'BTCUSD' ? { symbol: 'BTCUSD' } : {}),
   status: 'ready', synthetic: true, generated_at: Math.floor(Date.now() / 1000),
   candidates: 12, pending: 1, no_state: 1, closed: 10, unresolved: 1, mode_counts: { shadow: 13 },
   receipts: { ok: 9, timeout: 1, unavailable: 0, budget_exhausted: 0, invalid: 0, missing: 1, late: 0 },

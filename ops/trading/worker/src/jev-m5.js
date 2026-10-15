@@ -28,12 +28,16 @@ export async function sha256Hex(text) {
   return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 }
 
+export const BTC_QUESTION = {...QUESTION, instructions: QUESTION.instructions.replace('Gold M5', 'BTC M5')};
 export const QUESTION_SHA256 = sha256Hex(canonical(QUESTION));
+export const BTC_QUESTION_SHA256 = sha256Hex(canonical(BTC_QUESTION));
+const validSymbol = symbol => ['XAUUSD-VIP', 'BTCUSD'].includes(symbol);
 
 const exactKeys = (value, keys) => value && typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join() === [...keys].sort().join();
 
-export async function m5Snapshot(feed, now = Date.now() / 1000) {
+export async function m5Snapshot(feed, now = Date.now() / 1000, symbol = 'XAUUSD-VIP') {
+  if (!validSymbol(symbol)) throw Error('Invalid M5 symbol');
   const finite = x => typeof x === 'number' && Number.isFinite(x);
   if (feed?.status !== 'ready' || feed.candidate !== true || !finite(feed.checked_at) ||
       now - feed.checked_at < -SKEW || now - feed.checked_at > 15 ||
@@ -43,7 +47,7 @@ export async function m5Snapshot(feed, now = Date.now() / 1000) {
   if (await sha256Hex(feed.state_json) !== feed.input_sha256) throw Error('Invalid M5 input hash');
   const s = JSON.parse(feed.state_json);
   if (!exactKeys(s, ['symbol','timeframe','bar_time','captured_at','features','bars']) ||
-      s.symbol !== 'XAUUSD-VIP' || s.timeframe !== 'M5' || !Array.isArray(s.bars) || s.bars.length !== 50) throw Error('Invalid M5 state');
+      s.symbol !== symbol || s.timeframe !== 'M5' || !Array.isArray(s.bars) || s.bars.length !== 50) throw Error('Invalid M5 state');
   s.bars.forEach((b, i) => {
     if (!exactKeys(b, ['time','open','high','low','close']) || !Number.isInteger(b.time) || b.time <= 0 || b.time % SECONDS ||
         (i && b.time <= s.bars[i-1].time) || !['open','high','low','close'].every(k => finite(b[k]) && b[k] > 0 && b[k] <= 1e6) ||
@@ -60,7 +64,8 @@ export async function m5Snapshot(feed, now = Date.now() / 1000) {
 }
 
 export function m5Request(snapshot) {
-  return { model: JEV_MODEL, state: snapshot.state, questions: { decision: QUESTION } };
+  if (!validSymbol(snapshot.state?.symbol)) throw Error('Invalid M5 symbol');
+  return { model: JEV_MODEL, state: snapshot.state, questions: { decision: snapshot.state.symbol === 'BTCUSD' ? BTC_QUESTION : QUESTION } };
 }
 
 export function parseM5(value) {
@@ -84,23 +89,25 @@ export const timing = { sleep: ms => new Promise(resolve => setTimeout(resolve, 
 const accessHeaders = env => ({ 'CF-Access-Client-ID': env.STATUS_ACCESS_CLIENT_ID,
   'CF-Access-Client-Secret': env.STATUS_ACCESS_CLIENT_SECRET });
 
-function origin(env, pathname) {
+function origin(env, pathname, symbol = 'XAUUSD-VIP') {
   const url = new URL(env.STATUS_ORIGIN_URL);
   if (url.protocol !== 'https:') throw Error('Invalid origin');
   url.pathname = pathname; url.search = '';
+  if (symbol === 'BTCUSD') url.searchParams.set('symbol', symbol);
   return url;
 }
 
 // error.retry marks a feed that may still catch up: origin failure or a feed behind the current candle.
-export async function readM5(env, now = Date.now() / 1000) {
+export async function readM5(env, now = Date.now() / 1000, symbol = 'XAUUSD-VIP') {
+  if (!validSymbol(symbol)) throw Error('Invalid M5 symbol');
   let response;
   try {
-    response = await fetch(origin(env, '/jev-m5'), { headers: accessHeaders(env), redirect: 'manual',
+    response = await fetch(origin(env, '/jev-m5', symbol), { headers: accessHeaders(env), redirect: 'manual',
       signal: AbortSignal.timeout(5000) });
   } catch { throw Object.assign(Error('M5 origin unreachable'), { retry: true }); }
   if (!response.ok) throw Object.assign(Error(`M5 origin HTTP ${response.status}`), { retry: true });
   const feed = await response.json();
-  try { return await m5Snapshot(feed, now); } catch (error) {
+  try { return await m5Snapshot(feed, now, symbol); } catch (error) {
     error.retry = !(Number.isInteger(feed?.bar_time) && feed.bar_time >= Math.floor(now / SECONDS) * SECONDS - SECONDS);
     throw error;
   }
@@ -109,7 +116,9 @@ export async function readM5(env, now = Date.now() / 1000) {
 // The runner fails closed without a receipt, so a lost forward only loses this candle.
 export async function forwardReceipt(env, receipt) {
   if (!env.TRADING_CONTROL_SECRET) { console.warn('Jev M5 receipt not forwarded: control secret missing.'); return false; }
-  const body = JSON.stringify(Object.fromEntries(RECEIPT_KEYS.map(k => [k, receipt[k]])));
+  if (receipt.symbol !== undefined && receipt.symbol !== 'BTCUSD') throw Error('Invalid M5 receipt symbol');
+  const keys = receipt.symbol === 'BTCUSD' ? [...RECEIPT_KEYS, 'symbol'] : RECEIPT_KEYS;
+  const body = JSON.stringify(Object.fromEntries(keys.map(k => [k, receipt[k]])));
   if (body.length > 1024) throw Error('Invalid M5 receipt size');
   for (let attempt = 0; attempt < 3; attempt++) {
     const response = await fetch(origin(env, '/control/jev-receipt'), { method: 'POST',
@@ -121,12 +130,12 @@ export async function forwardReceipt(env, receipt) {
   }
 }
 
-export async function runM5(env) {
+export async function runM5(env, symbol = 'XAUUSD-VIP') {
   try {
     let snapshot;
     // Poll once a second through the first 20 s of the candle while the feed is behind (hard cap 20 reads).
     for (let attempt = 0; attempt < 20; attempt++) {
-      try { snapshot = await readM5(env); break; } catch (error) {
+      try { snapshot = await readM5(env, Date.now() / 1000, symbol); break; } catch (error) {
         if (!error.retry || attempt === 19 || (Date.now() / 1000) % SECONDS >= 20) {
           console.info('Jev M5: no fresh candidate; nothing spent.', /^(Invalid|Stale|M5 origin)/.test(error.message) ? error.message : error.name);
           return;

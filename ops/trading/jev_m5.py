@@ -5,6 +5,7 @@ import json
 import math
 import sqlite3
 from contextlib import closing
+from instruments import GOLD, BTC, instrument
 
 MODEL = 'jev-1.13.0'
 SECONDS = 300
@@ -27,6 +28,8 @@ def digest(value):
 
 
 QUESTION_SHA256 = digest(QUESTION)
+BTC_QUESTION = {**QUESTION, 'instructions': QUESTION['instructions'].replace('Gold M5', 'BTC M5')}
+BTC_QUESTION_SHA256 = digest(BTC_QUESTION)
 
 
 def _bucket(value, low, high, names):
@@ -40,7 +43,8 @@ def _session(stamp):
     return 'london' if 7 <= hour < 12 else 'new_york' if 16 <= hour < 21 else 'asia'
 
 
-def state(bars, bid, ask, indicators, *, captured_at):
+def state(bars, bid, ask, indicators, *, captured_at, symbol=GOLD):
+    instrument(symbol)
     if len(bars) < 50 or any(type(b['time']) is not int or b['time'] % SECONDS for b in bars[-50:]):
         raise ValueError('Need 50 completed M5 bars')
     if not all(type(b[k]) in (int, float) and math.isfinite(b[k])
@@ -66,7 +70,7 @@ def state(bars, bid, ask, indicators, *, captured_at):
         session=_session(recent[-1]['time'] + SECONDS),
         gap_in_window=any(recent[i]['time'] - recent[i - 1]['time'] != SECONDS for i in range(1, len(recent))),
         last_5=['up' if b['close'] > b['open'] else 'down' if b['close'] < b['open'] else 'flat' for b in recent[-5:]])
-    return dict(symbol='XAUUSD-VIP', timeframe='M5', bar_time=recent[-1]['time'],
+    return dict(symbol=symbol, timeframe='M5', bar_time=recent[-1]['time'],
                 captured_at=captured_at, features=features, bars=recent)
 
 
@@ -74,14 +78,17 @@ def input_sha256(value):
     return digest(value)
 
 
-def validate_receipt(value):
+def validate_receipt(value, *, symbol=GOLD):
+    instrument(symbol)
     keys = {'bar_time', 'input_sha256', 'model', 'question_sha256', 'status', 'choice',
             'confidence', 'probabilities', 'completed_at'}
-    if not isinstance(value, dict) or set(value) != keys:
+    if symbol == BTC:
+        keys.add('symbol')
+    if not isinstance(value, dict) or set(value) != keys or (symbol == BTC and value.get('symbol') != BTC):
         raise ValueError('Invalid receipt fields')
     if (type(value['bar_time']) is not int or value['bar_time'] % SECONDS or not 0 < value['bar_time'] < 2**53
             or value['model'] != MODEL
-            or value['question_sha256'] != QUESTION_SHA256 or value['status'] not in STATUSES
+            or value['question_sha256'] != (BTC_QUESTION_SHA256 if symbol == BTC else QUESTION_SHA256) or value['status'] not in STATUSES
             or not isinstance(value['input_sha256'], str) or len(value['input_sha256']) != 64
             or not all(c in '0123456789abcdef' for c in value['input_sha256'])
             or type(value['completed_at']) not in (int, float) or not math.isfinite(value['completed_at'])
@@ -100,7 +107,7 @@ def validate_receipt(value):
     return value
 
 
-def allows(receipt, *, side, bar_time, input_sha256, now):
+def allows(receipt, *, side, bar_time, input_sha256, now, symbol=GOLD):
     """Veto rule: allow only an on-time, matching, confident, agreeing decision."""
     if type(now) not in (int, float) or not math.isfinite(now):
         return False, 'Invalid clock'
@@ -111,7 +118,7 @@ def allows(receipt, *, side, bar_time, input_sha256, now):
     if receipt is None:
         return False, 'No Jev receipt'
     try:
-        validate_receipt(receipt)
+        validate_receipt(receipt, symbol=symbol)
     except ValueError as error:
         return False, str(error)
     if receipt['bar_time'] != bar_time or receipt['input_sha256'] != input_sha256:
@@ -141,8 +148,8 @@ def _receipts(path):
     return db
 
 
-def store_receipt(path, value, *, received):
-    validate_receipt(value)
+def store_receipt(path, value, *, received, symbol=GOLD):
+    validate_receipt(value, symbol=symbol)
     if type(received) not in (int, float) or not math.isfinite(received):
         raise ValueError('Invalid receipt arrival time')
     with closing(_receipts(path)) as db, db:

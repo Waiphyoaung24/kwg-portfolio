@@ -499,6 +499,19 @@ class JevVetoTest(unittest.TestCase):
         self.mt5.order_send.assert_not_called()
         self.assertEqual(self.rows()[0][3:], (0, 'disarmed: Jev deadline passed before submission'))
 
+    def test_deadline_rechecked_after_final_broker_guard(self):
+        self.pending()
+        self.store()
+        original = pilot.execution._final_entry_guard
+        def slow(*args):
+            equity = original(*args)
+            self.clock = NOW + 691
+            return equity
+        with patch.object(pilot.execution, '_final_entry_guard', side_effect=slow):
+            self.tick(NOW + 630)
+        self.mt5.order_send.assert_not_called()
+        self.assertEqual(self.rows()[0][3:], (0, 'disarmed: Jev deadline passed before submission'))
+
     def test_corrupt_receipt_keeps_waiting(self):
         self.pending()
         with sqlite3.connect(self.receipts) as db:

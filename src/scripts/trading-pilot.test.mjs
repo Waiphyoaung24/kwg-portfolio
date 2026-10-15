@@ -88,3 +88,18 @@ test('expired or malformed pilot snapshots never enable control or show current 
     assert.equal(pilotFields({ ...fixture.pilot, status }, now).canPause, false);
   }
 });
+
+test('BTC M5 reports a separate bounded reporting window without changing run duration', () => {
+  const p = { ...fixture.pilot, strategy: 'btc-ema-v1-m5-trend-jev', jev_mode: 'veto', run_policy: 'continuous', ends_at: null,
+    reporting_start: now - 3660, reporting_end: now - 3660 + 172800 };
+  const clean = normalizePilot(p, now, 'BTCUSD');
+  assert.equal(clean.jev_mode, 'veto');
+  assert.equal(clean.reporting_start, p.reporting_start);
+  assert.equal(pilotFields(p, now, 'BTCUSD').remaining, 'Until you pause');
+  assert.match(pilotFields(p, now, 'BTCUSD').reporting, /1h 1m \/ 48h elapsed · Ends .* UTC/);
+  assert.match(statusFields({ ...fixture, symbol: 'BTCUSD', pilot: p }, now).strategy, /M5.*veto/);
+  assert.match(pilotFields({ ...p, updated_at: p.reporting_end + 60 }, p.reporting_end + 60, 'BTCUSD').reporting, /48h 0m \/ 48h elapsed/);
+  for (const bad of [{ reporting_end: undefined }, { reporting_start: null }, { reporting_end: p.reporting_end + 1 }, { reporting_start: now + 1 }]) {
+    assert.throws(() => normalizePilot({ ...p, ...bad }, now, 'BTCUSD'));
+  }
+});

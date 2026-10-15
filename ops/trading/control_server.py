@@ -40,7 +40,11 @@ def run_action(action, payload):
         except ImportError:
             return 503, {'error': 'Jev receipts are unavailable.'}
         try:
-            stored = jev_m5.store_receipt(RECEIPTS, payload, received=time.time())
+            symbol = payload.get('symbol', 'XAUUSD-VIP')
+            if symbol not in ('XAUUSD-VIP', 'BTCUSD'):
+                raise ValueError('Unsupported receipt symbol')
+            path = STATE.parent / 'btc-jev-m5-receipts.sqlite3' if symbol == 'BTCUSD' else RECEIPTS
+            stored = jev_m5.store_receipt(path, payload, received=time.time(), symbol=symbol)
         except (ValueError, TypeError, KeyError, OverflowError):
             return 400, {'error': 'Invalid Jev receipt.'}
         return (202, {'status': 'stored'}) if stored else (200, {'status': 'duplicate'})

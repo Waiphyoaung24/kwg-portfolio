@@ -31,6 +31,25 @@ class ControlTest(unittest.TestCase):
             self.assertEqual(control.run_action('jev-receipt', receipt), (200, {'status': 'duplicate'}))
             self.assertEqual(control.run_action('jev-receipt', {**receipt, 'model': 'x'})[0], 400)
 
+    def test_btc_receipts_are_isolated_and_invalid_symbols_cannot_write(self):
+        gold = dict(bar_time=600, input_sha256='a' * 64, model='jev-1.13.0',
+                    question_sha256=jev_m5.QUESTION_SHA256, status='timeout',
+                    choice=None, confidence=None, probabilities=None, completed_at=920)
+        btc = dict(gold, symbol='BTCUSD', question_sha256=jev_m5.BTC_QUESTION_SHA256)
+        gold_path, btc_path = self.folder / 'jev-m5-receipts.sqlite3', self.folder / 'btc-jev-m5-receipts.sqlite3'
+        with patch.dict(os.environ, {'MT5_RUN_MODE': 'pilot'}), patch.object(control, 'RECEIPTS', gold_path):
+            for bad in (dict(btc, symbol='ETHUSD'), dict(btc, question_sha256=gold['question_sha256']),
+                        dict(gold, symbol='BTCUSD'), {k: v for k, v in btc.items() if k != 'symbol'}):
+                self.assertEqual(control.run_action('jev-receipt', bad)[0], 400)
+            self.assertFalse(gold_path.exists())
+            self.assertFalse(btc_path.exists())
+            self.assertEqual(control.run_action('jev-receipt', btc), (202, {'status': 'stored'}))
+            self.assertTrue(btc_path.exists())
+            self.assertFalse(gold_path.exists())
+            self.assertEqual(control.run_action('jev-receipt', gold), (202, {'status': 'stored'}))
+            for receipt in (gold, btc):
+                self.assertEqual(control.run_action('jev-receipt', receipt), (200, {'status': 'duplicate'}))
+
     def test_pause_survives_missing_jev_module_and_receipt_is_unavailable(self):
         with patch.dict(os.environ, {'MT5_RUN_MODE': 'pilot'}), patch.dict(sys.modules, {'jev_m5': None}), \
                 patch.object(control, 'RECEIPTS', self.folder / 'jev-m5-receipts.sqlite3'):
