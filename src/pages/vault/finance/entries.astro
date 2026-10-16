@@ -5,6 +5,7 @@ import { db } from '../../../lib/finance/db.ts';
 import {
   ENTRY_KINDS,
   isBalanceAccount,
+  isClientKind,
   financeToday,
   parseEntry,
   type EntryForm,
@@ -75,7 +76,8 @@ if (Astro.request.method === 'POST') {
     const ok =
       /^\d{1,18}$/.test(id) && (await voidTransaction(sql, BigInt(id)));
     if (ok) return Astro.redirect(here({ voided: '1' }), 303);
-    notice = 'That entry was already voided or no longer exists.';
+    notice =
+      'That entry was already voided, no longer exists, or belongs to a client order (undo it from the order).';
     Astro.response.status = 409;
   } else {
     values = {
@@ -438,6 +440,10 @@ const filterable = live.filter((a) => a.type !== 'equity');
                     <td data-col="action">
                       {t.voidedAt ? (
                         <span class="micro">Voided</span>
+                      ) : isClientKind(t.kind) ? (
+                        <a class="micro" href="/vault/finance/clients">
+                          Undo from the order
+                        </a>
                       ) : (
                         <form method="post" action={here({})}>
                           <input type="hidden" name="_action" value="void" />

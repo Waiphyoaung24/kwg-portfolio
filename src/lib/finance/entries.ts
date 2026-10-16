@@ -9,7 +9,22 @@ export type AccountType =
   | 'expense'
   | 'equity';
 export type Scope = 'personal' | 'business';
-export type Kind = 'expense' | 'income' | 'transfer' | 'opening' | 'revalue';
+export type Kind =
+  | 'expense'
+  | 'income'
+  | 'transfer'
+  | 'opening'
+  | 'revalue'
+  | 'client_payment'
+  | 'client_purchase'
+  | 'client_delivery'
+  | 'client_refund';
+
+// Client order steps are voided only through their order, never from Entries,
+// so an order's state and its ledger entries cannot drift apart.
+export function isClientKind(kind: string): boolean {
+  return kind.startsWith('client_');
+}
 
 export interface Account {
   id: number;

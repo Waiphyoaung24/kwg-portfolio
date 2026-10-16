@@ -417,3 +417,288 @@ button.pill-btn {
     }
   }
 }
+
+// ── Client orders ───────────────────────────────────────────────
+.fin-sub {
+  display: block;
+  font-size: var(--fs-micro);
+  color: var(--c-body);
+}
+
+// Shop links are shown as text, never loaded or followed from the page.
+.fin-link {
+  font-family: var(--ff-mono);
+  word-break: break-all;
+}
+
+.fin-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    padding: var(--sp-xs) var(--sp-md);
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-pill);
+    font-family: var(--ff-mono);
+    font-size: var(--fs-micro);
+    letter-spacing: var(--ls-mono);
+    text-transform: uppercase;
+    color: var(--c-mute);
+  }
+
+  .is-done {
+    border-color: var(--c-hairline-bright);
+    color: var(--c-body);
+
+    &::before {
+      content: '✓ ';
+    }
+  }
+
+  .is-now {
+    border-color: var(--c-ink);
+    color: var(--c-ink);
+  }
+}
+
+// Cost and profit: owner-only, marked by a dashed hairline.
+.fin-private {
+  border-style: dashed;
+  border-color: var(--c-hairline-bright);
+}
+
+.fin-history {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr) auto;
+    gap: var(--sp-md);
+    align-items: center;
+    padding-block: var(--sp-sm);
+    border-top: 1px solid var(--c-hairline);
+    font-size: var(--fs-body-sm);
+  }
+
+  form {
+    margin: 0;
+  }
+}
+
+.fin-summary {
+  max-width: 32rem;
+}
+
+// <details> toggles styled as pills: the summary is the control.
+details > summary.pill-btn {
+  justify-self: start;
+  width: fit-content;
+  list-style: none;
+  cursor: pointer;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+details.fin-panel:not([open]) {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+// ── Invoice and statement paper ─────────────────────────────────
+// Owner-approved exception to the dark-only rule (see
+// docs/superpowers/specs/2026-10-16-vault-finance-clients-design.md):
+// client documents are white paper so they print and save as PDF cleanly.
+// The paper palette is local to this block on purpose; the site has no
+// light tokens and must not grow any.
+.fin-paper {
+  --paper: #ffffff;
+  --paper-ink: #111214;
+  --paper-body: #3b3e44;
+  --paper-rule: #d9dbe0;
+  --paper-band: #f2f3f5;
+
+  display: grid;
+  gap: var(--sp-xl);
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+  padding: clamp-fluid(20, 48);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  color: var(--paper-body);
+  font-size: var(--fs-body-sm);
+}
+
+.fin-paper__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-lg);
+
+  p {
+    margin: 0;
+    color: var(--paper-ink);
+  }
+}
+
+.fin-paper__to {
+  display: grid;
+  gap: var(--sp-xs);
+  text-align: right;
+}
+
+.fin-paper__label,
+.fin-paper__meta p.fin-paper__label {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--ls-mono);
+  text-transform: uppercase;
+  color: var(--paper-body);
+}
+
+.fin-paper__title {
+  margin: 0;
+  color: var(--paper-ink);
+  font-size: var(--fs-4);
+  font-weight: var(--fw-regular);
+  letter-spacing: var(--ls-4);
+}
+
+.fin-paper__warn {
+  margin: 0;
+  padding: var(--sp-md);
+  border: 1px solid var(--paper-ink);
+  border-radius: var(--r-sm);
+  color: var(--paper-ink);
+}
+
+.fin-paper__table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    padding: var(--sp-sm) var(--sp-md) var(--sp-sm) 0;
+    border-bottom: 1px solid var(--paper-ink);
+    font-family: var(--ff-mono);
+    font-size: var(--fs-micro);
+    font-weight: var(--fw-regular);
+    letter-spacing: var(--ls-mono);
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  td {
+    padding: var(--sp-sm) var(--sp-md) var(--sp-sm) 0;
+    border-top: 1px solid var(--paper-rule);
+    color: var(--paper-ink);
+    vertical-align: top;
+  }
+
+  .fin-r {
+    padding-right: 0;
+    text-align: right;
+  }
+}
+
+.fin-paper__sub {
+  display: block;
+  color: var(--paper-body);
+  font-size: var(--fs-micro);
+}
+
+.fin-paper__lines {
+  display: grid;
+  margin: 0;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-md);
+    padding-block: var(--sp-sm);
+    border-top: 1px solid var(--paper-rule);
+    color: var(--paper-ink);
+  }
+
+  dt,
+  dd {
+    margin: 0;
+  }
+}
+
+.fin-paper__total {
+  border-top: 2px solid var(--paper-ink) !important;
+  font-size: var(--fs-base);
+}
+
+.fin-paper__due {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  padding: var(--sp-lg);
+  border-radius: var(--r-sm);
+  background: var(--paper-band);
+  color: var(--paper-ink);
+  font-size: var(--fs-6);
+}
+
+.fin-paper__note {
+  margin: 0;
+  color: var(--paper-ink);
+}
+
+.fin-paper__foot {
+  display: grid;
+  gap: var(--sp-xs);
+  padding-top: var(--sp-lg);
+  border-top: 1px solid var(--paper-rule);
+
+  p {
+    margin: 0;
+  }
+}
+
+@media print {
+  .fin-body {
+    background: #ffffff;
+  }
+
+  .fin-head,
+  .fin-skip,
+  .fin-noprint {
+    display: none !important;
+  }
+
+  .fin-main {
+    padding: 0;
+  }
+
+  .fin-paper {
+    max-width: none;
+    padding: 0;
+  }
+}
+
+@media (max-width: 40rem) {
+  .fin-history li {
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    > .micro {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .fin-paper__to {
+    text-align: left;
+  }
+}

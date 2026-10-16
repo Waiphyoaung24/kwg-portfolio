@@ -7,7 +7,7 @@ import GlassFilter from '@components/GlassFilter.astro';
 
 interface Props {
   title: string;
-  current?: 'overview' | 'entries' | 'balance' | 'accounts';
+  current?: 'overview' | 'entries' | 'balance' | 'accounts' | 'clients';
   signedIn?: boolean;
 }
 const { title, current, signedIn = true } = Astro.props;
@@ -19,6 +19,7 @@ const links = [
     href: '/vault/finance/balance-sheet',
     label: 'Balance sheet',
   },
+  { key: 'clients', href: '/vault/finance/clients', label: 'Clients' },
   { key: 'accounts', href: '/vault/finance/accounts', label: 'Accounts' },
 ] as const;
 ---

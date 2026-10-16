@@ -1,0 +1,112 @@
+---
+export const prerender = false;
+// Client-facing statement: what was charged and paid, never costs or profit.
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import { getClient, statement } from '../../../../../lib/finance/clients.ts';
+import { db } from '../../../../../lib/finance/db.ts';
+import { financeToday, isIsoDate } from '../../../../../lib/finance/entries.ts';
+import { formatAmount } from '../../../../../lib/finance/money.ts';
+import { parseId } from '../../../../../lib/finance/request.ts';
+
+const id = parseId(Astro.params.id);
+const sql = await db();
+const client = id ? await getClient(sql, id) : null;
+if (!client) return new Response('Client not found', { status: 404 });
+
+const today = financeToday();
+const q = Astro.url.searchParams;
+const from = isIsoDate(q.get('from') ?? '')
+  ? q.get('from')!
+  : `${today.slice(0, 7)}-01`;
+const to = isIsoDate(q.get('to') ?? '') ? q.get('to')! : today;
+const { opening, rows, closing } = await statement(sql, client, from, to);
+
+const cur = client.currency;
+const fmt = (n: bigint) => formatAmount(n, cur);
+// Positive: the client owes you. Negative: you hold credit for them.
+const balanceText = (n: bigint) =>
+  n < 0n ? `${fmt(-n)} ${cur} credit` : `${fmt(n)} ${cur}`;
+const dateText = (d: string) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+// Ledger descriptions name the client; on their own statement that is noise.
+const label = (d: string) =>
+  d
+    .replace(` · payment from ${client.name}`, ' · payment received')
+    .replace(` · delivered to ${client.name}`, ' · delivered')
+    .replace(`Refund to ${client.name}`, 'Refund');
+---
+
+<FinanceShell title={`Statement · ${client.name}`} current="clients">
+  <div class="fin-bar fin-noprint">
+    <a class="pill-btn" href={`/vault/finance/clients/${client.id}`}
+      >Back to client</a
+    >
+    <form method="get" class="fin-actions">
+      <label class="micro" for="from">From</label>
+      <input class="fin-input" id="from" name="from" type="date" value={from} />
+      <label class="micro" for="to">To</label>
+      <input class="fin-input" id="to" name="to" type="date" value={to} />
+      <button class="pill-btn" type="submit">Show</button>
+    </form>
+  </div>
+
+  <article class="fin-paper" aria-label={`Statement for ${client.name}`}>
+    <header class="fin-paper__meta">
+      <div>
+        <p class="fin-paper__label">Statement</p>
+        <h1 class="fin-paper__title">{client.name}</h1>
+      </div>
+      <div class="fin-paper__to">
+        <p class="fin-paper__label">Period</p>
+        <p class="fin-num">{dateText(from)} – {dateText(to)}</p>
+      </div>
+    </header>
+
+    <table class="fin-paper__table">
+      <thead
+        ><tr
+          ><th>Date</th><th>Details</th><th class="fin-r">Amount ({cur})</th><th
+            class="fin-r">Balance</th
+          ></tr
+        ></thead
+      >
+      <tbody>
+        <tr
+          ><td class="fin-num">{dateText(from)}</td><td>Opening balance</td><td
+          ></td><td class="fin-r fin-num">{balanceText(opening)}</td></tr
+        >
+        {
+          rows.map((r) => (
+            <tr>
+              <td class="fin-num">{dateText(r.occurredOn)}</td>
+              <td>{label(r.description)}</td>
+              <td class="fin-r fin-num">
+                {r.change > 0n ? fmt(r.change) : `−${fmt(-r.change)}`}
+              </td>
+              <td class="fin-r fin-num">{balanceText(r.running)}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+
+    <div class="fin-paper__due">
+      <span
+        >{
+          closing < 0n
+            ? 'Credit held for you'
+            : closing === 0n
+              ? 'Nothing owed'
+              : 'Balance owed'
+        }</span
+      >
+      <span class="fin-num">{fmt(closing < 0n ? -closing : closing)} {cur}</span
+      >
+    </div>
+  </article>
+</FinanceShell>

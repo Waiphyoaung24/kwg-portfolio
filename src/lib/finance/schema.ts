@@ -87,4 +87,83 @@ export const MIGRATIONS: string[] = [
     ('Other','expense'),
     ('Salary','income'), ('Project fee','income'), ('Other income','income');
   `,
+  /* 2 — client orders (docs/superpowers/specs/2026-10-16-vault-finance-clients-design.md) */ `
+  alter table fin_transactions drop constraint fin_transactions_kind_check;
+  alter table fin_transactions add constraint fin_transactions_kind_check check (kind in (
+    'expense','income','transfer','opening','revalue',
+    'client_payment','client_purchase','client_delivery','client_refund'));
+
+  create table fin_settings (
+    key text primary key,
+    value text not null
+  );
+  insert into fin_settings (key, value) values
+    ('fee_bp', '500'), ('deposit_bp', '5000'), ('invoice_note', '');
+
+  create table fin_clients (
+    id serial primary key,
+    name text not null check (length(name) between 1 and 80),
+    contact text not null default '' check (length(contact) <= 200),
+    currency char(3) not null check (currency ~ '^[A-Z]{3}$'),
+    owes_account_id int not null references fin_accounts(id),
+    deposits_account_id int not null references fin_accounts(id),
+    created_at timestamptz not null default now()
+  );
+  create unique index fin_clients_name on fin_clients (lower(name));
+
+  create table fin_orders (
+    id serial primary key,
+    client_id int not null references fin_clients(id),
+    fee_bp int not null check (fee_bp between 0 and 10000),
+    note text not null default '' check (length(note) <= 500),
+    created_on date not null,
+    created_at timestamptz not null default now(),
+    cancelled_at timestamptz,
+    purchase_tx bigint references fin_transactions(id),
+    delivery_tx bigint references fin_transactions(id)
+  );
+  create index fin_orders_client on fin_orders (client_id);
+
+  create table fin_order_rates (
+    order_id int not null references fin_orders(id) on delete cascade,
+    currency char(3) not null check (currency ~ '^[A-Z]{3}$'),
+    charge_micro bigint not null check (charge_micro > 0),
+    cost_micro bigint not null check (cost_micro > 0),
+    primary key (order_id, currency)
+  );
+
+  create table fin_order_lines (
+    id serial primary key,
+    order_id int not null references fin_orders(id) on delete cascade,
+    description text not null check (length(description) between 1 and 200),
+    options text not null default '' check (length(options) <= 200),
+    link text not null default '' check (length(link) <= 500),
+    quantity int not null check (quantity between 1 and 10000),
+    unit_cost bigint not null check (unit_cost > 0),
+    currency char(3) not null check (currency ~ '^[A-Z]{3}$')
+  );
+  create index fin_order_lines_order on fin_order_lines (order_id);
+
+  -- Payments and refunds. order_id is null for client-level refunds.
+  create table fin_client_payments (
+    id serial primary key,
+    client_id int not null references fin_clients(id),
+    order_id int references fin_orders(id),
+    transaction_id bigint not null unique references fin_transactions(id),
+    kind text not null check (kind in ('payment','refund')),
+    after_delivery boolean not null default false,
+    amount bigint not null check (amount > 0)
+  );
+  create index fin_client_payments_order on fin_client_payments (order_id);
+
+  -- Owner account names stay unique; system accounts (one pair per client,
+  -- goods per currency) are keyed by system_key and may not clash with them.
+  drop index fin_accounts_name_live;
+  create unique index fin_accounts_name_live
+    on fin_accounts (type, lower(name)) where archived_at is null and system_key is null;
+
+  insert into fin_accounts (name, type, scope, system_key) values
+    ('Client sales', 'income', 'business', 'client_sales'),
+    ('Cost of client goods', 'expense', 'business', 'client_cost');
+  `,
 ];

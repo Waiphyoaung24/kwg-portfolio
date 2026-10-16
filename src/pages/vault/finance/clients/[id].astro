@@ -1,0 +1,249 @@
+---
+export const prerender = false;
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import {
+  OrderError,
+  clientBalance,
+  clientOrders,
+  createOrder,
+  freeCredit,
+  getClient,
+  loadSettings,
+  refundCredit,
+} from '../../../../lib/finance/clients.ts';
+import { db } from '../../../../lib/finance/db.ts';
+import {
+  financeToday,
+  isIsoDate,
+  type Errors,
+} from '../../../../lib/finance/entries.ts';
+import { loadAccounts } from '../../../../lib/finance/ledger.ts';
+import { formatAmount, parseAmount } from '../../../../lib/finance/money.ts';
+import { field, parseId } from '../../../../lib/finance/request.ts';
+
+const id = parseId(Astro.params.id);
+const sql = await db();
+const today = financeToday();
+const client = id ? await getClient(sql, id) : null;
+if (!client) return new Response('Client not found', { status: 404 });
+
+const errors: Errors = {};
+const typed: Record<string, string> = {};
+const done: Record<string, string> = {
+  client: 'Client added. Start their first order below.',
+  refund: 'Refund recorded.',
+};
+const notice = done[Astro.url.searchParams.get('done') ?? ''] ?? '';
+let failure = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  for (const [k, v] of form) if (typeof v === 'string') typed[k] = v;
+  const action = field(form, '_action');
+  if (action === 'new_order') {
+    const settings = await loadSettings(sql);
+    const orderId = await createOrder(sql, client.id, settings.feeBp, today);
+    return Astro.redirect(`/vault/finance/orders/${orderId}`, 303);
+  }
+  if (action === 'refund') {
+    const amount = parseAmount(field(form, 'amount'), client.currency);
+    const date = field(form, 'date');
+    if (amount === null)
+      errors.amount = `Enter the amount to refund in ${client.currency}.`;
+    if (!isIsoDate(date)) errors.date = 'Enter a date like 2026-10-16.';
+    if (!Object.keys(errors).length) {
+      try {
+        await refundCredit(sql, client.id, {
+          fromAccountId: parseId(field(form, 'account')),
+          amount: amount!,
+          occurredOn: date,
+        });
+        return Astro.redirect(
+          `/vault/finance/clients/${client.id}?done=refund`,
+          303,
+        );
+      } catch (e) {
+        if (!(e instanceof OrderError)) throw e;
+        failure = e.message;
+      }
+    }
+  }
+  Astro.response.status = failure ? 409 : 422;
+}
+
+const orders = await clientOrders(sql, client.id);
+const { owed, held } = await clientBalance(sql, client);
+const free = await freeCredit(sql, client);
+const cur = client.currency;
+const fmt = (n: bigint) => `${formatAmount(n, cur)} ${cur}`;
+const fromAccounts = [...(await loadAccounts(sql)).values()].filter(
+  (a) =>
+    !a.archived_at && !a.system_key && a.type === 'asset' && a.currency === cur,
+);
+const statusLabel = {
+  quote: 'Quote',
+  deposit: 'Deposit paid',
+  bought: 'Bought',
+  delivered: 'Delivered',
+  closed: 'Closed',
+  cancelled: 'Cancelled',
+} as const;
+---
+
+<FinanceShell title={client.name} current="clients">
+  <div class="fin-bar">
+    <div class="fin-section">
+      <p class="micro">
+        Client · bills in {cur}{client.contact && ` · ${client.contact}`}
+      </p>
+      <h1 class="fin-title">{client.name}</h1>
+    </div>
+    <div class="fin-actions">
+      <a class="pill-btn" href={`/vault/finance/clients/${client.id}/statement`}
+        >Statement</a
+      >
+      <form method="post">
+        <input type="hidden" name="_action" value="new_order" />
+        <button class="pill-btn pill-btn--filled" type="submit"
+          >New order</button
+        >
+      </form>
+    </div>
+  </div>
+  {
+    notice && (
+      <p class="fin-notice" role="status">
+        {notice}
+      </p>
+    )
+  }
+  {
+    failure && (
+      <p class="fin-notice" role="alert">
+        {failure}
+      </p>
+    )
+  }
+
+  <dl class="fin-lines fin-summary">
+    <div class="fin-total">
+      <dt>Owes you</dt><dd class="fin-num">{fmt(owed)}</dd>
+    </div>
+    <div>
+      <dt>Credit held (deposits not yet used)</dt><dd class="fin-num">
+        {fmt(held)}
+      </dd>
+    </div>
+    {
+      free !== held && (
+        <div>
+          <dt>Free to refund (not tied to an open order)</dt>
+          <dd class="fin-num">{fmt(free)}</dd>
+        </div>
+      )
+    }
+  </dl>
+
+  <section class="fin-section" aria-labelledby="orders-title">
+    <h2 class="fin-h2" id="orders-title">Orders</h2>
+    {
+      orders.length === 0 ? (
+        <p class="fin-empty">
+          No orders yet. Select New order to start a quote.
+        </p>
+      ) : (
+        <div class="fin-scroll">
+          <table class="fin-table">
+            <thead>
+              <tr>
+                <>
+                  <th>Order</th>
+                  <th>Status</th>
+                  <th>Items</th>
+                  <th class="fin-r">Total</th>
+                  <th class="fin-r">Balance due</th>
+                </>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((o) => (
+                <tr class={o.status === 'cancelled' ? 'fin-void' : undefined}>
+                  <td>
+                    <a href={`/vault/finance/orders/${o.id}`} class="fin-desc">
+                      {o.ref}
+                    </a>
+                    <span class="fin-sub">{o.createdOn}</span>
+                  </td>
+                  <td>{statusLabel[o.status]}</td>
+                  <td>{o.lines.length}</td>
+                  <td class="fin-r fin-num">{fmt(o.quote.total)}</td>
+                  <td class="fin-r fin-num">
+                    {o.status === 'cancelled'
+                      ? '—'
+                      : fmt(o.due > 0n ? o.due : 0n)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </section>
+
+  {
+    free > 0n && (
+      <details
+        class="fin-panel"
+        open={!!(failure || Object.keys(errors).length)}
+      >
+        <summary class="pill-btn">Refund credit</summary>
+        <form class="fin-form" method="post" novalidate>
+          <input type="hidden" name="_action" value="refund" />
+          <p class="fin-hint">
+            You can refund up to {fmt(free)} to {client.name}. A refund pays
+            some or all of it back.
+          </p>
+          <div class="fin-fields">
+            <div class="fin-field">
+              <label for="amount">Amount ({cur})</label>
+              <input
+                class="fin-input fin-num"
+                id="amount"
+                name="amount"
+                inputmode="decimal"
+                value={typed.amount ?? ''}
+                aria-invalid={errors.amount ? 'true' : undefined}
+              />
+              {errors.amount && <p class="fin-error">{errors.amount}</p>}
+            </div>
+            <div class="fin-field">
+              <label for="account">Paid from</label>
+              <select class="fin-input" id="account" name="account">
+                {fromAccounts.map((a) => (
+                  <option value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </div>
+            <div class="fin-field">
+              <label for="date">Date</label>
+              <input
+                class="fin-input"
+                id="date"
+                name="date"
+                type="date"
+                value={typed.date ?? today}
+              />
+              {errors.date && <p class="fin-error">{errors.date}</p>}
+            </div>
+          </div>
+          <div class="fin-actions">
+            <button class="pill-btn" type="submit">
+              Record refund
+            </button>
+          </div>
+        </form>
+      </details>
+    )
+  }
+</FinanceShell>

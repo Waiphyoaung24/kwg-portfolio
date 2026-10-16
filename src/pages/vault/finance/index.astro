@@ -18,6 +18,7 @@ const now = new Map(
 const live = [...accounts.values()].filter(
   (a) =>
     (a.type === 'asset' || a.type === 'liability') &&
+    !a.system_key &&
     (!a.archived_at || (now.get(a.id) ?? 0n) !== 0n),
 );
 const spending = await monthSpending(sql, month);

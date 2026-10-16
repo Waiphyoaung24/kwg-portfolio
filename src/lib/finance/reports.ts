@@ -159,7 +159,7 @@ export async function monthSpending(
     from fin_postings p
     join fin_transactions t on t.id = p.transaction_id
     join fin_accounts a on a.id = p.account_id
-    where a.type = 'expense' and t.voided_at is null
+    where a.type = 'expense' and a.system_key is null and t.voided_at is null
       and t.occurred_on >= ${from} and t.occurred_on < ${until}
     group by p.account_id, p.currency
     order by currency, total desc`;
@@ -200,9 +200,19 @@ export function describe(tx: Tx, accounts: Map<number, Account>): Described {
 }
 
 export interface SheetLine {
-  account: Account;
+  // `a<id>` for an account, `clients` for the grouped client accounts.
+  key: string;
+  label: string;
+  href: string;
   amount: bigint;
 }
+
+// Per-client accounts are summed into one line each way; the Clients page
+// has the breakdown.
+const CLIENT_GROUP = {
+  asset: 'Money clients owe you',
+  liability: 'Client deposits held',
+} as const;
 
 export interface SheetColumn {
   currency: string;
@@ -249,15 +259,36 @@ export function balanceSheet(
   }
 
   return [...currencies].sort().map((currency) => {
-    const lines = (type: 'asset' | 'liability') =>
-      [...accounts.values()]
-        .filter((a) => a.type === type && a.currency === currency && inScope(a))
-        .map((a) => ({
-          account: a,
-          amount: type === 'asset' ? get(a.id, currency) : -get(a.id, currency),
-        }))
+    const lines = (type: 'asset' | 'liability') => {
+      const out: SheetLine[] = [];
+      let group: bigint | null = null;
+      for (const a of accounts.values()) {
+        if (a.type !== type || a.currency !== currency || !inScope(a)) continue;
+        const amount =
+          type === 'asset' ? get(a.id, currency) : -get(a.id, currency);
+        if (a.system_key?.startsWith('client:')) {
+          group = (group ?? 0n) + amount;
+          continue;
+        }
         // Archived accounts drop out only once they are empty.
-        .filter((l) => !l.account.archived_at || l.amount !== 0n);
+        if (a.archived_at && amount === 0n) continue;
+        out.push({
+          key: `a${a.id}`,
+          label: a.name,
+          href: `/vault/finance/accounts/${a.id}`,
+          amount,
+        });
+      }
+      if (group !== null) {
+        out.push({
+          key: 'clients',
+          label: CLIENT_GROUP[type],
+          href: '/vault/finance/clients',
+          amount: group,
+        });
+      }
+      return out;
+    };
     const own = lines('asset');
     const owe = lines('liability');
     const ownTotal = own.reduce((s, l) => s + l.amount, 0n);

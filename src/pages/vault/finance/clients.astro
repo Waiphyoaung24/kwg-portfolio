@@ -1,0 +1,327 @@
+---
+export const prerender = false;
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import {
+  clientBalance,
+  clientOrders,
+  createClient,
+  getClient,
+  loadSettings,
+  monthReport,
+  saveSettings,
+  type Client,
+} from '../../../lib/finance/clients.ts';
+import { db } from '../../../lib/finance/db.ts';
+import { financeToday, type Errors } from '../../../lib/finance/entries.ts';
+import { formatAmount, isCurrency } from '../../../lib/finance/money.ts';
+import { formatPercent, parsePercent } from '../../../lib/finance/orders.ts';
+import { isMonth, shiftMonth } from '../../../lib/finance/reports.ts';
+import { field } from '../../../lib/finance/request.ts';
+
+const sql = await db();
+const today = financeToday();
+const monthParam = Astro.url.searchParams.get('month') ?? '';
+const month = isMonth(monthParam) ? monthParam : today.slice(0, 7);
+const errors: Errors = {};
+const typed: Record<string, string> = {};
+const done: Record<string, string> = {
+  client: 'Client added.',
+  settings: 'Settings saved.',
+};
+const notice = done[Astro.url.searchParams.get('done') ?? ''] ?? '';
+let settings = await loadSettings(sql);
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  for (const [k, v] of form) if (typeof v === 'string') typed[k] = v;
+  if (field(form, '_action') === 'add_client') {
+    const name = field(form, 'name').trim();
+    const contact = field(form, 'contact').trim();
+    const currency = field(form, 'currency').trim().toUpperCase();
+    if (!name || name.length > 60)
+      errors.name = 'Enter a name up to 60 characters.';
+    if (contact.length > 200)
+      errors.contact = 'Keep contact details under 200 characters.';
+    if (!isCurrency(currency))
+      errors.currency = 'Enter a 3-letter currency code, like MMK.';
+    if (!Object.keys(errors).length) {
+      try {
+        const id = await createClient(sql, { name, contact, currency });
+        return Astro.redirect(`/vault/finance/clients/${id}?done=client`, 303);
+      } catch (e) {
+        if ((e as { code?: string })?.code !== '23505') throw e;
+        errors.name = 'You already have a client with this name.';
+      }
+    }
+  } else if (field(form, '_action') === 'settings') {
+    const feeBp = parsePercent(field(form, 'fee'));
+    const depositBp = parsePercent(field(form, 'deposit'));
+    const invoiceNote = field(form, 'invoiceNote').trim();
+    if (feeBp === null) errors.fee = 'Enter a fee from 0 to 100.';
+    if (depositBp === null) errors.deposit = 'Enter a deposit from 0 to 100.';
+    if (invoiceNote.length > 500)
+      errors.invoiceNote = 'Keep the note under 500 characters.';
+    if (!Object.keys(errors).length) {
+      await saveSettings(sql, {
+        feeBp: feeBp!,
+        depositBp: depositBp!,
+        invoiceNote,
+      });
+      return Astro.redirect('/vault/finance/clients?done=settings', 303);
+    }
+  }
+  Astro.response.status = 422;
+  settings = await loadSettings(sql);
+}
+
+const ids = await sql<
+  { id: number }[]
+>`select id from fin_clients order by lower(name)`;
+const rows: {
+  client: Client;
+  owed: bigint;
+  held: bigint;
+  open: number;
+  total: number;
+}[] = [];
+for (const { id } of ids) {
+  const client = (await getClient(sql, id))!;
+  const orders = await clientOrders(sql, id);
+  const { owed, held } = await clientBalance(sql, client);
+  rows.push({
+    client,
+    owed,
+    held,
+    open: orders.filter(
+      (o) => o.status !== 'closed' && o.status !== 'cancelled',
+    ).length,
+    total: orders.length,
+  });
+}
+const report = await monthReport(sql, month);
+const monthName = new Date(`${month}-01T00:00:00Z`).toLocaleDateString(
+  'en-GB',
+  { month: 'long', year: 'numeric', timeZone: 'UTC' },
+);
+---
+
+<FinanceShell title="Clients" current="clients">
+  <h1 class="fin-title">Clients</h1>
+  {
+    notice && (
+      <p class="fin-notice" role="status">
+        {notice}
+      </p>
+    )
+  }
+
+  <section class="fin-section" aria-labelledby="list-title">
+    <h2 class="fin-h2" id="list-title">Your clients</h2>
+    {
+      rows.length === 0 ? (
+        <p class="fin-empty">
+          No clients yet. Add the first one below, then start an order from
+          their page.
+        </p>
+      ) : (
+        <div class="fin-scroll">
+          <table class="fin-table">
+            <thead>
+              <tr>
+                <>
+                  <th>Client</th>
+                  <th class="fin-r">Owes you</th>
+                  <th class="fin-r">Credit held</th>
+                  <th>Orders</th>
+                </>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr>
+                  <td>
+                    <a href={`/vault/finance/clients/${r.client.id}`}>
+                      {r.client.name}
+                    </a>
+                    {r.client.contact && (
+                      <span class="fin-sub">{r.client.contact}</span>
+                    )}
+                  </td>
+                  <td class="fin-r fin-num">
+                    {formatAmount(r.owed, r.client.currency)}{' '}
+                    {r.client.currency}
+                  </td>
+                  <td class="fin-r fin-num">
+                    {formatAmount(r.held, r.client.currency)}{' '}
+                    {r.client.currency}
+                  </td>
+                  <td class="fin-num">
+                    {r.open} open · {r.total} total
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </section>
+
+  <section class="fin-panel" aria-labelledby="new-title">
+    <h2 class="fin-h2" id="new-title">Add a client</h2>
+    <form class="fin-form" method="post" novalidate>
+      <input type="hidden" name="_action" value="add_client" />
+      <div class="fin-fields">
+        <div class="fin-field">
+          <label for="name">Name</label>
+          <input
+            class="fin-input"
+            id="name"
+            name="name"
+            maxlength="60"
+            value={typed.name ?? ''}
+            aria-invalid={errors.name ? 'true' : undefined}
+          />
+          {errors.name && <p class="fin-error">{errors.name}</p>}
+        </div>
+        <div class="fin-field">
+          <label for="contact">Contact (Viber, phone…)</label>
+          <input
+            class="fin-input"
+            id="contact"
+            name="contact"
+            maxlength="200"
+            value={typed.contact ?? ''}
+          />
+          {errors.contact && <p class="fin-error">{errors.contact}</p>}
+        </div>
+        <div class="fin-field">
+          <label for="currency">Bills in</label>
+          <input
+            class="fin-input fin-num"
+            id="currency"
+            name="currency"
+            maxlength="3"
+            autocapitalize="characters"
+            value={typed.currency ?? 'MMK'}
+            aria-invalid={errors.currency ? 'true' : undefined}
+          />
+          {errors.currency && <p class="fin-error">{errors.currency}</p>}
+        </div>
+      </div>
+      <div class="fin-actions">
+        <button class="pill-btn pill-btn--filled" type="submit"
+          >Add client</button
+        >
+      </div>
+    </form>
+  </section>
+
+  <section class="fin-section" aria-labelledby="report-title">
+    <div class="fin-bar">
+      <h2 class="fin-h2" id="report-title">Delivered in {monthName}</h2>
+      <div class="fin-pills">
+        <a
+          class="pill-btn"
+          href={`/vault/finance/clients?month=${shiftMonth(month, -1)}`}
+          aria-label="Previous month">←</a
+        >
+        <a
+          class="pill-btn"
+          href={`/vault/finance/clients?month=${shiftMonth(month, 1)}`}
+          aria-label="Next month">→</a
+        >
+      </div>
+    </div>
+    {
+      report.length === 0 ? (
+        <p class="fin-empty">No orders delivered in {monthName}.</p>
+      ) : (
+        <div class="fin-columns">
+          {report.map((r) => (
+            <section class="fin-panel" aria-label={`${r.currency} results`}>
+              <h3 class="fin-h2">{r.currency}</h3>
+              <dl class="fin-lines">
+                <div>
+                  <dt>Orders delivered</dt>
+                  <dd class="fin-num">{r.orders}</dd>
+                </div>
+                <div>
+                  <dt>Client sales</dt>
+                  <dd class="fin-num">{formatAmount(r.sales, r.currency)}</dd>
+                </div>
+                <div>
+                  <dt>Service fees</dt>
+                  <dd class="fin-num">{formatAmount(r.fees, r.currency)}</dd>
+                </div>
+                <div>
+                  <dt>Real cost at your rates</dt>
+                  <dd class="fin-num">{formatAmount(r.cost, r.currency)}</dd>
+                </div>
+                <div class="fin-total">
+                  <dt>Estimated profit</dt>
+                  <dd class="fin-num">{formatAmount(r.profit, r.currency)}</dd>
+                </div>
+              </dl>
+            </section>
+          ))}
+        </div>
+      )
+    }
+  </section>
+
+  <details
+    class="fin-panel"
+    open={!!(errors.fee || errors.deposit || errors.invoiceNote)}
+  >
+    <summary class="pill-btn">Settings</summary>
+    <form class="fin-form" method="post" novalidate>
+      <input type="hidden" name="_action" value="settings" />
+      <div class="fin-fields">
+        <div class="fin-field">
+          <label for="fee">Default service fee %</label>
+          <input
+            class="fin-input fin-num"
+            id="fee"
+            name="fee"
+            inputmode="decimal"
+            value={typed.fee ?? String(settings.feeBp / 100)}
+            aria-invalid={errors.fee ? 'true' : undefined}
+          />
+          {errors.fee && <p class="fin-error">{errors.fee}</p>}
+        </div>
+        <div class="fin-field">
+          <label for="deposit">Suggested deposit %</label>
+          <input
+            class="fin-input fin-num"
+            id="deposit"
+            name="deposit"
+            inputmode="decimal"
+            value={typed.deposit ?? String(settings.depositBp / 100)}
+            aria-invalid={errors.deposit ? 'true' : undefined}
+          />
+          {errors.deposit && <p class="fin-error">{errors.deposit}</p>}
+        </div>
+        <div class="fin-field">
+          <label for="invoiceNote">Invoice note (payment details)</label>
+          <input
+            class="fin-input"
+            id="invoiceNote"
+            name="invoiceNote"
+            maxlength="500"
+            value={typed.invoiceNote ?? settings.invoiceNote}
+            aria-invalid={errors.invoiceNote ? 'true' : undefined}
+          />
+          {errors.invoiceNote && <p class="fin-error">{errors.invoiceNote}</p>}
+        </div>
+      </div>
+      <p class="fin-hint">
+        New orders start at {formatPercent(settings.feeBp)}; you can change the
+        fee on each order while it is a quote.
+      </p>
+      <div class="fin-actions">
+        <button class="pill-btn" type="submit">Save settings</button>
+      </div>
+    </form>
+  </details>
+</FinanceShell>

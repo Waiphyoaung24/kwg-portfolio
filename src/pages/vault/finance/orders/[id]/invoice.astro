@@ -1,0 +1,164 @@
+---
+export const prerender = false;
+// Client-facing. Only client-safe fields are read here: no cost rates, shop
+// costs, account names or profit.
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import { loadOrder, loadSettings } from '../../../../../lib/finance/clients.ts';
+import { db } from '../../../../../lib/finance/db.ts';
+import { financeToday } from '../../../../../lib/finance/entries.ts';
+import { formatAmount } from '../../../../../lib/finance/money.ts';
+import { formatPercent } from '../../../../../lib/finance/orders.ts';
+import { parseId } from '../../../../../lib/finance/request.ts';
+
+const id = parseId(Astro.params.id);
+const sql = await db();
+const order = id ? await loadOrder(sql, id) : null;
+if (!order) return new Response('Order not found', { status: 404 });
+const settings = await loadSettings(sql);
+
+const cur = order.client.currency;
+const fmt = (n: bigint) => `${formatAmount(n, cur)} ${cur}`;
+const dateText = (d: string) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+const items = order.lines.map((l) => ({
+  description: l.description,
+  options: l.options,
+  quantity: l.quantity,
+  price: order.quote.prices.get(l.id) ?? null,
+}));
+const payments = order.steps
+  .filter((s) => s.kind === 'payment')
+  .map((s) => ({ on: s.occurredOn, amount: s.amount! }));
+const delivered = order.status === 'delivered' || order.status === 'closed';
+const credit = order.applied - order.paidBefore;
+const title = order.status === 'quote' ? 'Quote' : 'Invoice';
+const due = order.due > 0n ? order.due : 0n;
+const priced = order.quote.missingRates.length === 0;
+---
+
+<FinanceShell title={`${title} ${order.ref}`} current="clients">
+  <div class="fin-bar fin-noprint">
+    <a class="pill-btn" href={`/vault/finance/orders/${order.id}`}
+      >Back to order</a
+    >
+    <p class="fin-hint">
+      Screenshot this page or use your browser's Print → Save as PDF. It prints
+      on white.
+    </p>
+  </div>
+
+  <article class="fin-paper" aria-label={`${title} ${order.ref}`}>
+    <header class="fin-paper__meta">
+      <div>
+        <p class="fin-paper__label">{title}</p>
+        <h1 class="fin-paper__title">{order.ref}</h1>
+      </div>
+      <div class="fin-paper__to">
+        <p class="fin-paper__label">Billed to</p>
+        <p>{order.client.name}</p>
+        <p class="fin-num">Issued {dateText(financeToday())}</p>
+      </div>
+    </header>
+
+    {
+      !priced && (
+        <p class="fin-paper__warn">
+          Some prices are not set yet. Set the rates on the order before sending
+          this.
+        </p>
+      )
+    }
+
+    <table class="fin-paper__table">
+      <thead
+        ><tr><th>Item</th><th>Qty</th><th class="fin-r">Price ({cur})</th></tr
+        ></thead
+      >
+      <tbody>
+        {
+          items.map((l) => (
+            <tr>
+              <td>
+                {l.description}
+                {l.options && <span class="fin-paper__sub">{l.options}</span>}
+              </td>
+              <td class="fin-num">{l.quantity}</td>
+              <td class="fin-r fin-num">
+                {l.price === null ? '—' : formatAmount(l.price, cur)}
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+
+    <dl class="fin-paper__lines">
+      <div>
+        <dt>Items</dt><dd class="fin-num">{fmt(order.quote.itemTotal)}</dd>
+      </div>
+      <div>
+        <dt>Service fee ({formatPercent(order.feeBp)})</dt><dd class="fin-num">
+          {fmt(order.quote.fee)}
+        </dd>
+      </div>
+      <div class="fin-paper__total">
+        <dt>Total</dt><dd class="fin-num">{fmt(order.quote.total)}</dd>
+      </div>
+      {
+        payments.map((p) => (
+          <div>
+            <>
+              <dt>Received {dateText(p.on)}</dt>
+              <dd class="fin-num">−{fmt(p.amount)}</dd>
+            </>
+          </div>
+        ))
+      }
+      {
+        delivered && credit > 0n && (
+          <div>
+            <>
+              <dt>Credit applied</dt>
+              <dd class="fin-num">−{fmt(credit)}</dd>
+            </>
+          </div>
+        )
+      }
+    </dl>
+
+    <div class="fin-paper__due">
+      <span
+        >{
+          order.status === 'closed'
+            ? 'Paid in full'
+            : delivered
+              ? 'Balance due'
+              : 'Balance due on delivery'
+        }</span
+      >
+      <span class="fin-num">{fmt(due)}</span>
+    </div>
+    {
+      order.due < 0n && (
+        <p class="fin-paper__note">
+          You paid {fmt(-order.due)} more than this order. It is kept as credit
+          for your next order.
+        </p>
+      )
+    }
+
+    {
+      (order.note || settings.invoiceNote) && (
+        <footer class="fin-paper__foot">
+          {order.note && <p>{order.note}</p>}
+          {settings.invoiceNote && <p>{settings.invoiceNote}</p>}
+        </footer>
+      )
+    }
+  </article>
+</FinanceShell>

@@ -14,6 +14,7 @@ import {
   verifyPassword,
 } from './auth.ts';
 import { connect, migrate, type Sql } from './db.ts';
+import { MIGRATIONS } from './schema.ts';
 import { parseEntry, type EntryForm } from './entries.ts';
 import {
   LedgerError,
@@ -89,13 +90,16 @@ test(
         .filter((a) => a.system_key)
         .map((a) => a.system_key)
         .sort(),
-      ['fx', 'opening', 'revaluation'],
+      ['client_cost', 'client_sales', 'fx', 'opening', 'revaluation'],
     );
-    assert.equal(accounts.filter((a) => a.type === 'expense').length, 7);
+    assert.equal(
+      accounts.filter((a) => a.type === 'expense' && !a.system_key).length,
+      7,
+    );
     const [{ n }] = await sql<
       { n: bigint }[]
     >`select count(*) as n from fin_schema_migrations`;
-    assert.equal(n, 1n);
+    assert.equal(n, BigInt(MIGRATIONS.length));
   },
 );
 

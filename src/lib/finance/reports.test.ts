@@ -76,9 +76,7 @@ test('scoped views filter accounts and skip the equity breakdown', () => {
 test('archived accounts leave the sheet once empty', () => {
   const cols = balanceSheet(sample, sums, 'all');
   assert.ok(
-    !cols
-      .find((c) => c.currency === 'THB')!
-      .own.some((l) => l.account.id === 14),
+    !cols.find((c) => c.currency === 'THB')!.own.some((l) => l.key === 'a14'),
   );
   const withMoney = balanceSheet(
     sample,
@@ -88,7 +86,7 @@ test('archived accounts leave the sheet once empty', () => {
   assert.ok(
     withMoney
       .find((c) => c.currency === 'THB')!
-      .own.some((l) => l.account.id === 14),
+      .own.some((l) => l.key === 'a14'),
   );
 });
 

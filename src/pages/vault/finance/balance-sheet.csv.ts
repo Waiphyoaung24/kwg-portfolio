@@ -18,9 +18,9 @@ export const GET: APIRoute = async ({ url }) => {
     const amt = (v: bigint) => amountInputValue(v, c.currency);
     const add = (section: string, line: string, v: bigint) =>
       rows.push([asOf, scope, c.currency, section, text(line), amt(v)]);
-    for (const l of c.own) add('own', l.account.name, l.amount);
+    for (const l of c.own) add('own', l.label, l.amount);
     add('own', 'Total', c.ownTotal);
-    for (const l of c.owe) add('owe', l.account.name, l.amount);
+    for (const l of c.owe) add('owe', l.label, l.amount);
     add('owe', 'Total', c.oweTotal);
     add('net_worth', 'Net worth', c.net);
     if (c.equity) {

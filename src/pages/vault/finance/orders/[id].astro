@@ -1,0 +1,957 @@
+---
+export const prerender = false;
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import {
+  OrderError,
+  addLine,
+  cancelOrder,
+  deleteLine,
+  loadOrder,
+  loadSettings,
+  markBought,
+  markDelivered,
+  recordPayment,
+  saveNote,
+  saveTerms,
+  suggestedDeposit,
+  undoLatest,
+} from '../../../../lib/finance/clients.ts';
+import { db } from '../../../../lib/finance/db.ts';
+import {
+  financeToday,
+  isIsoDate,
+  type Errors,
+} from '../../../../lib/finance/entries.ts';
+import { LedgerError, loadAccounts } from '../../../../lib/finance/ledger.ts';
+import {
+  amountInputValue,
+  formatAmount,
+  isCurrency,
+  parseAmount,
+} from '../../../../lib/finance/money.ts';
+import {
+  STATUS_STEPS,
+  formatPercent,
+  formatRate,
+  isHttpLink,
+  parsePercent,
+  parseRate,
+  rateInputValue,
+  type Rate,
+} from '../../../../lib/finance/orders.ts';
+import { field, parseId } from '../../../../lib/finance/request.ts';
+
+const id = parseId(Astro.params.id);
+const sql = await db();
+const today = financeToday();
+const here = `/vault/finance/orders/${id}`;
+const errors: Errors = {};
+const typed: Record<string, string> = {};
+const done: Record<string, string> = {
+  line: 'Item added.',
+  removed: 'Item removed.',
+  terms: 'Rates and fee saved.',
+  note: 'Note saved.',
+  payment: 'Payment recorded.',
+  bought: 'Marked bought.',
+  delivered: 'Marked delivered.',
+  undo: 'Last step undone.',
+  cancelled: 'Order cancelled. Any deposit stays as credit for this client.',
+};
+let notice = done[Astro.url.searchParams.get('done') ?? ''] ?? '';
+let failure = '';
+
+let view = id ? await loadOrder(sql, id) : null;
+if (!view) return new Response('Order not found', { status: 404 });
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = field(form, '_action');
+  for (const [k, v] of form) if (typeof v === 'string') typed[k] = v;
+  const date = field(form, 'date');
+  const ok = (what: string) => Astro.redirect(`${here}?done=${what}`, 303);
+  try {
+    if (action === 'add_line') {
+      const currency = field(form, 'currency').trim().toUpperCase();
+      const description = field(form, 'description').trim();
+      const options = field(form, 'options').trim();
+      const link = field(form, 'link').trim();
+      const quantity = Number(field(form, 'quantity'));
+      if (!description || description.length > 200)
+        errors.description = 'Describe the item in up to 200 characters.';
+      if (options.length > 200)
+        errors.options = 'Keep options under 200 characters.';
+      if (link && (link.length > 500 || !isHttpLink(link)))
+        errors.link = 'Paste a full shop link starting with https://';
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000)
+        errors.quantity = 'Enter a whole quantity from 1.';
+      if (!isCurrency(currency))
+        errors.currency = 'Enter a 3-letter currency code, like THB or USD.';
+      const unitCost = isCurrency(currency)
+        ? parseAmount(field(form, 'unitCost'), currency)
+        : null;
+      if (isCurrency(currency) && unitCost === null)
+        errors.unitCost = 'Enter the shop price for one item.';
+      if (!Object.keys(errors).length) {
+        await addLine(sql, view.id, {
+          description,
+          options,
+          link,
+          quantity,
+          unitCost: unitCost!,
+          currency,
+        });
+        return ok('line');
+      }
+    } else if (action === 'delete_line') {
+      await deleteLine(sql, view.id, parseId(field(form, 'lineId')) ?? 0);
+      return ok('removed');
+    } else if (action === 'terms') {
+      const feeBp = parsePercent(field(form, 'fee'));
+      if (feeBp === null)
+        errors.fee = 'Enter a fee from 0 to 100, like 5 or 5.5.';
+      const rates: Rate[] = [];
+      for (const c of view.quote.lineCost.keys()) {
+        const charge = parseRate(field(form, `charge_${c}`));
+        const cost = parseRate(field(form, `cost_${c}`));
+        if (charge === null)
+          errors[`charge_${c}`] = `Enter what the client pays per 1 ${c}.`;
+        if (cost === null)
+          errors[`cost_${c}`] = `Enter what 1 ${c} really cost you.`;
+        if (charge !== null && cost !== null)
+          rates.push({ currency: c, charge, cost });
+      }
+      if (!Object.keys(errors).length) {
+        await saveTerms(sql, view.id, feeBp!, rates);
+        return ok('terms');
+      }
+    } else if (action === 'note') {
+      const note = field(form, 'note').trim();
+      if (note.length > 500)
+        errors.note = 'Keep the note under 500 characters.';
+      else {
+        await saveNote(sql, view.id, note);
+        return ok('note');
+      }
+    } else if (action === 'payment') {
+      const amount = parseAmount(field(form, 'amount'), view.client.currency);
+      if (amount === null)
+        errors.amount = `Enter the amount received in ${view.client.currency}.`;
+      if (!isIsoDate(date)) errors.payDate = 'Enter a date like 2026-10-16.';
+      if (!Object.keys(errors).length) {
+        await recordPayment(sql, view.id, {
+          intoAccountId: parseId(field(form, 'account')),
+          amount: amount!,
+          occurredOn: date,
+        });
+        return ok('payment');
+      }
+    } else if (action === 'bought') {
+      if (!isIsoDate(date)) errors.boughtDate = 'Enter a date like 2026-10-16.';
+      const parts = [...view.quote.lineCost.keys()].map((c) => {
+        const amount = parseAmount(field(form, `paid_${c}`), c);
+        if (amount === null)
+          errors[`paid_${c}`] = `Enter what you paid in ${c}.`;
+        return {
+          currency: c,
+          fromAccountId: parseId(field(form, `from_${c}`)),
+          amount: amount ?? 0n,
+        };
+      });
+      if (!Object.keys(errors).length) {
+        await markBought(sql, view.id, parts, date);
+        return ok('bought');
+      }
+    } else if (action === 'delivered') {
+      if (!isIsoDate(date))
+        errors.deliveredDate = 'Enter a date like 2026-10-16.';
+      else {
+        await markDelivered(sql, view.id, date);
+        return ok('delivered');
+      }
+    } else if (action === 'undo') {
+      await undoLatest(sql, view.id);
+      return ok('undo');
+    } else if (action === 'cancel') {
+      await cancelOrder(sql, view.id);
+      return ok('cancelled');
+    }
+  } catch (e) {
+    if (!(e instanceof OrderError || e instanceof LedgerError)) throw e;
+    failure = e.message;
+    notice = '';
+  }
+  Astro.response.status = failure ? 409 : 422;
+  view = (await loadOrder(sql, view.id))!;
+}
+
+const v = view;
+const cur = v.client.currency;
+const fmt = (n: bigint) => formatAmount(n, cur);
+const settings = await loadSettings(sql);
+const accounts = [...(await loadAccounts(sql)).values()].filter(
+  (a) => !a.archived_at && !a.system_key,
+);
+const intoAccounts = accounts.filter(
+  (a) => a.type === 'asset' && a.currency === cur,
+);
+const fromAccounts = (c: string) =>
+  accounts.filter(
+    (a) => (a.type === 'asset' || a.type === 'liability') && a.currency === c,
+  );
+const editable = v.status === 'quote';
+const delivered = v.status === 'delivered' || v.status === 'closed';
+const stepIndex =
+  v.status === 'cancelled' ? -1 : STATUS_STEPS.indexOf(v.status);
+const stepLabel = {
+  quote: 'Quote',
+  deposit: 'Deposit',
+  bought: 'Bought',
+  delivered: 'Delivered',
+  closed: 'Closed',
+} as const;
+// The one filled pill per view: the step that usually comes next.
+const primary =
+  v.status === 'deposit'
+    ? 'bought'
+    : v.status === 'bought'
+      ? 'delivered'
+      : v.status === 'delivered' || v.status === 'quote'
+        ? 'payment'
+        : null;
+const currencies = [...v.quote.lineCost.keys()];
+const rateFor = (c: string, k: 'charge' | 'cost') => {
+  const r = v.rates.get(c);
+  return typed[`${k}_${c}`] ?? (r ? rateInputValue(r[k]) : '');
+};
+const knownCurrencies = [
+  ...new Set([
+    'THB',
+    'USD',
+    ...accounts.map((a) => a.currency!),
+    ...currencies,
+  ]),
+].sort();
+const stepText = (s: (typeof v.steps)[number]) =>
+  s.kind === 'payment'
+    ? `${s.afterDelivery ? 'Payment' : 'Deposit'} ${fmt(s.amount!)} ${cur} into ${s.account}`
+    : s.kind === 'purchase'
+      ? `Bought · paid from ${s.account}`
+      : 'Delivered';
+const deposit = suggestedDeposit(v, settings.depositBp);
+---
+
+<FinanceShell title={v.ref} current="clients">
+  <div class="fin-bar">
+    <div class="fin-section">
+      <p class="micro">
+        <a href={`/vault/finance/clients/${v.client.id}`}>{v.client.name}</a> · bills
+        in {cur} · created {v.createdOn}
+      </p>
+      <h1 class="fin-title">{v.ref}</h1>
+    </div>
+    <div class="fin-actions">
+      <a class="pill-btn" href={`${here}/invoice`}>Invoice</a>
+    </div>
+  </div>
+
+  {
+    notice && (
+      <p class="fin-notice" role="status">
+        {notice}
+      </p>
+    )
+  }
+  {
+    failure && (
+      <p class="fin-notice" role="alert">
+        {failure}
+      </p>
+    )
+  }
+
+  {
+    v.status === 'cancelled' ? (
+      <p class="fin-notice">
+        This order is cancelled. Payments made for it stay as credit on the
+        client's account.
+      </p>
+    ) : (
+      <ol class="fin-steps" aria-label="Order status">
+        {STATUS_STEPS.map((s, i) => (
+          <li
+            class={
+              i < stepIndex ? 'is-done' : i === stepIndex ? 'is-now' : undefined
+            }
+            aria-current={i === stepIndex ? 'step' : undefined}
+          >
+            {stepLabel[s as keyof typeof stepLabel]}
+          </li>
+        ))}
+      </ol>
+    )
+  }
+
+  <section class="fin-section" aria-labelledby="items-title">
+    <h2 class="fin-h2" id="items-title">Items</h2>
+    {
+      v.lines.length === 0 ? (
+        <p class="fin-empty">
+          No items yet. Add what the client asked for below.
+        </p>
+      ) : (
+        <div class="fin-scroll">
+          <table class="fin-table fin-table--stack">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th class="fin-r">Unit cost</th>
+                <th class="fin-r">Price ({cur})</th>
+                {editable && (
+                  <th>
+                    <span class="visually-hidden">Actions</span>
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {v.lines.map((l) => {
+                const price = v.quote.prices.get(l.id);
+                return (
+                  <tr>
+                    <td data-col="desc">
+                      {l.description}
+                      {l.options && <span class="fin-sub">{l.options}</span>}
+                      {l.link && <span class="fin-sub fin-link">{l.link}</span>}
+                    </td>
+                    <td data-col="date" class="fin-num">
+                      × {l.quantity}
+                    </td>
+                    <td data-col="account" class="fin-r fin-num">
+                      {formatAmount(l.unitCost, l.currency)} {l.currency}
+                    </td>
+                    <td data-col="amount" class="fin-r fin-num">
+                      {price === null || price === undefined
+                        ? `Set ${l.currency} rate`
+                        : fmt(price)}
+                    </td>
+                    {editable && (
+                      <td data-col="action">
+                        <form method="post">
+                          <input
+                            type="hidden"
+                            name="_action"
+                            value="delete_line"
+                          />
+                          <input type="hidden" name="lineId" value={l.id} />
+                          <button
+                            class="pill-btn"
+                            type="submit"
+                            aria-label={`Remove ${l.description}`}
+                          >
+                            Remove
+                          </button>
+                        </form>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+    {
+      editable ? (
+        <details
+          class="fin-panel"
+          open={
+            v.lines.length === 0 ||
+            Object.keys(errors).some((k) =>
+              [
+                'description',
+                'options',
+                'link',
+                'quantity',
+                'currency',
+                'unitCost',
+              ].includes(k),
+            )
+          }
+        >
+          <summary class="pill-btn">Add an item</summary>
+          <form class="fin-form" method="post" novalidate>
+            <input type="hidden" name="_action" value="add_line" />
+            <div class="fin-fields">
+              <div class="fin-field">
+                <label for="description">Item</label>
+                <input
+                  class="fin-input"
+                  id="description"
+                  name="description"
+                  maxlength="200"
+                  value={typed.description ?? ''}
+                  aria-invalid={errors.description ? 'true' : undefined}
+                />
+                {errors.description && (
+                  <p class="fin-error">{errors.description}</p>
+                )}
+              </div>
+              <div class="fin-field">
+                <label for="options">Size, colour, notes</label>
+                <input
+                  class="fin-input"
+                  id="options"
+                  name="options"
+                  maxlength="200"
+                  value={typed.options ?? ''}
+                />
+                {errors.options && <p class="fin-error">{errors.options}</p>}
+              </div>
+              <div class="fin-field">
+                <label for="link">Shop link</label>
+                <input
+                  class="fin-input"
+                  id="link"
+                  name="link"
+                  type="url"
+                  inputmode="url"
+                  maxlength="500"
+                  value={typed.link ?? ''}
+                  aria-invalid={errors.link ? 'true' : undefined}
+                />
+                {errors.link && <p class="fin-error">{errors.link}</p>}
+              </div>
+              <div class="fin-field">
+                <label for="quantity">Quantity</label>
+                <input
+                  class="fin-input fin-num"
+                  id="quantity"
+                  name="quantity"
+                  inputmode="numeric"
+                  value={typed.quantity ?? '1'}
+                  aria-invalid={errors.quantity ? 'true' : undefined}
+                />
+                {errors.quantity && <p class="fin-error">{errors.quantity}</p>}
+              </div>
+              <div class="fin-field">
+                <label for="unitCost">Unit cost</label>
+                <input
+                  class="fin-input fin-num"
+                  id="unitCost"
+                  name="unitCost"
+                  inputmode="decimal"
+                  value={typed.unitCost ?? ''}
+                  aria-invalid={errors.unitCost ? 'true' : undefined}
+                />
+                {errors.unitCost && <p class="fin-error">{errors.unitCost}</p>}
+              </div>
+              <div class="fin-field">
+                <label for="currency">Paid in</label>
+                <input
+                  class="fin-input fin-num"
+                  id="currency"
+                  name="currency"
+                  list="currency-list"
+                  maxlength="3"
+                  autocapitalize="characters"
+                  value={typed.currency ?? currencies[0] ?? 'THB'}
+                  aria-invalid={errors.currency ? 'true' : undefined}
+                />
+                <datalist id="currency-list">
+                  {knownCurrencies.map((c) => (
+                    <option value={c} />
+                  ))}
+                </datalist>
+                {errors.currency && <p class="fin-error">{errors.currency}</p>}
+              </div>
+            </div>
+            <div class="fin-actions">
+              <button class="pill-btn" type="submit">
+                Add item
+              </button>
+            </div>
+          </form>
+        </details>
+      ) : (
+        v.status !== 'cancelled' && (
+          <p class="fin-hint">
+            Items, rates and fee are locked once the client has paid. To change
+            them, undo back to a quote.
+          </p>
+        )
+      )
+    }
+  </section>
+
+  <div class="fin-columns">
+    <section class="fin-panel" aria-labelledby="terms-title">
+      <h2 class="micro" id="terms-title">Rates and fee</h2>
+      {
+        editable && currencies.length > 0 ? (
+          <form class="fin-form" method="post" novalidate>
+            <input type="hidden" name="_action" value="terms" />
+            {currencies.map((c) => (
+              <div class="fin-fields">
+                <div class="fin-field">
+                  <label for={`charge_${c}`}>{c} charge rate</label>
+                  <input
+                    class="fin-input fin-num"
+                    id={`charge_${c}`}
+                    name={`charge_${c}`}
+                    inputmode="decimal"
+                    value={rateFor(c, 'charge')}
+                    aria-invalid={errors[`charge_${c}`] ? 'true' : undefined}
+                  />
+                  {errors[`charge_${c}`] && (
+                    <p class="fin-error">{errors[`charge_${c}`]}</p>
+                  )}
+                </div>
+                <div class="fin-field">
+                  <label for={`cost_${c}`}>{c} cost rate</label>
+                  <input
+                    class="fin-input fin-num"
+                    id={`cost_${c}`}
+                    name={`cost_${c}`}
+                    inputmode="decimal"
+                    value={rateFor(c, 'cost')}
+                    aria-invalid={errors[`cost_${c}`] ? 'true' : undefined}
+                  />
+                  {errors[`cost_${c}`] && (
+                    <p class="fin-error">{errors[`cost_${c}`]}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+            <div class="fin-field">
+              <label for="fee">Service fee %</label>
+              <input
+                class="fin-input fin-num"
+                id="fee"
+                name="fee"
+                inputmode="decimal"
+                value={typed.fee ?? String(v.feeBp / 100)}
+                aria-invalid={errors.fee ? 'true' : undefined}
+              />
+              {errors.fee && <p class="fin-error">{errors.fee}</p>}
+            </div>
+            <p class="fin-hint">
+              Rates are {cur} per 1 unit of the purchase currency. The charge
+              rate is what the client pays; the cost rate is what it really cost
+              you.
+            </p>
+            <div class="fin-actions">
+              <button class="pill-btn" type="submit">
+                Save rates and fee
+              </button>
+            </div>
+          </form>
+        ) : (
+          <dl class="fin-lines">
+            {currencies.map((c) => {
+              const r = v.rates.get(c);
+              return (
+                <>
+                  <div>
+                    <dt>{c} charge rate</dt>
+                    <dd class="fin-num">
+                      {r ? `${formatRate(r.charge)} ${cur}` : 'Not set'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{c} cost rate</dt>
+                    <dd class="fin-num">
+                      {r ? `${formatRate(r.cost)} ${cur}` : 'Not set'}
+                    </dd>
+                  </div>
+                </>
+              );
+            })}
+            <div>
+              <>
+                <dt>Service fee</dt>
+                <dd class="fin-num">{formatPercent(v.feeBp)}</dd>
+              </>
+            </div>
+          </dl>
+        )
+      }
+    </section>
+
+    <section class="fin-panel" aria-labelledby="totals-title">
+      <h2 class="micro" id="totals-title">Totals</h2>
+      <dl class="fin-lines">
+        <div>
+          <dt>Item total</dt><dd class="fin-num">
+            {fmt(v.quote.itemTotal)}
+            {cur}
+          </dd>
+        </div>
+        <div>
+          <dt>Service fee ({formatPercent(v.feeBp)})</dt><dd class="fin-num">
+            {fmt(v.quote.fee)}
+            {cur}
+          </dd>
+        </div>
+        <div class="fin-total">
+          <dt>Client total</dt><dd class="fin-num">
+            {fmt(v.quote.total)}
+            {cur}
+          </dd>
+        </div>
+        <div>
+          <dt>{delivered ? 'Paid' : 'Deposit paid'}</dt><dd class="fin-num">
+            {fmt(v.paid)}
+            {cur}
+          </dd>
+        </div>
+        <div class="fin-total">
+          <dt>{v.due < 0n ? 'Overpaid (held as credit)' : 'Balance due'}</dt><dd
+            class="fin-num"
+          >
+            {fmt(v.due < 0n ? -v.due : v.due)}
+            {cur}
+          </dd>
+        </div>
+        {
+          v.status === 'quote' && v.lines.length > 0 && (
+            <div>
+              <>
+                <dt>Suggested deposit</dt>
+                <dd class="fin-num">
+                  {fmt(deposit)} {cur}
+                </dd>
+              </>
+            </div>
+          )
+        }
+      </dl>
+      {
+        v.quote.missingRates.length > 0 && (
+          <p class="fin-hint">
+            Set the {v.quote.missingRates.join(' and ')} rates to price every
+            item.
+          </p>
+        )
+      }
+    </section>
+
+    <section class="fin-panel fin-private" aria-labelledby="profit-title">
+      <h2 class="micro" id="profit-title">Only you see this</h2>
+      <dl class="fin-lines">
+        <div>
+          <dt>{v.bought ? 'Paid out' : 'Shop cost'}</dt>
+          <dd class="fin-num">
+            {
+              [...(v.bought ?? v.quote.lineCost)]
+                .map(([c, a]) => `${formatAmount(a, c)} ${c}`)
+                .join(' · ') || '—'
+            }
+          </dd>
+        </div>
+        {
+          v.realCost !== null && (
+            <>
+              <div>
+                <>
+                  <dt>Real cost at your rates</dt>
+                  <dd class="fin-num">
+                    {fmt(v.realCost)} {cur}
+                  </dd>
+                </>
+              </div>
+              <div>
+                <>
+                  <dt>Rate margin</dt>
+                  <dd class="fin-num">
+                    {fmt(v.quote.itemTotal - v.realCost)} {cur}
+                  </dd>
+                </>
+              </div>
+              <div>
+                <>
+                  <dt>Service fee</dt>
+                  <dd class="fin-num">
+                    {fmt(v.quote.fee)} {cur}
+                  </dd>
+                </>
+              </div>
+              <div class="fin-total">
+                <>
+                  <dt>Estimated profit</dt>
+                  <dd class="fin-num">
+                    {fmt(v.quote.total - v.realCost)} {cur}
+                  </dd>
+                </>
+              </div>
+            </>
+          )
+        }
+      </dl>
+      <p class="fin-hint">
+        An estimate: it combines currencies using your cost rates. The balance
+        sheet keeps each currency separate.
+      </p>
+    </section>
+  </div>
+
+  {
+    v.status !== 'cancelled' && (
+      <section class="fin-panel" aria-labelledby="next-title">
+        <h2 class="fin-h2" id="next-title">
+          Next step
+        </h2>
+
+        {(v.status === 'quote' || v.status === 'deposit') &&
+          v.lines.length > 0 &&
+          v.quote.missingRates.length === 0 && (
+            <form class="fin-form" method="post" novalidate>
+              <input type="hidden" name="_action" value="bought" />
+              <p class="fin-hint">
+                Mark bought once you've paid the shops. Enter what you actually
+                paid; it can differ from the item prices.
+              </p>
+              <div class="fin-fields">
+                {currencies.map((c) => (
+                  <>
+                    <div class="fin-field">
+                      <label for={`from_${c}`}>Paid {c} from</label>
+                      <select
+                        class="fin-input"
+                        id={`from_${c}`}
+                        name={`from_${c}`}
+                      >
+                        {fromAccounts(c).map((a) => (
+                          <option
+                            value={a.id}
+                            selected={typed[`from_${c}`] === String(a.id)}
+                          >
+                            {a.name}
+                          </option>
+                        ))}
+                      </select>
+                      {fromAccounts(c).length === 0 && (
+                        <p class="fin-error">
+                          Add a {c} account on the Accounts page first.
+                        </p>
+                      )}
+                    </div>
+                    <div class="fin-field">
+                      <label for={`paid_${c}`}>Amount paid ({c})</label>
+                      <input
+                        class="fin-input fin-num"
+                        id={`paid_${c}`}
+                        name={`paid_${c}`}
+                        inputmode="decimal"
+                        value={
+                          typed[`paid_${c}`] ??
+                          amountInputValue(v.quote.lineCost.get(c)!, c)
+                        }
+                        aria-invalid={errors[`paid_${c}`] ? 'true' : undefined}
+                      />
+                      {errors[`paid_${c}`] && (
+                        <p class="fin-error">{errors[`paid_${c}`]}</p>
+                      )}
+                    </div>
+                  </>
+                ))}
+                <div class="fin-field">
+                  <label for="boughtDate">Date</label>
+                  <input
+                    class="fin-input"
+                    id="boughtDate"
+                    name="date"
+                    type="date"
+                    value={typed.date ?? today}
+                  />
+                  {errors.boughtDate && (
+                    <p class="fin-error">{errors.boughtDate}</p>
+                  )}
+                </div>
+              </div>
+              <div class="fin-actions">
+                <button
+                  class={`pill-btn${primary === 'bought' ? ' pill-btn--filled' : ''}`}
+                  type="submit"
+                >
+                  Mark bought
+                </button>
+              </div>
+            </form>
+          )}
+
+        {v.status === 'bought' && (
+          <form class="fin-form" method="post" novalidate>
+            <input type="hidden" name="_action" value="delivered" />
+            <p class="fin-hint">
+              Delivering records the sale of {fmt(v.quote.total)} {cur} and
+              applies the deposit you hold for {v.client.name}.
+            </p>
+            <div class="fin-fields">
+              <div class="fin-field">
+                <label for="deliveredDate">Date</label>
+                <input
+                  class="fin-input"
+                  id="deliveredDate"
+                  name="date"
+                  type="date"
+                  value={typed.date ?? today}
+                />
+                {errors.deliveredDate && (
+                  <p class="fin-error">{errors.deliveredDate}</p>
+                )}
+              </div>
+            </div>
+            <div class="fin-actions">
+              <button class="pill-btn pill-btn--filled" type="submit">
+                Mark delivered
+              </button>
+            </div>
+          </form>
+        )}
+
+        {v.status === 'closed' && (
+          <p class="fin-hint">Paid in full. Nothing else to do.</p>
+        )}
+
+        {v.status !== 'closed' && (
+          <form class="fin-form" method="post" novalidate>
+            <input type="hidden" name="_action" value="payment" />
+            <h3 class="micro">Record a payment from {v.client.name}</h3>
+            <div class="fin-fields">
+              <div class="fin-field">
+                <label for="payAmount">Amount ({cur})</label>
+                <input
+                  class="fin-input fin-input--amount"
+                  id="payAmount"
+                  name="amount"
+                  inputmode="decimal"
+                  value={
+                    typed.amount ??
+                    (v.status === 'quote' && v.lines.length
+                      ? amountInputValue(deposit, cur)
+                      : v.due > 0n
+                        ? amountInputValue(v.due, cur)
+                        : '')
+                  }
+                  aria-invalid={errors.amount ? 'true' : undefined}
+                />
+                {errors.amount && <p class="fin-error">{errors.amount}</p>}
+              </div>
+              <div class="fin-field">
+                <label for="payAccount">Received into</label>
+                <select class="fin-input" id="payAccount" name="account">
+                  {intoAccounts.map((a) => (
+                    <option
+                      value={a.id}
+                      selected={typed.account === String(a.id)}
+                    >
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+                {intoAccounts.length === 0 && (
+                  <p class="fin-error">
+                    Add a {cur} account on the Accounts page first.
+                  </p>
+                )}
+              </div>
+              <div class="fin-field">
+                <label for="payDate">Date</label>
+                <input
+                  class="fin-input"
+                  id="payDate"
+                  name="date"
+                  type="date"
+                  value={typed.date ?? today}
+                />
+                {errors.payDate && <p class="fin-error">{errors.payDate}</p>}
+              </div>
+            </div>
+            <div class="fin-actions">
+              <button
+                class={`pill-btn${primary === 'payment' ? ' pill-btn--filled' : ''}`}
+                type="submit"
+              >
+                Record payment
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
+    )
+  }
+
+  <section class="fin-panel" aria-labelledby="history-title">
+    <h2 class="micro" id="history-title">History</h2>
+    {
+      v.steps.length === 0 ? (
+        <p class="fin-hint">
+          Nothing recorded yet. Payments, purchase and delivery appear here.
+        </p>
+      ) : (
+        <ul class="fin-history">
+          {v.steps.map((s, i) => (
+            <li>
+              <span class="micro">{s.occurredOn}</span>
+              <span>{stepText(s)}</span>
+              {i === v.steps.length - 1 && v.status !== 'cancelled' ? (
+                <form method="post">
+                  <input type="hidden" name="_action" value="undo" />
+                  <button class="pill-btn" type="submit">
+                    Undo
+                  </button>
+                </form>
+              ) : (
+                <span />
+              )}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+
+  <section class="fin-section" aria-labelledby="note-title">
+    <form class="fin-form" method="post" novalidate>
+      <input type="hidden" name="_action" value="note" />
+      <div class="fin-field">
+        <label for="note" id="note-title">Note on the invoice</label>
+        <input
+          class="fin-input"
+          id="note"
+          name="note"
+          maxlength="500"
+          value={typed.note ?? v.note}
+          aria-invalid={errors.note ? 'true' : undefined}
+        />
+        {errors.note && <p class="fin-error">{errors.note}</p>}
+      </div>
+      <div class="fin-actions">
+        <button class="pill-btn" type="submit">Save note</button>
+      </div>
+    </form>
+  </section>
+
+  {
+    (v.status === 'quote' || v.status === 'deposit') && (
+      <details class="fin-section">
+        <summary class="pill-btn">Cancel order</summary>
+        <form class="fin-form" method="post">
+          <input type="hidden" name="_action" value="cancel" />
+          <p class="fin-hint">
+            A cancelled order can't be reopened. Any deposit stays as credit for{' '}
+            {v.client.name}, which you can refund from their page.
+          </p>
+          <div class="fin-actions">
+            <button class="pill-btn" type="submit">
+              Cancel {v.ref}
+            </button>
+          </div>
+        </form>
+      </details>
+    )
+  }
+</FinanceShell>

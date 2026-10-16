@@ -80,9 +80,13 @@ const link = (s: string) =>
                   <div>
                     <dt>
                       <a
-                        href={`/vault/finance/accounts/${l.account.id}?asOf=${asOf}`}
+                        href={
+                          l.key === 'clients'
+                            ? l.href
+                            : `${l.href}?asOf=${asOf}`
+                        }
                       >
-                        {l.account.name}
+                        {l.label}
                       </a>
                     </dt>
                     <dd class="fin-num">{f(l.amount)}</dd>
@@ -105,9 +109,13 @@ const link = (s: string) =>
                     <div>
                       <dt>
                         <a
-                          href={`/vault/finance/accounts/${l.account.id}?asOf=${asOf}`}
+                          href={
+                            l.key === 'clients'
+                              ? l.href
+                              : `${l.href}?asOf=${asOf}`
+                          }
                         >
-                          {l.account.name}
+                          {l.label}
                         </a>
                       </dt>
                       <dd class="fin-num">{f(l.amount)}</dd>
@@ -167,7 +175,7 @@ const link = (s: string) =>
   <p class="fin-hint">
     {
       scope === 'all'
-        ? 'Select an account to see its entries up to this date. Money clients owe you and client deposits appear here once client accounting is added.'
+        ? 'Select an account to see its entries up to this date. Client balances are grouped; the Clients page lists each client.'
         : 'Personal and Business show what each set of books owns and owes. Switch to All for the net worth breakdown and check.'
     }
   </p>

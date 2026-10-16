@@ -35,7 +35,7 @@ export function checkDraft(draft: Draft, accounts: Map<number, Account>): void {
   }
 }
 
-async function insertDraft(tx: Sql, draft: Draft): Promise<bigint> {
+export async function insertDraft(tx: Sql, draft: Draft): Promise<bigint> {
   const [t] = await tx<{ id: bigint }[]>`
     insert into fin_transactions (kind, occurred_on, description)
     values (${draft.kind}, ${draft.occurredOn}, ${draft.description})
@@ -56,11 +56,18 @@ export async function post(
   return sql.begin((tx) => insertDraft(tx as unknown as Sql, draft));
 }
 
-// Returns false when the transaction does not exist or is already voided.
-export async function voidTransaction(sql: Sql, id: bigint): Promise<boolean> {
+// Returns false when the transaction does not exist, is already voided, or is
+// a client order step (those are undone from their order).
+export async function voidTransaction(
+  sql: Sql,
+  id: bigint,
+  allowClientSteps = false,
+): Promise<boolean> {
   const rows = await sql`
     update fin_transactions set voided_at = now()
-    where id = ${id} and voided_at is null returning id`;
+    where id = ${id} and voided_at is null
+      and (${allowClientSteps} or left(kind, 7) <> 'client_')
+    returning id`;
   return rows.length === 1;
 }
 
@@ -119,7 +126,7 @@ export async function lastUsedAccount(
     join fin_transactions t on t.id = p.transaction_id
     join fin_accounts a on a.id = p.account_id
     where t.kind = ${kind} and t.voided_at is null and a.archived_at is null
-      and a.type in ('asset','liability')
+      and a.type in ('asset','liability') and a.system_key is null
       and (${kind} = 'income' or p.amount_minor < 0)
     order by t.created_at desc, p.id limit 1`;
   return row?.id ?? null;
