@@ -91,9 +91,9 @@ does not run a collaboration server. Upgrades are deliberate: change openGym's
 two image tags together; for FigCraft update the release URL, checksum, and
 extracted directory in `ops/figcraft/Dockerfile` together.
 
-## Desktop Vault apps (macOS)
+## Desktop Vault apps (macOS and Windows)
 
-The FigCraft and Sagar dock entries say **Open on Mac**. They open installed
+The FigCraft and Sagar dock entries say **Open app**. They open installed
 apps through `kwg-vault://figcraft` and `kwg-vault://sagar`, with the browser's
 normal external-app confirmation. Install both apps in `/Applications` first,
 then install the local Rust launcher:
@@ -108,6 +108,20 @@ paths. A tiny AppleScript adapter receives macOS URL events. There is no daemon,
 open port, document upload, or cross-device sync. A second Mac needs its own
 installation. To uninstall, move `KWG Vault Launcher.app` to Trash; this does
 not delete app documents. To update, move the old launcher aside and rerun.
+
+On Windows, only Sagar is supported. Install Sagar's official Windows release
+(`setup.exe` or `.msi`), then register the launcher for your Windows user:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ops\vault-launcher\windows\install.ps1
+```
+
+It copies `launcher.ps1` to `%LOCALAPPDATA%\KWG Vault Launcher` and registers
+`kwg-vault://` under `HKCU\Software\Classes`; no admin rights. The script
+accepts the same two exact links and starts `sagar.exe` from its fixed install
+path. FigCraft shows a Mac-only message. To uninstall, delete the
+`HKCU\Software\Classes\kwg-vault` key and that folder. Translations do not
+sync between computers; move work by EPUB export or library backup.
 
 FigCraft uses the official **0.5.1 universal macOS release**. The five upstream
 example files are downloaded locally under `downloads/figcraft-examples/` and
