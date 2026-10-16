@@ -19,6 +19,7 @@
     "test:services": "node src/data/services.test.mjs",
     "astro": "astro",
     "test:dashboard": "node --test dashboard/*.test.mjs",
+    "test:finance": "node --test src/lib/finance/*.test.ts",
     "test:e2e": "e2e run"
   },
   "devDependencies": {

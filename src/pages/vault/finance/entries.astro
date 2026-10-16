@@ -1,0 +1,482 @@
+---
+export const prerender = false;
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import { db } from '../../../lib/finance/db.ts';
+import {
+  ENTRY_KINDS,
+  isBalanceAccount,
+  financeToday,
+  parseEntry,
+  type EntryForm,
+  type EntryKind,
+  type Errors,
+} from '../../../lib/finance/entries.ts';
+import {
+  lastUsedAccount,
+  loadAccounts,
+  post,
+  voidTransaction,
+} from '../../../lib/finance/ledger.ts';
+import { formatAmount } from '../../../lib/finance/money.ts';
+import {
+  describe,
+  isMonth,
+  monthEntries,
+  monthSpending,
+  shiftMonth,
+} from '../../../lib/finance/reports.ts';
+import { field, parseId } from '../../../lib/finance/request.ts';
+
+const today = financeToday();
+const params = Astro.url.searchParams;
+const kind: EntryKind = (ENTRY_KINDS as readonly string[]).includes(
+  params.get('kind') ?? '',
+)
+  ? (params.get('kind') as EntryKind)
+  : 'expense';
+const month = isMonth(params.get('month') ?? '')
+  ? params.get('month')!
+  : today.slice(0, 7);
+const filterId = parseId(params.get('account'));
+
+const sql = await db();
+const accounts = await loadAccounts(sql);
+let errors: Errors = {};
+let values: EntryForm = {
+  kind,
+  amount: '',
+  account: '',
+  category: '',
+  to: '',
+  toAmount: '',
+  date: today,
+  note: '',
+};
+let notice = params.get('saved')
+  ? 'Saved.'
+  : params.get('voided')
+    ? 'Entry voided. It no longer counts in totals.'
+    : '';
+
+const here = (extra: Record<string, string>) => {
+  const q = new URLSearchParams({
+    kind,
+    month,
+    ...(filterId ? { account: String(filterId) } : {}),
+    ...extra,
+  });
+  return `/vault/finance/entries?${q}`;
+};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  if (field(form, '_action') === 'void') {
+    const id = field(form, 'id');
+    const ok =
+      /^\d{1,18}$/.test(id) && (await voidTransaction(sql, BigInt(id)));
+    if (ok) return Astro.redirect(here({ voided: '1' }), 303);
+    notice = 'That entry was already voided or no longer exists.';
+    Astro.response.status = 409;
+  } else {
+    values = {
+      kind: field(form, 'kind'),
+      amount: field(form, 'amount'),
+      account: field(form, 'account'),
+      category: field(form, 'category'),
+      to: field(form, 'to'),
+      toAmount: field(form, 'toAmount'),
+      date: field(form, 'date'),
+      note: field(form, 'note'),
+    };
+    const parsed = parseEntry(values, accounts);
+    if (parsed.ok) {
+      await post(sql, parsed.draft, accounts);
+      const q = new URLSearchParams({
+        kind: parsed.draft.kind,
+        month: parsed.draft.occurredOn.slice(0, 7),
+        saved: '1',
+      });
+      return Astro.redirect(`/vault/finance/entries?${q}`, 303);
+    }
+    errors = parsed.errors;
+    Astro.response.status = 422;
+  }
+}
+
+const formKind = (ENTRY_KINDS as readonly string[]).includes(values.kind)
+  ? (values.kind as EntryKind)
+  : kind;
+const live = [...accounts.values()].filter(
+  (a) => !a.archived_at && !a.system_key,
+);
+const payFrom = live.filter((a) =>
+  formKind === 'income' ? a.type === 'asset' : isBalanceAccount(a),
+);
+const transferTo = live.filter(isBalanceAccount);
+const categories = live.filter(
+  (a) => a.type === (formKind === 'income' ? 'income' : 'expense'),
+);
+if (!values.account) {
+  const last = await lastUsedAccount(sql, formKind);
+  values.account = String(
+    last && payFrom.some((a) => a.id === last) ? last : (payFrom[0]?.id ?? ''),
+  );
+}
+
+const entries = await monthEntries(sql, month, filterId);
+const spending = await monthSpending(sql, month);
+const spentByCurrency = new Map<string, bigint>();
+for (const s of spending)
+  spentByCurrency.set(
+    s.currency,
+    (spentByCurrency.get(s.currency) ?? 0n) + s.total,
+  );
+
+const label = (id: number) => {
+  const a = accounts.get(id)!;
+  return a.currency ? `${a.name} · ${a.currency}` : a.name;
+};
+const signed = (amount: bigint, currency: string) =>
+  `${amount > 0n ? '+' : ''}${formatAmount(amount, currency)} ${currency}`;
+const monthName = new Date(`${month}-01T00:00:00Z`).toLocaleDateString(
+  'en-GB',
+  {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  },
+);
+const shortDate = (d: string) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+const kindLabel = {
+  expense: 'Expense',
+  income: 'Income',
+  transfer: 'Transfer',
+} as const;
+const filterable = live.filter((a) => a.type !== 'equity');
+---
+
+<FinanceShell title="Entries" current="entries">
+  <h1 class="fin-title">Entries</h1>
+  {
+    notice && (
+      <p class="fin-notice" role="status">
+        {notice}
+      </p>
+    )
+  }
+
+  {
+    payFrom.length === 0 ? (
+      <p class="fin-empty">
+        Add a bank, cash, e-wallet or card account first, with its opening
+        balance.{' '}
+        <a class="pill-btn" href="/vault/finance/accounts">
+          Add an account
+        </a>
+      </p>
+    ) : (
+      <section class="fin-panel" aria-labelledby="add-title">
+        <div class="fin-bar">
+          <h2 class="fin-h2" id="add-title">
+            Add {kindLabel[formKind].toLowerCase()}
+          </h2>
+          <ul class="fin-pills" aria-label="Kind of entry">
+            {ENTRY_KINDS.map((k) => (
+              <li>
+                <a
+                  class="pill-btn"
+                  href={`/vault/finance/entries?kind=${k}&month=${month}`}
+                  aria-current={k === formKind ? 'true' : undefined}
+                >
+                  {kindLabel[k]}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <form class="fin-form" method="post" action={here({})} novalidate>
+          <input type="hidden" name="_action" value="add" />
+          <input type="hidden" name="kind" value={formKind} />
+          <div class="fin-fields">
+            <div class="fin-field">
+              <label for="amount">Amount</label>
+              <input
+                class="fin-input fin-input--amount"
+                id="amount"
+                name="amount"
+                inputmode="decimal"
+                autocomplete="off"
+                required
+                value={values.amount}
+                aria-invalid={errors.amount ? 'true' : undefined}
+                aria-describedby="amount-hint"
+              />
+              {errors.amount ? (
+                <p class="fin-error" id="amount-hint">
+                  {errors.amount}
+                </p>
+              ) : (
+                <p class="fin-hint" id="amount-hint">
+                  In the account’s currency.
+                </p>
+              )}
+            </div>
+            <div class="fin-field">
+              <label for="account">
+                {formKind === 'expense'
+                  ? 'Paid from'
+                  : formKind === 'income'
+                    ? 'Received into'
+                    : 'From'}
+              </label>
+              <select
+                class="fin-input"
+                id="account"
+                name="account"
+                aria-invalid={errors.account ? 'true' : undefined}
+              >
+                {payFrom.map((a) => (
+                  <option
+                    value={a.id}
+                    selected={String(a.id) === values.account}
+                  >
+                    {label(a.id)}
+                  </option>
+                ))}
+              </select>
+              {errors.account && <p class="fin-error">{errors.account}</p>}
+            </div>
+            {formKind === 'transfer' ? (
+              <>
+                <div class="fin-field">
+                  <label for="to">To</label>
+                  <select
+                    class="fin-input"
+                    id="to"
+                    name="to"
+                    aria-invalid={errors.to ? 'true' : undefined}
+                  >
+                    <option value="">Choose…</option>
+                    {transferTo.map((a) => (
+                      <option
+                        value={a.id}
+                        selected={String(a.id) === values.to}
+                      >
+                        {label(a.id)}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.to && <p class="fin-error">{errors.to}</p>}
+                </div>
+                <div class="fin-field">
+                  <label for="toAmount">Amount received</label>
+                  <input
+                    class="fin-input fin-num"
+                    id="toAmount"
+                    name="toAmount"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    value={values.toAmount}
+                    aria-invalid={errors.toAmount ? 'true' : undefined}
+                    aria-describedby="toAmount-hint"
+                  />
+                  {errors.toAmount ? (
+                    <p class="fin-error" id="toAmount-hint">
+                      {errors.toAmount}
+                    </p>
+                  ) : (
+                    <p class="fin-hint" id="toAmount-hint">
+                      Only when the two accounts use different currencies.
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div class="fin-field">
+                <label for="category">
+                  {formKind === 'expense' ? 'Category' : 'Source'}
+                </label>
+                <select
+                  class="fin-input"
+                  id="category"
+                  name="category"
+                  aria-invalid={errors.category ? 'true' : undefined}
+                >
+                  {categories.map((a) => (
+                    <option
+                      value={a.id}
+                      selected={String(a.id) === values.category}
+                    >
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.category && <p class="fin-error">{errors.category}</p>}
+              </div>
+            )}
+            <div class="fin-field">
+              <label for="date">Date</label>
+              <input
+                class="fin-input"
+                id="date"
+                name="date"
+                type="date"
+                required
+                value={values.date}
+                aria-invalid={errors.date ? 'true' : undefined}
+              />
+              {errors.date && <p class="fin-error">{errors.date}</p>}
+            </div>
+            <div class="fin-field">
+              <label for="note">Note</label>
+              <input
+                class="fin-input"
+                id="note"
+                name="note"
+                maxlength="200"
+                autocomplete="off"
+                value={values.note}
+                aria-invalid={errors.note ? 'true' : undefined}
+              />
+              {errors.note && <p class="fin-error">{errors.note}</p>}
+            </div>
+          </div>
+          <div class="fin-actions">
+            <button class="pill-btn pill-btn--filled" type="submit">
+              Save {kindLabel[formKind].toLowerCase()}
+            </button>
+          </div>
+        </form>
+      </section>
+    )
+  }
+
+  <section class="fin-section" aria-labelledby="month-title">
+    <div class="fin-bar">
+      <h2 class="fin-h2" id="month-title">{monthName}</h2>
+      <div class="fin-pills">
+        <a
+          class="pill-btn"
+          href={`/vault/finance/entries?kind=${kind}&month=${shiftMonth(month, -1)}${filterId ? `&account=${filterId}` : ''}`}
+          aria-label="Previous month">←</a
+        >
+        <a
+          class="pill-btn"
+          href={`/vault/finance/entries?kind=${kind}&month=${shiftMonth(month, 1)}${filterId ? `&account=${filterId}` : ''}`}
+          aria-label="Next month">→</a
+        >
+        <form method="get" class="fin-actions">
+          <input type="hidden" name="kind" value={kind} />
+          <input type="hidden" name="month" value={month} />
+          <label class="micro" for="filter">Show</label>
+          <select class="fin-input" id="filter" name="account">
+            <option value="">All accounts and categories</option>
+            {
+              filterable.map((a) => (
+                <option value={a.id} selected={a.id === filterId}>
+                  {label(a.id)}
+                </option>
+              ))
+            }
+          </select>
+          <button class="pill-btn" type="submit">Filter</button>
+        </form>
+      </div>
+    </div>
+
+    {
+      entries.length === 0 ? (
+        <p class="fin-empty">
+          No entries in {monthName}
+          {filterId ? ' for this filter' : ''}.
+        </p>
+      ) : (
+        <div class="fin-scroll">
+          <table class="fin-table fin-table--stack">
+            <thead>
+              <tr>
+                <>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Category</th>
+                  <th>Account</th>
+                  <th class="fin-r">Amount</th>
+                  <th>
+                    <span class="visually-hidden">Actions</span>
+                  </th>
+                </>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((t) => {
+                const d = describe(t, accounts);
+                return (
+                  <tr class={t.voidedAt ? 'fin-void' : undefined}>
+                    <td data-col="date" class="fin-num">
+                      {shortDate(t.occurredOn)}
+                    </td>
+                    <td data-col="desc" class="fin-desc">
+                      {t.description ||
+                        kindLabel[t.kind as EntryKind] ||
+                        'Opening balance'}
+                    </td>
+                    <td data-col="category">{d.category}</td>
+                    <td data-col="account">{d.account}</td>
+                    <td data-col="amount" class="fin-r fin-num">
+                      {d.amounts.map((a, i) => (
+                        <span class={a.amount > 0n ? 'fin-in' : undefined}>
+                          {i > 0 && <br />}
+                          {signed(a.amount, a.currency)}
+                        </span>
+                      ))}
+                    </td>
+                    <td data-col="action">
+                      {t.voidedAt ? (
+                        <span class="micro">Voided</span>
+                      ) : (
+                        <form method="post" action={here({})}>
+                          <input type="hidden" name="_action" value="void" />
+                          <input type="hidden" name="id" value={String(t.id)} />
+                          <button
+                            class="pill-btn"
+                            type="submit"
+                            aria-label={`Void ${t.description || 'entry'} on ${shortDate(t.occurredOn)}`}
+                          >
+                            Void
+                          </button>
+                        </form>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4">
+                  <span class="micro">Spent in {monthName}</span>
+                </td>
+                <td class="fin-r fin-num" colspan="2">
+                  {spentByCurrency.size === 0
+                    ? 'Nothing yet'
+                    : [...spentByCurrency]
+                        .map(([c, v]) => `${formatAmount(v, c)} ${c}`)
+                        .join(' · ')}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )
+    }
+    <p class="fin-hint">
+      A voided entry stays listed, struck through, and no longer counts in any
+      total. To correct a mistake, void it and enter it again.
+    </p>
+  </section>
+</FinanceShell>

@@ -1,0 +1,174 @@
+---
+export const prerender = false;
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import { formatAmount } from '../../../lib/finance/money.ts';
+import { SCOPES, loadSheet } from '../../../lib/finance/sheet.ts';
+
+const { asOf, scope, columns } = await loadSheet(Astro.url);
+const scopeLabel = {
+  personal: 'Personal',
+  business: 'Business',
+  all: 'All',
+} as const;
+const names = new Intl.DisplayNames(['en'], { type: 'currency' });
+const link = (s: string) =>
+  `/vault/finance/balance-sheet?asOf=${asOf}&scope=${s}`;
+---
+
+<FinanceShell title="Balance sheet" current="balance">
+  <div class="fin-bar">
+    <div class="fin-section">
+      <h1 class="fin-title">Balance sheet</h1>
+      <p class="micro">
+        As of {asOf} · {scopeLabel[scope]} · per currency, never converted
+      </p>
+    </div>
+    <form method="get" class="fin-actions">
+      <input type="hidden" name="scope" value={scope} />
+      <label class="micro" for="asOf">As of</label>
+      <input class="fin-input" id="asOf" name="asOf" type="date" value={asOf} />
+      <button class="pill-btn" type="submit">Show</button>
+    </form>
+  </div>
+
+  <div class="fin-bar">
+    <ul class="fin-pills" aria-label="Books">
+      {
+        SCOPES.map((s) => (
+          <li>
+            <a
+              class="pill-btn"
+              href={link(s)}
+              aria-current={s === scope ? 'true' : undefined}
+            >
+              {scopeLabel[s]}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <a
+      class="pill-btn"
+      href={`/vault/finance/balance-sheet.csv?asOf=${asOf}&scope=${scope}`}
+      >Download CSV</a
+    >
+  </div>
+
+  {
+    columns.length === 0 ? (
+      <p class="fin-empty">
+        Nothing to show yet.{' '}
+        <a class="pill-btn" href="/vault/finance/accounts">
+          Add an account
+        </a>
+      </p>
+    ) : (
+      <div class="fin-columns">
+        {columns.map((c) => {
+          const f = (v: bigint) => formatAmount(v, c.currency);
+          return (
+            <section
+              class="fin-panel"
+              aria-label={`${c.currency} balance sheet`}
+            >
+              <h2 class="fin-h2">
+                {c.currency} <span class="micro">{names.of(c.currency)}</span>
+              </h2>
+              <p class="micro fin-group">What you own</p>
+              <dl class="fin-lines">
+                {c.own.map((l) => (
+                  <div>
+                    <dt>
+                      <a
+                        href={`/vault/finance/accounts/${l.account.id}?asOf=${asOf}`}
+                      >
+                        {l.account.name}
+                      </a>
+                    </dt>
+                    <dd class="fin-num">{f(l.amount)}</dd>
+                  </div>
+                ))}
+                <div class="fin-total">
+                  <dt>Total you own</dt>
+                  <dd class="fin-num">{f(c.ownTotal)}</dd>
+                </div>
+              </dl>
+              <p class="micro fin-group">What you owe</p>
+              <dl class="fin-lines">
+                {c.owe.length === 0 ? (
+                  <div>
+                    <dt>Nothing owed</dt>
+                    <dd class="fin-num">{f(0n)}</dd>
+                  </div>
+                ) : (
+                  c.owe.map((l) => (
+                    <div>
+                      <dt>
+                        <a
+                          href={`/vault/finance/accounts/${l.account.id}?asOf=${asOf}`}
+                        >
+                          {l.account.name}
+                        </a>
+                      </dt>
+                      <dd class="fin-num">{f(l.amount)}</dd>
+                    </div>
+                  ))
+                )}
+                <div class="fin-total">
+                  <dt>Total you owe</dt>
+                  <dd class="fin-num">{f(c.oweTotal)}</dd>
+                </div>
+              </dl>
+              <dl class="fin-lines">
+                <div class="fin-net">
+                  <dt>Net worth</dt>
+                  <dd class="fin-num">{f(c.net)}</dd>
+                </div>
+                {c.equity && (
+                  <>
+                    <div>
+                      <dt>Opening balances</dt>
+                      <dd class="fin-num">{f(c.equity.opening)}</dd>
+                    </div>
+                    <div>
+                      <dt>Earnings to date</dt>
+                      <dd class="fin-num">{f(c.equity.earnings)}</dd>
+                    </div>
+                    {c.equity.fx !== 0n && (
+                      <div>
+                        <dt>Currency exchange</dt>
+                        <dd class="fin-num">{f(c.equity.fx)}</dd>
+                      </div>
+                    )}
+                    {c.equity.revaluation !== 0n && (
+                      <div>
+                        <dt>Revaluation</dt>
+                        <dd class="fin-num">{f(c.equity.revaluation)}</dd>
+                      </div>
+                    )}
+                  </>
+                )}
+              </dl>
+              {c.balanced === true && (
+                <p class="fin-check">✓ Own = owe + net worth</p>
+              )}
+              {c.balanced === false && (
+                <p class="fin-notice" role="alert">
+                  These {c.currency} figures do not add up. No entries were
+                  changed; please report this so the ledger can be checked.
+                </p>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    )
+  }
+  <p class="fin-hint">
+    {
+      scope === 'all'
+        ? 'Select an account to see its entries up to this date. Money clients owe you and client deposits appear here once client accounting is added.'
+        : 'Personal and Business show what each set of books owns and owes. Switch to All for the net worth breakdown and check.'
+    }
+  </p>
+</FinanceShell>

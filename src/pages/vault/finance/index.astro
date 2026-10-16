@@ -1,0 +1,141 @@
+---
+export const prerender = false;
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import { db } from '../../../lib/finance/db.ts';
+import { financeToday } from '../../../lib/finance/entries.ts';
+import { loadAccounts } from '../../../lib/finance/ledger.ts';
+import { formatAmount } from '../../../lib/finance/money.ts';
+import { balances, monthSpending } from '../../../lib/finance/reports.ts';
+
+const today = financeToday();
+const month = today.slice(0, 7);
+const sql = await db();
+const accounts = await loadAccounts(sql);
+const now = new Map(
+  (await balances(sql, today)).map((b) => [b.accountId, b.balance]),
+);
+// Archived accounts stay listed while they still hold money, as on the balance sheet.
+const live = [...accounts.values()].filter(
+  (a) =>
+    (a.type === 'asset' || a.type === 'liability') &&
+    (!a.archived_at || (now.get(a.id) ?? 0n) !== 0n),
+);
+const spending = await monthSpending(sql, month);
+const byCurrency = new Map<string, { name: string; total: bigint }[]>();
+for (const s of spending) {
+  const list = byCurrency.get(s.currency) ?? [];
+  list.push({ name: accounts.get(s.accountId)?.name ?? '', total: s.total });
+  byCurrency.set(s.currency, list);
+}
+const monthName = new Date(`${month}-01T00:00:00Z`).toLocaleDateString(
+  'en-GB',
+  { month: 'long', year: 'numeric', timeZone: 'UTC' },
+);
+---
+
+<FinanceShell title="Overview" current="overview">
+  <div class="fin-bar">
+    <div class="fin-section">
+      <p class="micro">Today · {today}</p>
+      <h1 class="fin-title">Finance</h1>
+    </div>
+    <a class="pill-btn pill-btn--filled" href="/vault/finance/entries"
+      >Add an entry</a
+    >
+  </div>
+
+  {
+    live.length === 0 ? (
+      <section class="fin-panel">
+        <h2 class="fin-h2">Start with your accounts</h2>
+        <p class="fin-lead">
+          Add each bank, cash, e-wallet and card account with what it holds
+          today. Then log expenses, income and transfers, and the balance sheet
+          adds itself up.
+        </p>
+        <p>
+          <a class="pill-btn" href="/vault/finance/accounts">
+            Add accounts
+          </a>
+        </p>
+      </section>
+    ) : (
+      <section class="fin-section" aria-labelledby="bal-title">
+        <h2 class="fin-h2" id="bal-title">
+          Balances today
+        </h2>
+        <div class="fin-scroll">
+          <table class="fin-table">
+            <thead>
+              <tr>
+                <>
+                  <th>Account</th>
+                  <th>Books</th>
+                  <th class="fin-r">Balance</th>
+                </>
+              </tr>
+            </thead>
+            <tbody>
+              {live.map((a) => {
+                const raw = now.get(a.id) ?? 0n;
+                return (
+                  <tr>
+                    <td>
+                      <a href={`/vault/finance/accounts/${a.id}`}>{a.name}</a>
+                      {a.type === 'liability' && (
+                        <span class="micro"> · owed</span>
+                      )}
+                      {a.archived_at && <span class="micro"> · archived</span>}
+                    </td>
+                    <td>{a.scope === 'personal' ? 'Personal' : 'Business'}</td>
+                    <td class="fin-r fin-num">
+                      {formatAmount(
+                        a.type === 'liability' ? -raw : raw,
+                        a.currency!,
+                      )}{' '}
+                      {a.currency}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )
+  }
+
+  <section class="fin-section" aria-labelledby="spend-title">
+    <h2 class="fin-h2" id="spend-title">Spending in {monthName}</h2>
+    {
+      byCurrency.size === 0 ? (
+        <p class="fin-empty">No spending logged this month.</p>
+      ) : (
+        <div class="fin-columns">
+          {[...byCurrency].map(([currency, list]) => (
+            <section class="fin-panel" aria-label={`${currency} spending`}>
+              <h3 class="fin-h2">{currency}</h3>
+              <dl class="fin-lines">
+                {list.map((s) => (
+                  <div>
+                    <dt>{s.name}</dt>
+                    <dd class="fin-num">{formatAmount(s.total, currency)}</dd>
+                  </div>
+                ))}
+                <div class="fin-total">
+                  <dt>Total</dt>
+                  <dd class="fin-num">
+                    {formatAmount(
+                      list.reduce((t, s) => t + s.total, 0n),
+                      currency,
+                    )}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          ))}
+        </div>
+      )
+    }
+  </section>
+</FinanceShell>

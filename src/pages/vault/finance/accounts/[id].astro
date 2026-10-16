@@ -1,0 +1,94 @@
+---
+export const prerender = false;
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import { db } from '../../../../lib/finance/db.ts';
+import { financeToday, isIsoDate } from '../../../../lib/finance/entries.ts';
+import { loadAccounts } from '../../../../lib/finance/ledger.ts';
+import { formatAmount } from '../../../../lib/finance/money.ts';
+import { accountHistory } from '../../../../lib/finance/reports.ts';
+import { parseId } from '../../../../lib/finance/request.ts';
+
+const today = financeToday();
+const asOf = isIsoDate(Astro.url.searchParams.get('asOf') ?? '')
+  ? Astro.url.searchParams.get('asOf')!
+  : today;
+const id = parseId(Astro.params.id);
+const sql = await db();
+const accounts = await loadAccounts(sql);
+const account = id ? accounts.get(id) : undefined;
+if (!account || !account.currency)
+  return new Response('Account not found', { status: 404 });
+
+const lines = (await accountHistory(sql, account.id, asOf)).reverse();
+// Owed amounts read as positive, matching the balance sheet.
+const sign = account.type === 'liability' ? -1n : 1n;
+const fmt = (v: bigint) => formatAmount(v * sign, account.currency!);
+const kindLabel: Record<string, string> = {
+  expense: 'Expense',
+  income: 'Income',
+  transfer: 'Transfer',
+  opening: 'Opening balance',
+  revalue: 'Revalued',
+};
+---
+
+<FinanceShell title={account.name} current="accounts">
+  <div class="fin-bar">
+    <div class="fin-section">
+      <p class="micro">
+        {account.type === 'asset' ? 'You own' : 'You owe'} · {account.scope} · {
+          account.currency
+        }
+      </p>
+      <h1 class="fin-title">{account.name}</h1>
+    </div>
+    <form method="get" class="fin-actions">
+      <label class="micro" for="asOf">As of</label>
+      <input class="fin-input" id="asOf" name="asOf" type="date" value={asOf} />
+      <button class="pill-btn" type="submit">Show</button>
+    </form>
+  </div>
+  <p class="fin-lead">
+    Balance on {asOf}: <span class="fin-num fin-in"
+      >{fmt(lines[0]?.running ?? 0n)} {account.currency}</span
+    >
+  </p>
+  {
+    lines.length === 0 ? (
+      <p class="fin-empty">No entries on or before {asOf}.</p>
+    ) : (
+      <div class="fin-scroll">
+        <table class="fin-table">
+          <thead>
+            <tr>
+              <>
+                <th>Date</th>
+                <th>Description</th>
+                <th class="fin-r">Change</th>
+                <th class="fin-r">Balance</th>
+              </>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((l) => (
+              <tr>
+                <td class="fin-num">{l.occurredOn}</td>
+                <td>{l.description || kindLabel[l.kind]}</td>
+                <td class="fin-r fin-num">
+                  {l.amount * sign > 0n ? '+' : ''}
+                  {fmt(l.amount)}
+                </td>
+                <td class="fin-r fin-num">{fmt(l.running)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+  <p>
+    <a class="pill-btn" href={`/vault/finance/balance-sheet?asOf=${asOf}`}
+      >Back to balance sheet</a
+    >
+  </p>
+</FinanceShell>

@@ -1,0 +1,129 @@
+---
+export const prerender = false;
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import {
+  COOKIE,
+  COOKIE_PATH,
+  AuthConfigError,
+  LOCKOUT_MINUTES,
+  SESSION_DAYS,
+  beginAttempt,
+  createSession,
+  finishAttempt,
+  safeNext,
+  sessionValid,
+  verifyPassword,
+} from '../../../lib/finance/auth.ts';
+import { db } from '../../../lib/finance/db.ts';
+import { clientKey, field } from '../../../lib/finance/request.ts';
+
+const next = safeNext(Astro.url.searchParams.get('next'));
+const hash = process.env.FINANCE_PASSWORD_HASH?.trim();
+let error = '';
+
+if (!hash) {
+  error =
+    'Finance sign-in is not set up yet. Set FINANCE_PASSWORD_HASH on the server (see scripts/finance-password-hash.mjs).';
+  Astro.response.status = 503;
+} else {
+  const sql = await db();
+  if (
+    Astro.request.method === 'GET' &&
+    (await sessionValid(sql, Astro.cookies.get(COOKIE)?.value))
+  ) {
+    return Astro.redirect(next, 303);
+  }
+  if (Astro.request.method === 'POST') {
+    const password = field(await Astro.request.formData(), 'password');
+    const attempt = await beginAttempt(
+      sql,
+      clientKey(Astro.request, () => Astro.clientAddress),
+    );
+    if (attempt === null) {
+      error = `Too many wrong passwords. Wait ${LOCKOUT_MINUTES} minutes, then try again.`;
+      Astro.response.status = 429;
+    } else {
+      let ok: boolean | null = false;
+      try {
+        ok =
+          password.length > 0 &&
+          password.length <= 1024 &&
+          (await verifyPassword(password, hash));
+      } catch (e) {
+        if (!(e instanceof AuthConfigError)) throw e;
+        ok = null;
+      }
+      await finishAttempt(sql, attempt, ok);
+      if (ok) {
+        Astro.cookies.set(COOKIE, await createSession(sql), {
+          path: COOKIE_PATH,
+          httpOnly: true,
+          secure: true,
+          // Lax, not Strict: opening a finance link from another site (Notes,
+          // mail) keeps the session. Cross-site posts still carry no cookie,
+          // and checkOrigin plus the middleware refuse them anyway.
+          sameSite: 'lax',
+          maxAge: SESSION_DAYS * 24 * 60 * 60,
+        });
+        return Astro.redirect(next, 303);
+      }
+      if (ok === null) {
+        error =
+          'Finance sign-in is misconfigured: FINANCE_PASSWORD_HASH is not a valid hash. Generate a new one with scripts/finance-password-hash.mjs.';
+        Astro.response.status = 503;
+      } else {
+        error = 'That password didn’t match. Check it and try again.';
+        Astro.response.status = 401;
+      }
+    }
+  }
+}
+---
+
+<FinanceShell title="Sign in" signedIn={false}>
+  <section class="fin-panel fin-login" aria-labelledby="login-title">
+    <p class="micro">KWG Vault · Finance</p>
+    <h1 class="fin-title" id="login-title">Sign in</h1>
+    <form class="fin-form" method="post">
+      <div class="fin-field">
+        <label for="password">Password</label>
+        <input
+          class="fin-input"
+          id="password"
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          autocapitalize="off"
+          spellcheck="false"
+          required
+          autofocus
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? 'login-error' : undefined}
+          disabled={!hash}
+        />
+        {
+          error && (
+            <p class="fin-error" id="login-error" role="alert">
+              {error}
+            </p>
+          )
+        }
+      </div>
+      <button class="pill-btn pill-btn--filled" type="submit" disabled={!hash}
+        >Sign in</button
+      >
+    </form>
+    <p class="fin-hint">
+      The server checks the password. You stay signed in on this device for {
+        SESSION_DAYS
+      } days or until you sign out.
+    </p>
+  </section>
+</FinanceShell>
+
+<style>
+  .fin-login {
+    width: min(100%, 26rem);
+    margin: 12vh auto 0;
+  }
+</style>

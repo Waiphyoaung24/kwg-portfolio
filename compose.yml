@@ -30,9 +30,12 @@ services:
       DATABASE_URL: postgres://kwg:${POSTGRES_PASSWORD:-kwg}@db:5432/kwg
       # Vault tool links, read at request time by /vault (empty → localhost fallback)
       PUBLIC_MEMOS_URL: ${PUBLIC_MEMOS_URL:-}
-      PUBLIC_FIREFLY_URL: ${PUBLIC_FIREFLY_URL:-}
       PUBLIC_OPENGYM_URL: ${PUBLIC_OPENGYM_URL:-}
       PUBLIC_FIGCRAFT_URL: ${PUBLIC_FIGCRAFT_URL:-}
+      # Vault Finance sign-in: output of `node scripts/finance-password-hash.mjs`.
+      # Unset → finance refuses every sign-in with a setup message.
+      FINANCE_PASSWORD_HASH: ${FINANCE_PASSWORD_HASH:-}
+      FINANCE_TZ: ${FINANCE_TZ:-Asia/Bangkok}
     ports:
       - "3069:3000"
 
@@ -88,62 +91,7 @@ services:
     volumes:
       - memos_data:/var/opt/memos
 
-  # ── Firefly III — personal finance (Vault → Finance) ─────────────────
-  # Requires a real DB (no SQLite), so it gets its own Postgres.
-  firefly:
-    image: fireflyiii/core:version-6.6.6
-    restart: unless-stopped
-    depends_on:
-      firefly-db:
-        condition: service_healthy
-    environment:
-      APP_KEY: ${APP_KEY:?set APP_KEY (32 chars)}
-      APP_URL: ${FIREFLY_APP_URL:-http://localhost:8080}
-      TZ: ${TZ:-UTC}
-      TRUSTED_PROXIES: "**"
-      STATIC_CRON_TOKEN: ${STATIC_CRON_TOKEN:?set STATIC_CRON_TOKEN (32 chars)}
-      DB_CONNECTION: pgsql
-      DB_HOST: firefly-db
-      DB_PORT: "5432"
-      DB_DATABASE: firefly
-      DB_USERNAME: firefly
-      DB_PASSWORD: ${FIREFLY_DB_PASSWORD:?set FIREFLY_DB_PASSWORD}
-    # Bind host: loopback for local dev; set BIND_HOST=172.17.0.1 in prod (see memos).
-    ports:
-      - "${BIND_HOST:-127.0.0.1}:8080:8080"
-    volumes:
-      - firefly_upload:/var/www/html/storage/upload
-
-  # Firefly cron — fires recurring transactions / bill reminders daily at 03:00.
-  firefly-cron:
-    image: alpine
-    restart: unless-stopped
-    depends_on:
-      - firefly
-    environment:
-      STATIC_CRON_TOKEN: ${STATIC_CRON_TOKEN:?set STATIC_CRON_TOKEN (32 chars)}
-    command: >
-      sh -c "echo \"0 3 * * * wget -qO- http://firefly:8080/api/v1/cron/$$STATIC_CRON_TOKEN\"
-      | crontab - && crond -f -L /dev/stdout"
-
-  firefly-db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: firefly
-      POSTGRES_USER: firefly
-      POSTGRES_PASSWORD: ${FIREFLY_DB_PASSWORD:?set FIREFLY_DB_PASSWORD}
-    volumes:
-      - firefly_db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U firefly -d firefly"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
 volumes:
   pgdata:
   opengym_data:
   memos_data:
-  firefly_upload:
-  firefly_db:

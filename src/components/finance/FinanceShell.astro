@@ -1,0 +1,78 @@
+---
+// Frame for every Vault Finance page. Vault pages own their <html> and carry
+// no site header or footer (PRODUCT.md); styles live in src/styles/finance.scss.
+import '../../styles/index.scss';
+import '../../styles/finance.scss';
+import GlassFilter from '@components/GlassFilter.astro';
+
+interface Props {
+  title: string;
+  current?: 'overview' | 'entries' | 'balance' | 'accounts';
+  signedIn?: boolean;
+}
+const { title, current, signedIn = true } = Astro.props;
+const links = [
+  { key: 'overview', href: '/vault/finance', label: 'Overview' },
+  { key: 'entries', href: '/vault/finance/entries', label: 'Entries' },
+  {
+    key: 'balance',
+    href: '/vault/finance/balance-sheet',
+    label: 'Balance sheet',
+  },
+  { key: 'accounts', href: '/vault/finance/accounts', label: 'Accounts' },
+] as const;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>{title} — Finance — KWG</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400&family=JetBrains+Mono:wght@400&display=swap"
+    />
+  </head>
+  <body class="fin-body">
+    <GlassFilter />
+    <a class="fin-skip pill-btn" href="#fin-main">Skip to content</a>
+    {
+      signedIn && (
+        <header class="fin-head">
+          <a class="fin-brand label" href="/vault">
+            Vault
+          </a>
+          <nav class="fin-nav" aria-label="Finance">
+            {links.map((l) => (
+              <a
+                class="pill-btn"
+                href={l.href}
+                aria-current={current === l.key ? 'page' : undefined}
+              >
+                {l.label}
+              </a>
+            ))}
+          </nav>
+          <form
+            method="post"
+            action="/vault/finance/logout"
+            class="fin-signout"
+          >
+            <button class="pill-btn" type="submit">
+              Sign out
+            </button>
+          </form>
+        </header>
+      )
+    }
+    <main class="fin-main" id="fin-main" tabindex="-1">
+      <slot />
+    </main>
+  </body>
+</html>

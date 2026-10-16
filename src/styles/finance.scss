@@ -1,0 +1,419 @@
+// Vault Finance. Tokens only (src/styles/_vars.scss); weight 400 throughout;
+// every control a pill; hairlines instead of shadows (DESIGN.md).
+
+.fin-body {
+  min-height: 100svh;
+  margin: 0;
+  background: var(--c-canvas);
+  color: var(--c-body);
+  font-family: var(--ff-primary);
+}
+
+.fin-skip {
+  position: absolute;
+  left: var(--sp-lg);
+  top: var(--sp-lg);
+  z-index: 10;
+  transform: translateY(-200%);
+
+  &:focus-visible {
+    transform: none;
+  }
+}
+
+.fin-head,
+.fin-main {
+  max-width: var(--container-max-width);
+  margin-inline: auto;
+  padding-inline: var(--grid-margin);
+}
+
+.fin-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-md) var(--sp-xl);
+  padding-block: var(--sp-xl);
+  border-bottom: 1px solid var(--c-hairline);
+}
+
+.fin-brand {
+  color: var(--c-ink);
+  text-decoration: none;
+}
+
+.fin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+  flex: 1;
+
+  [aria-current='page'] {
+    border-color: var(--c-ink);
+    background-color: var(--c-canvas-mid);
+  }
+}
+
+.fin-signout {
+  margin: 0;
+}
+
+.fin-main {
+  display: grid;
+  // minmax(0, 1fr): a wide table scrolls inside .fin-scroll instead of
+  // stretching the page past the screen.
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-2xl);
+  padding-block: var(--sp-2xl) var(--sp-4xl);
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.fin-title {
+  margin: 0;
+  color: var(--c-ink);
+  font-size: var(--fs-3);
+  font-weight: var(--fw-regular);
+  letter-spacing: var(--ls-3);
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.fin-h2 {
+  margin: 0;
+  color: var(--c-ink);
+  font-size: var(--fs-5);
+  font-weight: var(--fw-regular);
+  line-height: 1.4;
+}
+
+.fin-lead {
+  margin: 0;
+  max-width: 65ch;
+}
+
+.fin-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-lg);
+  min-width: 0;
+}
+
+.fin-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+}
+
+.fin-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  .pill-btn[aria-current='true'],
+  .pill-btn[aria-pressed='true'] {
+    border-color: var(--c-ink);
+    background-color: var(--c-canvas-mid);
+  }
+}
+
+.fin-notice {
+  margin: 0;
+  padding: var(--sp-md) var(--sp-lg);
+  border: 1px solid var(--c-hairline-bright);
+  border-radius: var(--r-sm);
+  color: var(--c-ink);
+}
+
+.fin-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-lg);
+  padding: var(--sp-xl);
+  min-width: 0;
+  background: var(--c-canvas-card);
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-sm);
+}
+
+// ── Forms ────────────────────────────────────────────────────────
+.fin-form {
+  display: grid;
+  gap: var(--sp-lg);
+  margin: 0;
+}
+
+.fin-fields {
+  display: grid;
+  gap: var(--sp-lg);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+}
+
+.fin-field {
+  display: grid;
+  gap: var(--sp-xs);
+  align-content: start;
+  min-width: 0;
+
+  > label,
+  > .fin-field__label {
+    font-family: var(--ff-mono);
+    font-size: var(--fs-micro);
+    letter-spacing: var(--ls-mono);
+    text-transform: uppercase;
+    color: var(--c-body);
+  }
+}
+
+.fin-input {
+  width: 100%;
+  min-width: 0;
+  min-height: to-rem(44);
+  padding: var(--sp-sm) var(--sp-lg);
+  background: var(--c-canvas-soft);
+  color: var(--c-ink);
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: var(--fs-base);
+
+  &:focus-visible {
+    outline: 2px solid var(--c-ink);
+    outline-offset: 2px;
+  }
+
+  &[aria-invalid='true'] {
+    border-color: var(--c-ink);
+  }
+}
+
+.fin-input--amount {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-5);
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-hint {
+  margin: 0;
+  font-size: var(--fs-body-sm);
+  color: var(--c-body);
+}
+
+.fin-error {
+  margin: 0;
+  font-size: var(--fs-body-sm);
+  color: var(--c-ink);
+
+  &::before {
+    content: '! ';
+    font-family: var(--ff-mono);
+  }
+}
+
+.fin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-sm);
+  margin: 0;
+
+  > .fin-input {
+    width: auto;
+    flex: 1 1 12rem;
+  }
+}
+
+button.pill-btn {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+// ── Tables and lists ────────────────────────────────────────────
+.fin-scroll {
+  // Contains .visually-hidden headers, which are absolutely positioned and
+  // would otherwise widen the page from the far edge of a wide table.
+  position: relative;
+  overflow-x: auto;
+  border: 1px solid var(--c-hairline);
+  border-radius: var(--r-sm);
+}
+
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-body-sm);
+
+  th {
+    padding: var(--sp-md) var(--sp-lg);
+    background: var(--c-canvas-soft);
+    font-family: var(--ff-mono);
+    font-size: var(--fs-micro);
+    font-weight: var(--fw-regular);
+    letter-spacing: var(--ls-mono);
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--c-body);
+  }
+
+  td {
+    padding: var(--sp-md) var(--sp-lg);
+    border-top: 1px solid var(--c-hairline);
+    vertical-align: middle;
+  }
+
+  .fin-r {
+    text-align: right;
+  }
+
+  tfoot td {
+    background: var(--c-canvas-soft);
+  }
+
+  form {
+    margin: 0;
+  }
+}
+
+.fin-void td {
+  color: var(--c-mute);
+}
+
+.fin-void .fin-desc {
+  text-decoration: line-through;
+}
+
+.fin-num {
+  font-family: var(--ff-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fin-in {
+  color: var(--c-ink);
+}
+
+.fin-empty {
+  margin: 0;
+  padding: var(--sp-2xl) var(--sp-xl);
+  border: 1px dashed var(--c-hairline-bright);
+  border-radius: var(--r-sm);
+  text-align: center;
+}
+
+// ── Balance sheet ───────────────────────────────────────────────
+.fin-group {
+  margin: 0;
+}
+
+.fin-columns {
+  display: grid;
+  gap: var(--sp-lg);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.fin-lines {
+  display: grid;
+  margin: 0;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-md);
+    padding-block: var(--sp-sm);
+    border-top: 1px solid var(--c-hairline);
+    font-size: var(--fs-body-sm);
+  }
+
+  dt,
+  dd {
+    margin: 0;
+    min-width: 0;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  .fin-total {
+    color: var(--c-ink);
+  }
+
+  .fin-net {
+    border-top-color: var(--c-hairline-bright);
+    color: var(--c-ink);
+    font-size: var(--fs-base);
+  }
+}
+
+.fin-check {
+  justify-self: start;
+  margin: 0;
+  padding: var(--sp-xs) var(--sp-md);
+  border: 1px solid var(--c-hairline-bright);
+  border-radius: var(--r-pill);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--ls-mono);
+  text-transform: uppercase;
+  color: var(--c-ink);
+}
+
+// ── Phone ───────────────────────────────────────────────────────
+// Entries collapse from a table to stacked rows: date and description on one
+// line, category and account beneath, amount on the right.
+@media (max-width: 40rem) {
+  // Brand and Sign out share the first row; the section pills wrap below.
+  .fin-head {
+    justify-content: space-between;
+    padding-block: var(--sp-lg);
+  }
+
+  .fin-nav {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .fin-table--stack {
+    thead {
+      display: none;
+    }
+
+    tr {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--sp-xs) var(--sp-md);
+      padding: var(--sp-md) var(--sp-lg);
+      border-top: 1px solid var(--c-hairline);
+    }
+
+    td {
+      padding: 0;
+      border: 0;
+    }
+
+    td[data-col='amount'] {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    td[data-col='date'],
+    td[data-col='category'],
+    td[data-col='account'] {
+      font-family: var(--ff-mono);
+      font-size: var(--fs-micro);
+      color: var(--c-body);
+    }
+
+    tfoot tr {
+      display: block;
+    }
+  }
+}

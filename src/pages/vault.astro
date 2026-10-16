@@ -17,10 +17,6 @@ const MEMOS_URL =
   process.env.PUBLIC_MEMOS_URL ||
   import.meta.env.PUBLIC_MEMOS_URL ||
   'http://localhost:5230';
-const FIREFLY_URL =
-  process.env.PUBLIC_FIREFLY_URL ||
-  import.meta.env.PUBLIC_FIREFLY_URL ||
-  'http://localhost:8080';
 
 // Monoline 24x24 icons, one path each, drawn at 1.5px stroke with no fill —
 // the Nothing iconography rule. Kept as path data so the tile markup stays one
@@ -60,8 +56,8 @@ const tools = [
   },
   {
     name: 'Finance',
-    href: FIREFLY_URL,
-    external: true,
+    href: '/vault/finance',
+    external: false,
     icon: 'M16 7h6v6M22 7l-8.5 8.5-5-5L2 17',
   },
   {

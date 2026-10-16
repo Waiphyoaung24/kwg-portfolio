@@ -1,0 +1,476 @@
+---
+export const prerender = false;
+import FinanceShell from '@components/finance/FinanceShell.astro';
+import { db } from '../../../lib/finance/db.ts';
+import {
+  financeToday,
+  isIsoDate,
+  revalueDraft,
+  type Errors,
+} from '../../../lib/finance/entries.ts';
+import {
+  createAccount,
+  loadAccounts,
+  post,
+  setArchived,
+} from '../../../lib/finance/ledger.ts';
+import {
+  amountInputValue,
+  formatAmount,
+  isCurrency,
+  isZeroText,
+  parseAmount,
+} from '../../../lib/finance/money.ts';
+import { accountBalance, balances } from '../../../lib/finance/reports.ts';
+import { field, parseId } from '../../../lib/finance/request.ts';
+
+const today = financeToday();
+const sql = await db();
+let accounts = await loadAccounts(sql);
+const errors: Errors = {};
+const values: Record<string, string> = {
+  name: '',
+  type: 'asset',
+  currency: '',
+  scope: 'personal',
+  opening: '',
+  openingDate: today,
+  catName: '',
+  catType: 'expense',
+};
+const done: Record<string, string> = {
+  account: 'Account added.',
+  category: 'Category added.',
+  archived: 'Archived.',
+  restored: 'Restored.',
+  revalued: 'Value updated.',
+};
+let notice = done[Astro.url.searchParams.get('saved') ?? ''] ?? '';
+
+const isUniqueViolation = (e: unknown) =>
+  (e as { code?: string })?.code === '23505';
+const back = (what: string) =>
+  Astro.redirect(`/vault/finance/accounts?saved=${what}`, 303);
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = field(form, '_action');
+
+  if (action === 'add_account') {
+    for (const k of [
+      'name',
+      'type',
+      'currency',
+      'scope',
+      'opening',
+      'openingDate',
+    ])
+      values[k] = field(form, k).trim();
+    values.currency = values.currency.toUpperCase();
+    if (!values.name || values.name.length > 80)
+      errors.name = 'Enter a name up to 80 characters, like “KBank”.';
+    if (values.type !== 'asset' && values.type !== 'liability')
+      errors.type = 'Choose whether you own or owe it.';
+    if (!isCurrency(values.currency))
+      errors.currency = 'Enter a 3-letter currency code, like THB, MMK or USD.';
+    if (values.scope !== 'personal' && values.scope !== 'business')
+      errors.scope = 'Choose personal or business.';
+    if (!isIsoDate(values.openingDate))
+      errors.openingDate = 'Enter a date like 2026-10-16.';
+    let opening = 0n;
+    if (
+      values.opening !== '' &&
+      !isZeroText(values.opening) &&
+      !errors.currency
+    ) {
+      const parsed = parseAmount(values.opening, values.currency);
+      if (parsed === null)
+        errors.opening =
+          'Enter the balance as a positive amount, or leave it empty for zero.';
+      else opening = parsed;
+    }
+    if (!Object.keys(errors).length) {
+      try {
+        await createAccount(
+          sql,
+          {
+            name: values.name,
+            type: values.type as 'asset' | 'liability',
+            currency: values.currency,
+            scope: values.scope as 'personal' | 'business',
+          },
+          { amount: opening, occurredOn: values.openingDate },
+        );
+        return back('account');
+      } catch (e) {
+        if (!isUniqueViolation(e)) throw e;
+        errors.name = 'You already have an account with this name.';
+      }
+    }
+    Astro.response.status = 422;
+  } else if (action === 'add_category') {
+    values.catName = field(form, 'catName').trim();
+    values.catType = field(form, 'catType');
+    if (!values.catName || values.catName.length > 80)
+      errors.catName = 'Enter a name up to 80 characters.';
+    if (values.catType !== 'expense' && values.catType !== 'income')
+      errors.catType = 'Choose spending or income.';
+    if (!Object.keys(errors).length) {
+      try {
+        await sql`insert into fin_accounts (name, type) values (${values.catName}, ${values.catType})`;
+        return back('category');
+      } catch (e) {
+        if (!isUniqueViolation(e)) throw e;
+        errors.catName = 'That category already exists.';
+      }
+    }
+    Astro.response.status = 422;
+  } else if (action === 'archive' || action === 'restore') {
+    const id = parseId(field(form, 'id'));
+    if (id) {
+      try {
+        await setArchived(sql, id, action === 'archive');
+        return back(action === 'archive' ? 'archived' : 'restored');
+      } catch (e) {
+        if (!isUniqueViolation(e)) throw e;
+        notice =
+          'A live account already uses that name. Rename or archive it first.';
+        Astro.response.status = 409;
+      }
+    }
+  } else if (action === 'revalue') {
+    const id = parseId(field(form, 'id'));
+    const account = id ? accounts.get(id) : undefined;
+    const date = field(form, 'date');
+    const next = account?.currency
+      ? parseAmount(field(form, 'value'), account.currency)
+      : null;
+    const zero = isZeroText(field(form, 'value'));
+    if (!account || account.type !== 'asset' || account.archived_at)
+      notice = 'Only live accounts you own can be revalued.';
+    else if (!isIsoDate(date))
+      notice = 'Enter the revaluation date like 2026-10-16.';
+    else if (next === null && !zero)
+      notice = `Enter the new value of ${account.name} in ${account.currency}.`;
+    else {
+      const current = await accountBalance(sql, account.id, date);
+      const draft = revalueDraft(account, current, next ?? 0n, date, accounts);
+      if (draft) await post(sql, draft, accounts);
+      return back('revalued');
+    }
+    Astro.response.status = 422;
+  }
+  accounts = await loadAccounts(sql);
+}
+
+const now = new Map(
+  (await balances(sql, today)).map((b) => [b.accountId, b.balance]),
+);
+const all = [...accounts.values()].filter((a) => !a.system_key);
+const balanceAccounts = all.filter(
+  (a) => a.type === 'asset' || a.type === 'liability',
+);
+const cats = all.filter((a) => a.type === 'expense' || a.type === 'income');
+const shown = (a: (typeof all)[number]) => {
+  const raw = now.get(a.id) ?? 0n;
+  return formatAmount(a.type === 'liability' ? -raw : raw, a.currency!);
+};
+---
+
+<FinanceShell title="Accounts" current="accounts">
+  <h1 class="fin-title">Accounts</h1>
+  {
+    notice && (
+      <p class="fin-notice" role="status">
+        {notice}
+      </p>
+    )
+  }
+
+  <section class="fin-section" aria-labelledby="list-title">
+    <h2 class="fin-h2" id="list-title">Your accounts</h2>
+    {
+      balanceAccounts.length === 0 ? (
+        <p class="fin-empty">
+          No accounts yet. Add your bank, cash, e-wallet and card accounts
+          below, each with what it holds today.
+        </p>
+      ) : (
+        <div class="fin-scroll">
+          <table class="fin-table">
+            <thead>
+              <tr>
+                <>
+                  <th>Name</th>
+                  <th>Kind</th>
+                  <th>Books</th>
+                  <th class="fin-r">Balance today</th>
+                  <th>
+                    <span class="visually-hidden">Actions</span>
+                  </th>
+                </>
+              </tr>
+            </thead>
+            <tbody>
+              {balanceAccounts.map((a) => (
+                <tr class={a.archived_at ? 'fin-void' : undefined}>
+                  <td>
+                    <a href={`/vault/finance/accounts/${a.id}`}>{a.name}</a>{' '}
+                    <span class="micro">{a.currency}</span>
+                  </td>
+                  <td>{a.type === 'asset' ? 'You own' : 'You owe'}</td>
+                  <td>{a.scope === 'personal' ? 'Personal' : 'Business'}</td>
+                  <td class="fin-r fin-num">
+                    {shown(a)} {a.currency}
+                  </td>
+                  <td>
+                    <div class="fin-actions">
+                      {a.type === 'asset' && !a.archived_at && (
+                        <details class="fin-revalue">
+                          <summary class="pill-btn">Revalue</summary>
+                          <form method="post" class="fin-form">
+                            <input
+                              type="hidden"
+                              name="_action"
+                              value="revalue"
+                            />
+                            <input type="hidden" name="id" value={a.id} />
+                            <div class="fin-field">
+                              <label for={`value-${a.id}`}>
+                                New value ({a.currency})
+                              </label>
+                              <input
+                                class="fin-input fin-num"
+                                id={`value-${a.id}`}
+                                name="value"
+                                inputmode="decimal"
+                                value={amountInputValue(
+                                  now.get(a.id) ?? 0n,
+                                  a.currency!,
+                                )}
+                              />
+                            </div>
+                            <div class="fin-field">
+                              <label for={`date-${a.id}`}>As of</label>
+                              <input
+                                class="fin-input"
+                                id={`date-${a.id}`}
+                                name="date"
+                                type="date"
+                                value={today}
+                              />
+                            </div>
+                            <button class="pill-btn" type="submit">
+                              Save value
+                            </button>
+                          </form>
+                        </details>
+                      )}
+                      <form method="post">
+                        <input
+                          type="hidden"
+                          name="_action"
+                          value={a.archived_at ? 'restore' : 'archive'}
+                        />
+                        <input type="hidden" name="id" value={a.id} />
+                        <button class="pill-btn" type="submit">
+                          {a.archived_at ? 'Restore' : 'Archive'}
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </section>
+
+  <section class="fin-panel" aria-labelledby="new-title">
+    <h2 class="fin-h2" id="new-title">Add an account</h2>
+    <form class="fin-form" method="post" novalidate>
+      <input type="hidden" name="_action" value="add_account" />
+      <div class="fin-fields">
+        <div class="fin-field">
+          <label for="name">Name</label>
+          <input
+            class="fin-input"
+            id="name"
+            name="name"
+            maxlength="80"
+            required
+            value={values.name}
+            aria-invalid={errors.name ? 'true' : undefined}
+          />
+          {errors.name && <p class="fin-error">{errors.name}</p>}
+        </div>
+        <div class="fin-field">
+          <label for="type">Kind</label>
+          <select class="fin-input" id="type" name="type">
+            <option value="asset" selected={values.type === 'asset'}
+              >You own it (bank, cash, e-wallet, gold)</option
+            >
+            <option value="liability" selected={values.type === 'liability'}
+              >You owe it (credit card, loan)</option
+            >
+          </select>
+          {errors.type && <p class="fin-error">{errors.type}</p>}
+        </div>
+        <div class="fin-field">
+          <label for="currency">Currency</label>
+          <input
+            class="fin-input fin-num"
+            id="currency"
+            name="currency"
+            maxlength="3"
+            autocapitalize="characters"
+            autocomplete="off"
+            required
+            value={values.currency}
+            placeholder="THB"
+            aria-invalid={errors.currency ? 'true' : undefined}
+          />
+          {errors.currency && <p class="fin-error">{errors.currency}</p>}
+        </div>
+        <div class="fin-field">
+          <label for="scope">Books</label>
+          <select class="fin-input" id="scope" name="scope">
+            <option value="personal" selected={values.scope === 'personal'}
+              >Personal</option
+            >
+            <option value="business" selected={values.scope === 'business'}
+              >Business</option
+            >
+          </select>
+          {errors.scope && <p class="fin-error">{errors.scope}</p>}
+        </div>
+        <div class="fin-field">
+          <label for="opening">Balance on start date</label>
+          <input
+            class="fin-input fin-num"
+            id="opening"
+            name="opening"
+            inputmode="decimal"
+            autocomplete="off"
+            value={values.opening}
+            aria-invalid={errors.opening ? 'true' : undefined}
+            aria-describedby="opening-hint"
+          />
+          {
+            errors.opening ? (
+              <p class="fin-error" id="opening-hint">
+                {errors.opening}
+              </p>
+            ) : (
+              <p class="fin-hint" id="opening-hint">
+                For a card or loan, what you owe.
+              </p>
+            )
+          }
+        </div>
+        <div class="fin-field">
+          <label for="openingDate">Start date</label>
+          <input
+            class="fin-input"
+            id="openingDate"
+            name="openingDate"
+            type="date"
+            value={values.openingDate}
+            aria-invalid={errors.openingDate ? 'true' : undefined}
+          />
+          {errors.openingDate && <p class="fin-error">{errors.openingDate}</p>}
+        </div>
+      </div>
+      <div class="fin-actions">
+        <button class="pill-btn pill-btn--filled" type="submit"
+          >Add account</button
+        >
+      </div>
+    </form>
+  </section>
+
+  <section class="fin-section" aria-labelledby="cat-title">
+    <h2 class="fin-h2" id="cat-title">Categories</h2>
+    <ul class="fin-pills" aria-label="Categories">
+      {
+        cats.map((c) => (
+          <li>
+            <form method="post">
+              <input
+                type="hidden"
+                name="_action"
+                value={c.archived_at ? 'restore' : 'archive'}
+              />
+              <input type="hidden" name="id" value={c.id} />
+              <button
+                class="pill-btn"
+                type="submit"
+                aria-label={`${c.archived_at ? 'Restore' : 'Archive'} ${c.name}`}
+                title={
+                  c.archived_at
+                    ? 'Archived. Select to restore.'
+                    : 'Select to archive.'
+                }
+              >
+                {c.name}{' '}
+                <span class="micro">
+                  {c.type === 'expense' ? 'spend' : 'income'}
+                  {c.archived_at ? ' · archived' : ''}
+                </span>
+              </button>
+            </form>
+          </li>
+        ))
+      }
+    </ul>
+    <form class="fin-form" method="post" novalidate>
+      <input type="hidden" name="_action" value="add_category" />
+      <div class="fin-fields">
+        <div class="fin-field">
+          <label for="catName">New category</label>
+          <input
+            class="fin-input"
+            id="catName"
+            name="catName"
+            maxlength="80"
+            value={values.catName}
+            aria-invalid={errors.catName ? 'true' : undefined}
+          />
+          {errors.catName && <p class="fin-error">{errors.catName}</p>}
+        </div>
+        <div class="fin-field">
+          <label for="catType">For</label>
+          <select class="fin-input" id="catType" name="catType">
+            <option value="expense" selected={values.catType === 'expense'}
+              >Spending</option
+            >
+            <option value="income" selected={values.catType === 'income'}
+              >Income</option
+            >
+          </select>
+        </div>
+      </div>
+      <div class="fin-actions">
+        <button class="pill-btn" type="submit">Add category</button>
+      </div>
+    </form>
+    <p class="fin-hint">
+      Archiving hides an account or category from new entries. Past entries keep
+      it.
+    </p>
+  </section>
+</FinanceShell>
+
+<style>
+  .fin-revalue[open] {
+    flex-basis: 100%;
+  }
+  .fin-revalue summary {
+    list-style: none;
+  }
+  .fin-revalue summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

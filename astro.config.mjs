@@ -13,6 +13,16 @@ export default defineConfig({
       ? 'http://localhost:4321'
       : 'https://waiphyoaung.com',
   adapter: node({ mode: 'standalone' }),
+  // Behind the tunnel the app sees plain http; trusting the forwarded host and
+  // protocol for our own domain lets Astro.url (and checkOrigin's same-origin
+  // test on form posts) match what the browser sent. Without this, every
+  // Vault Finance form post is refused as cross-site in production.
+  security: {
+    allowedDomains: [
+      { hostname: 'waiphyoaung.com', protocol: 'https' },
+      { hostname: 'www.waiphyoaung.com', protocol: 'https' },
+    ],
+  },
   integrations: [
     robotsTxt({
       sitemapBaseFileName: 'sitemap-index',
