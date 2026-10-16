@@ -60,6 +60,37 @@ class TwoSymbolTest(unittest.TestCase):
             entry=0, type=0, volume=.01, price=100.1, magic=execution.MAGIC,
             comment=request['comment'], profit=0, commission=0, swap=0, fee=0, time=NOW))
 
+    def test_close_between_reconciliation_and_exposure_is_reconciled(self):
+        self.position(self.gold, GOLD)
+        self.migrate()
+        self.positions.clear()
+        self.deals.append(Record(ticket=999, order=998, position_id=77, symbol=GOLD,
+            entry=1, type=1, volume=.01, price=106, magic=execution.MAGIC,
+            comment='tp', profit=5.9, commission=0, swap=0, fee=0,
+            time=NOW+1, reason=self.mt5.DEAL_REASON_TP))
+        self.mt5.account_info.return_value.balance = 10005.9
+        shared = pilot.SharedAccount(self.gold, self.btc)
+        shared.check(self.mt5, 123, NOW+2)
+        self.assertEqual(execution._attempt(self.gold)['state'], 'closed')
+        self.assertIsNone(json.loads(self.gold.execute('SELECT data FROM account_limits').fetchone()[0])['pause'])
+        self.mt5.order_send.assert_not_called()
+
+    def test_missing_close_evidence_still_blocks_exposure(self):
+        self.position(self.gold, GOLD)
+        self.migrate()
+        self.positions.clear()
+        with self.assertRaises(ValueError):
+            pilot.SharedAccount(self.gold, self.btc).check(self.mt5, 123, NOW+2)
+        self.mt5.order_send.assert_not_called()
+
+    def test_unrelated_position_survives_recheck_and_blocks(self):
+        self.position(self.gold, GOLD)
+        self.migrate()
+        self.positions.append(Record(ticket=999,symbol=BTC))
+        with self.assertRaisesRegex(ValueError, 'Unrelated account position'):
+            pilot.SharedAccount(self.gold,self.btc).check(self.mt5,123,NOW+2)
+        self.mt5.order_send.assert_not_called()
+
     def test_migration_preserves_open_gold_pause_history_and_risk(self):
         self.position(self.gold, GOLD)
         old = pilot.state(self.gold)

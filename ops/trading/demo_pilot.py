@@ -628,6 +628,21 @@ class SharedAccount:
 
 
 def check_exposure(mt5, journals, login, now, *, entering=None):
+    try:
+        return _check_exposure(mt5, journals, login, now, entering=entering)
+    except ValueError as exc:
+        if str(exc) not in ('Journal and broker exposure disagree',
+                            'Unrelated account position requires review'):
+            raise
+    # Stops can fill between broker reads. Reconcile once, then require a fresh full check.
+    for db in journals:
+        row = execution._attempt(db)
+        if row and row['state'] == 'open':
+            execution._reconcile(mt5, db, row, now, retry_unavailable=True)
+    return _check_exposure(mt5, journals, login, now, entering=entering)
+
+
+def _check_exposure(mt5, journals, login, now, *, entering=None):
     positions, orders = mt5.positions_get(), mt5.orders_get()
     if positions is None or orders is None:
         raise BrokerUnavailable('Account exposure unavailable')
